@@ -27,16 +27,8 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         // set the database name, free tier 
         sql.AddDatabase("db2", "db2Name");
 
-        // set the database name, set the sku to HS_Gen5_2
-        sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-
-        // set the database name, set the sku to Basic
-        sql.AddDatabase("db4", "db4Name"). WithSku("Basic");
-
-        // set the database name, explicitly ask for the free tier
-        // (which does not exist in reality, but we using the "Free" moniker
-        // to indicate that we want to take advantage of the free offer
-        sql.AddDatabase("db5", "db5Name").WithSku("Free");
+        // do not set any sku, use whatever is the default for Azure at that time
+        sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
 
         if (useAcaInfrastructure)
         {
@@ -170,31 +162,6 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
             resource db3 'Microsoft.Sql/servers/databases@2021-11-01' = {
               name: 'db3Name'
               location: location
-              sku: {
-                name: 'HS_Gen5_2'
-              }
-              parent: sql
-            }
-
-            resource db4 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db4Name'
-              location: location
-              sku: {
-                name: 'Basic'
-              }
-              parent: sql
-            }
-
-            resource db5 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db5Name'
-              location: location
-              properties: {
-                freeLimitExhaustionBehavior: 'AutoPause'
-                useFreeLimit: true
-              }
-              sku: {
-                name: 'GP_S_Gen5_2'
-              }
               parent: sql
             }
 
@@ -218,16 +185,12 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
-        IResourceBuilder<AzureSqlDatabaseResource> db4 = null!;
-        IResourceBuilder<AzureSqlDatabaseResource> db5 = null!;
 
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
-            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
         sql.RunAsContainer(c =>
         {
@@ -238,9 +201,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
-            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
@@ -259,14 +220,6 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db3ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
-
-        var db4ConnectionString = await db4.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db4ConnectionString);
-        Assert.EndsWith(";TrustServerCertificate=true;Database=db4Name", db4ConnectionString);
-
-        var db5ConnectionString = await db5.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db5ConnectionString);
-        Assert.EndsWith(";TrustServerCertificate=true;Database=db5Name", db5ConnectionString);
     }
 
     [Theory]
@@ -282,16 +235,12 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
-        IResourceBuilder<AzureSqlDatabaseResource> db4 = null!;
-        IResourceBuilder<AzureSqlDatabaseResource> db5 = null!;
 
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
-            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
@@ -309,9 +258,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-            db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-            db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
-            db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
@@ -335,12 +282,6 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
-
-        var db4ConnectionString = await db4.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db4Name", db4ConnectionString);
-
-        var db5ConnectionString = await db5.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db5Name", db5ConnectionString);
     }
 
     [Theory]
@@ -402,7 +343,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void VerifyDesiredSku()
+    public void VerifyDefaultAzureSku()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -410,25 +351,15 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         // database name same as the aspire resource name, free tier 
         var db1 = sql.AddDatabase("db1");
-        Assert.Equal("Free", db1.Resource.SkuName);
+        Assert.False(db1.Resource.UseDefaultAzureSku);
 
         // set the database name, free tier 
         var db2 = sql.AddDatabase("db2", "db2Name");
-        Assert.Equal("Free", db2.Resource.SkuName);
+        Assert.False(db2.Resource.UseDefaultAzureSku);
 
-        // set the database name, set the sku to HS_Gen5_2
-        var db3 = sql.AddDatabase("db3", "db3Name").WithSku("HS_Gen5_2");
-        Assert.Equal("HS_Gen5_2", db3.Resource.SkuName);
-
-        // set the database name, set the sku to Basic
-        var db4 = sql.AddDatabase("db4", "db4Name").WithSku("Basic");
-        Assert.Equal("Basic", db4.Resource.SkuName);
-
-        // set the database name, explicitly ask for the free tier
-        // (which does not exist in reality, but we using the "Free" moniker
-        // to indicate that we want to take advantage of the free offer
-        var db5 = sql.AddDatabase("db5", "db5Name").WithSku("Free");
-        Assert.Equal("Free", db5.Resource.SkuName);
+        // set the database name, do not use the free offer
+        var db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
+        Assert.True(db3.Resource.UseDefaultAzureSku);
     }
 
     private sealed class Dummy1Annotation : IResourceAnnotation

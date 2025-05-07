@@ -93,6 +93,7 @@ public static class AzureSqlExtensions
 
     /// <summary>
     /// Adds an Azure SQL Database to the application model.
+    /// The Free Offer option will be used when deploying the resource in Azure
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -108,7 +109,6 @@ public static class AzureSqlExtensions
 
         var azureResource = builder.Resource;
         var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
-        azureSqlDatabase.SkuName = AzureSqlDatabaseResource.FREE_SKU_NAME;
 
         builder.Resource.AddDatabase(azureSqlDatabase);
 
@@ -129,14 +129,14 @@ public static class AzureSqlExtensions
     }
 
     /// <summary>
-    /// Configures the Azure SQL Database to be deployed with the specified SKU.
+    /// Configures the Azure SQL Database to be deployed use the default SKU provided by Azure.
+    /// Please be aware that the Azure default Sku might not take advantage of the free offer.
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
-    /// <param name="skuName">SKU of the database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> WithSku(this IResourceBuilder<AzureSqlDatabaseResource> builder, string skuName)
+    public static IResourceBuilder<AzureSqlDatabaseResource> WithDefaultAzureSku(this IResourceBuilder<AzureSqlDatabaseResource> builder)
     {
-        builder.Resource.SkuName = skuName;
+        builder.Resource.UseDefaultAzureSku = true;
         return builder;
     }
 
@@ -218,17 +218,7 @@ public static class AzureSqlExtensions
 
         foreach (var database in databases)
         {
-            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(database.Key);
-            var databaseName = database.Value;
-            var sqlDatabase = new SqlDatabase(bicepIdentifier)
-            {
-                Parent = sqlServer,
-                Name = databaseName,
-            };
-            
-            sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
-            sqlDatabase.UseFreeLimit = true;
-            sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value);
 
             infrastructure.Add(sqlDatabase);
         }
@@ -243,27 +233,31 @@ public static class AzureSqlExtensions
 
         foreach (var database in databases)
         {
-            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(database.Key);
-            var databaseName = database.Value.DatabaseName;
-            var sqlDatabase = new SqlDatabase(bicepIdentifier)
-            {
-                Parent = sqlServer,
-                Name = databaseName,
-            };
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value.DatabaseName);
 
-            if (string.Equals(database.Value.SkuName, AzureSqlDatabaseResource.FREE_SKU_NAME, StringComparison.OrdinalIgnoreCase))
+            // Unless user specifically mention that they want to use the Azure defaults,
+            // an Azure SQL DB using the free option will be created
+            if (database.Value.UseDefaultAzureSku == false)
             {
                 sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
                 sqlDatabase.UseFreeLimit = true;
                 sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
             }
-            else
-            {
-                sqlDatabase.Sku = new SqlSku() { Name = database.Value.SkuName };
-            }
 
             infrastructure.Add(sqlDatabase);
         }
+    }
+
+    private static SqlDatabase CreateAzureSQLDatabase(SqlServer sqlServer, string databaseKey, string databaseName)
+    {
+        var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseKey);
+        var sqlDatabase = new SqlDatabase(bicepIdentifier)
+        {
+            Parent = sqlServer,
+            Name = databaseName,
+        };
+
+        return sqlDatabase;
     }
 
     private static SqlServer CreateSqlServerResourceOnly(AzureResourceInfrastructure infrastructure,

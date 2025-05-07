@@ -17,16 +17,9 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     : Resource(name), IResourceWithParent<AzureSqlServerResource>, IResourceWithConnectionString
 {
     /// <summary>
-    /// Free Azure SQL database offer
-    /// </summary>
-    internal const string FREE_SKU_NAME = "Free";
-
-    /// <summary>
     /// SKU associated with the free offer
     /// </summary>
     internal const string FREE_DB_SKU = "GP_S_Gen5_2";
-
-    private string _skuName = FREE_SKU_NAME;
 
     /// <summary>
     /// Gets the parent Azure SQL Database (server) resource.
@@ -44,14 +37,10 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
 
-    /// <summary>
-    /// Gets or Sets the database SKU name
-    /// </summary>
-    public string SkuName
-    {
-        get { return _skuName; }
-        internal set { ThrowIfNullOrEmpty(value); _skuName = value.Trim(); }
-    }
+    /// <summary>  
+    /// Gets or Sets the database SKU name  
+    /// </summary>  
+    public bool UseDefaultAzureSku { get; internal set; } // Default to false  
 
     /// <summary>
     /// Gets the inner SqlServerDatabaseResource resource.
@@ -79,5 +68,4 @@ public class AzureSqlDatabaseResource(string name, string databaseName, AzureSql
 
         InnerResource = innerResource;
     }
-
 }
