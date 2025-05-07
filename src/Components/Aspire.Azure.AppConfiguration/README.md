@@ -110,7 +110,7 @@ The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.C
   "Aspire": {
     "Azure": {
       "AppConfiguration": {
-        "DisableTracing": false
+        "Endpoint": "http://YOUR_URI"
       }
     }
   }
@@ -119,10 +119,10 @@ The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.C
 
 ### Use inline delegates
 
-You can also pass the `Action<AzureAppConfigurationSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+You can also pass the `Action<AzureAppConfigurationSettings> configureSettings` delegate to set up some or all the options inline, for example to set App Configuration endpoint from code:
 
 ```csharp
-builder.AddAzureAppConfiguration("appConfig", configureSettings: settings => settings.DisableTracing = true);
+builder.AddAzureAppConfiguration("appConfig", configureSettings: settings => settings.Endpoint = "http://YOUR_URI");
 ```
 
 ## AppHost extensions
