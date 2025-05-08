@@ -175,6 +175,76 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .UseHelixAwareDirectory();
     }
 
+    [Fact]
+    public async Task DockerComposeDoesNotOverwriteEnvFileOnPublish()
+    {
+        using var tempDir = new TempDirectory();
+        var envFilePath = Path.Combine(tempDir.Path, ".env");
+
+        void PublishApp()
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.AddDockerComposeEnvironment("docker-compose");
+            var param = builder.AddParameter("param1");
+            builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
+            var app = builder.Build();
+            app.Run();
+        }
+
+        PublishApp();
+        Assert.True(File.Exists(envFilePath));
+        var firstContent = File.ReadAllText(envFilePath).Replace("PARAM1=", "PARAM1=changed");
+        File.WriteAllText(envFilePath, firstContent);
+
+        PublishApp();
+        Assert.True(File.Exists(envFilePath));
+        var secondContent = File.ReadAllText(envFilePath);
+
+        await Verify(firstContent, "env")
+            .AppendContentAsFile(secondContent, "env")
+            .UseHelixAwareDirectory();
+    }
+
+    [Fact]
+    public async Task DockerComposeAppendsNewKeysToEnvFileOnPublish()
+    {
+        using var tempDir = new TempDirectory();
+        var envFilePath = Path.Combine(tempDir.Path, ".env");
+
+        void PublishApp(params string[] paramNames)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.AddDockerComposeEnvironment("docker-compose");
+
+            var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
+
+            builder.AddContainer("app", "busybox")
+                    .WithEnvironment(context =>
+                    {
+                        foreach (var param in parmeters)
+                        {
+                            context.EnvironmentVariables[param.Name] = param;
+                        }
+                    });
+
+            var app = builder.Build();
+            app.Run();
+        }
+
+        PublishApp(["param1"]);
+        Assert.True(File.Exists(envFilePath));
+        var firstContent = File.ReadAllText(envFilePath).Replace("PARAM1=", "PARAM1=changed");
+        File.WriteAllText(envFilePath, firstContent);
+
+        PublishApp(["param1", "param2"]);
+        Assert.True(File.Exists(envFilePath));
+        var secondContent = File.ReadAllText(envFilePath);
+
+        await Verify(firstContent, "env")
+            .AppendContentAsFile(secondContent, "env")
+            .UseHelixAwareDirectory();
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
