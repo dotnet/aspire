@@ -296,7 +296,7 @@
     <value>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</value>
   </data>
   <data name="SettingsDialogTelemetryInfoLinkText" xml:space="preserve">
-    <value>See the documentation?</value>
+    <value>Why?</value>
   </data>
   <data name="SettingsDialogTelemetryInfoLinkTooltip" xml:space="preserve">
     <value>Go to usage telemetry documentation</value>

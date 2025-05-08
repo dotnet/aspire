@@ -243,7 +243,7 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
-        <source>See the documentation?</source>
+        <source>Why?</source>
         <target state="needs-review-translation">為什麼?</target>
         <note />
       </trans-unit>
