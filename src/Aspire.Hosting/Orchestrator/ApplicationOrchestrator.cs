@@ -53,7 +53,7 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
         _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishResourceUrls);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishInitialResourceUrls);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
     }
@@ -109,7 +109,7 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task PublishResourceUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    private async Task PublishInitialResourceUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         var resource = @event.Resource;
 
@@ -119,7 +119,11 @@ internal sealed class ApplicationOrchestrator
         IEnumerable<UrlSnapshot> urls = [];
         if (resource.TryGetUrls(out var resourceUrls))
         {
-            urls = resourceUrls.Select(url => new UrlSnapshot(url.Endpoint?.EndpointName, url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly));
+            urls = resourceUrls.Select(url => new UrlSnapshot(Name: url.Endpoint?.EndpointName, Url: url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly)
+            {
+                IsInactive = true,
+                DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0)
+            });
         }
 
         await _notificationService.PublishUpdateAsync(resource, s => s with { Urls = [.. urls] }).ConfigureAwait(false);
