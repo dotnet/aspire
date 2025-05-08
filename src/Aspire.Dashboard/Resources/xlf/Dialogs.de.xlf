@@ -244,7 +244,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
         <source>Why?</source>
-        <target state="needs-review-translation">Warum?</target>
+        <target state="translated">Warum?</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
