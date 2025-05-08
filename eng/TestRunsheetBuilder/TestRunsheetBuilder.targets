@@ -39,8 +39,7 @@
 
       <_CreateRunsheet Condition=" '$(MSBuildProjectName)' == 'Aspire.Templates.Tests' ">false</_CreateRunsheet>
 
-      <!-- FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969 -->
-      <_PreCommand Condition=" '$(MSBuildProjectName)' == 'Aspire.Playground.Tests' ">./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </_PreCommand>
+      <_PreCommand>$(TestRunnerPreCommand)</_PreCommand>
     </PropertyGroup>
 
     <PropertyGroup>
