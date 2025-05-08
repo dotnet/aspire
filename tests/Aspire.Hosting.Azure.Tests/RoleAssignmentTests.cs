@@ -441,6 +441,8 @@ public class RoleAssignmentTests(ITestOutputHelper output)
 
             param sql_outputs_name string
 
+            param sql_outputs_sqlserveradminname string
+
             param principalId string
 
             param principalName string
@@ -448,14 +450,13 @@ public class RoleAssignmentTests(ITestOutputHelper output)
             resource sql 'Microsoft.Sql/servers@2021-11-01' existing = {
               name: sql_outputs_name
             }
-            
-            resource sql_admin 'Microsoft.Sql/servers/administrators@2021-11-01' = {
-              name: 'ActiveDirectory'
-              properties: {
-                login: principalName
-                sid: principalId
-              }
-              parent: sql
+
+            resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+              name: sql_outputs_sqlserveradminname
+            }
+
+            resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+              name: principalName
             }
             """,
             includePrincipalName: true);
@@ -494,6 +495,7 @@ public class RoleAssignmentTests(ITestOutputHelper output)
               "path": "api-roles-{{azureResourceName}}.module.bicep",
               "params": {
                 "{{azureResourceName}}_outputs_name": "{{{azureResourceName}}.outputs.name}",
+                "{{azureResourceName}}_outputs_sqlserveradminname": "{{{azureResourceName}}.outputs.sqlServerAdminName}",
                 "principalId": "{api-identity.outputs.principalId}"{{principalNameSegment}}
               }
             }

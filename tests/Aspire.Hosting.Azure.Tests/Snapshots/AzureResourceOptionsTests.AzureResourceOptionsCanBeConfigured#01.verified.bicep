@@ -2,12 +2,12 @@
 param location string = resourceGroup().location
 
 resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: take('sql-admin-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sql_server-admin-${uniqueString(resourceGroup().id)}', 63)
   location: location
 }
 
-resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-  name: take('sql-${uniqueString(resourceGroup().id)}', 63)
+resource sql_server 'Microsoft.Sql/servers@2021-11-01' = {
+  name: toLower(take('sql-server${uniqueString(resourceGroup().id)}', 24))
   location: location
   properties: {
     administrators: {
@@ -22,7 +22,7 @@ resource sql 'Microsoft.Sql/servers@2021-11-01' = {
     version: '12.0'
   }
   tags: {
-    'aspire-resource-name': 'sql'
+    'aspire-resource-name': 'sql-server'
   }
 }
 
@@ -32,26 +32,17 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
     endIpAddress: '0.0.0.0'
     startIpAddress: '0.0.0.0'
   }
-  parent: sql
+  parent: sql_server
 }
 
-resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-  name: 'AllowAllIps'
-  properties: {
-    endIpAddress: '255.255.255.255'
-    startIpAddress: '0.0.0.0'
-  }
-  parent: sql
-}
-
-resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
-  name: 'dbName'
+resource evadexdb 'Microsoft.Sql/servers/databases@2021-11-01' = {
+  name: 'evadexdb'
   location: location
-  parent: sql
+  parent: sql_server
 }
 
-output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sql_server.properties.fullyQualifiedDomainName
 
-output name string = sql.name
+output name string = sql_server.name
 
 output sqlServerAdminName string = sqlServerAdminManagedIdentity.name

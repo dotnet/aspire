@@ -35,17 +35,14 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
   parent: sql
 }
 
-resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-  name: 'AllowAllIps'
-  properties: {
-    endIpAddress: '255.255.255.255'
-    startIpAddress: '0.0.0.0'
-  }
+resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
+  name: 'db1'
+  location: location
   parent: sql
 }
 
-resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
-  name: 'dbName'
+resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
+  name: 'db2Name'
   location: location
   parent: sql
 }
