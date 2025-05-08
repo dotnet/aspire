@@ -19,12 +19,17 @@ public sealed class AzureEnvironmentResource : Resource
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
-    internal ParameterResource Location { get; set; }
+    public ParameterResource Location { get; set; }
 
     /// <summary>
     /// Gets or sets the Azure resource group name that the resources will be deployed to.
     /// </summary>
-    internal ParameterResource ResourceGroupName { get; set; }
+    public ParameterResource ResourceGroupName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Azure principal ID that will be used to deploy the resources.
+    /// </summary>
+    public ParameterResource PrincipalId { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
@@ -32,27 +37,24 @@ public sealed class AzureEnvironmentResource : Resource
     /// <param name="name">The name of the Azure environment resource.</param>
     /// <param name="location">The Azure location that the resources will be deployed to.</param>
     /// <param name="resourceGroupName">The Azure resource group name that the resources will be deployed to.</param>
+    /// <param name="principalId">The Azure principal ID that will be used to deploy the resources.</param>
     /// <exception cref="ArgumentNullException">Thrown when the name is null or empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the name is invalid.</exception>
-    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName) : base(name)
+    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
 
         Location = location;
         ResourceGroupName = resourceGroupName;
+        PrincipalId = principalId;
     }
 
     private Task PublishAsync(PublishingContext context)
     {
-        var options = new AzurePublisherOptions
-        {
-            OutputPath = context.OutputPath
-        };
-
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
 
         var azureCtx = new AzurePublishingContext(
-            options,
+            context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger);
 

@@ -26,10 +26,11 @@ public static class AzureEnvironmentResourceExtensions
         }
 
         var resourceName = builder.CreateDefaultAzureEnvironmentName();
-        var locationParam = ParameterResourceBuilderExtensions.CreateParameter(builder, "azure-location-default", false);
-        var resourceGroupName = ParameterResourceBuilderExtensions.CreateParameter(builder, "azure-rg-default", false);
+        var locationParam = ParameterResourceBuilderExtensions.CreateParameter(builder, "location", false);
+        var resourceGroupName = ParameterResourceBuilderExtensions.CreateParameter(builder, "resourceGroupName", false);
+        var principalId = ParameterResourceBuilderExtensions.CreateParameter(builder, "principalId", false);
 
-        var resource = new AzureEnvironmentResource(resourceName, locationParam, resourceGroupName);
+        var resource = new AzureEnvironmentResource(resourceName, locationParam, resourceGroupName, principalId);
         if (builder.ExecutionContext.IsRunMode)
         {
             // Return a builder that isn't added to the top-level application builder
