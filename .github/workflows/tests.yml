@@ -143,20 +143,19 @@ jobs:
     name: Final Results
     needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]
     steps:
-      # get all the test-job-result* artifacts into a single directory
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          pattern: test-job-result-*
-          merge-multiple: true
-          path: test-job-result
+      - run: exit 1
+        if: failure()
+        shell: pwsh
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        if: always()
         with:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
           path: testresults/ubuntu-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        if: always()
         with:
           pattern: logs-*-windows-latest
           merge-multiple: true
@@ -168,8 +167,3 @@ jobs:
         with:
           name: All-TestResults
           path: testresults/**/*.trx
-
-      # return success if zero result-failed-* files are found
-      - name: Compute result
-        run: |
-          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
