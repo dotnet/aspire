@@ -249,16 +249,6 @@ public static class AzureSqlExtensions
 
         if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // Avoid mutating properties on existing resources.
-            if (!sqlServer.IsExistingResource)
-            {
-                // When in run mode we inject the users identity and we need to specify
-                // the principalType.
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                sqlServer.Administrators.PrincipalType = principalTypeParameter;
-            }
-
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
                 Parent = sqlServer,
