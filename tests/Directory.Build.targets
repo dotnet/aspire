@@ -36,7 +36,7 @@
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
            Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Templates.Tests" />
 
-    <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests" ConsoleToMSBuild="true" EnvironmentVariables="DOTNET_ROOT=$(DotNetRoot);DOTNET_ROOT_X86=$(DotNetRoot)x86">
+    <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
     </Exec>
 
