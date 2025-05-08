@@ -46,28 +46,16 @@ internal sealed class ApplicationOrchestrator
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
 
-        dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
-        dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
+        dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
+        dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        _eventing.Subscribe<BeforeResourceStartedEvent>(PublishResourceState);
+        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishResourceUrls);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
-        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
-    }
-
-    private async Task PublishResourceState(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
-    {
-        // Process URLs for the resource.
-        await ProcessUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
-
-        IEnumerable<UrlSnapshot> urls = [];
-        if (@event.Resource.TryGetUrls(out var resourceUrls))
-        {
-            urls = resourceUrls.Select(url => new UrlSnapshot(url.Endpoint?.EndpointName, url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly));
-        }
     }
 
     private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
@@ -113,6 +101,28 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
+
+        // Fire the endpoints allocated event for all resources.
+        foreach (var resource in _model.Resources)
+        {
+            await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task PublishResourceUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    {
+        var resource = @event.Resource;
+
+        // Process URLs for the resource.
+        await ProcessUrls(resource, cancellationToken).ConfigureAwait(false);
+
+        IEnumerable<UrlSnapshot> urls = [];
+        if (resource.TryGetUrls(out var resourceUrls))
+        {
+            urls = resourceUrls.Select(url => new UrlSnapshot(url.Endpoint?.EndpointName, url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly));
+        }
+
+        await _notificationService.PublishUpdateAsync(resource, s => s with { Urls = [.. urls] }).ConfigureAwait(false);
     }
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
