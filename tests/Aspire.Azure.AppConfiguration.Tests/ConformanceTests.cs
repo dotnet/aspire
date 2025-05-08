@@ -33,7 +33,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
           "Aspire": {
             "Azure": {
               "AppConfiguration": {
-                "Endpoint": "http://YOUR_URI"
+                "Endpoint": "http://YOUR_URI",
+                "Optional": true
               }
             }
           }
@@ -54,6 +55,7 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
             {
                 configure?.Invoke(settings);
                 settings.Credential = new EmptyTokenCredential();
+                settings.Optional = true;
             },
             options =>
             {
@@ -71,13 +73,13 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
                     startupOptions.Timeout = TimeSpan.FromSeconds(1);
                 });
                 options.ConfigureClientOptions(clientOptions => clientOptions.Retry.MaxRetries = 0);
-            },
-            optional: true);
+            });
     }
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\"")
+            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)

@@ -22,6 +22,12 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
     /// </summary>
     public TokenCredential? Credential { get; set; }
 
+    /// <summary>
+    /// Determines the behavior of the App Configuration provider when an exception occurs while loading data from server.
+    /// If false, the exception is thrown. If true, the exception is suppressed and no configuration values are populated from Azure App Configuration.
+    /// </summary>
+    public bool Optional { get; set; }
+
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         if (!string.IsNullOrEmpty(connectionString) &&
