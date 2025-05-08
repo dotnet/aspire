@@ -7,16 +7,16 @@ param mysqlserver_outputs_sqlserveradminname string
 
 param principalName string
 
-param principalId string
-
-param clientId string
-
 resource mysqlserver 'Microsoft.Sql/servers@2021-11-01' existing = {
   name: mysqlserver_outputs_name
 }
 
 resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: mysqlserver_outputs_sqlserveradminname
+}
+
+resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: principalName
 }
 
 resource script_mysqlserver_todosdb 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -30,7 +30,7 @@ resource script_mysqlserver_todosdb 'Microsoft.Resources/deploymentScripts@2023-
   }
   kind: 'AzurePowerShell'
   properties: {
-    scriptContent: '\$sqlServerFqdn = "\$env:DBSERVER"\r\n\$sqlDatabaseName = "\$env:DBNAME"\r\n\$principalName = "\$env:PRINCIPALNAME"\r\n\$id = If ("\$env:PRINCIPALTYPE" -eq "User") {"\$env:PRINCIPALID"} Else {"\$env:CLIENTID"}\r\n\r\n# Install SqlServer module\r\nInstall-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser\r\nImport-Module SqlServer\r\n\r\n\$sqlCmd = @"\r\nDECLARE @name SYSNAME = \'\$principalName\';\r\nDECLARE @id UNIQUEIDENTIFIER = \'\$id\';\r\n\r\n-- Convert the guid to the right type\r\nDECLARE @castId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @id), 1);\r\n\r\n-- Construct command: CREATE USER [@name] WITH SID = @castId, TYPE = E;\r\nDECLARE @cmd NVARCHAR(MAX) = N\'CREATE USER [\' + @name + \'] WITH SID = \' + @castId + \', TYPE = E;\'\r\nEXEC (@cmd);\r\n\r\n-- Assign roles to the new user\r\nDECLARE @role1 NVARCHAR(MAX) = N\'ALTER ROLE db_owner ADD MEMBER [\' + @name + \']\';\r\nEXEC (@role1);\r\n\r\n"@\r\n# Note: the string terminator must not have whitespace before it, therefore it is not indented.\r\n\r\nWrite-Host \$sqlCmd\r\n\r\n\$connectionString = "Server=tcp:\${sqlServerFqdn},1433;Initial Catalog=\${sqlDatabaseName};Authentication=Active Directory Default;"\r\n\r\nInvoke-Sqlcmd -ConnectionString \$connectionString -Query \$sqlCmd'
+    scriptContent: '\$sqlServerFqdn = "\$env:DBSERVER"\r\n\$sqlDatabaseName = "\$env:DBNAME"\r\n\$principalName = "\$env:PRINCIPALNAME"\r\n\$id = "\$env:ID"\r\n\r\n# Install SqlServer module\r\nInstall-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser\r\nImport-Module SqlServer\r\n\r\n\$sqlCmd = @"\r\nDECLARE @name SYSNAME = \'\$principalName\';\r\nDECLARE @id UNIQUEIDENTIFIER = \'\$id\';\r\n\r\n-- Convert the guid to the right type\r\nDECLARE @castId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @id), 1);\r\n\r\n-- Construct command: CREATE USER [@name] WITH SID = @castId, TYPE = E;\r\nDECLARE @cmd NVARCHAR(MAX) = N\'CREATE USER [\' + @name + \'] WITH SID = \' + @castId + \', TYPE = E;\'\r\nEXEC (@cmd);\r\n\r\n-- Assign roles to the new user\r\nDECLARE @role1 NVARCHAR(MAX) = N\'ALTER ROLE db_owner ADD MEMBER [\' + @name + \']\';\r\nEXEC (@role1);\r\n\r\n"@\r\n# Note: the string terminator must not have whitespace before it, therefore it is not indented.\r\n\r\nWrite-Host \$sqlCmd\r\n\r\n\$connectionString = "Server=tcp:\${sqlServerFqdn},1433;Initial Catalog=\${sqlDatabaseName};Authentication=Active Directory Default;"\r\n\r\nInvoke-Sqlcmd -ConnectionString \$connectionString -Query \$sqlCmd'
     azPowerShellVersion: '7.4'
     retentionInterval: 'PT1H'
     environmentVariables: [
@@ -43,20 +43,16 @@ resource script_mysqlserver_todosdb 'Microsoft.Resources/deploymentScripts@2023-
         value: mysqlserver.properties.fullyQualifiedDomainName
       }
       {
-        name: 'PRINCIPALNAME'
-        value: principalName
-      }
-      {
         name: 'PRINCIPALTYPE'
         value: 'ServicePrincipal'
       }
       {
-        name: 'PRINCIPALID'
-        value: principalId
+        name: 'PRINCIPALNAME'
+        value: principalName
       }
       {
-        name: 'CLIENTID'
-        value: clientId
+        name: 'ID'
+        value: mi.properties.clientId
       }
     ]
   }

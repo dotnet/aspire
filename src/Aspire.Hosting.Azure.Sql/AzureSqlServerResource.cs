@@ -116,10 +116,21 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     {
         var infra = roleAssignmentContext.Infrastructure;
         var sqlserver = (SqlServer)AddAsExistingResource(infra);
+        var isRunMode = roleAssignmentContext.ExecutionContext.IsRunMode;
 
+        // if (!resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
+        // {
         var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
         sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
         infra.Add(sqlServerAdmin);
+        // }
+
+        if (!isRunMode)
+        {
+            var managedIdentity = UserAssignedIdentity.FromExisting("mi");
+            managedIdentity.Name = roleAssignmentContext.PrincipalName;
+            infra.Add(managedIdentity);
+        }
 
         foreach (var database in Databases.Keys)
         {
@@ -140,16 +151,15 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             // Script don't support Bicep expression, they need to be passed as ENVs
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALID", Value = roleAssignmentContext.PrincipalId });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "CLIENTID", Value = roleAssignmentContext.ClientId });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = isRunMode ? roleAssignmentContext.PrincipalId : new IdentifierExpression("mi.properties.clientId") });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
                 $sqlDatabaseName = "$env:DBNAME"
                 $principalName = "$env:PRINCIPALNAME"
-                $id = If ("$env:PRINCIPALTYPE" -eq "User") {"$env:PRINCIPALID"} Else {"$env:CLIENTID"}
+                $id = "$env:ID"
 
                 # Install SqlServer module
                 Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser

@@ -40,7 +40,7 @@ public interface IAddRoleAssignmentsContext
     public BicepValue<string> PrincipalName { get; }
 
     /// <summary>
-    /// Gets the client ID to use in the role assignment.
+    /// Gets the execution context for distributed application.
     /// </summary>
-    public BicepValue<string> ClientId { get; }
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
 }
