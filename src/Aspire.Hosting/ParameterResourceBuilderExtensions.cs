@@ -162,7 +162,9 @@ public static class ParameterResourceBuilderExtensions
         {
             ResourceType = "Parameter",
             // hide parameters by default
-            IsHidden = true,
+#pragma warning disable CS0618 // Type or member is obsolete
+            State = KnownResourceStates.Hidden,
+#pragma warning restore CS0618 // Type or member is obsolete
             Properties = [
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
