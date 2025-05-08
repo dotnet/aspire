@@ -21,12 +21,11 @@ namespace Aspire.Hosting.Azure;
 /// </remarks>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzurePublishingContext(
-    AzurePublisherOptions publisherOptions,
+    string outputPath,
     AzureProvisioningOptions provisioningOptions,
     ILogger logger)
 {
     private ILogger Logger => logger;
-    private AzurePublisherOptions PublisherOptions => publisherOptions;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -64,7 +63,7 @@ public sealed class AzurePublishingContext(
     internal async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(outputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -74,12 +73,12 @@ public sealed class AzurePublishingContext(
 
         await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
 
-        await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
+        await SaveToDiskAsync(outputPath).ConfigureAwait(false);
     }
 
     private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
     {
-        var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
+        var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
         {
             outputDirectory.Create();
@@ -89,6 +88,7 @@ public sealed class AzurePublishingContext(
 
         MapParameter(environment.ResourceGroupName);
         MapParameter(environment.Location);
+        MapParameter(environment.PrincipalId);
 
         var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
         MainInfrastructure.Add(resourceGroupParam);
@@ -96,22 +96,13 @@ public sealed class AzurePublishingContext(
         var locationParam = ParameterLookup[environment.Location];
         MainInfrastructure.Add(locationParam);
 
-        var principalId = new ProvisioningParameter("principalId", typeof(string));
+        var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
-
-        var tags = new ProvisioningVariable("tags", typeof(object))
-        {
-            Value = new BicepDictionary<string>
-            {
-                ["aspire-env-name"] = resourceGroupParam
-            }
-        };
 
         var rg = new ResourceGroup("rg")
         {
             Name = resourceGroupParam,
             Location = locationParam,
-            Tags = tags
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
@@ -271,7 +262,6 @@ public sealed class AzurePublishingContext(
             MainInfrastructure.Add(pp);
         }
 
-        MainInfrastructure.Add(tags);
         MainInfrastructure.Add(rg);
 
         foreach (var (_, module) in moduleMap)
