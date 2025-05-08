@@ -61,8 +61,9 @@
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
     <ItemGroup>
-      <TestProject Condition="'$(OS)' == 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsWindows)" />
-      <TestProject Condition="'$(OS)' != 'Windows_NT'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsLinux)" />
+      <TestProject Condition="$([System.OperatingSystem]::IsWindows())" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsWindows)" />
+      <TestProject Condition="$([System.OperatingSystem]::IsLinux())" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsLinux)" />
+      <TestProject Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsMacOS)" />
     </ItemGroup>
   </Target>
 
