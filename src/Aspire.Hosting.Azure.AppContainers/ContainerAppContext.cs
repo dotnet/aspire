@@ -488,7 +488,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
             EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : targetPort,
+            EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : $"{targetPort}",
             EndpointProperty.Scheme => scheme,
             _ => throw new NotSupportedException(),
         };
@@ -634,10 +634,15 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     }
 
     private ProvisioningParameter AllocateContainerImageParameter()
-        => AllocateParameter(ResourceExpression.GetContainerImageExpression(resource));
+        => AllocateParameter(new ContainerImageReference(resource));
 
-    private BicepValue<int> AllocateContainerPortParameter()
-        => AllocateParameter(ResourceExpression.GetContainerPortExpression(resource));
+    private BicepValue<string> AllocateContainerPortParameter()
+        => AllocateParameter(new ContainerPortReference(resource));
+
+    private static BicepValue<int> AsInt(BicepValue<string> value)
+    {
+        return new FunctionCallExpression(new IdentifierExpression("int"), value.Compile());
+    }
 
     private void AllocateContainerRegistryParameters()
     {
@@ -665,7 +670,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         if (_httpIngress is { } ingress)
         {
             caIngress.External = ingress.External;
-            caIngress.TargetPort = ingress.Port ?? AllocateContainerPortParameter();
+            caIngress.TargetPort = ingress.Port ?? AsInt(AllocateContainerPortParameter());
             caIngress.Transport = ingress.Http2 ? ContainerAppIngressTransportMethod.Http2 : ContainerAppIngressTransportMethod.Http;
         }
         else if (_additionalPorts.Count > 0)
@@ -817,17 +822,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                         Identity = _containerRegistryManagedIdentityIdParameter
                     }
         ];
-    }
-
-    private sealed class ResourceExpression(IResource resource, string propertyExpression) : IManifestExpressionProvider
-    {
-        public string ValueExpression => $"{{{resource.Name}.{propertyExpression}}}";
-
-        public static IManifestExpressionProvider GetContainerImageExpression(IResource p) =>
-            new ResourceExpression(p, "containerImage");
-
-        public static IManifestExpressionProvider GetContainerPortExpression(IResource p) =>
-            new ResourceExpression(p, "containerPort");
     }
 
     private sealed class PortAllocator(int startPort = 8000)

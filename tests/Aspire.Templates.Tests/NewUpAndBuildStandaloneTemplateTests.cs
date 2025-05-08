@@ -10,6 +10,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire", ""])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-starter", ""])]
+    [Trait("category", "basic-build")]
     public async Task CanNewAndBuild(string templateName, string extraArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");

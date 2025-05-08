@@ -297,4 +297,24 @@ public static class ParameterResourceBuilderExtensions
 
         return parameterResource;
     }
+
+    /// <summary>
+    /// Creates a new <see cref="ParameterResource"/>.
+    /// </summary>
+    /// <remarks>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    public static ParameterResource CreateParameter(IDistributedApplicationBuilder builder, string name, bool secret)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret);
+
+        return parameterResource;
+    }
 }

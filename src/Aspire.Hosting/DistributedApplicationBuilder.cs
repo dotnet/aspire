@@ -122,17 +122,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "inspect" => DistributedApplicationOperation.Inspect,
             "run" => DistributedApplicationOperation.Run,
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
-            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
     }
 
@@ -371,6 +369,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
+        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();

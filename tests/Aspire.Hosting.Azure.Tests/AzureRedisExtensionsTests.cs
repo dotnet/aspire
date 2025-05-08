@@ -35,39 +35,15 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await GetManifestWithBicep(model, redis.Resource);
-
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
-
+        var (manifest, bicep) = await GetManifestWithBicep(model, redis.Resource);
         var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "redis-cache-roles");
-        var redisRolesManifest = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        var (redisRolesManifest, redisRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
 
-            param redis_cache_outputs_name string
-
-            param principalId string
-
-            param principalName string
-
-            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' existing = {
-              name: redis_cache_outputs_name
-            }
-
-            resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: guid(redis_cache.id, principalId, 'Data Contributor')
-              properties: {
-                accessPolicyName: 'Data Contributor'
-                objectId: principalId
-                objectIdAlias: principalName
-              }
-              parent: redis_cache
-            }
-            """;
-        output.WriteLine(redisRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, redisRolesManifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(redisRolesManifest.ToString(), "json")
+              .AppendContentAsFile(redisRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]

@@ -21,6 +21,8 @@
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageVersion Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.1.1" />
@@ -124,7 +126,7 @@
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.25072.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta5.25256.109" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />

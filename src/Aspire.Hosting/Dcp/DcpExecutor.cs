@@ -945,6 +945,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 try
                 {
+                    await ProcessUrls(resource, cancellationToken).ConfigureAwait(false);
+
                     // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (URLs, source) to ensure they're
                     // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                     foreach (var er in executables)
@@ -1217,6 +1219,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             foreach (var cr in containerResources)
             {
+                await ProcessUrls(cr.ModelResource, cancellationToken).ConfigureAwait(false);
+
                 // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
                 // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                 await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container)cr.DcpResource, s))).ConfigureAwait(false);
@@ -1449,6 +1453,74 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             // We catch and suppress the OperationCancelledException because the user may CTRL-C
             // during start up of the resources.
             _logger.LogDebug(ex, "Cancellation during creation of resources.");
+        }
+    }
+
+    private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
+    {
+        // Call the callbacks to configure resource URLs
+
+        if (resource is not IResourceWithEndpoints resourceWithEndpoints)
+        {
+            return;
+        }
+
+        // Project endpoints to URLS
+        var urls = new List<ResourceUrlAnnotation>();
+
+        if (resource.TryGetEndpoints(out var endpoints))
+        {
+            foreach (var endpoint in endpoints)
+            {
+                // Create a URL for each endpoint
+                if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                {
+                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
+                    urls.Add(url);
+                }
+            }
+        }
+
+        // Run the URL callbacks
+        if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
+        {
+            var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
+            {
+                Logger = _loggerService.GetLogger(resource.Name)
+            };
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
+            }
+        }
+
+        // Clear existing URLs
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            var existing = existingUrls.ToArray();
+            for (var i = existing.Length - 1; i >= 0; i--)
+            {
+                var url = existing[i];
+                resource.Annotations.Remove(url);
+            }
+        }
+
+        // Convert relative endpoint URLs to absolute URLs
+        foreach (var url in urls)
+        {
+            if (url.Endpoint is { } endpoint)
+            {
+                if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                {
+                    url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
+        // Add URLs
+        foreach (var url in urls)
+        {
+            resource.Annotations.Add(url);
         }
     }
 

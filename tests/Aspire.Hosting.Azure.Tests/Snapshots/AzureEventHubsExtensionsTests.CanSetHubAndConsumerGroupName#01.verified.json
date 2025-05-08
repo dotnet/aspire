@@ -1,0 +1,9 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "eh-roles.module.bicep",
+  "params": {
+    "eh_outputs_name": "{eh.outputs.name}",
+    "principalType": "",
+    "principalId": ""
+  }
+}

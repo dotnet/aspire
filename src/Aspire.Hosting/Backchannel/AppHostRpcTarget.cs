@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +18,6 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    IDistributedApplicationEventing eventing,
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options
@@ -149,15 +147,6 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
-    {
-        var e = new PublisherAdvertisementEvent();
-        await eventing.PublishAsync(e, cancellationToken).ConfigureAwait(false);
-
-        var publishers = e.Advertisements.Select(x => x.Name);
-        return [..publishers];
-    }
-
 #pragma warning disable CA1822
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
@@ -180,7 +169,7 @@ internal class AppHostRpcTarget(
 
         _ = cancellationToken;
         return Task.FromResult(new string[] {
-            "baseline.v0"
+            "baseline.v1"
             });
     }
 #pragma warning restore CA1822

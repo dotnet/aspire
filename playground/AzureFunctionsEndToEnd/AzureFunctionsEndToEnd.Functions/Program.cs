@@ -6,6 +6,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
+builder.AddAzureBlobContainerClient("myblobcontainer");
 builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
