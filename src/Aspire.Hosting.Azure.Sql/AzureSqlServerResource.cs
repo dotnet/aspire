@@ -114,22 +114,33 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// <inheritdoc/>
     public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
+        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out _))
+        {
+            // This resource is already an existing resource, so don't add role assignments
+            return;
+        }
+
         var infra = roleAssignmentContext.Infrastructure;
         var sqlserver = (SqlServer)AddAsExistingResource(infra);
         var isRunMode = roleAssignmentContext.ExecutionContext.IsRunMode;
 
-        // if (!resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
-        // {
         var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
         sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
         infra.Add(sqlServerAdmin);
-        // }
+
+        // When not in Run Mode (F5) we reference the managed identity
+        // that will need to access the database so we can add db role for it
+        // using its ClientId. In the other case we use the PrincipalId.
+
+        var userId = roleAssignmentContext.PrincipalId;
 
         if (!isRunMode)
         {
             var managedIdentity = UserAssignedIdentity.FromExisting("mi");
             managedIdentity.Name = roleAssignmentContext.PrincipalName;
             infra.Add(managedIdentity);
+
+            userId = new IdentifierExpression("mi.properties.clientId");
         }
 
         foreach (var database in Databases.Keys)
@@ -153,7 +164,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
             scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = isRunMode ? roleAssignmentContext.PrincipalId : new IdentifierExpression("mi.properties.clientId") });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = userId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
