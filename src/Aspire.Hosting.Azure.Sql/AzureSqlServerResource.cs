@@ -114,7 +114,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// <inheritdoc/>
     public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
-        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out _))
+        if (this.IsExisting())
         {
             // This resource is already an existing resource, so don't add role assignments
             return;
@@ -140,7 +140,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             managedIdentity.Name = roleAssignmentContext.PrincipalName;
             infra.Add(managedIdentity);
 
-            userId = new IdentifierExpression("mi.properties.clientId");
+            userId = managedIdentity.ClientId;
         }
 
         foreach (var database in Databases.Keys)
