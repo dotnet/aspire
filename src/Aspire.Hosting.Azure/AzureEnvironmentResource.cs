@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -14,6 +15,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents the root Azure deployment target for an Aspire application.
 /// Emits a <c>main.bicep</c> that aggregates all provisionable resources.
 /// </summary>
+[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzureEnvironmentResource : Resource
 {
     /// <summary>
