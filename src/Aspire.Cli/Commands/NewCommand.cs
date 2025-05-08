@@ -3,10 +3,12 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
@@ -71,11 +73,11 @@ internal sealed class NewCommand : BaseCommand
         Dictionary<string, (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
             { "aspire-starter", ("aspire-starter", "Aspire Starter App", projectName => $"./{projectName}")},
             { "aspire", ("aspire", "Aspire Empty App", projectName => $"./{projectName}") },
-            { "aspire-apphost", ("aspire-apphost", "Aspire App Host", _ => "./") },
-            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", _ => "./") },
-            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", _ => "./") },
-            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", _ => "./") },
-            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", _ => "./")}
+            { "aspire-apphost", ("aspire-apphost", "Aspire App Host",projectName => $"./{projectName}") },
+            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", projectName => $"./{projectName}") },
+            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", projectName => $"./{projectName}") },
+            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", projectName => $"./{projectName}") },
+            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", projectName => $"./{projectName}")}
         };
 
         if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
@@ -90,7 +92,7 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--name") is not { } name)
+        if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
             name = await _prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
@@ -244,6 +246,11 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForStringAsync(
             "Enter the project name:",
             defaultValue: defaultName,
+            validator: (name) => {
+                return ProjectNameValidator.IsProjectNameValid(name)
+                    ? ValidationResult.Success()
+                    : ValidationResult.Error("Invalid project name.");
+            },
             cancellationToken: cancellationToken);
     }
 
@@ -255,5 +262,17 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => $"{t.TemplateName} ({t.TemplateDescription})",
             cancellationToken
         );
+    }
+}
+
+internal static partial class ProjectNameValidator
+{
+    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
+    internal static partial Regex GetAssemblyNameRegex();
+
+    public static bool IsProjectNameValid(string projectName)
+    {
+        var regex = GetAssemblyNameRegex();
+        return regex.IsMatch(projectName);
     }
 }
