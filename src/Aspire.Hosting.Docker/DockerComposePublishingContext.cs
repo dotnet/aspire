@@ -111,28 +111,16 @@ internal sealed class DockerComposePublishingContext(
 
         // Write a .env file with the environment variable names
         // that are used in the compose file
-        var envFile = Path.Combine(OutputPath, ".env");
-        using var envWriter = new StreamWriter(envFile);
+        var envFilePath = Path.Combine(OutputPath, ".env");
+        var envFile = EnvFile.Load(envFilePath);
 
         foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
         {
             var (key, (description, defaultValue)) = entry;
-
-            await envWriter.WriteLineAsync($"# {description}").ConfigureAwait(false);
-
-            if (defaultValue is not null)
-            {
-                await envWriter.WriteLineAsync($"{key}={defaultValue}").ConfigureAwait(false);
-            }
-            else
-            {
-                await envWriter.WriteLineAsync($"{key}=").ConfigureAwait(false);
-            }
-
-            await envWriter.WriteLineAsync().ConfigureAwait(false);
+            envFile.AddIfMissing(key, defaultValue, description);
         }
 
-        await envWriter.FlushAsync().ConfigureAwait(false);
+        envFile.Save(envFilePath);
     }
 
     private static void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)
