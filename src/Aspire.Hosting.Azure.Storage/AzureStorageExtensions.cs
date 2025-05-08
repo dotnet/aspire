@@ -143,30 +143,21 @@ public static class AzureStorageExtensions
             blobServiceClient = CreateBlobServiceClient(connectionString);
         });
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
-        {
-            if (blobServiceClient is null)
-            {
-                throw new DistributedApplicationException($"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
-            }
+        var healthCheckKey = $"{builder.Resource.Name}_check";
 
-            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(healthCheckKeysp =>
+        {
+            // This health check is used to ensure that the storage emulator is running, we can access BlobServiceClient,
+            // and that the blob containers are created.
+
+            _ = blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
 
             foreach (var blobContainer in builder.Resource.BlobContainers)
             {
-                await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+                blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExists();
             }
-        });
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
-        {
-            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+            return blobServiceClient;
         }, name: healthCheckKey);
 
         builder.WithHealthCheck(healthCheckKey);
