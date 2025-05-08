@@ -252,4 +252,119 @@ public class AspireAzureAIProjectExtensionsTests
         Assert.NotNull(capturedSettings);
         Assert.True(capturedSettings.DisableTracing);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NoConnectionStringThrows(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection(
+        [
+            new KeyValuePair<string, string?>("ConnectionStrings:projects", null)
+        ]);
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureAIProjectClient("projects");
+        }
+        else
+        {
+            builder.AddAzureAIProjectClient("projects");
+        }
+        using var host = builder.Build();
+        Assert.Throws<InvalidOperationException>(() => useKeyed ?
+            host.Services.GetKeyedService<AIProjectClient>("projects") :
+            host.Services.GetService<AIProjectClient>());
+    }
+
+    [Theory]
+    [InlineData(true, "fake-endpoint", null, null, null)]
+    [InlineData(false, "fake-endpoint", null, null, null)]
+    [InlineData(true, null, "project-name", null, null)]
+    [InlineData(false, null, "project-name", null, null)]
+    [InlineData(true, null, null, "rg-name", null)]
+    [InlineData(false, null, null, "rg-name", null)]
+    [InlineData(true, null, null, null, "sub-id")]
+    [InlineData(false, null, null, null, "sub-id")]
+    public void IncompleteConnectionStringPartsWillThrow(bool useKeyed, string? endpoint, string? projectName, string? rgName, string? subscriptionId)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection(
+        [
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:Endpoint", endpoint),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ProjectName", projectName),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ResourceGroupName", rgName),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:SubscriptionId", subscriptionId)
+        ]);
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureAIProjectClient("projects");
+        }
+        else
+        {
+            builder.AddAzureAIProjectClient("projects");
+        }
+        using var host = builder.Build();
+        Assert.Throws<InvalidOperationException>(() => useKeyed ?
+            host.Services.GetKeyedService<AIProjectClient>("projects") :
+            host.Services.GetService<AIProjectClient>());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IncompleteConnectionStringPartsWillBeIgnoredWhenConnectionStringProvided(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection(
+        [
+            new KeyValuePair<string, string?>($"ConnectionStrings:projects", ConnectionString),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:Endpoint", null),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ProjectName", null),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ResourceGroupName", null),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:SubscriptionId", null)
+        ]);
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureAIProjectClient("projects");
+        }
+        else
+        {
+            builder.AddAzureAIProjectClient("projects");
+        }
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetKeyedService<AIProjectClient>("projects") :
+            host.Services.GetService<AIProjectClient>();
+        Assert.NotNull(client);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionSettingsOverrideMissingConnectionString(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection(
+        [
+            new KeyValuePair<string, string?>($"ConnectionStrings:projects", null),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:Endpoint", "https://fake-endpoint.api.azureml.ms/"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ProjectName", "project-name"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:ResourceGroupName", "rg-name"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:AI:Projects{(useKeyed ? ":projects":"")}:SubscriptionId", "sub-id")
+        ]);
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureAIProjectClient("projects");
+        }
+        else
+        {
+            builder.AddAzureAIProjectClient("projects");
+        }
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetKeyedService<AIProjectClient>("projects") :
+            host.Services.GetService<AIProjectClient>();
+        Assert.NotNull(client);
+    }
 }

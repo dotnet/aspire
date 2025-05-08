@@ -88,7 +88,7 @@ public static class AzureAIProjectExtensions
                     { ResourceGroupName: null or "" } or
                     { SubscriptionId: null or "" })
                 {
-                    throw new InvalidOperationException($"An AIProjectClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"An AIProjectClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' in the '{configurationSectionName}' configuration section. Alternatively, you can provide values for the Endpoint, SubscriptionId, ResourceGroupName, and ProjectName in the '{configurationSectionName}' configuration section.");
                 }
 
                 if (string.IsNullOrEmpty(connectionString) && settings.Endpoint is not null)
