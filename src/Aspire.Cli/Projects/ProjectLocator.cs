@@ -23,7 +23,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var appHostProjects = new List<FileInfo>();
 
         logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
-        var projectFiles = searchDirectory.GetFiles("*.csproj", SearchOption.AllDirectories);
+        var enumerationOptions = new EnumerationOptions();
+        enumerationOptions.RecurseSubdirectories = true;
+        enumerationOptions.IgnoreInaccessible = true;
+        var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
         logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
         foreach (var projectFile in projectFiles)
