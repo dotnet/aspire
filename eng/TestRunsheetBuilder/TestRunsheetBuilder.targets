@@ -38,6 +38,8 @@
       <_CreateRunsheet Condition=" '$(_RequiresPackages)' != 'true' and '$(FullE2e)' != 'true' ">true</_CreateRunsheet>
 
       <_CreateRunsheet Condition=" '$(MSBuildProjectName)' == 'Aspire.Templates.Tests' ">false</_CreateRunsheet>
+
+      <_PreCommand>$(TestRunnerPreCommand)</_PreCommand>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -60,17 +62,18 @@
 
       <_TestRunnerWindows>./eng/build.ps1</_TestRunnerWindows>
       <_TestRunnerLinux>./eng/build.sh</_TestRunnerLinux>
-      <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci /p:CI=false</_TestCommand>
+      <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci</_TestCommand>
 
       <!-- Tests requiring packages must be run in the "out of repo" mode -->
       <_TestCommand Condition=" '$(_RequiresPackages)' == 'true' ">$(_TestCommand) /p:TestsRunningOutsideOfRepo=true</_TestCommand>
 
       <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
+      <_PreCommand>$([System.String]::Copy($(_PreCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_PreCommand>
       <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>
 
       <_TestRunsheetWindows>{ "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
-      <_TestRunsheetLinux>{ "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
-      <_TestRunsheetMacOS>{ "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
+      <_TestRunsheetLinux>{ "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
+      <_TestRunsheetMacOS>{ "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
     </PropertyGroup>
 
     <ItemGroup>

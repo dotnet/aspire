@@ -121,6 +121,8 @@ jobs:
           sudo apt-get install -y azure-functions-core-tools-4
 
       - name: Test ${{ matrix.tests.project }}
+        env:
+          CI: false
         run: |
           ${{ matrix.tests.command }}
 
@@ -184,6 +186,7 @@ jobs:
 
       - name: Test ${{ matrix.tests.project }}
         env:
+          CI: false
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Release/Shipping
         run: |
           ${{ matrix.tests.command }}

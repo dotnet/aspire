@@ -16,6 +16,7 @@ namespace Aspire.Playground.Tests;
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9171")]
     public async Task WithDockerfileTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput);

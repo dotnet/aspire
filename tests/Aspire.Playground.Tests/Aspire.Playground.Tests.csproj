@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Test related properties">
     <!-- Set this explicitly so the project can build without arcade -->
     <IsTestProject>true</IsTestProject>
     <IncludeTestUtilities>false</IncludeTestUtilities>
@@ -11,6 +14,14 @@
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+
+    <!--
+      Command to be executed directly before 'build.sh -test' is executed.
+      This is used by TestRunsheetBuilder.
+
+      FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969
+     -->
+    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </TestRunnerPreCommand>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 

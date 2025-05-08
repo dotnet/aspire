@@ -6,14 +6,9 @@ param location string
 
 param principalId string
 
-var tags = {
-  'aspire-env-name': resourceGroup
-}
-
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: resourceGroup
   location: location
-  tags: tags
 }
 
 module env 'env/env.bicep' = {
