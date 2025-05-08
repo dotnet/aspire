@@ -109,6 +109,7 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}",
+        "principalId": "{api1-identity.outputs.principalId}",
         "principalName": "{api1-identity.outputs.principalName}"
       }
     },
@@ -122,6 +123,7 @@
       "params": {
         "mysqlserver_outputs_name": "{mysqlserver.outputs.name}",
         "mysqlserver_outputs_sqlserveradminname": "{mysqlserver.outputs.sqlServerAdminName}",
+        "principalId": "{api2-identity.outputs.principalId}",
         "principalName": "{api2-identity.outputs.principalName}"
       }
     }

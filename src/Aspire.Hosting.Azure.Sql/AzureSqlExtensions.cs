@@ -229,7 +229,7 @@ public static class AzureSqlExtensions
                     Sid = adminManagedIdentity.PrincipalId,
                     // We can't use adminManagedIdentity.Name as it would end up copying the source expression
                     // and be converted to a reference() call in ARM which is not supported.
-                    Login = new IdentifierExpression("sqlServerAdminManagedIdentity.name"),
+                    Login = new IdentifierExpression($"{adminManagedIdentity.BicepIdentifier}.name"),
                     TenantId = BicepFunction.GetSubscription().TenantId
                 },
                 Version = "12.0",
