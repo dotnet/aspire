@@ -81,9 +81,9 @@ public sealed class ResourceViewModel
         return null;
     }
 
-    public bool IsResourceHidden()
+    public bool IsResourceHidden(bool showHiddenResources)
     {
-        return IsHidden || KnownState is KnownResourceState.Hidden;
+        return (IsHidden || KnownState is KnownResourceState.Hidden) && !showHiddenResources;
     }
 
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
@@ -102,12 +102,12 @@ public sealed class ResourceViewModel
               ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources, bool showHiddenResources = false)
     {
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.IsResourceHidden())
+            if (item.IsResourceHidden(showHiddenResources))
             {
                 continue;
             }

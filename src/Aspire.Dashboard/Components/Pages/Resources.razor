@@ -227,7 +227,7 @@
                     <AspireMenu @bind-Open="_contextMenuOpen" @ref="_contextMenu" Anchor="resources-summary-layout-id" Anchored="false" Items="_contextMenuItems" VerticalThreshold="300" />
                 </Summary>
                 <Details>
-                    <ResourceDetails Resource="context" ResourceByName="_resourceByName" ShowSpecOnlyToggle="true" />
+                    <ResourceDetails Resource="context" ResourceByName="_resourceByName" ShowSpecOnlyToggle="true" ShowHiddenResources="@_showHiddenResources" />
                 </Details>
             </SummaryDetailsView>
         </MainSection>

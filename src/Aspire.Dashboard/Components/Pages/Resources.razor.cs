@@ -65,6 +65,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [SupplyParameterFromQuery(Name = "view")]
     public string? ViewKindName { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "showHiddenResources")]
+    public bool ShowHiddenResources { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -111,6 +115,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
     private bool _showResourceTypeColumn;
+    private bool _showHiddenResources;
 
     private bool Filter(ResourceViewModel resource)
     {
@@ -118,7 +123,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
-               && !resource.IsResourceHidden();
+               && !resource.IsResourceHidden(_showHiddenResources);
 
         static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
@@ -186,6 +191,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         if (showResourceTypeColumn.Success)
         {
             _showResourceTypeColumn = showResourceTypeColumn.Value;
+        }
+
+        var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
+        if (showHiddenResources.Success)
+        {
+            _showHiddenResources = showHiddenResources.Value;
         }
 
         if (DashboardClient.IsEnabled)
@@ -339,7 +350,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
 
         var activeResources = _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).ToList();
-        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc)).ToList();
+        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc, _showHiddenResources)).ToList();
         await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
     }
 
@@ -447,11 +458,24 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 Icon = new Icons.Regular.Size16.Eye()
             });
         }
+
+        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+            _resourcesMenuItems,
+            ControlsStringsLoc,
+            _showHiddenResources,
+            _resourceByName.Values,
+            UpdateMenuButtons,
+            SessionStorage,
+            value =>
+            {
+                _showHiddenResources = value;
+                return _dataGrid.SafeRefreshDataAsync();
+            });
     }
 
     private bool HasCollapsedResources()
     {
-        return _resourceByName.Any(r => !r.Value.IsResourceHidden() && _collapsedResourceNames.Contains(r.Key));
+        return _resourceByName.Any(r => !r.Value.IsResourceHidden(_showHiddenResources) && _collapsedResourceNames.Contains(r.Key));
     }
 
     private void UpdateMaxHighlightedCount()
@@ -613,14 +637,14 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName, _showHiddenResources);
 
     private bool HasMultipleReplicas(ResourceViewModel resource)
     {
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.IsResourceHidden())
+            if (item.IsResourceHidden(_showHiddenResources))
             {
                 continue;
             }
@@ -694,7 +718,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private async Task OnToggleCollapseAll()
     {
         var resourcesWithChildren = _resourceByName.Values
-            .Where(r => !r.IsResourceHidden())
+            .Where(r => !r.IsResourceHidden(_showHiddenResources))
             .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
             .ToList();
 

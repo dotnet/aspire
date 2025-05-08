@@ -232,6 +232,11 @@
         <target state="translated">顯示值</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(全部)</target>
@@ -425,6 +430,11 @@
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">選取應用程式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
