@@ -70,6 +70,7 @@ public class AzureUserAssignedIdentityTests
         await ExecuteBeforeStartHooksAsync(app, default);
 
         Assert.Collection(model.Resources.OrderBy(r => r.Name),
+            r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r =>

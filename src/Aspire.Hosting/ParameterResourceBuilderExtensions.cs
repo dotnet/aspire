@@ -308,7 +308,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="name">Name of parameter resource</param>
     /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
-    public static ParameterResource CreateGeneratedParameter(IDistributedApplicationBuilder builder, string name, bool secret)
+    public static ParameterResource CreateParameter(IDistributedApplicationBuilder builder, string name, bool secret)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
