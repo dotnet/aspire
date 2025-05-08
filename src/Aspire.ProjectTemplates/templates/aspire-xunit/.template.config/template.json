@@ -14,7 +14,7 @@
   ],
   "name": ".NET Aspire Test Project (xUnit)",
   "defaultName": "Tests",
-  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
+  "description": "Modern, clean integration tests for your app using xUnit — great for scalable apps and teams.",
   "shortName": "aspire-xunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,

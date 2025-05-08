@@ -202,7 +202,8 @@ public class ResourcePublisherTests
             Environment = [],
             HealthReports = [],
             Commands = [],
-            Relationships = []
+            Relationships = [],
+            IsHidden = false
         };
     }
 

@@ -88,6 +88,12 @@ internal sealed class DcpOptions
     /// before DcpExecutor.StopAsync() returns. Default is false (resources are cleaned up asynchronously).
     /// </summary>
     public bool WaitForResourceCleanup { get; set; }
+
+    /// <summary>
+    /// Gets or sets the suffix to use for DCP log file names (applicable when verbose DCP logging is enabled).
+    /// By default log file name suffix defaults to the current process ID.
+    /// </summary>
+    public string? LogFileNameSuffix { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -190,6 +196,7 @@ internal class ConfigureDefaultDcpOptions(
         options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
+        options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

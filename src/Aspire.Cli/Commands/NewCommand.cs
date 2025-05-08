@@ -59,7 +59,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(prereleaseOption);
     }
 
-    private async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -68,14 +68,14 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        Dictionary<string, (string TemplateName, string TemplateDescription, string? PathAppendage)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
-            { "aspire-starter", ("aspire-starter", "Aspire Starter App", "./src")},
-            { "aspire", ("aspire", "Aspire Empty App", "./src") },
-            { "aspire-apphost", ("aspire-apphost", "Aspire App Host", "./") },
-            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", "./") },
-            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", "./") },
-            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", "./") },
-            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", "./")}
+        Dictionary<string, (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
+            { "aspire-starter", ("aspire-starter", "Aspire Starter App", projectName => $"./{projectName}")},
+            { "aspire", ("aspire", "Aspire Empty App", projectName => $"./{projectName}") },
+            { "aspire-apphost", ("aspire-apphost", "Aspire App Host", _ => "./") },
+            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", _ => "./") },
+            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", _ => "./") },
+            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", _ => "./") },
+            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", _ => "./")}
         };
 
         if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
@@ -84,7 +84,7 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await _prompter.PromptForTemplateAsync(validTemplates.Values.ToArray(), cancellationToken);
+            return await _prompter.PromptForTemplateAsync(validTemplates.Values.ToArray(),  cancellationToken);
         }
     }
 
@@ -99,11 +99,11 @@ internal sealed class NewCommand : BaseCommand
         return name;
     }
 
-    private async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
+    private async Task<string> GetOutputPathAsync(ParseResult parseResult, Func<string, string> pathDeriver, string projectName, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await _prompter.PromptForOutputPath(pathAppendage ?? ".", cancellationToken);
+            outputPath = await _prompter.PromptForOutputPath(pathDeriver(projectName), cancellationToken);
         }
 
         return Path.GetFullPath(outputPath);
@@ -138,7 +138,7 @@ internal sealed class NewCommand : BaseCommand
         {
             var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
-            var outputPath = await GetOutputPathAsync(parseResult, template.PathAppendage, cancellationToken);
+            var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
             var prerelease = parseResult.GetValue<bool>("--prerelease");
             var source = parseResult.GetValue<string?>("--source");
             var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
@@ -213,7 +213,7 @@ internal sealed class NewCommand : BaseCommand
 internal interface INewCommandPrompter
 {
     Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
-    Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken);
+    Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
@@ -247,7 +247,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             cancellationToken: cancellationToken);
     }
 
-    public virtual async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken)
+    public virtual async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
             "Select a project template:",

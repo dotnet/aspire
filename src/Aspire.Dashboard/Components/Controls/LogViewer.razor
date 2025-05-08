@@ -22,24 +22,11 @@
                         return;
                     }
 
-                    var text = pause.EndTime is null
-                        ? string.Format(
-                            CultureInfo.CurrentCulture,
-                            Loc[nameof(ConsoleLogs.ConsoleLogsPauseActive)],
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
-                            pause.FilteredCount)
-                        : string.Format(
-                            CultureInfo.CurrentCulture,
-                            Loc[nameof(ConsoleLogs.ConsoleLogsPauseDetails)],
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
-                            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, pause.EndTime.Value, MillisecondsDisplay.Truncated),
-                            pause.FilteredCount);
-
                     <div class="log-line-row-container">
                         <div class="log-line-row console-line-row">
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
-                                <span class="log-content log-pause">@text</span>
+                                <span class="log-content log-pause">@pause.GetDisplayText(Loc, TimeProvider)</span>
                             </div>
                         </div>
                     </div>

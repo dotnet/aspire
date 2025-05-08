@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "funcapp-roles-my-own-storage.module.bicep",
+  "params": {
+    "my_own_storage_outputs_name": "{my-own-storage.outputs.name}",
+    "principalId": "{funcapp-identity.outputs.principalId}"
+  }
+}

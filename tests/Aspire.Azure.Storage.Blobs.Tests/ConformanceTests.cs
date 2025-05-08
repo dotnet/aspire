@@ -24,6 +24,9 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
 
     protected override string ActivitySourceName => "Azure.Storage.Blobs.BlobContainerClient";
 
+    // AzureStorageBlobsSettings subclassed by AzureBlobStorageContainerSettings
+    protected override bool CheckOptionClassSealed => false;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Azure.Core",

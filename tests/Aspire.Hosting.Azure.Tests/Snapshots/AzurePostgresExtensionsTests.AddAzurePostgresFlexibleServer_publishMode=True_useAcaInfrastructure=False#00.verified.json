@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{postgres-data.outputs.connectionString}",
+  "path": "postgres-data.module.bicep"
+}

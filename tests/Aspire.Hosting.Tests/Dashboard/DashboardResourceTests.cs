@@ -52,7 +52,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
         Assert.Equal(dashboardPath, dashboard.Command);
-        Assert.Equal("Hidden", initialSnapshot.InitialSnapshot.State);
+        Assert.True(initialSnapshot.InitialSnapshot.IsHidden);
     }
 
     [Fact]

@@ -1,0 +1,12 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "path": "messaging-roles.module.bicep",
+  "params": {
+    "messaging_outputs_name": "{messaging.outputs.name}",
+    "principalType": "",
+    "principalId": ""
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

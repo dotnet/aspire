@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Пустое приложение .NET Aspire",
-  "description": "Шаблон проекта для создания пустого приложения .NET Aspire.",
+  "description": "Создавайте облачные системы без предустановленных служб.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
@@ -10,7 +10,7 @@
   "symbols/AspireVersion/choices/9.2/displayName": "9.2",
   "symbols/AspireVersion/choices/9.2/description": "Выбирает .NET Aspire 9.2",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
-  "symbols/AspireVersion/choices/9.3/description": "Chooses .NET Aspire 9.3",
+  "symbols/AspireVersion/choices/9.3/description": "Выбор .NET Aspire 9.3",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP OTLP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostResourceHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP службы ресурсов в файле launchSettings.json проекта AppHost.",

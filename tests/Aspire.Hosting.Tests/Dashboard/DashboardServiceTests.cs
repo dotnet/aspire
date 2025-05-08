@@ -208,6 +208,21 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
     }
 
+    [Fact]
+    public void WithCommandOverloadNotAmbiguous()
+    {
+        var testResource = new TestResource("test-resource");
+        using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
+        var builder = applicationBuilder.AddResource(testResource);
+        builder.WithCommand(
+            name: "TestName",
+            displayName: "Display name!",
+            executeCommand: c => Task.FromResult(CommandResults.Success()));
+
+        // This test simply needs to compile.
+        Assert.True(true);
+    }
+
     private static DashboardServiceData CreateDashboardServiceData(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,

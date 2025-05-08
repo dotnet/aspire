@@ -23,9 +23,6 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? ConnectAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task>? ConnectAsyncCallback { get; set; }
 
-    public TaskCompletionSource? GetPublishersAsyncCalled { get; set; }
-    public Func<CancellationToken, Task<string[]>>? GetPublishersAsyncCallback { get; set; }
-
     public TaskCompletionSource? GetPublishingActivitiesAsyncCalled { get; set; }
     public Func<CancellationToken, IAsyncEnumerable<(string, string, bool, bool)>>? GetPublishingActivitiesAsyncCallback { get; set; }
 
@@ -93,19 +90,6 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
-    {
-        GetPublishersAsyncCalled?.SetResult();
-        if (GetPublishersAsyncCallback != null)
-        {
-            return await GetPublishersAsyncCallback(cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            return ["manifest"];
-        }
-    }
-
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         GetPublishingActivitiesAsyncCalled?.SetResult();
@@ -140,7 +124,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
-            return ["baseline.v0"];
+            return ["baseline.v1"];
         }
     }
 }

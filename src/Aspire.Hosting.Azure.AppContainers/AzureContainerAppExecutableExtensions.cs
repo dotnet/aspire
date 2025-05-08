@@ -22,7 +22,6 @@ public static class AzureContainerAppExecutableExtensions
     /// <remarks>
     /// This method checks if the application is in publish mode. If it is, it adds the necessary infrastructure
     /// for container apps and applies the provided configuration action to the container app.
-    /// </remarks>
     /// <example>
     /// <code>
     /// builder.AddNpmApp("name", "image").PublishAsAzureContainerApp((infrastructure, app) =>
@@ -31,6 +30,7 @@ public static class AzureContainerAppExecutableExtensions
     /// });
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> executable, Action<AzureResourceInfrastructure, ContainerApp> configure)
         where T : ExecutableResource
     {

@@ -33,7 +33,7 @@ public abstract class StarterTemplateProjectNamesTests : TemplateTestsBase
             BuildEnvironment.ForDefaultFramework,
             $"-t {_testType}");
 
-        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
+        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
         _testOutput.WriteLine($"Checking the starter template project");
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
 

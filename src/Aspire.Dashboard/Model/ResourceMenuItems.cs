@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -26,8 +27,9 @@ public static class ResourceMenuItems
         NavigationManager navigationManager,
         TelemetryRepository telemetryRepository,
         Func<ResourceViewModel, string> getResourceName,
-        IStringLocalizer<Resources.ControlsStrings> controlLoc,
+        IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
+        IStringLocalizer<Commands> commandsLoc,
         Func<string?, Task> onViewDetails,
         Func<CommandViewModel, Task> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
@@ -36,7 +38,7 @@ public static class ResourceMenuItems
     {
         menuItems.Add(new MenuButtonItem
         {
-            Text = controlLoc[nameof(Resources.ControlsStrings.ActionViewDetailsText)],
+            Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
             OnClick = () => onViewDetails(openingMenuButtonId)
         });
@@ -118,8 +120,8 @@ public static class ResourceMenuItems
 
                 menuItems.Add(new MenuButtonItem
                 {
-                    Text = command.DisplayName,
-                    Tooltip = command.DisplayDescription,
+                    Text = command.GetDisplayName(commandsLoc),
+                    Tooltip = command.GetDisplayDescription(commandsLoc),
                     Icon = icon,
                     OnClick = () => commandSelected(command),
                     IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
