@@ -18,7 +18,7 @@ public partial class AppHostAnalyzer
             category: "Design",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            helpLinkUri: $"https://aka.ms/dotnet/aspire/diagnostics#{ModelNameMustBeValidId}");
+            helpLinkUri: $"https://aka.ms/aspire/diagnostic/{ModelNameMustBeValidId}");
 
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_modelNameMustBeValid

@@ -12,7 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A compute resource is a resource that can be hosted/executed on an <see cref="IComputeEnvironmentResource"/>. Examples
 /// include projects, containers, and other resources that can be executed on a compute environment.
 /// </remarks>
-[Experimental("ASPIRECOMPUTE001")]
+[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
 public interface IComputeResource : IResource
 {
 }

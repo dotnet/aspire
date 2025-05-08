@@ -212,7 +212,7 @@ public class CosmosDBPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
     public void RunAsPreviewEmulatorShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<AzureCosmosDBResource> builder = null!;
@@ -371,7 +371,7 @@ public class CosmosDBPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
     public void WithDataExplorerShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<AzureCosmosDBEmulatorResource> builder = null!;

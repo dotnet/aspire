@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Azure;
 /// publisher options, and execution context. It handles resource configuration and ensures
 /// that the bicep template is created in the specified output path.
 /// </remarks>
-[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
 public sealed class AzurePublishingContext(
     AzurePublisherOptions publisherOptions,
     AzureProvisioningOptions provisioningOptions,
