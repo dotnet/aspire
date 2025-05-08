@@ -59,7 +59,7 @@ jobs:
           }
 
       - name: Setup vars (Linux)
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
@@ -273,7 +273,7 @@ jobs:
           path: result-*.rst
 
       - name: Dump docker info
-        if: always()
+        if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |
           docker container ls --all
           docker container ls --all --format json
