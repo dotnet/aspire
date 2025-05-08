@@ -243,8 +243,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
-        <source>Why?</source>
-        <target state="translated">Neden?</target>
+        <source>See the documentation?</source>
+        <target state="needs-review-translation">Neden?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="new">Go to usage telemetry documentation</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
