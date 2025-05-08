@@ -163,14 +163,9 @@ public static class AzureFunctionsProjectResourceExtensions
         // the port configured in the `WithArgs` callback when starting the project. To that end
         // we register an endpoint where the target port matches the port the Azure Functions worker
         // is actually configured to listen on and the endpoint is not proxied by DCP.
-        if (useHttps)
-        {
-            builder.WithHttpsEndpoint(port: port, targetPort: port, isProxied: port == null);
-        }
-        else
-        {
-            builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
-        }
+        builder = useHttps
+            ? builder.WithHttpsEndpoint(port: port, targetPort: port, isProxied: port == null)
+            : builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
 
         return builder.WithArgs(context =>
         {
@@ -180,14 +175,17 @@ public static class AzureFunctionsProjectResourceExtensions
             // a launch profile without a `commandLineArgs` property.
             // We only do this when not in publish mode since the Azure
             // Functions container image overrides the default port to 80.
-            if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode
-                || port is not null)
+            if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
             {
                 return;
             }
-            var targetEndpoint = builder.Resource.GetEndpoint(useHttps ? "https" : "http");
-            context.Args.Add("--port");
-            context.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+
+            if (port == null)
+            {
+                var targetEndpoint = builder.Resource.GetEndpoint(useHttps ? "https" : "http");
+                context.Args.Add("--port");
+                context.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+            }
         });
     }
 
