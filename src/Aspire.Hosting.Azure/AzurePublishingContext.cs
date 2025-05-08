@@ -58,9 +58,10 @@ public sealed class AzurePublishingContext(
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
+    /// <param name="environment">The Azure environment resource.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the async operation.</returns>
-    public async Task WriteModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
@@ -71,12 +72,12 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
 
         await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, CancellationToken _)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
     {
         var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
         if (!outputDirectory.Exists)
@@ -86,10 +87,13 @@ public sealed class AzurePublishingContext(
 
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
 
-        var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
-        MainInfrastructure.Add(environmentParam);
+        MapParameter(environment.ResourceGroupName);
+        MapParameter(environment.Location);
 
-        var locationParam = new ProvisioningParameter("location", typeof(string));
+        var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
+        MainInfrastructure.Add(resourceGroupParam);
+
+        var locationParam = ParameterLookup[environment.Location];
         MainInfrastructure.Add(locationParam);
 
         var principalId = new ProvisioningParameter("principalId", typeof(string));
@@ -99,13 +103,13 @@ public sealed class AzurePublishingContext(
         {
             Value = new BicepDictionary<string>
             {
-                ["aspire-env-name"] = environmentParam
+                ["aspire-env-name"] = resourceGroupParam
             }
         };
 
         var rg = new ResourceGroup("rg")
         {
-            Name = BicepFunction.Interpolate($"rg-{environmentParam}"),
+            Name = resourceGroupParam,
             Location = locationParam,
             Tags = tags
         };
@@ -130,26 +134,6 @@ public sealed class AzurePublishingContext(
             };
 
             moduleMap[resource] = module;
-        }
-
-        void MapParameter(object candidate)
-        {
-            if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
-            {
-                var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
-
-                var pp = new ProvisioningParameter(pid, typeof(string))
-                {
-                    IsSecure = p.Secret
-                };
-
-                if (!p.Secret && p.Default is not null)
-                {
-                    pp.Value = p.Value;
-                }
-
-                ParameterLookup[p] = pp;
-            }
         }
 
         foreach (var resource in bicepResourcesToPublish)
@@ -311,6 +295,26 @@ public sealed class AzurePublishingContext(
         }
 
         return Task.CompletedTask;
+    }
+
+    private void MapParameter(object? candidate)
+    {
+        if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
+        {
+            var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
+
+            var pp = new ProvisioningParameter(pid, typeof(string))
+            {
+                IsSecure = p.Secret
+            };
+
+            if (!p.Secret && p.Default is not null)
+            {
+                pp.Value = p.Value;
+            }
+
+            ParameterLookup[p] = pp;
+        }
     }
 
     private static void Visit(object? value, Action<object> visitor) =>

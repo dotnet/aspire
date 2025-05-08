@@ -3,8 +3,8 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <!-- This API shipped as experimental in 9.2 so it is okay to remove. -->
   <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.AzurePublisherExtensions.AddAzurePublisher(Aspire.Hosting.IDistributedApplicationBuilder,System.String,System.Action{Aspire.Hosting.Azure.AzurePublisherOptions})</Target>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.AzurePublisherExtensions</Target>
     <Left>lib/net8.0/Aspire.Hosting.Azure.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.Azure.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
