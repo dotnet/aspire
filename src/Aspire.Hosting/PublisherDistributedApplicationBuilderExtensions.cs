@@ -20,7 +20,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>. </param>
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
-    [Experimental("ASPIREPUBLISHERS001")]
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
         where TPublisher : class, IDistributedApplicationPublisher
         where TPublisherOptions : class
