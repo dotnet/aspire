@@ -101,7 +101,8 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             containerImageName = composeEnvironmentResource.AddEnvironmentVariable(
                  imageEnvName,
                  description: $"Container image name for {resourceInstance.Name}",
-                 defaultValue: $"{resourceInstance.Name}:latest"
+                 defaultValue: $"{resourceInstance.Name}:latest",
+                 source: new ContainerImageReference(resourceInstance)
             );
             return true;
         }
