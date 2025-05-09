@@ -22,7 +22,7 @@ jobs:
 
   setup_for_tests_lin:
     name: Setup for tests (Linux)
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ github.repository_owner == 'radical' }}
     runs-on: ubuntu-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -38,7 +38,7 @@ jobs:
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ github.repository_owner == 'radical' }}
     runs-on: windows-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -54,7 +54,7 @@ jobs:
 
   build_packages:
     name: Build packages
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ github.repository_owner == 'radical' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -143,7 +143,7 @@ jobs:
       requiresNugets: true
 
   results: # This job is used for branch protection. It ensures all the above tests passed
-    if: ${{ always() && github.repository_owner == 'dotnet' }}
+    if: ${{ always() && github.repository_owner == 'radical' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]
