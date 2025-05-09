@@ -27,6 +27,11 @@ internal sealed class DockerComposePublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
+    private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
+    private const UnixFileMode MaxDefaultFilePermissions = UnixFileMode.UserRead | UnixFileMode.UserWrite |
+        UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+        UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly string OutputPath = outputPath;
 
@@ -83,6 +88,18 @@ internal sealed class DockerComposePublishingContext(
                     defaultNetwork.Name,
                 ];
 
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var fsAnnotations))
+                {
+                    foreach (var a in fsAnnotations)
+                    {
+                        var files = await a.Callback(new() { Model = serviceResource.TargetResource, ServiceProvider = executionContext.ServiceProvider }, CancellationToken.None).ConfigureAwait(false);
+                        foreach (var file in files)
+                        {
+                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath);
+                        }
+                    }
+                }
+
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<DockerComposeServiceCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
@@ -121,6 +138,41 @@ internal sealed class DockerComposePublishingContext(
         }
 
         envFile.Save(envFilePath);
+    }
+
+    private static void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
+    {
+        if (item is ContainerDirectory dir)
+        {
+            foreach (var dirItem in dir.Entries)
+            {
+                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name);
+            }
+
+            return;
+        }
+
+        if (item is ContainerFile file)
+        {
+            var name = composeService.Name + "_" + path.Replace('/', '_') + "_" + file.Name;
+            composeFile.AddConfig(new()
+            {
+                Name = name,
+                File = file.SourcePath,
+                Content = file.Contents,
+            });
+
+            composeService.AddConfig(new()
+            {
+                Source = name,
+                Target = path + "/" + file.Name,
+                Uid = item.Owner ?? uid,
+                Gid = item.Group ?? gid,
+                Mode = item.Mode != 0 ? item.Mode : MaxDefaultFilePermissions & ~umask,
+            });
+
+            return;
+        }
     }
 
     private static void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)

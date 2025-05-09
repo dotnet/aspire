@@ -37,6 +37,27 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                     .WithHttpEndpoint(env: "REDIS_PORT")
                     .WithArgs("-c", "hello $MSG")
                     .WithEnvironment("MSG", "world")
+                    .WithContainerFiles("/tmp", [
+                        new ContainerFile
+                        {
+                            Name = "redis.conf",
+                            Contents = "hello world",
+                        },
+                        new ContainerDirectory
+                        {
+                            Name = "folder",
+                            Entries = [
+                                new ContainerFile
+                                {
+                                    Name = "file.sh",
+                                    SourcePath = "./somefile.sh",
+                                    Owner = 1000,
+                                    Group = 1000,
+                                    Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
+                                },
+                            ],
+                        },
+                    ])
                     .WithEnvironment(context =>
                     {
                         var resource = (IResourceWithEndpoints)context.Resource;

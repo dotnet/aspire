@@ -53,5 +53,5 @@ public sealed class ConfigReference
     /// Typical values might correspond to standard file permission modes.
     /// </summary>
     [YamlMember(Alias = "mode")]
-    public int? Mode { get; set; }
+    public UnixFileMode? Mode { get; set; }
 }

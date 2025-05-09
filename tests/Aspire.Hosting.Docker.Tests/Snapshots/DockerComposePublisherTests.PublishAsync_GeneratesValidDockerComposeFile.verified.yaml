@@ -16,6 +16,15 @@
       - "8001:8000"
     networks:
       - "aspire"
+    configs:
+      - source: "cache__tmp_redis.conf"
+        target: "/tmp/redis.conf"
+        mode: 0644
+      - source: "cache__tmp_folder_file.sh"
+        target: "/tmp/folder/file.sh"
+        uid: 1000
+        gid: 1000
+        mode: 0700
   something:
     image: "dummy/migration:latest"
     container_name: "cn"
@@ -54,3 +63,8 @@
 networks:
   aspire:
     driver: "bridge"
+configs:
+  cache__tmp_redis.conf:
+    content: "hello world"
+  cache__tmp_folder_file.sh:
+    file: "./somefile.sh"
