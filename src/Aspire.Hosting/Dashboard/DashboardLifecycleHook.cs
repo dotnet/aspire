@@ -179,7 +179,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(ConfigureEnvironmentVariables));
-        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DasboardHealthCheck));
+        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DashboardHealthCheck));
     }
 
     internal async Task ConfigureEnvironmentVariables(EnvironmentCallbackContext context)
