@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 測試專案 (NUnit)",
-  "description": "使用彈性且功能豐富的 NUnit 架構，為您的應用程式進行強大的整合測試。",
+  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 測試專案 (xUnit)",
-  "description": "使用 xUnit 為您的應用程式進行現代化、簡潔的整合測試，適用於可調整的應用程式和團隊。",
+  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

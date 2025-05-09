@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Projekt testowy .NET Aspire (xUnit)",
-  "description": "Nowoczesne, czyste testy integracji dla aplikacji przy użyciu narzędzia xUnit — doskonałe rozwiązanie dla skalowalnych aplikacji i zespołów.",
+  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",
