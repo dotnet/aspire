@@ -152,7 +152,7 @@ jobs:
         env:
           CI: false
         run: |
-          ./build.sh -testnobuild &&
+          ./build.sh -restore -testnobuild &&
           for f in `find playground -name '*.AppHost.csproj'`; do echo "Generating manifest for $f"; ./dotnet.sh run --project $f --no-build --publisher manifest --output-path $PWD/$(dirname $f)/aspire-manifest.json; done &&
           git diff --exit-code -- playground
 
