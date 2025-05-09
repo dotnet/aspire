@@ -59,7 +59,7 @@ jobs:
           }
 
       - name: Setup vars (Linux)
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
@@ -213,6 +213,7 @@ jobs:
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           CI: false
+          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
@@ -234,6 +235,7 @@ jobs:
         id: run-tests
         env:
           CI: false
+          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
@@ -273,7 +275,7 @@ jobs:
           path: result-*.rst
 
       - name: Dump docker info
-        if: always()
+        if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |
           docker container ls --all
           docker container ls --all --format json

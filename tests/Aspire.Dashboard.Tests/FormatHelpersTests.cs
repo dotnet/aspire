@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -75,6 +76,7 @@ public class FormatHelpersTests
     [InlineData("15/06/2009 1:45:30.1234567 pm", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
     [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
     [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9151", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);

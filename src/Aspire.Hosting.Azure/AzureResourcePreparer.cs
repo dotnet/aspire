@@ -17,8 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 internal sealed class AzureResourcePreparer(
     IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext,
-    ResourceNotificationService notificationService
+    DistributedApplicationExecutionContext executionContext
     ) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
@@ -210,7 +209,7 @@ internal sealed class AzureResourcePreparer(
 
         if (globalRoleAssignments.Count > 0)
         {
-            await CreateGlobalRoleAssignments(appModel, globalRoleAssignments, options).ConfigureAwait(false);
+            CreateGlobalRoleAssignments(appModel, globalRoleAssignments, options);
         }
 
         // We can derive role assignments for compute resources and declared
@@ -430,7 +429,7 @@ internal sealed class AzureResourcePreparer(
         existingRoles.UnionWith(newRoles);
     }
 
-    private async Task CreateGlobalRoleAssignments(DistributedApplicationModel appModel, Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningOptions provisioningOptions)
+    private static void CreateGlobalRoleAssignments(DistributedApplicationModel appModel, Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningOptions provisioningOptions)
     {
         foreach (var (azureResource, roles) in globalRoleAssignments)
         {
@@ -440,10 +439,6 @@ internal sealed class AzureResourcePreparer(
             azureResource.Annotations.Add(new RoleAssignmentResourceAnnotation(roleAssignmentResource));
 
             roleAssignmentResource.Annotations.Add(new ResourceRelationshipAnnotation(azureResource, KnownRelationshipTypes.Parent));
-            await notificationService.PublishUpdateAsync(roleAssignmentResource, s => s with
-            {
-                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, azureResource.Name)
-            }).ConfigureAwait(false);
         }
     }
 

@@ -62,6 +62,8 @@ jobs:
         run: ./dotnet.sh dev-certs https --trust
 
       - name: Test ${{ matrix.tests.project }}
+        env:
+          CI: false
         run: |
           ${{ matrix.tests.command }}
 
@@ -103,6 +105,8 @@ jobs:
                 $OS = "ubuntu"
             } elseif ($trxFile.FullName -match "windows") {
                 $OS = "windows"
+            } elseif ($trxFile.FullName -match "macos") {
+                $OS = "macos"
             } else {
                 $OS = "unknown"
             }

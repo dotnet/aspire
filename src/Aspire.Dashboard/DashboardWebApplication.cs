@@ -204,6 +204,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        builder.Services.AddHealthChecks();
         if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
         {
             builder.Services.AddCors(options =>
@@ -441,6 +442,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
         _app.MapDashboardApi(dashboardOptions);
+        _app.MapDashboardHealthChecks();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

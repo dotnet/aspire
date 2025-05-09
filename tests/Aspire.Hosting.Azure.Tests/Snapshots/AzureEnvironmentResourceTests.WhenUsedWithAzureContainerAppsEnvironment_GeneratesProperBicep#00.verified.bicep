@@ -1,26 +1,21 @@
 ﻿targetScope = 'subscription'
 
-param azure_rg_default string
+param resourceGroupName string
 
-param azure_location_default string
+param location string
 
 param principalId string
 
-var tags = {
-  'aspire-env-name': azure_rg_default
-}
-
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
-  name: azure_rg_default
-  location: azure_location_default
-  tags: tags
+  name: resourceGroupName
+  location: location
 }
 
 module env 'env/env.bicep' = {
   name: 'env'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     userPrincipalId: principalId
   }
 }
