@@ -21,8 +21,14 @@ public class AzureSqlExtensionsTests()
 
         var sql = builder.AddAzureSqlServer("sql");
 
+        // database name same as the aspire resource name, free tier 
         sql.AddDatabase("db1");
+
+        // set the database name, free tier 
         sql.AddDatabase("db2", "db2Name");
+
+        // do not set any sku, use whatever is the default for Azure at that time
+        sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
 
         if (useAcaInfrastructure)
         {
@@ -63,11 +69,13 @@ public class AzureSqlExtensionsTests()
 
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
         sql.RunAsContainer(c =>
         {
@@ -78,6 +86,7 @@ public class AzureSqlExtensionsTests()
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
@@ -92,6 +101,10 @@ public class AzureSqlExtensionsTests()
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db3ConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
     }
 
     [Theory]
@@ -103,12 +116,16 @@ public class AzureSqlExtensionsTests()
 
         var sql = builder.AddAzureSqlServer("sql");
         var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
@@ -126,6 +143,7 @@ public class AzureSqlExtensionsTests()
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
@@ -146,6 +164,9 @@ public class AzureSqlExtensionsTests()
 
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
     }
 
     [Theory]
@@ -204,7 +225,7 @@ public class AzureSqlExtensionsTests()
 
         Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
         Assert.Single(dbAnnotations);
-    }
+    }   
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {
@@ -212,5 +233,5 @@ public class AzureSqlExtensionsTests()
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
-    }
+    }    
 }

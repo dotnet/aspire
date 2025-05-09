@@ -34,7 +34,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
             // ensure that resources with a hyphen still have a hyphen in the bicep name
             var sqlDatabase = builder.AddAzureSqlServer("sql-server")
                 .RunAsContainer(x => x.WithLifetime(ContainerLifetime.Persistent))
-                .AddDatabase("evadexdb");
+                .AddDatabase("evadexdb").WithDefaultAzureSku();
 
             using var app = builder.Build();
             await app.StartAsync();

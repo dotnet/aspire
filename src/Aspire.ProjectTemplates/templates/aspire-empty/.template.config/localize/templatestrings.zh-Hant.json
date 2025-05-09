@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 空白應用程式",
-  "description": "在沒有預設服務的情況下建立雲端原生系統。",
+  "description": "A project template for creating an empty .NET Aspire app.",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

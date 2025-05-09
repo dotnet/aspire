@@ -5,7 +5,6 @@
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
-    <RunOnGithubActionsMacOS>true</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>true</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
     <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>

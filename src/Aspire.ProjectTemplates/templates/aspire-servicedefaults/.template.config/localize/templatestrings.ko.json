@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 서비스 기본값",
-  "description": "서비스와 클라우드 기본값이 연결되어 있습니다. 앱 논리를 추가하기만 하면 됩니다.",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

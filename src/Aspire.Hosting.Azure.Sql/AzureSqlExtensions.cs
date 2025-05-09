@@ -82,7 +82,7 @@ public static class AzureSqlExtensions
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-            CreateSqlServer(infrastructure, builder, azureResource.Databases);
+            CreateSqlServer(infrastructure, builder, azureResource.AzureSqlDatabases);
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
@@ -94,6 +94,7 @@ public static class AzureSqlExtensions
 
     /// <summary>
     /// Adds an Azure SQL Database to the application model.
+    /// The Free Offer option will be used when deploying the resource in Azure
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -110,7 +111,7 @@ public static class AzureSqlExtensions
         var azureResource = builder.Resource;
         var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
 
-        builder.Resource.AddDatabase(name, databaseName);
+        builder.Resource.AddDatabase(azureSqlDatabase);
 
         if (azureResource.InnerResource is null)
         {
@@ -126,6 +127,18 @@ public static class AzureSqlExtensions
             // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azureSqlDatabase);
         }
+    }
+
+    /// <summary>
+    /// Configures the Azure SQL Database to be deployed use the default SKU provided by Azure.
+    /// Please be aware that the Azure default Sku might not take advantage of the free offer.
+    /// </summary>
+    /// <param name="builder">The builder for the Azure SQL resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureSqlDatabaseResource> WithDefaultAzureSku(this IResourceBuilder<AzureSqlDatabaseResource> builder)
+    {
+        builder.Resource.UseDefaultAzureSku = true;
+        return builder;
     }
 
     /// <summary>
@@ -172,14 +185,14 @@ public static class AzureSqlExtensions
 
         azureResource.SetInnerResource(sqlContainer.Resource);
 
-        foreach (var database in azureResource.Databases)
+        foreach (var database in azureResource.AzureSqlDatabases)
         {
             if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
             {
                 throw new InvalidOperationException($"Could not find a {nameof(AzureSqlDatabaseResource)} with name {database.Key}.");
             }
 
-            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value);
+            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value.DatabaseName);
             existingDb.SetInnerResource(innerDb.Resource);
         }
 
@@ -201,6 +214,55 @@ public static class AzureSqlExtensions
         AzureResourceInfrastructure infrastructure,
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
+    {
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
+
+        foreach (var database in databases)
+        {
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value);
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static void CreateSqlServer(
+        AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder,
+        IReadOnlyDictionary<string, AzureSqlDatabaseResource> databases)
+    {
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
+
+        foreach (var database in databases)
+        {
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value.DatabaseName);
+
+            // Unless user specifically mention that they want to use the Azure defaults,
+            // an Azure SQL DB using the free option will be created
+            if (database.Value.UseDefaultAzureSku == false)
+            {
+                sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
+                sqlDatabase.UseFreeLimit = true;
+                sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+            }
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static SqlDatabase CreateAzureSQLDatabase(SqlServer sqlServer, string databaseKey, string databaseName)
+    {
+        var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseKey);
+        var sqlDatabase = new SqlDatabase(bicepIdentifier)
+        {
+            Parent = sqlServer,
+            Name = databaseName,
+        };
+
+        return sqlDatabase;
+    }
+
+    private static SqlServer CreateSqlServerResourceOnly(AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder)
     {
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
@@ -260,23 +322,13 @@ public static class AzureSqlExtensions
             });
         }
 
-        foreach (var databaseNames in databases)
-        {
-            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
-            var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(bicepIdentifier)
-            {
-                Parent = sqlServer,
-                Name = databaseName
-            };
-            infrastructure.Add(sqlDatabase);
-        }
-
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
 
         infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
+
+        return sqlServer;
     }
 }
