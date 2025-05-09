@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Projekt testowy platformy .NET Aspire (NUnit)",
-  "description": "Zaawansowane testowanie integracji aplikacji za pomocą elastycznej i bogatej w funkcje struktury NUnit.",
+  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",

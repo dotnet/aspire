@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 应用主机",
-  "description": "从一个地方管理和运行 .NET Aspire 应用中的多个服务。",
+  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",
