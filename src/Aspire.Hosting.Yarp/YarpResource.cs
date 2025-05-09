@@ -14,5 +14,5 @@ public class YarpResource(string name) : ContainerResource(name)
     /// <summary>
     /// File path of the config file for this YARP resource.
     /// </summary>
-    public string? ConfigFilePath { get; set; }
+    internal string? ConfigFilePath { get; set; }
 }
