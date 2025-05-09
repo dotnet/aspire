@@ -37,7 +37,7 @@ public static class YarpServiceExtensions
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
                       .WithOtlpExporter();
 
-        if (builder.Environment.IsDevelopment())
+        if (builder.ExecutionContext.IsRunMode)
         {
             // YARP will not trust the cert used by Aspire otlp endpoint when running locally
             // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
