@@ -11,9 +11,8 @@
         - IncludeTestUtilities:        indicates whether the test project must not include the TestUtilities project reference; default is false; overridable.
 
       Project requirements:
-        - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux or macOS); computed.
+        - RunOnGithubActions:          indicates whether tests should run on GitHub Actions (either Windows or Linux); computed.
         - RunOnGithubActionsWindows:   indicates whether tests should run on Windows in GitHub Actions; default is true; overridable.
-        - RunOnGithubActionsMacOS:     indicates whether tests should run on MacOS in GitHub Actions; default is true; overridable.
         - RunOnGithubActionsLinux:     indicates whether tests should run on Linux in GitHub Actions; default is true; overridable.
         - RunOnAzdoCI:                 indicates whether tests should run on Azure DevOps (either Windows or Linux); always false, if RunOnAzdoHelix=true; computed.
         - RunOnAzdoCIWindows:          indicates whether tests should run on Windows in Azure DevOps; default is true; overridable.
@@ -43,7 +42,7 @@
 
   <PropertyGroup>
     <RunOnGithubActions>false</RunOnGithubActions>
-    <RunOnGithubActions Condition=" '$(RunOnGithubActionsWindows)' == 'true' or '$(RunOnGithubActionsLinux)' == 'true' or '$(RunOnGithubActionsMacOS)' == 'true' ">true</RunOnGithubActions>
+    <RunOnGithubActions Condition=" '$(RunOnGithubActionsWindows)' == 'true' or '$(RunOnGithubActionsLinux)' == 'true' ">true</RunOnGithubActions>
 
     <RunOnAzdoHelix>false</RunOnAzdoHelix>
     <RunOnAzdoHelix Condition=" '$(RunOnAzdoHelixWindows)' == 'true' or '$(RunOnAzdoHelixLinux)' == 'true' ">true</RunOnAzdoHelix>
@@ -91,7 +90,7 @@
       <_Runner Include=" - GitHub Actions: $(_IsGitHubActionsRunner)" />
       <_Runner Include=" - Azure DevOps: $(_IsAzdoCIRunner)" />
       <_Runner Include=" - Helix: $(_IsAzdoHelixRunner)" />
-      <_Requirement Include=" - GitHub Actions: $(RunOnGithubActions) (Windows: $(RunOnGithubActionsWindows) / Linux: $(RunOnGithubActionsLinux) / MacOS: $(RunOnGithubActionsMacOS))" />
+      <_Requirement Include=" - GitHub Actions: $(RunOnGithubActions) (Windows: $(RunOnGithubActionsWindows) / Linux: $(RunOnGithubActionsLinux))" />
       <_Requirement Include=" - Azure DevOps: $(RunOnAzdoCI) (Windows: $(RunOnAzdoCIWindows) / Linux: $(RunOnAzdoCILinux))" />
       <_Requirement Include=" - Helix: $(RunOnAzdoHelix) (Windows: $(RunOnAzdoHelixWindows) / Linux: $(RunOnAzdoHelixLinux))" />
     </ItemGroup>

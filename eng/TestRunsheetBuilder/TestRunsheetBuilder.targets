@@ -53,7 +53,6 @@
       <_TestRunsheet>$(MSBuildProjectName)</_TestRunsheet>
       <_TestRunsheetFileNameWindows>$(ArtifactsTmpDir)\$(_TestRunsheet).win.runsheet.json</_TestRunsheetFileNameWindows>
       <_TestRunsheetFileNameLinux>$(ArtifactsTmpDir)\$(_TestRunsheet).linux.runsheet.json</_TestRunsheetFileNameLinux>
-      <_TestRunsheetFileNameMacOS>$(ArtifactsTmpDir)\$(_TestRunsheet).macos.runsheet.json</_TestRunsheetFileNameMacOS>
 
       <_TestBinLog>$([MSBuild]::NormalizePath($(ArtifactsLogDir), '$(_TestRunsheet).binlog'))</_TestBinLog>
 
@@ -73,13 +72,11 @@
 
       <_TestRunsheetWindows>{ "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
       <_TestRunsheetLinux>{ "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
-      <_TestRunsheetMacOS>{ "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
     </PropertyGroup>
 
     <ItemGroup>
       <_OutputFiles Include="$(_TestRunsheetFileNameWindows)" />
       <_OutputFiles Include="$(_TestRunsheetFileNameLinux)" />
-      <_OutputFiles Include="$(_TestRunsheetFileNameMacOS)" />
     </ItemGroup>
 
     <MakeDir Directories="@(_OutputFiles->'%(RootDir)%(Directory)')"/>
@@ -97,12 +94,6 @@
             Lines="$(_TestRunsheetLinux)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true" />
-    <WriteLinesToFile
-            Condition=" '$(RunOnGithubActionsMacOS)' == 'true' and '$(_CreateRunsheet)' == 'true' "
-            File="$(_TestRunsheetFileNameMacOS)"
-            Lines="$(_TestRunsheetMacOS)"
-            Overwrite="true"
-            WriteOnlyWhenDifferent="true" />
 
     <!--
       On Linux there's a bug in MSBuild, which "normalises" all slashes (see https://github.com/dotnet/msbuild/issues/3468).
@@ -112,8 +103,6 @@
           Condition=" Exists('$(_TestRunsheetFileNameWindows)') and '$(BuildOs)' != 'windows' " />
     <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(_TestRunsheetFileNameLinux)') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(_TestRunsheetFileNameLinux)'&quot; "
           Condition=" Exists('$(_TestRunsheetFileNameLinux)') and '$(BuildOs)' != 'windows' " />
-    <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(_TestRunsheetFileNameMacOS)') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(_TestRunsheetFileNameMacOS)'&quot; "
-          Condition=" Exists('$(_TestRunsheetFileNameMacOS)') and '$(BuildOs)' != 'windows' " />
 
     <!--
       The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.

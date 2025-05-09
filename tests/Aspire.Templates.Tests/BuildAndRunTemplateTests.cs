@@ -113,7 +113,6 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()
     {
         string id = GetNewProjectId(prefix: "aspire");
