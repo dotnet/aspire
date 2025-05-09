@@ -1,0 +1,53 @@
+---
+const { title, children } = Astro.props;
+const titleText = `Toggle collapse/expand '${title}' details.`;
+---
+
+<details class="expand" title={titleText}>
+    <summary>{title}</summary>
+    <div class="content">
+        <slot />
+    </div>
+</details>
+
+<style>
+    .expand {
+        background-color: var(--sl-color-gray-6);        
+        border-inline-start-width: 0.25rem;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+
+    /* Summary line */
+    .expand summary {
+        cursor: pointer;
+        padding: 1rem 0.5rem;
+        position: relative;
+    }
+
+    .expand summary::after {
+        content: "⋯";
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--sl-color-text-secondary);
+        font-size: 1.5rem;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    }
+
+    .expand summary:hover::after {
+        color: var(--sl-details-border-color--hover);
+    }
+
+    .expand[open] summary::after {
+        opacity: 0;
+    }
+
+    /* Content */
+    .expand .content {
+        padding: 1rem;
+    }
+</style>
