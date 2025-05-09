@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire テスト プロジェクト (xUnit)",
-  "description": "xUnit を使用してアプリの最新のクリーンな統合テストを行います — スケーラブルなアプリやチームに最適です。",
+  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/Framework/choices/net9.0/description": "ターゲット net9.0",

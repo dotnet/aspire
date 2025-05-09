@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 테스트 프로젝트(NUnit)",
-  "description": "유연하고 기능이 풍부한 NUnit 프레임워크를 사용하여 앱에 강력한 통합 테스트를 수행합니다.",
+  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
