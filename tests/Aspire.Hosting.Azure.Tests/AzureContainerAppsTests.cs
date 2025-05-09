@@ -1260,7 +1260,7 @@ public class AzureContainerAppsTests
         builder.AddAzureContainerAppEnvironment("env");
 
         var sql = builder.AddAzureSqlServer("sql");
-        var db = sql.AddDatabase("db");
+        var db = sql.AddDatabase("db").WithDefaultAzureSku();
 
         builder.AddContainer("cache", "redis")
                .WithReference(db);
