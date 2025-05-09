@@ -17,7 +17,7 @@
   ],
   "name": ".NET Aspire Starter App",
   "defaultName": "AspireApp",
-  "description": "A complete web app setup: frontend, backend, and optional caching for faster responses.",
+  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
