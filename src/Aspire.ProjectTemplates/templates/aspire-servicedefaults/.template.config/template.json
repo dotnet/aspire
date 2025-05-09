@@ -120,20 +120,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }
