@@ -57,11 +57,6 @@ public static class DockerComposeServiceExtensions
     /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
     public static string AsEnvironmentPlaceholder(this IManifestExpressionProvider manifestExpressionProvider, DockerComposeServiceResource dockerComposeService)
     {
-        // Placeholder for resolving the actual parameter value
-        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
         var env = manifestExpressionProvider.ValueExpression.Replace("{", "")
                  .Replace("}", "")
                  .Replace(".", "_")
@@ -96,10 +91,10 @@ public static class DockerComposeServiceExtensions
         // Placeholder for resolving the actual parameter value
         // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
 
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
         var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
 
+        // Treat secrets as environment variable placeholders as for now
+        // this doesn't handle generation of parameter values with defaults
         return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
