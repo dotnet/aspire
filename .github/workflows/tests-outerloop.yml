@@ -105,6 +105,8 @@ jobs:
                 $OS = "ubuntu"
             } elseif ($trxFile.FullName -match "windows") {
                 $OS = "windows"
+            } elseif ($trxFile.FullName -match "macos") {
+                $OS = "macos"
             } else {
                 $OS = "unknown"
             }
