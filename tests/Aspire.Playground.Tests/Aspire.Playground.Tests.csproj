@@ -11,6 +11,7 @@
 
     <!-- Only run on Linux; no docker support on Windows yet -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
 
@@ -20,7 +21,7 @@
 
       FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969
      -->
-    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </TestRunnerPreCommand>
+    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true /p:CI=false &amp;&amp; </TestRunnerPreCommand>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
