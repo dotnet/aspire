@@ -54,6 +54,7 @@ public class TestProgram : IDisposable
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
         builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = "true";
+        builder.Configuration["DcpPublisher:LogFileNameSuffix"] = testName;
 
         AppBuilder = builder;
 

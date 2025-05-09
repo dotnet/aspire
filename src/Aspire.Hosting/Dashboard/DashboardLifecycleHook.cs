@@ -160,6 +160,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             }
         }
 
+        var showDashboardResources = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources);
+        var hideDashboard = !(showDashboardResources ?? false);
+
         var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
@@ -170,15 +173,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ContainerResource => KnownResourceTypes.Container,
                 _ => dashboardResource.GetType().Name
             },
-            State = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources) is true
-                ? null
-                : KnownResourceStates.Hidden
+            IsHidden = hideDashboard
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(ConfigureEnvironmentVariables));
-        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DasboardHealthCheck));
+        dashboardResource.Annotations.Add(new HealthCheckAnnotation(KnownHealthCheckNames.DashboardHealthCheck));
     }
 
     internal async Task ConfigureEnvironmentVariables(EnvironmentCallbackContext context)

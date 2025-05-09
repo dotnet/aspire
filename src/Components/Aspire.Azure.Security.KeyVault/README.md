@@ -57,6 +57,41 @@ public ProductsController(SecretClient client)
 
 See the [Azure.Security.KeyVault.Secrets documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Secrets/README.md) for examples on using the `SecretClient`.
 
+### Optionally include KeyClient and CertificateClient
+
+You can also dependency inject a `KeyClient` and/or `CertificateClient` too:
+
+```csharp
+builder.AddAzureKeyVaultKeyClient("keys");
+builder.AddAzureKeyVaultCertificateClient("certificates");
+```
+
+Which can then be retrieved in the same way the `SecretClient` is. For example , to retrieve a `KeyClient` from a Web API controller:
+
+```csharp
+private readonly KeyClient _client;
+
+public ProductsController(KeyClient client)
+{
+    _client = client;
+}
+```
+
+Or to retrieve a `CertificateClient` from a Web API controller:
+
+```csharp
+private readonly CertificateClient _client;
+
+public ProductsController(CertificateClient client)
+{
+    _client = client;
+}
+```
+
+See the [Azure.Security.KeyVault.Keys documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Keys/README.md) for examples on using the `KeyClient`.
+
+See the [Azure.Security.KeyVault.Certificates documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Certificates/README.md) for examples on using the `CertificateClient`.
+
 ## Configuration
 
 The .NET Aspire Azure Key Vault library provides multiple options to configure the Azure Key Vault connection based on the requirements and conventions of your project. Note that the `VaultUri` is required to be supplied.

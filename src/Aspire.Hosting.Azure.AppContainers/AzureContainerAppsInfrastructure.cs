@@ -42,6 +42,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
+            executionContext,
             environment);
 
         foreach (var r in appModel.Resources)
@@ -56,18 +57,16 @@ internal sealed class AzureContainerAppsInfrastructure(
                 continue;
             }
 
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, executionContext, cancellationToken).ConfigureAwait(false);
+            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
             // Capture information about the container registry used by the
             // container app environment in the deployment target information
             // associated with each compute resource that needs an image
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
                 ContainerRegistry = caes.FirstOrDefault(),
-                ComputeEnvironment = environment as IComputeEnvironmentResource
+                ComputeEnvironment = environment as IComputeEnvironmentResource // will be null if azd
             });
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 
         static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)

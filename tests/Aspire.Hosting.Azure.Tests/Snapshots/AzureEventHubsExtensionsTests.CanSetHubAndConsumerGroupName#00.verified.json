@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{eh.outputs.eventHubsEndpoint}",
+  "path": "eh.module.bicep"
+}

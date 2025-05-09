@@ -398,5 +398,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkText", resourceCulture);
             }
         }
+        
+        public static string SettingsDialogTelemetryInfoLinkTooltip {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkTooltip", resourceCulture);
+            }
+        }
     }
 }

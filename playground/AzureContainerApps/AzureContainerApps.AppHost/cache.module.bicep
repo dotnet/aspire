@@ -1,14 +1,14 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param infra_outputs_volumes_cache_0 string
+param infra_outputs_azure_container_apps_environment_default_domain string
+
+param infra_outputs_azure_container_apps_environment_id string
 
 @secure()
 param cache_password_value string
 
-param infra_outputs_azure_container_apps_environment_default_domain string
-
-param infra_outputs_azure_container_apps_environment_id string
+param infra_outputs_volumes_cache_0 string
 
 resource cache 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'cache'

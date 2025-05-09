@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Host de Aplicativos .NET Aspire",
-  "description": "Um modelo de projeto para criar um projeto de host de aplicativo (orquestrador) do .NET Aspire.",
+  "description": "Gerencia e executa vários serviços no seu aplicativo .NET Aspire a partir de um único lugar.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

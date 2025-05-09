@@ -141,6 +141,10 @@ internal sealed class DcpHost
                 loggingSocket.Listen(LoggingSocketConnectionBacklog);
 
                 dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_SOCKET", _locations.DcpLogSocket);
+                if (!string.IsNullOrWhiteSpace(_dcpOptions.LogFileNameSuffix))
+                {
+                    dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_FILE_NAME_SUFFIX", _dcpOptions.LogFileNameSuffix);
+                }
 
                 _logProcessorTask = Task.Run(() => StartLoggingSocketAsync(loggingSocket));
             }

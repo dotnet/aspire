@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire-Testprojekt (xUnit)",
-  "description": "Ein Projekt, das xUnit.NET-Integrationstests eines .NET Aspire-Apphost-Projekts enthält.",
+  "description": "Moderne, bereinigte Integrationstests für Ihre App mit xUnit – ideal für skalierbare Apps und Teams.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

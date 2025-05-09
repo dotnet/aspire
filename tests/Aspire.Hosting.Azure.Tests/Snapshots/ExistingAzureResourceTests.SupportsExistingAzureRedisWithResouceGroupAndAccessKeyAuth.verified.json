@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{redis-kv.secrets.connectionstrings--redis}",
+  "path": "redis.module.bicep",
+  "params": {
+    "keyVaultName": "{redis-kv.outputs.name}"
+  },
+  "scope": {
+    "resourceGroup": "existingResourceGroupName"
+  }
+}

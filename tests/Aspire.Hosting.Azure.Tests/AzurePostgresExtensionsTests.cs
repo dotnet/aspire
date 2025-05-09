@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -37,113 +36,16 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data.outputs.connectionString}",
-              "path": "postgres-data.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var allowAllIpsFirewall = "";
-        if (!publishMode)
-        {
-            allowAllIpsFirewall = """
-
-                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-                  name: 'AllowAllIps'
-                  properties: {
-                    endIpAddress: '255.255.255.255'
-                    startIpAddress: '0.0.0.0'
-                  }
-                  parent: postgres_data
-                }
-            
-                """;
-        }
-
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                authConfig: {
-                  activeDirectoryAuth: 'Enabled'
-                  passwordAuth: 'Disabled'
-                }
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres-data'
-              }
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-            {{allowAllIpsFirewall}}
-            output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName}'
-
-            output name string = postgres_data.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
 
         var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
-        var postgresRolesManifest = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        var (postgresRolesManifest, postgresRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
 
-            param postgres_data_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            param principalName string
-
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
-              name: postgres_data_outputs_name
-            }
-
-            resource postgres_data_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-              name: principalId
-              properties: {
-                principalName: principalName
-                principalType: principalType
-              }
-              parent: postgres_data
-            }
-            """;
-        output.WriteLine(postgresRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, postgresRolesManifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
+              .AppendContentAsFile(postgresRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -210,96 +112,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-            
-            param administratorLogin string
-            
-            @secure()
-            param administratorLoginPassword string
-            
-            param keyVaultName string
-            
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administratorLogin: administratorLogin
-                administratorLoginPassword: administratorLoginPassword
-                authConfig: {
-                  activeDirectoryAuth: 'Disabled'
-                  passwordAuth: 'Enabled'
-                }
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres-data'
-              }
-            }
-            
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-            
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllIps'
-              properties: {
-                endIpAddress: '255.255.255.255'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-            
-            resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-              name: 'db1Name'
-              parent: postgres_data
-            }
-            
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-            
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--postgres-data'
-              properties: {
-                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-              }
-              parent: keyVault
-            }
-            
-            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--db1'
-              properties: {
-                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
-              }
-              parent: keyVault
-            }
-            
-            output name string = postgres_data.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Theory]

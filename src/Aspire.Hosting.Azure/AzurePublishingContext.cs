@@ -21,12 +21,11 @@ namespace Aspire.Hosting.Azure;
 /// </remarks>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzurePublishingContext(
-    AzurePublisherOptions publisherOptions,
+    string outputPath,
     AzureProvisioningOptions provisioningOptions,
     ILogger logger)
 {
     private ILogger Logger => logger;
-    private AzurePublisherOptions PublisherOptions => publisherOptions;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -37,15 +36,34 @@ public sealed class AzurePublishingContext(
     };
 
     /// <summary>
+    /// Gets a dictionary that maps parameter resources to provisioning parameters.
+    /// </summary>
+    /// <remarks>
+    /// The value is the <see cref="ProvisioningParameter"/> of the <see cref="MainInfrastructure"/>
+    /// that was created to be filled with the value of the Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
+    public Dictionary<ParameterResource, ProvisioningParameter> ParameterLookup { get; } = [];
+
+    /// <summary>
+    /// Gets a dictionary that maps output references to provisioning outputs.
+    /// </summary>
+    /// <remarks>
+    /// The value is the <see cref="ProvisioningOutput"/> of the <see cref="MainInfrastructure"/>
+    /// that was created with the value of the output referenced by the Aspire <see cref="BicepOutputReference"/>.
+    /// </remarks>
+    public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
+
+    /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
+    /// <param name="environment">The Azure environment resource.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the async operation.</returns>
-    public async Task WriteModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
+    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(outputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -53,46 +71,43 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
 
-        await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
+        await SaveToDiskAsync(outputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, CancellationToken _)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
     {
-        var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
+        var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
         {
             outputDirectory.Create();
         }
 
-        var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
-        MainInfrastructure.Add(environmentParam);
+        var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
 
-        var locationParam = new ProvisioningParameter("location", typeof(string));
+        MapParameter(environment.ResourceGroupName);
+        MapParameter(environment.Location);
+        MapParameter(environment.PrincipalId);
+
+        var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
+        MainInfrastructure.Add(resourceGroupParam);
+
+        var locationParam = ParameterLookup[environment.Location];
         MainInfrastructure.Add(locationParam);
 
-        var principalId = new ProvisioningParameter("principalId", typeof(string));
+        var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
-
-        var tags = new ProvisioningVariable("tags", typeof(object))
-        {
-            Value = new BicepDictionary<string>
-            {
-                ["aspire-env-name"] = environmentParam
-            }
-        };
 
         var rg = new ResourceGroup("rg")
         {
-            Name = BicepFunction.Interpolate($"rg-{environmentParam}"),
+            Name = resourceGroupParam,
             Location = locationParam,
-            Tags = tags
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             var file = resource.GetBicepTemplateFile();
 
@@ -112,29 +127,7 @@ public sealed class AzurePublishingContext(
             moduleMap[resource] = module;
         }
 
-        var parameterMap = new Dictionary<ParameterResource, ProvisioningParameter>();
-
-        void MapParameter(object candidate)
-        {
-            if (candidate is ParameterResource p && !parameterMap.ContainsKey(p))
-            {
-                var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
-
-                var pp = new ProvisioningParameter(pid, typeof(string))
-                {
-                    IsSecure = p.Secret
-                };
-
-                if (!p.Secret && p.Default is not null)
-                {
-                    pp.Value = p.Value;
-                }
-
-                parameterMap[p] = pp;
-            }
-        }
-
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             // Map parameters from existing resources
             if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
@@ -168,7 +161,7 @@ public sealed class AzurePublishingContext(
         object Eval(object? value) => value switch
         {
             BicepOutputReference b => GetOutputs(moduleMap[b.Resource], b.Name),
-            ParameterResource p => parameterMap[p],
+            ParameterResource p => ParameterLookup[p],
             ConnectionStringReference r => Eval(r.Resource.ConnectionStringExpression),
             IResourceWithConnectionString cs => Eval(cs.ConnectionStringExpression),
             ReferenceExpression re => EvalExpr(re),
@@ -188,12 +181,12 @@ public sealed class AzurePublishingContext(
             };
         }
 
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
+        foreach (var resource in bicepResourcesToPublish)
         {
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), parameterMap[p].Value.Compile()),
+                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterLookup[p].Value.Compile()),
                 _ => new IdentifierExpression(rg.BicepIdentifier)
             };
 
@@ -225,6 +218,16 @@ public sealed class AzurePublishingContext(
             }
         }
 
+        void CaptureBicepOutputsFromParameters(IResourceWithParameters resource)
+        {
+            foreach (var parameter in resource.Parameters)
+            {
+                Visit(parameter.Value, CaptureBicepOutputs);
+            }
+        }
+
+        // Capture any bicep outputs referenced from resources outside of the MainInfrastructure.
+        // These include DeploymentTarget resources and any other resources that have parameters that reference bicep outputs.
         foreach (var resource in model.Resources)
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
@@ -246,19 +249,19 @@ public sealed class AzurePublishingContext(
                     Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
                 }
 
-                foreach (var parameter in br.Parameters)
-                {
-                    Visit(parameter.Value, CaptureBicepOutputs);
-                }
+                CaptureBicepOutputsFromParameters(br);
+            }
+            else if (resource is IResourceWithParameters rwp && !bicepResourcesToPublish.Contains(resource))
+            {
+                CaptureBicepOutputsFromParameters(rwp);
             }
         }
 
-        foreach (var (_, pp) in parameterMap)
+        foreach (var (_, pp) in ParameterLookup)
         {
             MainInfrastructure.Add(pp);
         }
 
-        MainInfrastructure.Add(tags);
         MainInfrastructure.Add(rg);
 
         foreach (var (_, module) in moduleMap)
@@ -277,10 +280,31 @@ public sealed class AzurePublishingContext(
                 Value = GetOutputs(module, output.Name)
             };
 
+            OutputLookup[output] = bicepOutput;
             MainInfrastructure.Add(bicepOutput);
         }
 
         return Task.CompletedTask;
+    }
+
+    private void MapParameter(object? candidate)
+    {
+        if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
+        {
+            var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
+
+            var pp = new ProvisioningParameter(pid, typeof(string))
+            {
+                IsSecure = p.Secret
+            };
+
+            if (!p.Secret && p.Default is not null)
+            {
+                pp.Value = p.Value;
+            }
+
+            ParameterLookup[p] = pp;
+        }
     }
 
     private static void Visit(object? value, Action<object> visitor) =>

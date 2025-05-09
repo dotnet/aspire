@@ -180,6 +180,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 // Simulate apphost running successfully and establishing a backchannel
                 runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
                 {
+                    Assert.True(options.NoLaunchProfile);
+
                     if (args.Any(a => a == "inspect"))
                     {
                         var inspectModeCompleted = new TaskCompletionSource();

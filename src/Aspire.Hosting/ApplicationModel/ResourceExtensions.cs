@@ -575,35 +575,41 @@ public static class ResourceExtensions
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
-    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource)
-    {
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? targetComputeEnvironment = null)
+    {
+        IComputeEnvironmentResource? selectedComputeEnvironment = null;
         if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
         {
-            // find the deployment target for the compute environment
-            return resource.Annotations
-                .OfType<DeploymentTargetAnnotation>()
-                .LastOrDefault(a => a.ComputeEnvironment == computeEnvironmentAnnotation.ComputeEnvironment);
-        }
-        else
-        {
-            DeploymentTargetAnnotation? result = null;
-            var computeEnvironments = resource.Annotations.OfType<DeploymentTargetAnnotation>();
-            foreach (var annotation in computeEnvironments)
+            // If you have a ComputeEnvironmentAnnotation, it means the resource is bound to a specific compute environment.
+            // Skip the annotation if it doesn't match the specified computeEnvironmentResource.
+            if (targetComputeEnvironment is not null && targetComputeEnvironment != computeEnvironmentAnnotation.ComputeEnvironment)
             {
-                if (result is null)
-                {
-                    result = annotation;
-                }
-                else
-                {
-                    var computeEnvironmentNames = string.Join(", ", computeEnvironments.Select(a => a.ComputeEnvironment?.Name));
-                    throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
-                }
+                return null;
             }
 
-            return result;
+            // If the resource is bound to a specific compute environment, use that one.
+            selectedComputeEnvironment = computeEnvironmentAnnotation.ComputeEnvironment;
         }
+
+        if (resource.TryGetAnnotationsOfType<DeploymentTargetAnnotation>(out var deploymentTargetAnnotations))
+        {
+            var annotations = deploymentTargetAnnotations.ToArray();
+
+            if (selectedComputeEnvironment is not null)
+            {
+                return annotations.SingleOrDefault(a => a.ComputeEnvironment == selectedComputeEnvironment);
+            }
+
+            if (annotations.Length > 1)
+            {
+                var computeEnvironmentNames = string.Join(", ", annotations.Select(a => a.ComputeEnvironment?.Name));
+                throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
+            }
+
+            return annotations[0];
+        }
+        return null;
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 

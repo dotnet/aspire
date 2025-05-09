@@ -1,0 +1,10 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "path": "logAnalytics.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

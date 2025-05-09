@@ -46,15 +46,16 @@ internal sealed class ApplicationOrchestrator
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
 
-        dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
-        dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
+        dcpExecutorEvents.Subscribe<OnEndpointsAllocatedContext>(OnEndpointsAllocated);
+        dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
+        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishInitialResourceUrls);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
-        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
     }
 
     private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)
@@ -100,13 +101,36 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
+
+        // Fire the endpoints allocated event for all resources.
+        foreach (var resource in _model.Resources)
+        {
+            await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task PublishInitialResourceUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    {
+        var resource = @event.Resource;
+
+        // Process URLs for the resource.
+        await ProcessUrls(resource, cancellationToken).ConfigureAwait(false);
+
+        IEnumerable<UrlSnapshot> urls = [];
+        if (resource.TryGetUrls(out var resourceUrls))
+        {
+            urls = resourceUrls.Select(url => new UrlSnapshot(Name: url.Endpoint?.EndpointName, Url: url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly)
+            {
+                IsInactive = true,
+                DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0)
+            });
+        }
+
+        await _notificationService.PublishUpdateAsync(resource, s => s with { Urls = [.. urls] }).ConfigureAwait(false);
     }
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
-        // Call the callbacks to configure resource URLs
-        await ProcessUrls(context.Resource, context.CancellationToken).ConfigureAwait(false);
-
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:
@@ -119,7 +143,6 @@ internal sealed class ApplicationOrchestrator
                 })
                 .ConfigureAwait(false);
 
-                await SetExecutableChildResourceAsync(context.Resource).ConfigureAwait(false);
                 break;
             case KnownResourceTypes.Container:
                 await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
@@ -132,7 +155,7 @@ internal sealed class ApplicationOrchestrator
                 .ConfigureAwait(false);
 
                 Debug.Assert(context.DcpResourceName is not null, "Container that is starting should always include the DCP name.");
-                await SetChildResourceAsync(context.Resource, context.DcpResourceName, state: KnownResourceStates.Starting, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                await SetChildResourceAsync(context.Resource, state: KnownResourceStates.Starting, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
                 break;
             default:
                 break;
@@ -151,22 +174,17 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task OnResourcesPrepared(OnResourcesPreparedContext _)
+    private async Task OnResourcesPrepared(OnResourcesPreparedContext context)
     {
-        await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
+        await PublishResourcesInitialStateAsync(context.CancellationToken).ConfigureAwait(false);
     }
 
     private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
     {
-        if (resource is not IResourceWithEndpoints resourceWithEndpoints)
-        {
-            return;
-        }
-
         // Project endpoints to URLS
         var urls = new List<ResourceUrlAnnotation>();
 
-        if (resource.TryGetEndpoints(out var endpoints))
+        if (resource.TryGetEndpoints(out var endpoints) && resource is IResourceWithEndpoints resourceWithEndpoints)
         {
             foreach (var endpoint in endpoints)
             {
@@ -272,7 +290,7 @@ internal sealed class ApplicationOrchestrator
 
         if (context.ResourceType == KnownResourceTypes.Container)
         {
-            await SetChildResourceAsync(context.Resource, context.DcpResourceName, context.Status.State, context.Status.StartupTimestamp, context.Status.FinishedTimestamp).ConfigureAwait(false);
+            await SetChildResourceAsync(context.Resource, context.Status.State, context.Status.StartupTimestamp, context.Status.FinishedTimestamp).ConfigureAwait(false);
         }
     }
 
@@ -284,7 +302,7 @@ internal sealed class ApplicationOrchestrator
 
             if (context.ResourceType == KnownResourceTypes.Container)
             {
-                await SetChildResourceAsync(context.Resource, context.DcpResourceName, KnownResourceStates.FailedToStart, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
+                await SetChildResourceAsync(context.Resource, KnownResourceStates.FailedToStart, startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
             }
         }
         else
@@ -348,7 +366,7 @@ internal sealed class ApplicationOrchestrator
         await _dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task SetChildResourceAsync(IResource resource, string parentName, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
+    private async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
         {
@@ -356,46 +374,39 @@ internal sealed class ApplicationOrchestrator
             {
                 State = state,
                 StartTimeStamp = startTimeStamp,
-                StopTimeStamp = stopTimeStamp,
-                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
+                StopTimeStamp = stopTimeStamp
             }).ConfigureAwait(false);
 
-            // the parent name needs to be an instance name, not the resource name.
-            // parent the children of the child under the first resource instance.
-            await SetChildResourceAsync(child, child.GetResolvedResourceNames()[0], state, startTimeStamp, stopTimeStamp)
+            // Recurse to set the child resources of the child.
+            await SetChildResourceAsync(child, state, startTimeStamp, stopTimeStamp)
                 .ConfigureAwait(false);
         }
     }
 
-    private async Task SetExecutableChildResourceAsync(IResource resource)
-    {
-        // the parent name needs to be an instance name, not the resource name.
-        // parent the children under the first resource instance.
-        var parentName = resource.GetResolvedResourceNames()[0];
-
-        foreach (var child in _parentChildLookup[resource])
-        {
-            await _notificationService.PublishUpdateAsync(child, s => s with
-            {
-                Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parentName)
-            }).ConfigureAwait(false);
-
-            await SetExecutableChildResourceAsync(child).ConfigureAwait(false);
-        }
-    }
-
-    private async Task PublishResourcesWithInitialStateAsync()
+    private async Task PublishResourcesInitialStateAsync(CancellationToken cancellationToken)
     {
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)
         {
+            // Process relationships for the resource.
+            var relationships = ApplicationModel.ResourceSnapshotBuilder.BuildRelationships(resource);
+            var parent = resource is IResourceWithParent hasParent
+                ? hasParent.Parent
+                : resource.Annotations.OfType<ResourceRelationshipAnnotation>().LastOrDefault(r => r.Type == KnownRelationshipTypes.Parent)?.Resource;
+
             await _notificationService.PublishUpdateAsync(resource, s =>
             {
                 return s with
                 {
+                    Relationships = relationships,
+                    Properties = parent is null ? s.Properties : s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parent.GetResolvedResourceNames()[0]),
                     HealthReports = GetInitialHealthReports(resource)
                 };
             }).ConfigureAwait(false);
+
+            // Notify resources that they need to initialize themselves.
+            var initializeEvent = new InitializeResourceEvent(resource, _eventing, _loggerService, _notificationService, _serviceProvider);
+            await _eventing.PublishAsync(initializeEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -426,8 +437,7 @@ internal sealed class ApplicationOrchestrator
             // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
-                var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, _serviceProvider);
-                await _eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
             }
         }
     }

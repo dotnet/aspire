@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Параметры службы .NET Aspire по умолчанию",
-  "description": "Шаблон проекта для создания проекта по умолчанию для службы .NET Aspire.",
+  "description": "Службы и облако по умолчанию уже подключены — просто добавьте логику своего приложения.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

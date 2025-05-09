@@ -8,5 +8,5 @@ internal static class KnownHealthCheckNames
     /// <summary>
     /// Common name for dashboard health check.
     /// </summary>
-    public const string DasboardHealthCheck = "aspire_dashboard_check";
+    public const string DashboardHealthCheck = "aspire_dashboard_check";
 }
