@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString
 {
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, AzureSqlDatabaseResource> _databases = new Dictionary<string, AzureSqlDatabaseResource>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
 
     /// <summary>
@@ -75,13 +75,21 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
-    /// A dictionary where the key is the resource name and the value is the database name.
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database resource.
     /// </summary>
-    public IReadOnlyDictionary<string, string> Databases => _databases;
+    public IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases => _databases;
 
-    internal void AddDatabase(string name, string databaseName)
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Databases => _databases.ToDictionary(
+        kvp => kvp.Key,
+        kvp => kvp.Value.DatabaseName
+    );
+
+    internal void AddDatabase(AzureSqlDatabaseResource db)
     {
-        _databases.TryAdd(name, databaseName);
+        _databases.TryAdd(db.Name, db);
     }
 
     internal void SetInnerResource(SqlServerServerResource innerResource)
