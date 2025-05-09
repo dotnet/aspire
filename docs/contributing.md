@@ -76,6 +76,8 @@ For information on who can help in PRs and issues, see the [area owners](area-ow
 
 See the [tips and known issues](tips-and-known-issues.md) page.
 
+### Package validation
+
 When creating a new integration, package validation will automatically try to download a previous version of the package to ensure you didn't break compat. As a result you might get the following build error:
 
 ```shell
