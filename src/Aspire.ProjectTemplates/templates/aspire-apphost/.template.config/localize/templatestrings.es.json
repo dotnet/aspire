@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Host de aplicación de .NET Aspire",
-  "description": "Administra y ejecuta varios servicios en la aplicación de .NET Aspire desde un solo lugar.",
+  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",

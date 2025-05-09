@@ -561,7 +561,6 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
             _tcs.TrySetResult(message);
         }
-            
 
         public sealed class LogMessage
         {

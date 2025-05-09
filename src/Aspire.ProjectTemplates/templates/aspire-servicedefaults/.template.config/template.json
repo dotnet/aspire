@@ -12,7 +12,7 @@
   ],
   "name": ".NET Aspire Service Defaults",
   "defaultName": "ServiceDefaults",
-  "description": "Service and cloud defaults wired up — just add your app logic.",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
   "shortName": "aspire-servicedefaults",
   "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,
@@ -120,20 +120,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }
