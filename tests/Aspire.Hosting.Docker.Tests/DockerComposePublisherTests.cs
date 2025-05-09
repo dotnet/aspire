@@ -137,6 +137,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
+        var containerNameParam = builder.AddParameter("param1", "default-name", publishValueAsDefault: true);
+
         builder.AddDockerComposeEnvironment("docker-compose")
                .WithProperties(e => e.DefaultNetworkName = "default-network")
                .ConfigureComposeFile(file =>
@@ -160,6 +162,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 // Set a restart policy
                 composeService.Restart = "always";
 
+                composeService.ContainerName = containerNameParam.AsEnvPlaceHolder(serviceResource);
+
                 // Add a custom network
                 composeService.Networks.Add("custom-network");
             });
@@ -167,11 +171,15 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
 
         app.Run();
+
         // Assert
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
             .UseHelixAwareDirectory();
     }
 

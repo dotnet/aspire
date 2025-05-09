@@ -32,7 +32,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                return AllocateParameter(param, context);
+                return param.AsEnvPlaceHolder(resource);
             }
 
             if (value is ConnectionStringReference cs)
@@ -82,7 +82,7 @@ internal static class DockerComposeServiceResourceExtensions
             // If we don't know how to process the value, we just return it as an external reference
             if (value is IManifestExpressionProvider r)
             {
-                return ResolveUnknownValue(r, resource);
+                return r.AsEnvPlaceHolder(resource);
             }
 
             return value; // todo: we need to never get here really...
@@ -106,43 +106,5 @@ internal static class DockerComposeServiceResourceExtensions
         {
             return $"{prefix}{mapping.Host}{suffix}";
         }
-    }
-
-    private static string ResolveParameterValue(ParameterResource parameter, DockerComposeEnvironmentContext context)
-    {
-        // Placeholder for resolving the actual parameter value
-        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
-        var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
-
-        context.AddEnv(env, $"Parameter {parameter.Name}",
-                                            parameter.Secret || parameter.Default is null ? null : parameter.Value);
-
-        return $"${{{env}}}";
-    }
-
-    private static string AllocateParameter(ParameterResource parameter, DockerComposeEnvironmentContext context)
-    {
-        return ResolveParameterValue(parameter, context);
-    }
-
-    private static string ResolveUnknownValue(IManifestExpressionProvider parameter, DockerComposeServiceResource serviceResource)
-    {
-        // Placeholder for resolving the actual parameter value
-        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
-        var env = parameter.ValueExpression.Replace("{", "")
-                 .Replace("}", "")
-                 .Replace(".", "_")
-                 .Replace("-", "_")
-                 .ToUpperInvariant();
-
-        serviceResource.EnvironmentVariables.Add(env, $"Unknown reference {parameter.ValueExpression}");
-
-        return $"${{{env}}}";
     }
 }

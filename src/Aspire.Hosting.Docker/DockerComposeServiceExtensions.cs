@@ -48,4 +48,60 @@ public static class DockerComposeServiceExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Creates a placeholder for an environment variable in the Docker Compose file.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="dockerComposeService"></param>
+    /// <returns></returns>
+    public static string AsEnvPlaceHolder(this IManifestExpressionProvider builder, DockerComposeServiceResource dockerComposeService)
+    {
+
+        // Placeholder for resolving the actual parameter value
+        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
+
+        // Treat secrets as environment variable placeholders as for now
+        // this doesn't handle generation of parameter values with defaults
+        var env = builder.ValueExpression.Replace("{", "")
+                 .Replace("}", "")
+                 .Replace(".", "_")
+                 .Replace("-", "_")
+                 .ToUpperInvariant();
+
+        dockerComposeService.Parent.AddEnvironmentVariable(env);
+
+        return $"${{{env}}}";
+    }
+
+    /// <summary>
+    /// Creates a placeholder for an environment variable in the Docker Compose file.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="dockerComposeService"></param>
+    /// <returns></returns>
+    public static string AsEnvPlaceHolder(this IResourceBuilder<ParameterResource> builder, DockerComposeServiceResource dockerComposeService)
+    {
+        return builder.Resource.AsEnvPlaceHolder(dockerComposeService);
+    }
+
+    /// <summary>
+    /// Creates a placeholder for an environment variable in the Docker Compose file.
+    /// </summary>
+    /// <param name="parameter"></param>
+    /// <param name="dockerComposeService"></param>
+    /// <returns></returns>
+    public static string AsEnvPlaceHolder(this ParameterResource parameter, DockerComposeServiceResource dockerComposeService)
+    {
+        // Placeholder for resolving the actual parameter value
+        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
+
+        // Treat secrets as environment variable placeholders as for now
+        // this doesn't handle generation of parameter values with defaults
+        var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
+
+        dockerComposeService.Parent.AddEnvironmentVariable(env, $"Parameter {parameter.Name}", parameter.Secret || parameter.Default is null ? null : parameter.Value);
+
+        return $"${{{env}}}";
+    }
 }

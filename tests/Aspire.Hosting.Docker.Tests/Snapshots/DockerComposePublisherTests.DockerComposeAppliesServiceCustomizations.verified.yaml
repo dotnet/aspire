@@ -2,6 +2,7 @@
 services:
   service:
     image: "nginx:latest"
+    container_name: "${PARAM1}"
     environment:
       ORIGINAL_ENV: "value"
       CUSTOM_ENV: "custom-value"
