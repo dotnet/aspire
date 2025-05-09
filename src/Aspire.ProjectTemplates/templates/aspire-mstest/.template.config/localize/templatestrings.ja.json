@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire テスト プロジェクト (MSTest)",
-  "description": ".NET Aspire アプリ ホスティング プロセス プロジェクトの MSTest 統合テストを含むプロジェクト。",
+  "description": "MSTest を使用した .NET Aspire アプリの初心者向けの統合テスト。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/Framework/choices/net9.0/description": "ターゲット net9.0",

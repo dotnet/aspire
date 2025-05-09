@@ -51,7 +51,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
             var internalPort = endpoint.TargetPort ?? _portAllocator.AllocatePort();
             _portAllocator.AddUsedPort(internalPort);
 
-            var exposedPort = _portAllocator.AllocatePort();
+            var exposedPort = endpoint.Port ?? _portAllocator.AllocatePort();
             _portAllocator.AddUsedPort(exposedPort);
 
             serviceResource.EndpointMappings.Add(endpoint.Name, new(endpoint.UriScheme, serviceResource.TargetResource.Name, internalPort, exposedPort, false));
@@ -140,10 +140,5 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
                 serviceResource.Commands.Add(str);
             }
         }
-    }
-
-    public void AddEnv(string name, string description, string? defaultValue = null)
-    {
-        environment.CapturedEnvironmentVariables[name] = (description, defaultValue);
     }
 }

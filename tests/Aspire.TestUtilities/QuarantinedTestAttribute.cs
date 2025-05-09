@@ -11,7 +11,6 @@ namespace Aspire.TestUtilities;
 /// This attribute works by applying xUnit.net "Traits" based on the criteria specified in the attribute
 /// properties. Once these traits are applied, build scripts can include/exclude tests based on them.
 /// </para>
-/// </remarks>
 /// <example>
 /// <code>
 /// [Fact]
@@ -32,6 +31,7 @@ namespace Aspire.TestUtilities;
 /// </item>
 /// </list>
 /// </example>
+/// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
 public sealed class QuarantinedTestAttribute : Attribute, ITraitAttribute
 {

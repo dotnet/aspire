@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Úvodní aplikace .NET Aspire",
-  "description": "Šablona projektu pro vytvoření aplikace .NET Aspire s webovým front-endem Blazor a back-endovou službou webového rozhraní API, volitelně s využitím Redisu pro ukládání do mezipaměti.",
+  "description": "Kompletní nastavení webové aplikace: front-end, back-end a volitelné ukládání do mezipaměti pro rychlejší odpovědi",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",
   "symbols/Framework/choices/net9.0/description": "Cílit na net9.0",

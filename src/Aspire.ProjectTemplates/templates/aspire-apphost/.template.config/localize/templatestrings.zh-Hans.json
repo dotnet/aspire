@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 应用主机",
-  "description": "一个用于创建 .NET Aspire 应用主机(业务流程协调程序)项目的项目模板。",
+  "description": "从一个地方管理和运行 .NET Aspire 应用中的多个服务。",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",

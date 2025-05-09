@@ -9,12 +9,11 @@ using Aspire.Hosting.Azure.ContainerRegistry;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.ContainerRegistry;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureContainerRegistryTests(ITestOutputHelper output)
+public class AzureContainerRegistryTests
 {
     [Fact]
     public async Task AddAzureContainerRegistry_AddsResourceAndImplementsIContainerRegistry()
@@ -63,40 +62,11 @@ public class AzureContainerRegistryTests(ITestOutputHelper output)
 
         var acr = builder.AddAzureContainerRegistry("acr");
 
-        var manifest = await GetManifestWithBicep(acr.Resource);
+        var (manifest, bicep) = await GetManifestWithBicep(acr.Resource);
 
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "path": "acr.module.bicep"
-            }
-            """;
-
-        output.WriteLine(manifest.ManifestNode.ToString());
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-              name: take('acr${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              sku: {
-                name: 'Basic'
-              }
-              tags: {
-                'aspire-resource-name': 'acr'
-              }
-            }
-
-            output name string = acr.name
-
-            output loginServer string = acr.properties.loginServer
-            """;
-
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -120,56 +90,9 @@ public class AzureContainerRegistryTests(ITestOutputHelper output)
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(rolesResource);
 
-        var expectedRolesManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "api-roles-acr.module.bicep",
-          "params": {
-            "acr_outputs_name": "{acr.outputs.name}",
-            "principalId": "{api-identity.outputs.principalId}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedRolesManifest, rolesManifest.ToString());
-
-        var expectedRolesBicep =
-        """
-        @description('The location for the resource(s) to be deployed.')
-        param location string = resourceGroup().location
-
-        param acr_outputs_name string
-
-        param principalId string
-
-        resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-          name: acr_outputs_name
-        }
-
-        resource acr_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(acr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
-          properties: {
-            principalId: principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-            principalType: 'ServicePrincipal'
-          }
-          scope: acr
-        }
-
-        resource acr_AcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-          name: guid(acr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec'))
-          properties: {
-            principalId: principalId
-            roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
-            principalType: 'ServicePrincipal'
-          }
-          scope: acr
-        }
-        """;
-
-        output.WriteLine(rolesBicep);
-        Assert.Equal(expectedRolesBicep, rolesBicep);
+        await Verify(rolesManifest.ToString(), "json")
+              .AppendContentAsFile(rolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     private sealed class Project : IProjectMetadata

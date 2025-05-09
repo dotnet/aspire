@@ -118,7 +118,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
-               && !resource.IsHiddenState();
+               && !resource.IsResourceHidden();
 
         static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
@@ -451,7 +451,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool HasCollapsedResources()
     {
-        return _resourceByName.Any(r => !r.Value.IsHiddenState() && _collapsedResourceNames.Contains(r.Key));
+        return _resourceByName.Any(r => !r.Value.IsResourceHidden() && _collapsedResourceNames.Contains(r.Key));
     }
 
     private void UpdateMaxHighlightedCount()
@@ -537,6 +537,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 GetResourceName,
                 ControlsStringsLoc,
                 Loc,
+                CommandsLoc,
                 (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
                 (command) => ExecuteResourceCommandAsync(resource, command),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
@@ -619,7 +620,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.IsHiddenState())
+            if (item.IsResourceHidden())
             {
                 continue;
             }
@@ -693,7 +694,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private async Task OnToggleCollapseAll()
     {
         var resourcesWithChildren = _resourceByName.Values
-            .Where(r => !r.IsHiddenState())
+            .Where(r => !r.IsResourceHidden())
             .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
             .ToList();
 
@@ -860,13 +861,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     {
         var properties = new List<ComponentTelemetryProperty>
         {
-            new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting))
+            new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting)),
+            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
         };
-
-        foreach (var resourceTypeGroup in _resourceByName.Values.GroupBy(r => r.ResourceType))
-        {
-            properties.Add(new ComponentTelemetryProperty($"{TelemetryPropertyKeys.ResourceType}.{resourceTypeGroup.Key}", new AspireTelemetryProperty(resourceTypeGroup.Count(), AspireTelemetryPropertyType.Metric)));
-        }
 
         TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
     }

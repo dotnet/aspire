@@ -1,0 +1,12 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api.module.bicep",
+  "params": {
+    "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+    "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+    "certificateName1": "{certificateName1.value}",
+    "customDomain1": "{customDomain1.value}",
+    "certificateName2": "{certificateName2.value}",
+    "customDomain2": "{customDomain2.value}"
+  }
+}

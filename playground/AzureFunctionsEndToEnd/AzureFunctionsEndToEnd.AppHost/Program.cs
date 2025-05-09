@@ -3,6 +3,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("blob");
+var myBlobContainer = blob.AddBlobContainer("myblobcontainer");
+
 var eventHub = builder.AddAzureEventHubs("eventhubs")
     .RunAsEmulator()
     .AddHub("myhub");
@@ -20,6 +22,7 @@ database.AddContainer("mycontainer", "/id");
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
     .WithReference(eventHub).WaitFor(eventHub)
+    .WithReference(myBlobContainer).WaitFor(myBlobContainer)
 #if !SKIP_UNSTABLE_EMULATORS
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(cosmosDb).WaitFor(cosmosDb)

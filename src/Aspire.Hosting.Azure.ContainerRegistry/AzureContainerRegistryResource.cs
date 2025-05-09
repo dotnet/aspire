@@ -18,7 +18,7 @@ public class AzureContainerRegistryResource(string name, Action<AzureResourceInf
     /// <summary>
     /// The name of the Azure Container Registry.
     /// </summary>
-    public BicepOutputReference RegistryName => new("name", this);
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// The endpoint of the Azure Container Registry.
@@ -26,7 +26,7 @@ public class AzureContainerRegistryResource(string name, Action<AzureResourceInf
     public BicepOutputReference RegistryEndpoint => new("loginServer", this);
 
     /// <inheritdoc/>
-    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{RegistryName}");
+    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{NameOutputReference}");
 
     /// <inheritdoc/>
     ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{RegistryEndpoint}");
@@ -35,7 +35,7 @@ public class AzureContainerRegistryResource(string name, Action<AzureResourceInf
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var store = ContainerRegistryService.FromExisting(this.GetBicepIdentifier());
-        store.Name = RegistryName.AsProvisioningParameter(infra);
+        store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;
     }

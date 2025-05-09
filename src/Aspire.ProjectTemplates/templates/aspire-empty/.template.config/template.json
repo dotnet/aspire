@@ -12,7 +12,7 @@
   ],
   "name": ".NET Aspire Empty App",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "Build cloud-native systems without preset services.",
   "shortName": "aspire",
   "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,
