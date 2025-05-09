@@ -14,14 +14,14 @@ dotnet add package Aspire.Hosting.Kubernetes
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, register the publisher:
+Then, in the _AppHost.cs_ file of `AppHost`, add the environment:
 
 ```csharp
-builder.AddPublisher<KubernetesPublisher>("k8s");
+builder.AddKubernetesEnvironment("k8s");
 ```
 
 ```shell
-aspire publish -t k8s -o artifacts
+aspire publish -o k8s-artifacts
 ```
 
 ## Feedback & contributing
