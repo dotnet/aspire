@@ -47,11 +47,31 @@ resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-1
 resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
   name: 'db1'
   location: location
+  properties: {
+    freeLimitExhaustionBehavior: 'AutoPause'
+    useFreeLimit: true
+  }
+  sku: {
+    name: 'GP_S_Gen5_2'
+  }
   parent: sql
 }
 
 resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
   name: 'db2Name'
+  location: location
+  properties: {
+    freeLimitExhaustionBehavior: 'AutoPause'
+    useFreeLimit: true
+  }
+  sku: {
+    name: 'GP_S_Gen5_2'
+  }
+  parent: sql
+}
+
+resource db3 'Microsoft.Sql/servers/databases@2021-11-01' = {
+  name: 'db3Name'
   location: location
   parent: sql
 }

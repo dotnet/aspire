@@ -52,7 +52,7 @@ public class AzureSqlExtensionsTests()
               "path": "sql.module.bicep"
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString(), ignoreLineEndingDifferences: true);
 
         await Verifier.Verify(manifest.BicepText, extension: "bicep")
             .UseHelixAwareDirectory();
