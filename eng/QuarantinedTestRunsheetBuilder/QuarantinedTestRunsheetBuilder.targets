@@ -146,6 +146,7 @@
       <_TestCommand>$(_TestCommand) /p:IgnoreZeroTestResult=true</_TestCommand>
 
       <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
+      <_PreCommand>$([System.String]::Copy($(_PreCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_PreCommand>
       <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>
 
       <_TestRunsheetWindows>{ "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
