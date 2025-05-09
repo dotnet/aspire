@@ -174,5 +174,6 @@
   </data>
   <data name="PauseInProgressText" xml:space="preserve">
     <value>Metrics capture paused at {0}</value>
+    <comment>{0} is a time</comment>
   </data>
 </root>
