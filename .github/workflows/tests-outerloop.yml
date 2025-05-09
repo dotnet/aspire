@@ -62,6 +62,8 @@ jobs:
         run: ./dotnet.sh dev-certs https --trust
 
       - name: Test ${{ matrix.tests.project }}
+        env:
+          CI: false
         run: |
           ${{ matrix.tests.command }}
 
