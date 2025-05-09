@@ -65,7 +65,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.TagVNextPreview"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureCosmosDBResource> RunAsPreviewEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
         => RunAsEmulator(builder, configureContainer, useVNextPreview: true);
 
@@ -289,7 +289,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// The Data Explorer is only available with <see cref="RunAsPreviewEmulator"/>.
     /// </remarks>
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataExplorer(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

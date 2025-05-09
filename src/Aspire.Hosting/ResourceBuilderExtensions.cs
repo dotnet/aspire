@@ -1991,7 +1991,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// This method allows associating a specific compute environment with the compute resource.
     /// </remarks>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
         where T : IComputeResource
     {

@@ -850,7 +850,7 @@ public static class ContainerResourceBuilderExtensions
     /// The user needs to be careful to ensure that container endpoints are using unique ports when disabling proxy support as by default for proxy-less
     /// endpoints, Aspire will allocate the internal container port as the host port, which will increase the chance of port conflicts.
     /// </remarks>
-    [Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithEndpointProxySupport<T>(this IResourceBuilder<T> builder, bool proxyEnabled) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Minimalistic reporter that does nothing.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class NullPublishingActivityProgressReporter : IPublishingActivityProgressReporter
 {
     /// <summary>

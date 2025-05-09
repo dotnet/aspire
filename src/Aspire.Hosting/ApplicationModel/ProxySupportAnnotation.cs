@@ -15,7 +15,7 @@ public sealed class ProxySupportAnnotation : IResourceAnnotation
     /// <summary>
     /// Create a new instance of the <see cref="ProxySupportAnnotation"/> class.
     /// </summary>
-    [Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public ProxySupportAnnotation()
     {}
 

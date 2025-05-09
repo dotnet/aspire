@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Represents a publishing activity.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PublishingActivity
 {
     /// <summary>
@@ -44,7 +44,7 @@ public sealed class PublishingActivity
 /// <summary>
 /// Represents the status of a publishing activity.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed record PublishingActivityStatus
 {
     /// <summary>
@@ -71,7 +71,7 @@ public sealed record PublishingActivityStatus
 /// <summary>
 /// Interface for reporting publishing activity progress.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IPublishingActivityProgressReporter
 {
     /// <summary>

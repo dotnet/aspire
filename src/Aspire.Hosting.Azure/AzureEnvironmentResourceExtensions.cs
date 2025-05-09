@@ -16,7 +16,7 @@ public static class AzureEnvironmentResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{AzureEnvironmentResource}"/>.</returns>
-    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureEnvironmentResource> AddAzureEnvironment(this IDistributedApplicationBuilder builder)
     {
         if (builder.Resources.OfType<AzureEnvironmentResource>().SingleOrDefault() is { } existingResource)
@@ -56,7 +56,7 @@ public static class AzureEnvironmentResourceExtensions
     /// This method is used to set the location of the Azure environment resource.
     /// The location is used to determine where the resources will be deployed.
     /// </remarks>
-    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureEnvironmentResource> WithLocation(
         this IResourceBuilder<AzureEnvironmentResource> builder,
         IResourceBuilder<ParameterResource> location)
@@ -79,7 +79,7 @@ public static class AzureEnvironmentResourceExtensions
     /// This method is used to set the resource group name of the Azure environment resource.
     /// The resource group name is used to determine where the resources will be deployed.
     /// </remarks>
-    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureEnvironmentResource> WithResourceGroup(
         this IResourceBuilder<AzureEnvironmentResource> builder,
         IResourceBuilder<ParameterResource> resourceGroup)

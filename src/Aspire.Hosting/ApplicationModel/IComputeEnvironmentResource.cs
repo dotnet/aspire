@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a compute environment resource.
 /// </summary>
-[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IComputeEnvironmentResource : IResource
 {
 }

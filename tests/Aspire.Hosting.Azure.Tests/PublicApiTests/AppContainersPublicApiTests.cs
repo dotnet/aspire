@@ -113,7 +113,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenAppIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -128,7 +128,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenCustomDomainIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -143,7 +143,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostic/{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenCertificateNameIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
