@@ -14,6 +14,7 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
     public const string LoginBasePath = "login";
+    public const string HealthBasePath = "health";
 
     public static string ResourcesUrl(string? resource = null, string? view = null, string? hiddenTypes = null, string? hiddenStates = null, string? hiddenHealthStates = null)
     {
