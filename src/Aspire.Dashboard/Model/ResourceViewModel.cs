@@ -83,7 +83,11 @@ public sealed class ResourceViewModel
 
     public bool IsResourceHidden(bool showHiddenResources)
     {
-        return (IsHidden || KnownState is KnownResourceState.Hidden) && !showHiddenResources;
+        if (showHiddenResources)
+        {
+            return false;
+        }
+        return IsHidden || KnownState is KnownResourceState.Hidden;
     }
 
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
