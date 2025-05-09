@@ -55,7 +55,7 @@ public static class DockerComposeServiceExtensions
     /// <param name="manifestExpressionProvider">The manifest expression provider.</param>
     /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
     /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
-    public static string AsEnvironmentPlaceHolder(this IManifestExpressionProvider manifestExpressionProvider, DockerComposeServiceResource dockerComposeService)
+    public static string AsEnvironmentPlaceholder(this IManifestExpressionProvider manifestExpressionProvider, DockerComposeServiceResource dockerComposeService)
     {
         // Placeholder for resolving the actual parameter value
         // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
@@ -80,9 +80,9 @@ public static class DockerComposeServiceExtensions
     /// <param name="builder">The resource builder for the parameter resource.</param>
     /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
     /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
-    public static string AsEnvironmentPlaceHolder(this IResourceBuilder<ParameterResource> builder, DockerComposeServiceResource dockerComposeService)
+    public static string AsEnvironmentPlaceholder(this IResourceBuilder<ParameterResource> builder, DockerComposeServiceResource dockerComposeService)
     {
-        return builder.Resource.AsEnvironmentPlaceHolder(dockerComposeService);
+        return builder.Resource.AsEnvironmentPlaceholder(dockerComposeService);
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public static class DockerComposeServiceExtensions
     /// <param name="parameter">The parameter resource for which to create the environment variable placeholder.</param>
     /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
     /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
-    public static string AsEnvironmentPlaceHolder(this ParameterResource parameter, DockerComposeServiceResource dockerComposeService)
+    public static string AsEnvironmentPlaceholder(this ParameterResource parameter, DockerComposeServiceResource dockerComposeService)
     {
         // Placeholder for resolving the actual parameter value
         // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax

@@ -162,7 +162,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 // Set a restart policy
                 composeService.Restart = "always";
 
-                composeService.ContainerName = containerNameParam.AsEnvironmentPlaceHolder(serviceResource);
+                composeService.ContainerName = containerNameParam.AsEnvironmentPlaceholder(serviceResource);
 
                 // Add a custom network
                 composeService.Networks.Add("custom-network");
