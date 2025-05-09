@@ -39,7 +39,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// Gets the collection of environment variables captured from the Docker Compose environment.
     /// These will be populated into a top-level .env file adjacent to the Docker Compose file.
     /// </summary>
-    internal Dictionary<string, (string Description, string? DefaultValue)> CapturedEnvironmentVariables { get; } = [];
+    internal Dictionary<string, (string? Description, string? DefaultValue, object? Source)> CapturedEnvironmentVariables { get; } = [];
 
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)
@@ -61,5 +61,12 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);
+    }
+
+    internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
+    {
+        CapturedEnvironmentVariables[name] = (description, defaultValue, source);
+
+        return $"${{{name}}}";
     }
 }

@@ -19,6 +19,8 @@ public class ResourceCommandAnnotationTests
     [InlineData(KnownResourceCommands.StartCommand, "Unknown", ResourceCommandState.Enabled)]
     [InlineData(KnownResourceCommands.StartCommand, "Waiting", ResourceCommandState.Enabled)]
     [InlineData(KnownResourceCommands.StartCommand, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
+    [InlineData(KnownResourceCommands.StartCommand, "", ResourceCommandState.Disabled)]
+    [InlineData(KnownResourceCommands.StartCommand, null, ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.StopCommand, "Starting", ResourceCommandState.Hidden)]
     [InlineData(KnownResourceCommands.StopCommand, "Stopping", ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.StopCommand, "Running", ResourceCommandState.Enabled)]
@@ -28,6 +30,8 @@ public class ResourceCommandAnnotationTests
     [InlineData(KnownResourceCommands.StopCommand, "Unknown", ResourceCommandState.Hidden)]
     [InlineData(KnownResourceCommands.StopCommand, "Waiting", ResourceCommandState.Hidden)]
     [InlineData(KnownResourceCommands.StopCommand, "RuntimeUnhealthy", ResourceCommandState.Hidden)]
+    [InlineData(KnownResourceCommands.StopCommand, "", ResourceCommandState.Hidden)]
+    [InlineData(KnownResourceCommands.StopCommand, null, ResourceCommandState.Hidden)]
     [InlineData(KnownResourceCommands.RestartCommand, "Starting", ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.RestartCommand, "Stopping", ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.RestartCommand, "Running", ResourceCommandState.Enabled)]
@@ -37,7 +41,9 @@ public class ResourceCommandAnnotationTests
     [InlineData(KnownResourceCommands.RestartCommand, "Unknown", ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.RestartCommand, "Waiting", ResourceCommandState.Disabled)]
     [InlineData(KnownResourceCommands.RestartCommand, "RuntimeUnhealthy", ResourceCommandState.Disabled)]
-    public void LifeCycleCommands_CommandState(string commandName, string resourceState, ResourceCommandState commandState)
+    [InlineData(KnownResourceCommands.RestartCommand, "", ResourceCommandState.Disabled)]
+    [InlineData(KnownResourceCommands.RestartCommand, null, ResourceCommandState.Disabled)]
+    public void LifeCycleCommands_CommandState(string commandName, string? resourceState, ResourceCommandState commandState)
     {
         // Arrange
         var builder = DistributedApplication.CreateBuilder();

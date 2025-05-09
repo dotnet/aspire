@@ -167,8 +167,14 @@ internal sealed class RunCommand : BaseCommand
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
+                var message = new Markup("Press [bold]CTRL-C[/] to stop the app host and exit.");
 
-                await _ansiConsole.Live(table).StartAsync(async context =>
+                var rows = new Rows(new List<IRenderable> {
+                    table,
+                    message
+                });
+
+                await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
                     var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
 

@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Options which control generation of artifacts for deploying to Azure.
 /// </summary>
-[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class AzurePublisherOptions : PublishingOptions
 {
 }

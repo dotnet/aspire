@@ -33,8 +33,17 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         // Add a container to the application
         var redis = builder.AddContainer("cache", "redis")
                     .WithEntrypoint("/bin/sh")
+                    .WithHttpEndpoint(name: "h2", port: 5000, targetPort: 5001)
+                    .WithHttpEndpoint(env: "REDIS_PORT")
                     .WithArgs("-c", "hello $MSG")
-                    .WithEnvironment("MSG", "world");
+                    .WithEnvironment("MSG", "world")
+                    .WithEnvironment(context =>
+                    {
+                        var resource = (IResourceWithEndpoints)context.Resource;
+
+                        context.EnvironmentVariables["TP"] = resource.GetEndpoint("http").Property(EndpointProperty.TargetPort);
+                        context.EnvironmentVariables["TPH2"] = resource.GetEndpoint("h2").Property(EndpointProperty.TargetPort);
+                    });
 
         var migration = builder.AddContainer("something", "dummy/migration:latest")
                          .WithContainerName("cn");
@@ -137,6 +146,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
+        var containerNameParam = builder.AddParameter("param-1", "default-name", publishValueAsDefault: true);
+
         builder.AddDockerComposeEnvironment("docker-compose")
                .WithProperties(e => e.DefaultNetworkName = "default-network")
                .ConfigureComposeFile(file =>
@@ -160,6 +171,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 // Set a restart policy
                 composeService.Restart = "always";
 
+                composeService.ContainerName = containerNameParam.AsEnvironmentPlaceholder(serviceResource);
+
                 // Add a custom network
                 composeService.Networks.Add("custom-network");
             });
@@ -167,11 +180,85 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
 
         app.Run();
+
         // Assert
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
+            .UseHelixAwareDirectory();
+    }
+
+    [Fact]
+    public async Task DockerComposeDoesNotOverwriteEnvFileOnPublish()
+    {
+        using var tempDir = new TempDirectory();
+        var envFilePath = Path.Combine(tempDir.Path, ".env");
+
+        void PublishApp()
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.AddDockerComposeEnvironment("docker-compose");
+            var param = builder.AddParameter("param1");
+            builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
+            var app = builder.Build();
+            app.Run();
+        }
+
+        PublishApp();
+        Assert.True(File.Exists(envFilePath));
+        var firstContent = File.ReadAllText(envFilePath).Replace("PARAM1=", "PARAM1=changed");
+        File.WriteAllText(envFilePath, firstContent);
+
+        PublishApp();
+        Assert.True(File.Exists(envFilePath));
+        var secondContent = File.ReadAllText(envFilePath);
+
+        await Verify(firstContent, "env")
+            .AppendContentAsFile(secondContent, "env")
+            .UseHelixAwareDirectory();
+    }
+
+    [Fact]
+    public async Task DockerComposeAppendsNewKeysToEnvFileOnPublish()
+    {
+        using var tempDir = new TempDirectory();
+        var envFilePath = Path.Combine(tempDir.Path, ".env");
+
+        void PublishApp(params string[] paramNames)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.AddDockerComposeEnvironment("docker-compose");
+
+            var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
+
+            builder.AddContainer("app", "busybox")
+                    .WithEnvironment(context =>
+                    {
+                        foreach (var param in parmeters)
+                        {
+                            context.EnvironmentVariables[param.Name] = param;
+                        }
+                    });
+
+            var app = builder.Build();
+            app.Run();
+        }
+
+        PublishApp(["param1"]);
+        Assert.True(File.Exists(envFilePath));
+        var firstContent = File.ReadAllText(envFilePath).Replace("PARAM1=", "PARAM1=changed");
+        File.WriteAllText(envFilePath, firstContent);
+
+        PublishApp(["param1", "param2"]);
+        Assert.True(File.Exists(envFilePath));
+        var secondContent = File.ReadAllText(envFilePath);
+
+        await Verify(firstContent, "env")
+            .AppendContentAsFile(secondContent, "env")
             .UseHelixAwareDirectory();
     }
 

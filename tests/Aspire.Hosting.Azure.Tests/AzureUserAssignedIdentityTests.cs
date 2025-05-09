@@ -1,3 +1,5 @@
+#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -70,6 +72,7 @@ public class AzureUserAssignedIdentityTests
         await ExecuteBeforeStartHooksAsync(app, default);
 
         Assert.Collection(model.Resources.OrderBy(r => r.Name),
+            r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r =>

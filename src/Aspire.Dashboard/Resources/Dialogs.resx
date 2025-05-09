@@ -298,4 +298,7 @@
   <data name="SettingsDialogTelemetryInfoLinkText" xml:space="preserve">
     <value>Why?</value>
   </data>
+  <data name="SettingsDialogTelemetryInfoLinkTooltip" xml:space="preserve">
+    <value>Go to usage telemetry documentation</value>
+  </data>
 </root>

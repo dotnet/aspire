@@ -19,14 +19,13 @@ namespace Aspire.Hosting.Azure;
 /// publisher options, and execution context. It handles resource configuration and ensures
 /// that the bicep template is created in the specified output path.
 /// </remarks>
-[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+[Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class AzurePublishingContext(
-    AzurePublisherOptions publisherOptions,
+    string outputPath,
     AzureProvisioningOptions provisioningOptions,
     ILogger logger)
 {
     private ILogger Logger => logger;
-    private AzurePublisherOptions PublisherOptions => publisherOptions;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -58,12 +57,13 @@ public sealed class AzurePublishingContext(
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
+    /// <param name="environment">The Azure environment resource.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the async operation.</returns>
-    public async Task WriteModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
+    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(PublisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(outputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -71,14 +71,14 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
 
-        await SaveToDiskAsync(PublisherOptions.OutputPath).ConfigureAwait(false);
+        await SaveToDiskAsync(outputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, CancellationToken _)
+    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
     {
-        var outputDirectory = new DirectoryInfo(PublisherOptions.OutputPath!);
+        var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
         {
             outputDirectory.Create();
@@ -86,28 +86,23 @@ public sealed class AzurePublishingContext(
 
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
 
-        var environmentParam = new ProvisioningParameter("environmentName", typeof(string));
-        MainInfrastructure.Add(environmentParam);
+        MapParameter(environment.ResourceGroupName);
+        MapParameter(environment.Location);
+        MapParameter(environment.PrincipalId);
 
-        var locationParam = new ProvisioningParameter("location", typeof(string));
+        var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
+        MainInfrastructure.Add(resourceGroupParam);
+
+        var locationParam = ParameterLookup[environment.Location];
         MainInfrastructure.Add(locationParam);
 
-        var principalId = new ProvisioningParameter("principalId", typeof(string));
+        var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
-
-        var tags = new ProvisioningVariable("tags", typeof(object))
-        {
-            Value = new BicepDictionary<string>
-            {
-                ["aspire-env-name"] = environmentParam
-            }
-        };
 
         var rg = new ResourceGroup("rg")
         {
-            Name = BicepFunction.Interpolate($"rg-{environmentParam}"),
+            Name = resourceGroupParam,
             Location = locationParam,
-            Tags = tags
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
@@ -130,26 +125,6 @@ public sealed class AzurePublishingContext(
             };
 
             moduleMap[resource] = module;
-        }
-
-        void MapParameter(object candidate)
-        {
-            if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
-            {
-                var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
-
-                var pp = new ProvisioningParameter(pid, typeof(string))
-                {
-                    IsSecure = p.Secret
-                };
-
-                if (!p.Secret && p.Default is not null)
-                {
-                    pp.Value = p.Value;
-                }
-
-                ParameterLookup[p] = pp;
-            }
         }
 
         foreach (var resource in bicepResourcesToPublish)
@@ -287,7 +262,6 @@ public sealed class AzurePublishingContext(
             MainInfrastructure.Add(pp);
         }
 
-        MainInfrastructure.Add(tags);
         MainInfrastructure.Add(rg);
 
         foreach (var (_, module) in moduleMap)
@@ -311,6 +285,26 @@ public sealed class AzurePublishingContext(
         }
 
         return Task.CompletedTask;
+    }
+
+    private void MapParameter(object? candidate)
+    {
+        if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
+        {
+            var pid = Infrastructure.NormalizeBicepIdentifier(p.Name);
+
+            var pp = new ProvisioningParameter(pid, typeof(string))
+            {
+                IsSecure = p.Secret
+            };
+
+            if (!p.Secret && p.Default is not null)
+            {
+                pp.Value = p.Value;
+            }
+
+            ParameterLookup[p] = pp;
+        }
     }
 
     private static void Visit(object? value, Action<object> visitor) =>
