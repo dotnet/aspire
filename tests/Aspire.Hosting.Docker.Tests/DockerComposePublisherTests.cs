@@ -33,8 +33,17 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         // Add a container to the application
         var redis = builder.AddContainer("cache", "redis")
                     .WithEntrypoint("/bin/sh")
+                    .WithHttpEndpoint(name: "h2", port: 5000, targetPort: 5001)
+                    .WithHttpEndpoint(env: "REDIS_PORT")
                     .WithArgs("-c", "hello $MSG")
-                    .WithEnvironment("MSG", "world");
+                    .WithEnvironment("MSG", "world")
+                    .WithEnvironment(context =>
+                    {
+                        var resource = (IResourceWithEndpoints)context.Resource;
+
+                        context.EnvironmentVariables["TP"] = resource.GetEndpoint("http").Property(EndpointProperty.TargetPort);
+                        context.EnvironmentVariables["TPH2"] = resource.GetEndpoint("h2").Property(EndpointProperty.TargetPort);
+                    });
 
         var migration = builder.AddContainer("something", "dummy/migration:latest")
                          .WithContainerName("cn");
