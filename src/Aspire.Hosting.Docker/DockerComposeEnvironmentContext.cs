@@ -141,9 +141,4 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
             }
         }
     }
-
-    public void AddEnv(string name, string description, string? defaultValue = null)
-    {
-        environment.CapturedEnvironmentVariables[name] = (description, defaultValue);
-    }
 }
