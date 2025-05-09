@@ -63,8 +63,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);
     }
 
-    internal void AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
+    internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)
     {
         CapturedEnvironmentVariables[name] = (description, defaultValue, source);
+
+        return $"${{{name}}}";
     }
 }

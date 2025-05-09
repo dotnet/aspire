@@ -68,11 +68,10 @@ public static class DockerComposeServiceExtensions
                  .Replace("-", "_")
                  .ToUpperInvariant();
 
-        dockerComposeService.Parent.AddEnvironmentVariable(
+        return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
-            source: manifestExpressionProvider);
-
-        return $"${{{env}}}";
+            source: manifestExpressionProvider
+        );
     }
 
     /// <summary>
@@ -101,13 +100,11 @@ public static class DockerComposeServiceExtensions
         // this doesn't handle generation of parameter values with defaults
         var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
 
-        dockerComposeService.Parent.AddEnvironmentVariable(
+        return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
             defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
             source: parameter
         );
-
-        return $"${{{env}}}";
     }
 }
