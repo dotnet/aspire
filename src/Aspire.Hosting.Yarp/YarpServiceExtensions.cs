@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yarp;
-using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
