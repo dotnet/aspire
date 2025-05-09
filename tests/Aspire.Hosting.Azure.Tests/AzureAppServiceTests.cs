@@ -19,7 +19,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAppServiceEnvironment("env");
+        var env = builder.AddAzureAppServiceEnvironment("env");
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
@@ -57,7 +57,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         using var app = builder.Build();
 
@@ -79,7 +79,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
@@ -113,7 +113,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         // Add 2 projects with endpoints
         var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
