@@ -52,40 +52,42 @@ public static class DockerComposeServiceExtensions
     /// <summary>
     /// Creates a placeholder for an environment variable in the Docker Compose file.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="dockerComposeService"></param>
-    /// <returns></returns>
-    public static string AsEnvironmentPlaceHolder(this IManifestExpressionProvider builder, DockerComposeServiceResource dockerComposeService)
+    /// <param name="manifestExpressionProvider">The manifest expression provider.</param>
+    /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
+    /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
+    public static string AsEnvironmentPlaceHolder(this IManifestExpressionProvider manifestExpressionProvider, DockerComposeServiceResource dockerComposeService)
     {
         // Placeholder for resolving the actual parameter value
         // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
 
         // Treat secrets as environment variable placeholders as for now
         // this doesn't handle generation of parameter values with defaults
-        var env = builder.ValueExpression.Replace("{", "")
+        var env = manifestExpressionProvider.ValueExpression.Replace("{", "")
                  .Replace("}", "")
                  .Replace(".", "_")
                  .Replace("-", "_")
                  .ToUpperInvariant();
 
-        dockerComposeService.Parent.AddEnvironmentVariable(env);
+        dockerComposeService.Parent.AddEnvironmentVariable(
+            env,
+            source: manifestExpressionProvider);
 
         return $"${{{env}}}";
     }
 
     /// <summary>
-    /// Creates a placeholder for an environment variable in the Docker Compose file for the specified <see cref="ParameterResource"/>.
+    /// Creates a Docker Compose environment variable placeholder for the specified <see cref="ParameterResource"/>.
     /// </summary>
     /// <param name="builder">The resource builder for the parameter resource.</param>
     /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
-    /// <returns>A string representing the environment variable placeholder in Docker Compose syntax.</returns>
+    /// <returns>A string representing the environment variable placeholder in Docker Compose syntax (e.g., <c>${ENV_VAR}</c>).</returns>
     public static string AsEnvironmentPlaceHolder(this IResourceBuilder<ParameterResource> builder, DockerComposeServiceResource dockerComposeService)
     {
         return builder.Resource.AsEnvironmentPlaceHolder(dockerComposeService);
     }
 
     /// <summary>
-    /// Creates a placeholder for an environment variable in the Docker Compose file for the specified <see cref="ParameterResource"/>.
+    /// Creates a Docker Compose environment variable placeholder for this <see cref="ParameterResource"/>.
     /// </summary>
     /// <param name="parameter">The parameter resource for which to create the environment variable placeholder.</param>
     /// <param name="dockerComposeService">The Docker Compose service resource to associate the environment variable with.</param>
@@ -99,7 +101,12 @@ public static class DockerComposeServiceExtensions
         // this doesn't handle generation of parameter values with defaults
         var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
 
-        dockerComposeService.Parent.AddEnvironmentVariable(env, $"Parameter {parameter.Name}", parameter.Secret || parameter.Default is null ? null : parameter.Value);
+        dockerComposeService.Parent.AddEnvironmentVariable(
+            env,
+            description: $"Parameter {parameter.Name}",
+            defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
+            source: parameter
+        );
 
         return $"${{{env}}}";
     }

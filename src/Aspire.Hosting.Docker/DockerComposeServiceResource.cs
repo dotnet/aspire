@@ -98,7 +98,11 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         {
             var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
 
-            composeEnvironmentResource.CapturedEnvironmentVariables.Add(imageEnvName, ($"Container image name for {resourceInstance.Name}", $"{resourceInstance.Name}:latest"));
+            composeEnvironmentResource.AddEnvironmentVariable(
+                imageEnvName,
+                description: $"Container image name for {resourceInstance.Name}",
+                defaultValue: $"{resourceInstance.Name}:latest"
+            );
 
             containerImageName = $"${{{imageEnvName}}}";
             return true;
