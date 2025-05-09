@@ -24,15 +24,15 @@
         "type": "azure.bicep.v0",
         "path": "api1.module.bicep",
         "params": {
-          "api1_identity_outputs_id": "{api1-identity.outputs.id}",
-          "api1_identity_outputs_clientid": "{api1-identity.outputs.clientId}",
-          "api1_containerport": "{api1.containerPort}",
-          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
           "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "api1_containerimage": "{api1.containerImage}"
+          "api1_containerimage": "{api1.containerImage}",
+          "api1_identity_outputs_id": "{api1-identity.outputs.id}",
+          "api1_containerport": "{api1.containerPort}",
+          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
+          "api1_identity_outputs_clientid": "{api1-identity.outputs.clientId}"
         }
       },
       "env": {
@@ -65,15 +65,15 @@
         "type": "azure.bicep.v0",
         "path": "api2.module.bicep",
         "params": {
-          "api2_identity_outputs_id": "{api2-identity.outputs.id}",
-          "api2_identity_outputs_clientid": "{api2-identity.outputs.clientId}",
-          "api2_containerport": "{api2.containerPort}",
-          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
           "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "api2_containerimage": "{api2.containerImage}"
+          "api2_containerimage": "{api2.containerImage}",
+          "api2_identity_outputs_id": "{api2-identity.outputs.id}",
+          "api2_containerport": "{api2.containerPort}",
+          "mysqlserver_outputs_sqlserverfqdn": "{mysqlserver.outputs.sqlServerFqdn}",
+          "api2_identity_outputs_clientid": "{api2-identity.outputs.clientId}"
         }
       },
       "env": {

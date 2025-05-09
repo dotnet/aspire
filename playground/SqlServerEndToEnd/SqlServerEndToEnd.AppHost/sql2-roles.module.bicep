@@ -5,6 +5,8 @@ param sql2_outputs_name string
 
 param sql2_outputs_sqlserveradminname string
 
+param principalId string
+
 param principalName string
 
 param principalType string

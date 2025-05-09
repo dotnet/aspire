@@ -143,14 +143,15 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             userId = managedIdentity.ClientId;
         }
 
-        foreach (var database in Databases.Keys)
+        foreach (var (resource, database) in Databases)
         {
-            var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{database}");
+            var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{resource}");
             var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
             {
-                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(database), BicepFunction.GetResourceGroup().Id)}"), 24),
+                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
                 Kind = "AzurePowerShell",
-                AZPowerShellVersion = "7.4"
+                // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
+                AZPowerShellVersion = "10.0"
             };
 
             // Run the script as the administrator

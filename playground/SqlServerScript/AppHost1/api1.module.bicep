@@ -1,14 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param api1_identity_outputs_id string
-
-param api1_identity_outputs_clientid string
-
-param api1_containerport string
-
-param mysqlserver_outputs_sqlserverfqdn string
-
 param env_outputs_azure_container_apps_environment_default_domain string
 
 param env_outputs_azure_container_apps_environment_id string
@@ -19,6 +11,14 @@ param env_outputs_azure_container_registry_managed_identity_id string
 
 param api1_containerimage string
 
+param api1_identity_outputs_id string
+
+param api1_containerport string
+
+param mysqlserver_outputs_sqlserverfqdn string
+
+param api1_identity_outputs_clientid string
+
 resource api1 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api1'
   location: location
@@ -27,7 +27,7 @@ resource api1 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: api1_containerport
+        targetPort: int(api1_containerport)
         transport: 'http'
       }
       registries: [

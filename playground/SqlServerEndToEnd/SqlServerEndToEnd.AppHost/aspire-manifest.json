@@ -77,6 +77,7 @@
       "params": {
         "sql1_outputs_name": "{sql1.outputs.name}",
         "sql1_outputs_sqlserveradminname": "{sql1.outputs.sqlServerAdminName}",
+        "principalId": "",
         "principalName": "",
         "principalType": ""
       }
@@ -87,6 +88,7 @@
       "params": {
         "sql2_outputs_name": "{sql2.outputs.name}",
         "sql2_outputs_sqlserveradminname": "{sql2.outputs.sqlServerAdminName}",
+        "principalId": "",
         "principalName": "",
         "principalType": ""
       }
