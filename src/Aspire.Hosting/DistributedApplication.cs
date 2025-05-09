@@ -32,7 +32,6 @@ namespace Aspire.Hosting;
 /// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the .NET Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
 /// allowing unsecured communication between the browser and dashboard, and dashboard and app host (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
 /// </para>
-/// </remarks>
 /// <example>
 /// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
@@ -45,6 +44,7 @@ namespace Aspire.Hosting;
 /// builder.Build().Run();
 /// </code>
 /// </example>
+/// </remarks>
 [DebuggerDisplay("{_host}")]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
@@ -72,7 +72,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// passed to the <see cref="CreateBuilder()"/> method the app host has no
     /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or <see cref="CreateBuilder(DistributedApplicationOptions)"/>
     /// when more control is needed over the behavior of the distributed application at runtime.
-    /// </remarks>
     /// <example>
     /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
@@ -85,6 +84,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IDistributedApplicationBuilder CreateBuilder() => CreateBuilder([]);
 
     /// <summary>
@@ -165,7 +165,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <see cref="DistributedApplicationOptions.Args"/> property to ensure that the app host continues to function
     /// correctly when used with deployment tools that need to enable publish mode.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
     /// <code lang="csharp">
@@ -182,6 +181,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
         WaitForDebugger();
@@ -194,12 +194,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private static void WaitForDebugger()
     {
-        if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER") == "true")
+        if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebugger) == "true")
         {
             var startedWaiting = DateTimeOffset.UtcNow;
             TimeSpan timeout = TimeSpan.FromSeconds(30);
 
-            if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER_TIMEOUT") is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
+            if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebuggerTimeout) is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
             {
                 timeout = TimeSpan.FromSeconds(timeoutSeconds);
             }
@@ -247,7 +247,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <item>Database seeding.</item>
     /// <item>Integration test readiness checks.</item>
     /// </list>
-    /// </remarks>
     /// <example>
     /// Wait for resource readiness:
     /// <code>
@@ -288,6 +287,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
 
     /// <summary>
@@ -411,7 +411,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         {
             await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         }
-        
+
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 

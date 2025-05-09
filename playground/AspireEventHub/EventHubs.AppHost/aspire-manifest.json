@@ -3,11 +3,7 @@
   "resources": {
     "ehstorage": {
       "type": "azure.bicep.v0",
-      "path": "ehstorage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "ehstorage.module.bicep"
     },
     "checkpoints": {
       "type": "value.v0",
@@ -16,11 +12,7 @@
     "eventhubns": {
       "type": "azure.bicep.v0",
       "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
-      "path": "eventhubns.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "eventhubns.module.bicep"
     },
     "eventhubOne": {
       "type": "value.v0",
@@ -61,6 +53,24 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "ehstorage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "ehstorage-roles.module.bicep",
+      "params": {
+        "ehstorage_outputs_name": "{ehstorage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "eventhubns-roles": {
+      "type": "azure.bicep.v0",
+      "path": "eventhubns-roles.module.bicep",
+      "params": {
+        "eventhubns_outputs_name": "{eventhubns.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

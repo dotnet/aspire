@@ -89,6 +89,7 @@ public static partial class DistributedApplicationExtensions
         return app.ResourceNotifications.WaitForResourceAsync(resourceName, targetState, cancellationToken);
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     /// <summary>
     /// Waits for all resources in the application to reach one of the specified states.
     /// </summary>
@@ -102,6 +103,7 @@ public static partial class DistributedApplicationExtensions
 
         return Task.WhenAll(applicationModel.Resources.Select(r => app.ResourceNotifications.WaitForResourceAsync(r.Name, targetStates, cancellationToken)));
     }
+#pragma warning restore CS0618 // Type or member is obsolete
 
     /// <summary>
     /// Gets the app host and resource logs from the application.

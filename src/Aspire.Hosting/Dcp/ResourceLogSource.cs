@@ -13,7 +13,8 @@ using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
 internal sealed class ResourceLogSource<TResource>(
     ILogger logger,
     IKubernetesService kubernetesService,
-    TResource resource) :
+    TResource resource,
+    bool follow) :
     IAsyncEnumerable<LogEntryList>
     where TResource : CustomResource
 {
@@ -33,8 +34,8 @@ internal sealed class ResourceLogSource<TResource>(
 
         var streamTasks = new List<Task>();
 
-        var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
-        var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+        var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, follow: follow, timestamps: true, cancellationToken).ConfigureAwait(false);
+        var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, follow: follow, timestamps: true, cancellationToken).ConfigureAwait(false);
 
         var startupStdoutStreamTask = Task.Run(() => StreamLogsAsync(startupStdoutStream, isError: false), cancellationToken);
         streamTasks.Add(startupStdoutStreamTask);
@@ -42,8 +43,8 @@ internal sealed class ResourceLogSource<TResource>(
         var startupStderrStreamTask = Task.Run(() => StreamLogsAsync(startupStderrStream, isError: false), cancellationToken);
         streamTasks.Add(startupStderrStreamTask);
 
-        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
-        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: follow, timestamps: true, cancellationToken).ConfigureAwait(false);
+        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: follow, timestamps: true, cancellationToken).ConfigureAwait(false);
 
         var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false), cancellationToken);
         streamTasks.Add(stdoutStreamTask);

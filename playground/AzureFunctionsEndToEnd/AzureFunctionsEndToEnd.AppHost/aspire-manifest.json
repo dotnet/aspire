@@ -3,11 +3,7 @@
   "resources": {
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "queue": {
       "type": "value.v0",
@@ -20,11 +16,7 @@
     "eventhubs": {
       "type": "azure.bicep.v0",
       "connectionString": "{eventhubs.outputs.eventHubsEndpoint}",
-      "path": "eventhubs.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "eventhubs.module.bicep"
     },
     "myhub": {
       "type": "value.v0",
@@ -33,11 +25,7 @@
     "messaging": {
       "type": "azure.bicep.v0",
       "connectionString": "{messaging.outputs.serviceBusEndpoint}",
-      "path": "messaging.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "messaging.module.bicep"
     },
     "myqueue": {
       "type": "value.v0",
@@ -46,10 +34,7 @@
     "cosmosdb": {
       "type": "azure.bicep.v0",
       "connectionString": "{cosmosdb.outputs.connectionString}",
-      "path": "cosmosdb.module.bicep",
-      "params": {
-        "principalId": ""
-      }
+      "path": "cosmosdb.module.bicep"
     },
     "mydatabase": {
       "type": "value.v0",
@@ -61,11 +46,7 @@
     },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
-      "path": "funcstorage67c6c.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "funcstorage67c6c.module.bicep"
     },
     "funcapp": {
       "type": "project.v0",
@@ -83,7 +64,7 @@
         "AzureWebJobsStorage__tableServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
         "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
-        "Aspire__Azure__Storage__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
+        "Aspire__Azure__Data__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
         "myhub__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
@@ -151,6 +132,50 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "eventhubs-roles": {
+      "type": "azure.bicep.v0",
+      "path": "eventhubs-roles.module.bicep",
+      "params": {
+        "eventhubs_outputs_name": "{eventhubs.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "messaging-roles": {
+      "type": "azure.bicep.v0",
+      "path": "messaging-roles.module.bicep",
+      "params": {
+        "messaging_outputs_name": "{messaging.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cosmosdb-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmosdb-roles.module.bicep",
+      "params": {
+        "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "funcstorage67c6c-roles": {
+      "type": "azure.bicep.v0",
+      "path": "funcstorage67c6c-roles.module.bicep",
+      "params": {
+        "funcstorage67c6c_outputs_name": "{funcstorage67c6c.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

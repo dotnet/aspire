@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
@@ -13,7 +12,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
-using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
@@ -35,7 +33,8 @@ internal sealed class AzureProvisioner(
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
-    IDistributedApplicationEventing eventing
+    IDistributedApplicationEventing eventing,
+    TokenCredentialHolder tokenCredentialHolder
     ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
@@ -76,14 +75,21 @@ internal sealed class AzureProvisioner(
 
             // We basically want child resources to be moved into the same state as their parent resources whenever
             // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
-            var childResources = _parentChildLookup[resource.Resource];
-            foreach (var child in childResources)
+
+            var childResources = _parentChildLookup[resource.Resource].ToList();
+
+            for (var i = 0; i < childResources.Count; i++)
             {
-                await notificationService.PublishUpdateAsync(child, s =>
+                var child = childResources[i];
+
+                // Add any level of children
+                foreach (var grandChild in _parentChildLookup[child])
                 {
-                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, resource.Resource.Name) };
-                    return stateFactory(s);
-                }).ConfigureAwait(false);
+                    if (!childResources.Contains(grandChild))
+                    {
+                        childResources.Add(grandChild);
+                    }
+                }
             }
         }
 
@@ -94,11 +100,15 @@ internal sealed class AzureProvisioner(
             {
                 await resource.AzureResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                await UpdateStateAsync(resource, s => s with
+                var rolesFailed = await WaitForRoleAssignments(resource).ConfigureAwait(false);
+                if (!rolesFailed)
                 {
-                    State = new("Running", KnownResourceStateStyles.Success)
-                })
-                .ConfigureAwait(false);
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Running", KnownResourceStateStyles.Success)
+                    })
+                    .ConfigureAwait(false);
+                }
             }
             catch (MissingConfigurationException)
             {
@@ -116,6 +126,32 @@ internal sealed class AzureProvisioner(
                 })
                 .ConfigureAwait(false);
             }
+        }
+
+        async Task<bool> WaitForRoleAssignments((IResource Resource, IAzureResource AzureResource) resource)
+        {
+            var rolesFailed = false;
+            if (resource.AzureResource.TryGetAnnotationsOfType<RoleAssignmentResourceAnnotation>(out var roleAssignments))
+            {
+                try
+                {
+                    foreach (var roleAssignment in roleAssignments)
+                    {
+                        await roleAssignment.RolesResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+                    }
+                }
+                catch (Exception)
+                {
+                    rolesFailed = true;
+                    await UpdateStateAsync(resource, s => s with
+                    {
+                        State = new("Failed to Provision Roles", KnownResourceStateStyles.Error)
+                    })
+                    .ConfigureAwait(false);
+                }
+            }
+
+            return rolesFailed;
         }
 
         // Mark all resources as starting
@@ -176,7 +212,7 @@ internal sealed class AzureProvisioner(
         var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecretsLazy, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -323,40 +359,13 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
+    private async Task<ProvisioningContext> GetProvisioningContextAsync(TokenCredentialHolder holder, Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
-        // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
-        var credentialSetting = _options.CredentialSource;
-
-        TokenCredential credential = credentialSetting switch
-        {
-            "AzureCli" => new AzureCliCredential(),
-            "AzurePowerShell" => new AzurePowerShellCredential(),
-            "VisualStudio" => new VisualStudioCredential(),
-            "VisualStudioCode" => new VisualStudioCodeCredential(),
-            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
-            "InteractiveBrowser" => new InteractiveBrowserCredential(),
-            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
-            {
-                ExcludeManagedIdentityCredential = true,
-                ExcludeWorkloadIdentityCredential = true,
-                ExcludeAzurePowerShellCredential = true,
-                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-            })
-        };
-
-        if (credential.GetType() == typeof(DefaultAzureCredential))
-        {
-            logger.LogInformation(
-                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
-                "See https://aka.ms/azsdk/net/identity/credential-chains#defaultazurecredential-overview for more information.");
-        }
-        else
-        {
-            logger.LogInformation("Using {credentialType} for provisioning.", credential.GetType().Name);
-        }
-
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+
+        var credential = holder.Credential;
+
+        holder.LogCredentialType();
 
         var armClient = new ArmClient(credential, subscriptionId);
 

@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppContainers;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
@@ -79,7 +78,9 @@ public class AppContainersPublicApiTests
 
         var action = () =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.AddAzureContainerAppsInfrastructure();
+#pragma warning restore CS0618 // Type or member is obsolete
         };
 
         var exception = Assert.Throws<ArgumentNullException>(action);

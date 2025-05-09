@@ -6,14 +6,13 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <TestcontainersPackageVersion>4.3.0</TestcontainersPackageVersion>
     <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
     <!-- The Npgsql version used when using Npgsql EF Core on net8. The major versions need to match between Npgsql and EF Core. -->
     <Npgsql8Version>8.0.6</Npgsql8Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.2" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
     <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.6" />
@@ -22,6 +21,8 @@
     <PackageVersion Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageVersion Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.1.1" />
@@ -33,6 +34,7 @@
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppContainers" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.AppService" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.ContainerRegistry" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
@@ -94,7 +96,7 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.5.11" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.3" />
-    <PackageVersion Include="OpenAI" Version="2.2.0-beta.2" />
+    <PackageVersion Include="OpenAI" Version="2.2.0-beta.4" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.70" /> <!-- Can't update passed to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.7.0" />
     <PackageVersion Include="Polly.Core" Version="8.5.2" />
@@ -107,6 +109,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.3" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="StreamJsonRpc" Version="2.21.69" />
+    <PackageVersion Include="Semver" Version="3.0.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="$(OpenTelemetryLTSVersion)" />
@@ -123,27 +126,7 @@
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.25072.1" />
-    <!-- unit test dependencies -->
-    <PackageVersion Include="bUnit" Version="1.36.0" /> <!-- Can't update passed to 1.37.x versions as those lift up LTS versions when targeting net8 -->
-    <PackageVersion Include="JsonSchema.Net" Version="7.3.3" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
-    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.50.0" />
-    <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta5.25256.109" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />
@@ -212,7 +195,7 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsVersion)" />
-    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
+    <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <!-- ASP.NET Core -->
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificateVersion)" />
     <PackageVersion Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerVersion)" />

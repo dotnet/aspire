@@ -2,15 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
 
+  <PropertyGroup Label="Test related properties">
     <!-- Set this explicitly so the project can build without arcade -->
     <IsTestProject>true</IsTestProject>
+    <IncludeTestUtilities>false</IncludeTestUtilities>
 
-    <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <!-- no docker support on GHA/windows yet -->
-    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!-- Only run on Linux; no docker support on Windows yet -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+
+    <!--
+      Command to be executed directly before 'build.sh -test' is executed.
+      This is used by TestRunsheetBuilder.
+
+      FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969
+     -->
+    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </TestRunnerPreCommand>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
@@ -18,12 +28,20 @@
 
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <!-- Skip emulators that don't start consistently when running in CI. -->
     <SkipUnstableEmulators Condition="'$(SkipUnstableEmulators)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipUnstableEmulators>
 
     <!-- on helix this will be available in the source dir -->
     <XunitRunnerJson Condition="'$(RepoRoot)' == ''">xunit.runner.json</XunitRunnerJson>
+
+    <!--
+      FIXME: https://github.com/dotnet/aspire/issues/8488
+      xUnit1051: Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken  to allow test cancellation to be more responsive
+
+      This is being disabled here in addition to any central location, because this project
+      gets built independently on helix.
+    -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SkipUnstableEmulators)' == 'true'">
@@ -31,55 +49,66 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- on helix, the file will be in the source directory, so it will get
          picked up by msbuild by default -->
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Requires*.cs" />
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\FileUtil.cs" />
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\PlatformDetection.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestAttribute.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
+  </ItemGroup>
 
+  <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
 
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  </ItemGroup>
 
+  <ItemGroup>
     <ProjectReference Include="$(PlaygroundSourceDir)AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)kafka/KafkaBasic.AppHost/KafkaBasic.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)Redis/Redis.AppHost/Redis.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)SqlServerEndToEnd/SqlServerEndToEnd.AppHost/SqlServerEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)kafka/KafkaBasic.AppHost/KafkaBasic.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Redis/Redis.AppHost/Redis.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
-
-    <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
+  <ItemGroup Condition="'$(PrepareForHelix)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\FileUtil.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\PlatformDetection.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\Aspire.TestUtilities\FileUtil.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestAttribute.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="..\helix\xunit.runner.json" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

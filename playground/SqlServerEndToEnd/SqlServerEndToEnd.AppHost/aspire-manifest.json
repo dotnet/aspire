@@ -87,6 +87,15 @@
         }
       }
     },
+    "sql1-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql1-roles.module.bicep",
+      "params": {
+        "sql1_outputs_name": "{sql1.outputs.name}",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
     "sql2-password": {
       "type": "parameter.v0",
       "value": "{sql2-password.inputs.value}",

@@ -77,6 +77,8 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
+        builder.WithReferenceRelationship(bicepOutputReference.Resource);
+
         return builder.WithEnvironment(ctx =>
         {
             ctx.EnvironmentVariables[name] = bicepOutputReference;
@@ -97,6 +99,23 @@ public static class AzureBicepResourceExtensions
         return builder.WithEnvironment(ctx =>
         {
             ctx.EnvironmentVariables[name] = bicepOutputReference;
+        });
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource with the value of the key vault secret.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="secretReference">The reference to the key vault secret.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IAzureKeyVaultSecretReference secretReference)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(ctx =>
+        {
+            ctx.EnvironmentVariables[name] = secretReference;
         });
     }
 
@@ -205,6 +224,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -221,6 +243,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
@@ -237,6 +262,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -253,6 +281,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }
@@ -269,6 +300,9 @@ public static class AzureBicepResourceExtensions
         where T : AzureBicepResource
     {
         BicepIdentifierHelpers.ThrowIfInvalid(name);
+
+        builder.WithReferenceRelationship(value.Resource);
+
         builder.Resource.Parameters[name] = value;
         return builder;
     }

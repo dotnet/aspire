@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
+public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string LogLevelColumn = nameof(LogLevelColumn);
@@ -82,6 +83,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required IMessageService MessageService { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -139,7 +146,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -197,7 +204,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -206,7 +213,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             return;
         }
+
         UpdateSubscription();
+        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()
@@ -317,6 +326,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 ViewModel.AddFilter(filter);
                 await ClearSelectedLogEntryAsync();
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -351,35 +368,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private List<MenuButtonItem> GetFilterMenuItems()
     {
-        var filterMenuItems = new List<MenuButtonItem>();
-
-        foreach (var filter in ViewModel.Filters)
-        {
-            filterMenuItems.Add(new MenuButtonItem
-            {
-                OnClick = () => OpenFilterAsync(filter),
-                Text = filter.GetDisplayText(FilterLoc),
-                Class = "filter-menu-item",
-            });
-        }
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            IsDivider = true
-        });
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            Text = DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsRemoveAllButtonText)],
-            Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Delete(),
-            OnClick = () =>
-            {
-                ViewModel.ClearFilters();
-                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
-            }
-        });
-
-        return filterMenuItems;
+        return this.GetFilterMenuItems(
+            ViewModel.Filters,
+            ViewModel.ClearFilters,
+            OpenFilterAsync,
+            FilterLoc,
+            DialogsLoc,
+            _contentLayout);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -405,11 +400,19 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         });
     }
 
+    private string? PauseText => PauseManager.AreStructuredLogsPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
+
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
+        TelemetryContext.Dispose();
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -484,5 +487,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsFilterCount, new AspireTelemetryProperty(ViewModel.Filters.Count.ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric))
+        ]);
     }
 }

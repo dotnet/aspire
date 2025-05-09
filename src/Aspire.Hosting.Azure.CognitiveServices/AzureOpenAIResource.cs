@@ -15,7 +15,9 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
+    [Obsolete("Use AzureOpenAIDeploymentResource instead.")]
     private readonly List<AzureOpenAIDeployment> _deployments = [];
+    private readonly List<AzureOpenAIDeploymentResource> _deploymentResources = [];
 
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure OpenAI resource.
@@ -30,16 +32,28 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{ConnectionString}");
 
+    internal ReferenceExpression GetConnectionString(string deploymentName) =>
+        ReferenceExpression.Create($"{ConnectionString};Deployment={deploymentName}");
+
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
+    internal IReadOnlyList<AzureOpenAIDeploymentResource> DeploymentResources => _deploymentResources;
+
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
     internal void AddDeployment(AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(deployment);
 
         _deployments.Add(deployment);
+    }
+
+    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
+    {
+        _deploymentResources.Add(deployment);
     }
 
     /// <inheritdoc/>

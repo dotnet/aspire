@@ -3,17 +3,16 @@
 
 using System.Text;
 using System.Text.Json.Nodes;
-using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -240,10 +239,15 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             builder.WithHostPort(port);
         });
 
-        Assert.Collection(
-            eventHubs.Resource.Annotations.OfType<EndpointAnnotation>(),
-            e => Assert.Equal(port, e.Port)
-            );
+        var endpoints = eventHubs.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
+
+        Assert.Equal(2, endpoints.Count);
+
+        Assert.Equal("emulator", endpoints[0].Name);
+        Assert.Equal(port, endpoints[0].Port);
+
+        Assert.Equal("emulatorhealth", endpoints[1].Name);
+        Assert.Null(endpoints[1].Port);
     }
 
     [Theory]
@@ -281,58 +285,18 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
             .WithProperties(hub => hub.PartitionCount = 3)
             .AddConsumerGroup("cg1", "group-name");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(model, eventHubs.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "eh-roles");
+        var (ehRolesManifest, ehRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
 
-            param sku string = 'Standard'
-
-            param principalType string
-
-            param principalId string
-
-            resource eh 'Microsoft.EventHub/namespaces@2024-01-01' = {
-              name: take('eh-${uniqueString(resourceGroup().id)}', 256)
-              location: location
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'eh'
-              }
-            }
-
-            resource eh_AzureEventHubsDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(eh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
-                principalType: principalType
-              }
-              scope: eh
-            }
-
-            resource hub_resource 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = {
-              name: 'hub-name'
-              properties: {
-                partitionCount: 3
-              }
-              parent: eh
-            }
-
-            resource cg1 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = {
-              name: 'group-name'
-              parent: hub_resource
-            }
-
-            output eventHubsEndpoint string = eh.properties.serviceBusEndpoint
-
-            output name string = eh.name
-            """;
-
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(ehRolesManifest.ToString(), "json")
+              .AppendContentAsFile(ehRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -569,9 +533,9 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     public void RunAsEmulator_CalledTwice_Throws()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var serviceBus = builder.AddAzureEventHubs("eh").RunAsEmulator();
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator();
 
-        Assert.Throws<InvalidOperationException>(() => serviceBus.RunAsEmulator());
+        Assert.Throws<InvalidOperationException>(() => eventHubs.RunAsEmulator());
     }
 
     [Fact]

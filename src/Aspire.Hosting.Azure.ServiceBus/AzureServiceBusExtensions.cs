@@ -7,11 +7,9 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Azure.Provisioning.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -22,6 +20,8 @@ namespace Aspire.Hosting;
 public static class AzureServiceBusExtensions
 {
     private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
 
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
@@ -70,19 +70,6 @@ public static class AzureServiceBusExtensions
                     };
                     return resource;
                 });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(serviceBusNamespace.CreateRoleAssignment(new ServiceBusBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
 
             infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
@@ -328,7 +315,6 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="ServiceBusEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="ServiceBusEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="ServiceBusEmulatorContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -348,6 +334,7 @@ public static class AzureServiceBusExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -369,12 +356,14 @@ public static class AzureServiceBusExtensions
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
+            .WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 5300)
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = ServiceBusEmulatorContainerImageTags.Registry,
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
-            });
+            })
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         var sqlEdgeResource = builder.ApplicationBuilder
                 .AddContainer($"{builder.Resource.Name}-sqledge",
@@ -488,45 +477,7 @@ public static class AzureServiceBusExtensions
             return Task.CompletedTask;
         });
 
-        ServiceBusClient? serviceBusClient = null;
-        string? queueOrTopicName = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
-        {
-            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
-
-            // Retrieve a queue/topic name to configure the health check
-
-            var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
-            serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
-
-            queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
-        });
-
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
-        // If no queues or no topics are defined then the health check will be successful.
-
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-          .Add(new HealthCheckRegistration(
-              healthCheckKey,
-              sp => new ServiceBusHealthCheck(
-                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
-                  () => queueOrTopicName),
-              failureStatus: default,
-              tags: default,
-              timeout: default));
-
-        builder.WithHealthCheck(healthCheckKey);
+        builder.WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/health");
 
         return builder;
     }
@@ -558,6 +509,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
     /// <example>
     /// Here is an example of how to configure the emulator to use a different logging mechanism:
     /// <code language="csharp">
@@ -572,6 +524,7 @@ public static class AzureServiceBusExtensions
     ///        );
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfiguration(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -673,6 +626,7 @@ public static class AzureServiceBusExtensions
     /// <param name="target">The target Azure Service Bus namespace.</param>
     /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the AzureServiceBusDataSender role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -685,6 +639,7 @@ public static class AzureServiceBusExtensions
     ///   .WithReference(sb);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureServiceBusResource> target,

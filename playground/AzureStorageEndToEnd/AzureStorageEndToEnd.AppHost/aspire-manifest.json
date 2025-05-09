@@ -3,11 +3,7 @@
   "resources": {
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "blobs": {
       "type": "value.v0",
@@ -42,6 +38,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

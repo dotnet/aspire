@@ -17,12 +17,12 @@ else
             <p>@_instrument.Summary.Description</p>
             @if (_instrument.HasOverflow)
             {
-                <div class="overflow-warning">
-                    <div class="overflow-warning-icon">
+                <div class="block-warning">
+                    <div class="block-warning-icon">
                         <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" />
                     </div>
 
-                    <div class="overflow-warning-message">
+                    <div class="block-warning-message">
                         <span class="title">@Loc[nameof(ControlsStrings.ChartContainerOverflowTitle)]</span>
                         @Loc[nameof(ControlsStrings.ChartContainerOverflowDescription)]<br/>
                         @((MarkupString)string.Format(ControlsStrings.ChartContainerOverflowLink, "https://aka.ms/dotnet/aspire/cardinality-limits"))
@@ -52,15 +52,4 @@ else
             </FluentTab>
         </FluentTabs>
     </div>
-}
-
-@code {
-    [Parameter, EditorRequired]
-    public required Metrics.MetricViewKind ActiveView { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
-
-    [Parameter]
-    public required List<OtlpApplication> Applications { get; set; }
 }

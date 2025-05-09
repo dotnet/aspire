@@ -19,14 +19,10 @@
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
     <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
 
-    <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
-
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
 
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
-
-    <PrepareDependenciesDependsOn>_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -57,16 +53,24 @@
     <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; start_time=$(date +%s); echo "Start time: $start_time"; timeout=120; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; end_time=$(date +%s); echo "End time: $end_time"; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
     <!-- Figure out the powershell... -->
     <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'"></_WaitForDcpCommand>
+
+    <_SetExecutableBitCommand Condition="'$(OS)' != 'Windows_NT'">chmod +x $(_TestNameEnvVar) $(_ShellCommandSeparator) </_SetExecutableBitCommand>
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestBlameArguments Include="--blame-hang" />
-    <_TestBlameArguments Include="--blame-hang-dump-type full" />
-    <_TestBlameArguments Include="--blame-hang-timeout 10m" />
-    <_TestBlameArguments Include="--blame-crash" />
-    <_TestBlameArguments Include="--blame-crash-dump-type full" />
+    <_TestBlameArguments Include="--hangdump" />
+    <_TestBlameArguments Include="--hangdump-type Full" />
+    <_TestBlameArguments Include="--hangdump-timeout 20m" />
+    <_TestBlameArguments Include="--crashdump" />
+    <_TestBlameArguments Include="--crashdump-type Full" />
 
-    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
+    <!--
+      At time of writing, Aspire.Components.Common.Tests doesn't have runnable tests in CI. In that case, we don't want to fail.
+      Also EndToEnd.Tests doesn't have tests matching scenario=cosmos
+      So, ignore exit code 8 (zero tests ran)
+      https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
+    -->
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --filter-not-trait &quot;category=failing&quot; --ignore-exit-code 8" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
@@ -75,6 +79,12 @@
   <ItemGroup>
     <!-- Run this at the start -->
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Azure.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Docker.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Kubernetes.Tests/Snapshots" Destination="Snapshots" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">
@@ -162,11 +172,6 @@
 
   <Target Name="PrepareDependencies" DependsOnTargets="$(PrepareDependenciesDependsOn)" />
 
-  <Target Name="_StageCreateDotNetDevCertScripts" Condition="'$(NeedsCreateDotNetDevScripts)' == 'true' and '$(OS)' != 'Windows_NT' and !Exists($(_CreateDotNetDevCertsDirectory))">
-    <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
-    <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
-  </Target>
-
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
     <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
       <Output TaskParameter="TargetOutputs" PropertyName="DCPBinaryLocation" />
@@ -185,7 +190,7 @@
     </PropertyGroup>
 
     <ItemGroup Label="Common payload">
-      <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
+      <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(RepoRoot)tests\external-scripts" Destination="create-dotnet-devcert" />
       <HelixCorrelationPayload Condition="'$(DockerCliToolDir)' != ''" Include="$(DockerCliToolDir)" Destination="docker-cli" />
     </ItemGroup>
 

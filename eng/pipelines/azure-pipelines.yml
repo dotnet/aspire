@@ -2,7 +2,7 @@ trigger:
   batch: true
   branches:
     include:
-    - main
+    - main*
     - release/*
     - internal/release/*
   paths:
@@ -20,7 +20,7 @@ trigger:
 pr:
   branches:
     include:
-    - main
+    - main*
     - release/*
     - feature/*
     - internal/release/*

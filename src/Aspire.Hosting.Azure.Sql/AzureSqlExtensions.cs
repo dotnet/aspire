@@ -133,6 +133,7 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure SQL Database (server) resource that runs locally in a
     /// SQL Server container and referencing that resource in a .NET project.
@@ -148,6 +149,7 @@ public static class AzureSqlExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -199,14 +201,7 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalNameParameter);
-
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-        var addAdminRole = azureResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out _) ||
-            azureResource.InnerResource is not null; // the obsolete AsAzureSqlDatabase use this as well, ensure we generate the role assignment.
 
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
         (identifier, name) =>
@@ -217,36 +212,29 @@ public static class AzureSqlExtensions
         },
         (infrastructure) =>
         {
-            var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Version = "12.0",
-                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-            };
+            // Creating a new SqlServer instance requires an administrator,
+            // so we need to create one here using the empty PrincipalId/PrincipalName
+            var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
+            infrastructure.Add(principalIdParameter);
+            var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
+            infrastructure.Add(principalNameParameter);
 
-            if (addAdminRole)
+            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
             {
-                sqlServer.Administrators = new ServerExternalAdministrator()
+                Administrators = new ServerExternalAdministrator()
                 {
                     AdministratorType = SqlAdministratorType.ActiveDirectory,
                     IsAzureADOnlyAuthenticationEnabled = true,
                     Sid = principalIdParameter,
                     Login = principalNameParameter,
                     TenantId = BicepFunction.GetSubscription().TenantId
-                };
-            }
-
-            return sqlServer;
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
         });
-
-        // If the resource is an existing resource, we model the administrator access
-        // for the managed identity as an "edge" between the parent SqlServer resource
-        // and a custom SqlServerAzureADAdministrator resource.
-        if (addAdminRole && sqlServer.IsExistingResource)
-        {
-            AddActiveDirectoryAdministrator(infrastructure, sqlServer, principalIdParameter, principalNameParameter);
-        }
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {

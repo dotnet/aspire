@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Templates.Tests;
@@ -33,7 +33,7 @@ public abstract class StarterTemplateProjectNamesTests : TemplateTestsBase
             BuildEnvironment.ForDefaultFramework,
             $"-t {_testType}");
 
-        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
+        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
         _testOutput.WriteLine($"Checking the starter template project");
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
 

@@ -1,9 +1,17 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param api_identity_outputs_id string
+param infra_outputs_azure_container_apps_environment_default_domain string
 
-param api_identity_outputs_clientid string
+param infra_outputs_azure_container_apps_environment_id string
+
+param infra_outputs_azure_container_registry_endpoint string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
+
+param api_containerimage string
+
+param api_identity_outputs_id string
 
 param api_containerport string
 
@@ -19,13 +27,7 @@ param secretparam_value string
 
 param api_identity_outputs_principalname string
 
-param infra_outputs_azure_container_apps_environment_id string
-
-param infra_outputs_azure_container_registry_endpoint string
-
-param infra_outputs_azure_container_registry_managed_identity_id string
-
-param api_containerimage string
+param api_identity_outputs_clientid string
 
 param certificateName string
 
@@ -63,7 +65,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: api_containerport
+        targetPort: int(api_containerport)
         transport: 'http'
         customDomains: [
           {

@@ -36,6 +36,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreTracesPaused(out _)" IsPausedChanged="@PauseManager.SetTracesPaused" />
             <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
                                 HandleClearSignal="ClearTraces" />
 
@@ -54,7 +55,7 @@
             else
             {
                 <div slot="end">
-                    <FluentCounterBadge HorizontalPosition="70" Count="@(TracesViewModel.Filters.Count)" Appearance="Appearance.Accent">
+                    <FluentCounterBadge HorizontalPosition="70" Count="@(TracesViewModel.Filters.GetEnabledFilters().Count())" Appearance="Appearance.Accent">
                         <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
                     </FluentCounterBadge>
                 </div>
@@ -125,14 +126,18 @@
                                         @{
                                             var items = overflow.ItemsOverflow.ToList();
                                         }
-                                        <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
-                                            @foreach (var item in items)
-                                            {
-                                                <div style="margin-top: 8px; margin-bottom: 8px;">
-                                                    @item.ChildContent
-                                                </div>
-                                            }
-                                        </FluentTooltip>
+
+                                        @if (items.Count > 0)
+                                        {
+                                            <FluentTooltip aria-label="@(string.Join(", ", items.Select(i => i.Text)))" UseTooltipService="false" Anchor="@overflow.IdMoreButton">
+                                                @foreach (var item in items)
+                                                {
+                                                    <div style="margin-top: 8px; margin-bottom: 8px;">
+                                                        @item.ChildContent
+                                                    </div>
+                                                }
+                                            </FluentTooltip>
+                                        }
                                     </OverflowTemplate>
                                 </FluentOverflow>
                             </AspireTemplateColumn>
@@ -169,7 +174,10 @@
             </div>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
+            <TotalItemsFooter
+                @ref="_totalItemsFooter"
+                TotalItemCount="@_totalItemsCount"
+                PauseText="@PauseText" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

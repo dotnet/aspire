@@ -24,7 +24,7 @@ dotnet add package Aspire.Azure.Npgsql
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureNpgsqlDataSource("postgresdb");
@@ -69,16 +69,14 @@ Note that the username and password will be automatically inferred from the cred
 
 ### Use configuration providers
 
-The .NET Aspire Azure Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlSettings` from configuration by using the `Aspire:Azure:Npgsql` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
-    "Azure": {
-      "Npgsql": {
-        "DisableHealthChecks": true,
-        "DisableTracing": true
-      }
+    "Npgsql": {
+      "DisableHealthChecks": true,
+      "DisableTracing": true
     }
   }
 }
@@ -104,7 +102,7 @@ In your AppHost project, install the `Aspire.Hosting.Azure.PostgreSQL` library w
 dotnet add package Aspire.Hosting.Azure.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Azure Database for PostgreSQL instance and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Azure Database for PostgreSQL instance and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("postgresdb");

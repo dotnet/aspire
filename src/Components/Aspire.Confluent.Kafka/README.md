@@ -19,7 +19,7 @@ dotnet add package Aspire.Confluent.Kafka
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddKafkaProducer` extension method to register an `IProducer<TKey, TValue>` for use via the dependency injection container. The method takes two generic parameters corresponding to the type of the key and the type of the message to send to the broker. These generic parameters will be used to new an instance of `ProducerBuilder<TKey, TValue>`. This method also take connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddKafkaProducer` extension method to register an `IProducer<TKey, TValue>` for use via the dependency injection container. The method takes two generic parameters corresponding to the type of the key and the type of the message to send to the broker. These generic parameters will be used to new an instance of `ProducerBuilder<TKey, TValue>`. This method also take connection name parameter.
 
 ```csharp
 builder.AddKafkaProducer<string, string>("messaging");
@@ -132,7 +132,7 @@ In your AppHost project, install the `Aspire.Hosting.Kafka` library with [NuGet]
 dotnet add package Aspire.Hosting.Kafka
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register an Apache Kafka container and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register an Apache Kafka container and consume the connection using the following methods:
 
 ```csharp
 var messaging = builder.AddKafka("messaging");

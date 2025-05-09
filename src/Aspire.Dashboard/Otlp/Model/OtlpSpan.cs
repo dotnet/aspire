@@ -42,6 +42,8 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
+    public OtlpApplication? UninstrumentedPeer { get; internal set; }
+
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
 
@@ -86,6 +88,7 @@ public class OtlpSpan
             Events = item.Events,
             Links = item.Links,
             BackLinks = item.BackLinks,
+            UninstrumentedPeer = item.UninstrumentedPeer
         };
     }
 
@@ -118,7 +121,7 @@ public class OtlpSpan
 
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Application = {Source.ApplicationKey}, UninstrumentedPeerApplication = {UninstrumentedPeer?.ApplicationKey}, TraceId = {Trace.TraceId}";
     }
 
     public string GetDisplaySummary()
@@ -180,18 +183,25 @@ public class OtlpSpan
         }
     }
 
-    public static string? GetFieldValue(OtlpSpan span, string field)
+    public static FieldValues GetFieldValue(OtlpSpan span, string field)
     {
+        // FieldValues is a hack to support two values in a single field.
+        // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => span.Source.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Application.ApplicationName, span.UninstrumentedPeer?.ApplicationName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
             KnownTraceFields.StatusField => span.Status.ToString(),
-            KnownSourceFields.NameField => span.Scope.ScopeName,
+            KnownSourceFields.NameField => span.Scope.Name,
             KnownTraceFields.NameField => span.Name,
             _ => span.Attributes.GetValue(field)
         };
+    }
+
+    public record struct FieldValues(string? Value1, string? Value2 = null)
+    {
+        public static implicit operator FieldValues(string? value) => new FieldValues(value);
     }
 }

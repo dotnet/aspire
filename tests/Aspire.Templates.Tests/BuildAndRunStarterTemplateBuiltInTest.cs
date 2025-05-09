@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Templates.Tests;
@@ -29,6 +29,7 @@ public class BuildAndRunStarterTemplateBuiltInTest : TemplateTestsBase
     [Theory]
     [MemberData(nameof(TestFrameworkTypeWithConfig))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task BuildAndRunStarterTemplateBuiltInTest_Test(string config, string testType)
     {
         string id = TemplateTestsBase.GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");

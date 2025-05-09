@@ -3,15 +3,12 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var deploymentAndModelName = "gpt-4o";
-var openai = builder.AddAzureOpenAI("openai").AddDeployment(
-    new(deploymentAndModelName, deploymentAndModelName, "2024-05-13")
-    );
+var chat = builder.AddAzureOpenAI("openai")
+    .AddDeployment("chat", "gpt-4o", "2024-05-13");
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
-       .WithReference(openai)
-       .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
+       .WithReference(chat);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

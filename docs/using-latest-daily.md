@@ -8,7 +8,7 @@ See [machine-requirements.md](machine-requirements.md).
 
 ## (Optional) Create a local nuget.config file
 
-Since dogfooding will require using nightly build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
+Since dogfooding will require using daily build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
 
 ```bash
 dotnet new nugetconfig
@@ -33,7 +33,7 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 </packageSourceMapping>
 ```
 
-## Install the nightly .NET Aspire templates
+## Install the daily .NET Aspire templates
 
 To be able to create aspire projects, you will need to install the latest Aspire templates. You can do this by running the following command:
 
@@ -78,3 +78,9 @@ dotnet run --project "<directoryname>.AppHost"
 ```
 
 Alternatively, if you are using Visual Studio, you can instead create a new Blazor Web App project and check the `Enlist in Aspire orchestration` box while creating it. Then use <kbd>F5</kbd> to debug or <kbd>Ctrl+F5</kbd> to launch without debugging.
+
+## Install the daily CLI
+
+```sh
+dotnet tool install --global aspire.cli --prerelease --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json
+```

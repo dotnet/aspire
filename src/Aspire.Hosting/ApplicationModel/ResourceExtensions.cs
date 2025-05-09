@@ -152,14 +152,13 @@ public static class ResourceExtensions
     /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
+    /// <param name="resource">The resource to get the environment variables from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
-    /// </remarks>
-    /// <param name="resource">The resource to get the environment variables from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
-    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
     /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
     /// a unit test to validate environment variable values.
@@ -184,6 +183,7 @@ public static class ResourceExtensions
     ///         });
     /// </code>
     /// </example>
+    /// </remarks>
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
@@ -206,14 +206,13 @@ public static class ResourceExtensions
     /// <summary>
     /// Get the arguments from the given resource.
     /// </summary>
+    /// <param name="resource">The resource to get the arguments from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The arguments retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the arguments are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and arguments were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
-    /// </remarks>
-    /// <param name="resource">The resource to get the arguments from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
-    /// <returns>The arguments retrieved from the resource.</returns>
     /// <example>
     /// Using <see cref="GetArgumentValuesAsync(IResourceWithArgs, DistributedApplicationOperation)"/> inside
     /// a unit test to validate argument values.
@@ -236,6 +235,7 @@ public static class ResourceExtensions
     ///         });
     /// </code>
     /// </example>
+    /// </remarks>
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
@@ -569,6 +569,48 @@ public static class ResourceExtensions
         {
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Gets the deployment target for the specified resource, if any. Throws an exception if
+    /// there are multiple compute environments and a compute environment is not explicitly specified.
+    /// </summary>
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? targetComputeEnvironment = null)
+    {
+        IComputeEnvironmentResource? selectedComputeEnvironment = null;
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            // If you have a ComputeEnvironmentAnnotation, it means the resource is bound to a specific compute environment.
+            // Skip the annotation if it doesn't match the specified computeEnvironmentResource.
+            if (targetComputeEnvironment is not null && targetComputeEnvironment != computeEnvironmentAnnotation.ComputeEnvironment)
+            {
+                return null;
+            }
+
+            // If the resource is bound to a specific compute environment, use that one.
+            selectedComputeEnvironment = computeEnvironmentAnnotation.ComputeEnvironment;
+        }
+
+        if (resource.TryGetAnnotationsOfType<DeploymentTargetAnnotation>(out var deploymentTargetAnnotations))
+        {
+            var annotations = deploymentTargetAnnotations.ToArray();
+
+            if (selectedComputeEnvironment is not null)
+            {
+                return annotations.SingleOrDefault(a => a.ComputeEnvironment == selectedComputeEnvironment);
+            }
+
+            if (annotations.Length > 1)
+            {
+                var computeEnvironmentNames = string.Join(", ", annotations.Select(a => a.ComputeEnvironment?.Name));
+                throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
+            }
+
+            return annotations[0];
+        }
+        return null;
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>

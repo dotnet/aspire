@@ -15,13 +15,15 @@ namespace Aspire.Hosting.Azure;
 public class AzureStorageResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
 {
+    internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
+    internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
+    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Data__Tables";
+
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
-    internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
-    internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
-    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Storage__Tables";
+    internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.

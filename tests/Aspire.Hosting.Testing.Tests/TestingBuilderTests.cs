@@ -3,7 +3,7 @@
 
 using System.Net.Http.Json;
 using System.Reflection;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -210,7 +210,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7930", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
     public async Task ArgsPropagateToAppHostConfiguration(bool genericEntryPoint, bool directArgs)
     {
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];

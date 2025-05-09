@@ -90,19 +90,6 @@ public static class AzureSignalRExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(service.CreateRoleAssignment(new SignalRBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
         };
 
         List<SignalRBuiltInRole> defaultRoles = [SignalRBuiltInRole.SignalRAppServer];
@@ -159,6 +146,7 @@ public static class AzureSignalRExtensions
     /// <param name="target">The target Azure SignalR resource.</param>
     /// <param name="roles">The built-in SignalR roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the SignalRContributor role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -171,6 +159,7 @@ public static class AzureSignalRExtensions
     ///   .WithReference(signalr);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureSignalRResource> target,

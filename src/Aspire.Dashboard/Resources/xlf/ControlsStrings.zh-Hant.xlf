@@ -107,6 +107,11 @@
         <target state="translated">拿掉 {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">移除資料</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">詳細資料</target>
@@ -247,9 +252,14 @@
         <target state="translated">(取消設定)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">連結</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">位址</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">文字</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +320,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">頁面工具列</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">暫停傳入資料</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -400,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">資源</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">繼續傳入資料</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +547,16 @@
         <target state="translated">時間戳記</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">切換巢狀項目</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">擷取已暫停</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">屬性</target>
@@ -558,8 +588,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">總共&lt;strong&gt;找到了 {0} 個結果&lt;/strong&gt;</target>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
+        <target state="translated">總計: &lt;strong&gt;找到 {0} 個結果&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

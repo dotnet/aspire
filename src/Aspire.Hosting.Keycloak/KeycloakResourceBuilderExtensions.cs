@@ -69,7 +69,8 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
-            });
+            })
+            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         if (builder.ExecutionContext.IsRunMode)
         {

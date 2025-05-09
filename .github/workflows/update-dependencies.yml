@@ -12,6 +12,7 @@ permissions:
 jobs:
   update-dependencies:
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -30,16 +31,17 @@ jobs:
         run: dotnet tool install --global dotnet-outdated-tool
 
       - name: Update packages
-        run: dotnet outdated --no-restore -u ./Aspire.sln
+        continue-on-error: true
+        run: dotnet outdated --no-restore -u ./Aspire.sln || echo "Some dependencies could not be updated, but continuing workflow."
 
-      - name: Revert all changes except Directory.Packages.props
+      - name: Revert all changes except Directory.Packages.props files
         run: |
-          git add Directory.Packages.props
+          git add **Directory.Packages.props
           rm nuget.config
           git checkout -- .
 
       - name: Create Pull Request
-        uses: dotnet/actions-create-pull-request@v4
+        uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-dependencies

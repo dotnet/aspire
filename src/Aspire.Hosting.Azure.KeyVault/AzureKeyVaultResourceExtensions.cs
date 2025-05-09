@@ -65,26 +65,12 @@ public static class AzureKeyVaultResourceExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = keyVault.Id });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(keyVault.CreateRoleAssignment(new KeyVaultBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(KeyVaultBuiltInRole.GetBuiltInRoleName,
-                KeyVaultBuiltInRole.KeyVaultAdministrator);
+                KeyVaultBuiltInRole.KeyVaultSecretsUser);
     }
 
     /// <summary>
@@ -95,6 +81,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="target">The target Azure Key Vault resource.</param>
     /// <param name="roles">The built-in Key Vault roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the KeyVaultReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -107,6 +94,7 @@ public static class AzureKeyVaultResourceExtensions
     ///   .WithReference(vault);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureKeyVaultResource> target,

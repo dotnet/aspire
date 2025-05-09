@@ -56,15 +56,6 @@ public partial class AspireMenuButton : FluentComponentBase
         _visible = !_visible;
     }
 
-    private async Task HandleItemClicked(MenuButtonItem item)
-    {
-        if (item.OnClick is {} onClick)
-        {
-            await onClick();
-        }
-        _visible = false;
-    }
-
     private void OnKeyDown(KeyboardEventArgs args)
     {
         if (args is not null && args.Key == "Escape")

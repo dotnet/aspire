@@ -5,14 +5,14 @@ param userPrincipalId string
 
 param tags object = { }
 
-resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: take('mi-${uniqueString(resourceGroup().id)}', 128)
+resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
   tags: tags
 }
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: take('acr${uniqueString(resourceGroup().id)}', 50)
+resource infra_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: take('infraacr${uniqueString(resourceGroup().id)}', 50)
   location: location
   sku: {
     name: 'Basic'
@@ -20,18 +20,18 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   tags: tags
 }
 
-resource acr_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
+resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(infra_acr.id, infra_mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
   properties: {
-    principalId: mi.properties.principalId
+    principalId: infra_mi.properties.principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
     principalType: 'ServicePrincipal'
   }
-  scope: acr
+  scope: infra_acr
 }
 
-resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: take('law-${uniqueString(resourceGroup().id)}', 63)
+resource infra_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: take('infralaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     sku: {
@@ -41,15 +41,15 @@ resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   tags: tags
 }
 
-resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: take('cae${uniqueString(resourceGroup().id)}', 24)
+resource infra 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: take('infra${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: law.properties.customerId
-        sharedKey: law.listKeys().primarySharedKey
+        customerId: infra_law.properties.customerId
+        sharedKey: infra_law.listKeys().primarySharedKey
       }
     }
     workloadProfiles: [
@@ -67,20 +67,20 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   properties: {
     componentType: 'AspireDashboard'
   }
-  parent: cae
+  parent: infra
 }
 
-resource cae_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cae.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
+resource infra_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(infra.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
   properties: {
     principalId: userPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
   }
-  scope: cae
+  scope: infra
 }
 
-resource storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-  name: take('storagevolume${uniqueString(resourceGroup().id)}', 24)
+resource infra_storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('infrastoragevolume${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'
   location: location
   sku: {
@@ -94,7 +94,7 @@ resource storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
 
 resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileServices@2024-01-01' = {
   name: 'default'
-  parent: storageVolume
+  parent: infra_storageVolume
 }
 
 resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
@@ -110,33 +110,33 @@ resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/stora
   name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
   properties: {
     azureFile: {
-      accountName: storageVolume.name
-      accountKey: storageVolume.listKeys().keys[0].value
+      accountName: infra_storageVolume.name
+      accountKey: infra_storageVolume.listKeys().keys[0].value
       accessMode: 'ReadWrite'
       shareName: shares_volumes_cache_0.name
     }
   }
-  parent: cae
+  parent: infra
 }
 
 output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
-output MANAGED_IDENTITY_NAME string = mi.name
+output MANAGED_IDENTITY_NAME string = infra_mi.name
 
-output MANAGED_IDENTITY_PRINCIPAL_ID string = mi.properties.principalId
+output MANAGED_IDENTITY_PRINCIPAL_ID string = infra_mi.properties.principalId
 
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = law.name
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = infra_law.name
 
-output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = law.id
+output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = infra_law.id
 
-output AZURE_CONTAINER_REGISTRY_NAME string = acr.name
+output AZURE_CONTAINER_REGISTRY_NAME string = infra_acr.name
 
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = acr.properties.loginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra_acr.properties.loginServer
 
-output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = mi.id
+output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = infra_mi.id
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = cae.name
+output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = infra.name
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = cae.id
+output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = infra.id
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = cae.properties.defaultDomain
+output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = infra.properties.defaultDomain

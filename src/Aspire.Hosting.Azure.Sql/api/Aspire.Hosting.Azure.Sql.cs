@@ -53,5 +53,9 @@ namespace Aspire.Hosting.Azure
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
         public BicepOutputReference FullyQualifiedDomainName { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
     }
 }

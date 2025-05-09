@@ -7,9 +7,14 @@
   <ItemGroup>
     <None Include="$(RepoRoot)src\Components\Aspire.MySqlConnector\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MySql\MySqlContainerImageTags.cs" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.MySql" />
+  </ItemGroup>
 
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
   </ItemGroup>

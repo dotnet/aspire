@@ -32,7 +32,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private string _formattedText = string.Empty;
 
     public HashSet<string?> EnabledOptions { get; } = [];
-    internal bool? ShowContainsSecretsWarning { get; private set; }
+    internal bool? ShowSecretsWarning { get; private set; }
 
     public string FormattedText
     {
@@ -67,7 +67,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         // We need to make users perform an explicit action once before being able to see secret values
         // We do this by making them agree to a warning in the text visualizer dialog.
         var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
-        ShowContainsSecretsWarning = settingsResult.Value is not { ContainsSecretsWarningShown: true };
+        ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -77,9 +77,9 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
-        if (_jsModule is not null)
+        if (_jsModule is not null && IsTextContentDisplayed)
         {
-            if (FormatKind is not PlaintextFormat && ShowContainsSecretsWarning is false)
+            if (FormatKind is not PlaintextFormat)
             {
                 await _jsModule.InvokeVoidAsync("connectObserver", _logContainerId);
             }
@@ -114,6 +114,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             ChangeFormattedText(PlaintextFormat, Content.Text);
         }
     }
+
+    private bool IsTextContentDisplayed => !Content.ContainsSecret || ShowSecretsWarning is false;
 
     private string GetLogContentClass()
     {
@@ -294,12 +296,12 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             new TextVisualizerDialogViewModel(value, valueDescription, containsSecret), parameters);
     }
 
-    internal sealed record TextVisualizerDialogSettings(bool ContainsSecretsWarningShown);
+    internal sealed record TextVisualizerDialogSettings(bool SecretsWarningAcknowledged);
 
     private async Task UnmaskContentAsync()
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.TextVisualizerDialogSettings, new TextVisualizerDialogSettings(ContainsSecretsWarningShown: true));
-        ShowContainsSecretsWarning = false;
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.TextVisualizerDialogSettings, new TextVisualizerDialogSettings(SecretsWarningAcknowledged: true));
+        ShowSecretsWarning = false;
     }
 }
 

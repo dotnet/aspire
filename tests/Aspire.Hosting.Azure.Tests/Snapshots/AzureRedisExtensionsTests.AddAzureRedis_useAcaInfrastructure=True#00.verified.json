@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{redis-cache.outputs.connectionString}",
+  "path": "redis-cache.module.bicep"
+}

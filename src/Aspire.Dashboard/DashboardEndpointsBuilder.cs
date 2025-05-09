@@ -14,6 +14,11 @@ namespace Aspire.Dashboard;
 
 public static class DashboardEndpointsBuilder
 {
+    public static void MapDashboardHealthChecks(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapHealthChecks($"/{DashboardUrls.HealthBasePath}").AllowAnonymous();
+    }
+
     public static void MapDashboardApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
     {
         if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)

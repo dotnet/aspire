@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -17,6 +19,7 @@ using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -119,16 +122,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "inspect" => DistributedApplicationOperation.Inspect,
             "run" => DistributedApplicationOperation.Run,
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
-            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
-            _ => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"])
+            DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
     }
 
@@ -279,7 +281,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
-                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
+                    if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
+                                                              KnownConfigNames.Legacy.DashboardFrontendBrowserToken, fallbackOnEmpty: true) is not { } browserToken)
                     {
                         // No browser token was specified in configuration, so generate one.
                         browserToken = TokenGenerator.GenerateToken();
@@ -293,11 +296,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
 
                     // Determine the resource service API key.
-                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey] is not { Length: > 0 } apiKey)
-                    {
-                        // No API key was specified in configuration, so generate one.
-                        apiKey = TokenGenerator.GenerateToken();
-                    }
+                    var apiKey = _innerBuilder.Configuration.GetString(KnownConfigNames.DashboardResourceServiceClientApiKey,
+                                                                       KnownConfigNames.Legacy.DashboardResourceServiceClientApiKey, fallbackOnEmpty: true);
+
+                    // If no API key was specified in configuration, generate one.
+                    apiKey ??= TokenGenerator.GenerateToken();
 
                     _innerBuilder.Configuration.AddInMemoryCollection(
                         new Dictionary<string, string?>
@@ -327,6 +330,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
+
+                ConfigureDashboardHealthCheck();
             }
 
             if (options.EnableResourceLogging)
@@ -363,7 +368,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
-        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+        this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
+        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
@@ -380,6 +386,28 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureDashboardHealthCheck()
+    {
+        _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
+
+            var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
+            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
+            {
+                // Health checks to the dashboard should go to the /health endpoint. This endpoint allows anonymous requests.
+                // Sending a request to other dashboard endpoints triggered auth, which the request fails, and is redirected to the login page.
+                var uriBuilder = new UriBuilder(firstDashboardUrl);
+                uriBuilder.Path = "/health";
+                return uriBuilder.Uri;
+            }
+            else
+            {
+                throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
+            }
+        }, KnownHealthCheckNames.DashboardHealthCheck);
+
+        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DashboardHealthCheck);
     }
 
     private void ConfigureHealthChecks()
@@ -442,7 +470,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private static bool IsDashboardUnsecured(IConfiguration configuration)
     {
-        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
+        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)

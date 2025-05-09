@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -136,7 +136,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -193,7 +193,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 

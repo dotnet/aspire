@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
 using Aspire.Npgsql.Tests;
 using Microsoft.DotNet.RemoteExecutor;
@@ -22,6 +22,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
     protected override string ActivitySourceName => "Npgsql";
+
+    // Sub-classed in Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
+    protected override bool CheckOptionClassSealed => false;
 
     protected override string[] RequiredLogCategories => new string[]
     {

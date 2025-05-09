@@ -19,7 +19,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
+public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -81,6 +81,12 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -141,7 +147,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -163,12 +169,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
-    }
-
-    private void DimensionManager_OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
-    {
-        throw new NotImplementedException();
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -184,7 +185,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications();
+        _applications = TelemetryRepository.GetApplications(includeUninstrumentedPeers: true);
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
@@ -244,6 +245,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             await JS.InvokeVoidAsync("initializeContinuousScroll");
         });
     }
+
+    private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
+        : null;
 
     public void Dispose()
     {
@@ -332,6 +340,14 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             {
                 TracesViewModel.AddFilter(filter);
             }
+            else if (filterResult.Enable)
+            {
+                filter.Enabled = true;
+            }
+            else if (filterResult.Disable)
+            {
+                filter.Enabled = false;
+            }
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -345,35 +361,13 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     private List<MenuButtonItem> GetFilterMenuItems()
     {
-        var filterMenuItems = new List<MenuButtonItem>();
-
-        foreach (var filter in TracesViewModel.Filters)
-        {
-            filterMenuItems.Add(new MenuButtonItem
-            {
-                OnClick = () => OpenFilterAsync(filter),
-                Text = filter.GetDisplayText(FilterLoc),
-                Class = "filter-menu-item",
-            });
-        }
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            IsDivider = true
-        });
-
-        filterMenuItems.Add(new MenuButtonItem
-        {
-            Text = DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsRemoveAllButtonText)],
-            Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Delete(),
-            OnClick = () =>
-            {
-                TracesViewModel.ClearFilters();
-                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
-            }
-        });
-
-        return filterMenuItems;
+        return this.GetFilterMenuItems(
+            TracesViewModel.Filters,
+            clearFilters: TracesViewModel.ClearFilters,
+            openFilterAsync: OpenFilterAsync,
+            filterLoc: FilterLoc,
+            dialogsLoc: DialogsLoc,
+            contentLayout: _contentLayout);
     }
 
     public class TracesPageViewModel
@@ -386,4 +380,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         public string? SelectedApplication { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
 }

@@ -22,18 +22,23 @@ public class OtlpApplication
     public string ApplicationName { get; }
     public string InstanceId { get; }
     public OtlpContext Context { get; }
+    // This flag indicates whether the app was created for an uninstrumented peer.
+    // It's used to hide the app on pages that don't use uninstrumented peers.
+    // Traces uses uninstrumented peers, structured logs and metrics don't.
+    public bool UninstrumentedPeer { get; private set; }
 
     public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
-    private readonly Dictionary<string, OtlpMeter> _meters = new();
+    private readonly Dictionary<string, OtlpScope> _meters = new();
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
-    public OtlpApplication(string name, string instanceId, OtlpContext context)
+    public OtlpApplication(string name, string instanceId, bool uninstrumentedPeer, OtlpContext context)
     {
         ApplicationName = name;
         InstanceId = instanceId;
+        UninstrumentedPeer = uninstrumentedPeer;
         Context = context;
     }
 
@@ -48,6 +53,12 @@ public class OtlpApplication
 
             foreach (var sm in scopeMetrics)
             {
+                if (!OtlpHelpers.TryAddScope(_meters, sm.Scope, Context, out var scope))
+                {
+                    context.FailureCount += sm.Metrics.Count;
+                    continue;
+                }
+
                 foreach (var metric in sm.Metrics)
                 {
                     OtlpInstrument instrument;
@@ -59,7 +70,7 @@ public class OtlpApplication
                             throw new InvalidOperationException("Instrument name is required.");
                         }
 
-                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        var instrumentKey = new OtlpInstrumentKey(scope.Name, metric.Name);
                         ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
                         // Adds to dictionary if not present.
                         instrumentRef ??= new OtlpInstrument
@@ -70,7 +81,7 @@ public class OtlpApplication
                                 Description = metric.Description,
                                 Unit = metric.Unit,
                                 Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope)
+                                Parent = scope
                             },
                             Context = Context
                         };
@@ -190,15 +201,6 @@ public class OtlpApplication
         };
     }
 
-    private OtlpMeter GetMeter(InstrumentationScope scope)
-    {
-        ref var meter = ref CollectionsMarshal.GetValueRefOrAddDefault(_meters, scope.Name, out _);
-        // Adds to dictionary if not present.
-        meter ??= new OtlpMeter(scope, Context);
-
-        return meter;
-    }
-
     public OtlpInstrument? GetInstrument(string meterName, string instrumentName, DateTime? valuesStart, DateTime? valuesEnd)
     {
         _metricsLock.EnterReadLock();
@@ -292,6 +294,16 @@ public class OtlpApplication
         }
 
         return _applicationViews.GetOrAdd(view.Properties, view);
+    }
+
+    internal void SetUninstrumentedPeer(bool uninstrumentedPeer)
+    {
+        // An app could initially be created for an uninstrumented peer and then telemetry is received from it.
+        // This method "upgrades" the resource to not be for an uninstrumented peer when appropriate.
+        if (UninstrumentedPeer && !uninstrumentedPeer)
+        {
+            UninstrumentedPeer = uninstrumentedPeer;
+        }
     }
 
     /// <summary>

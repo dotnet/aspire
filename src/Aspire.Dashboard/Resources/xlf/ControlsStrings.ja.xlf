@@ -107,6 +107,11 @@
         <target state="translated">{0} の削除</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">データの削除</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">詳細</target>
@@ -247,9 +252,14 @@
         <target state="translated">(設定解除)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">リンク</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">アドレス</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">テキスト</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +320,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">ページ ツール バー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">受信データを一時停止</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -400,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">リソース</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">受信データを再開</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +547,16 @@
         <target state="translated">タイムスタンプ</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">入れ子の切り替え</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">キャプチャが一時停止されました</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">属性</target>
@@ -558,7 +588,7 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
         <target state="translated">合計: &lt;strong&gt;{0} 件の結果が見つかりました&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>

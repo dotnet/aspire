@@ -1,21 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureResourcePreparerTests
 {
-    [Fact]
-    public void ThrowsExceptionsIfRoleAssignmentUnsupported()
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    [InlineData(DistributedApplicationOperation.Run)]
+    public async Task ThrowsExceptionsIfRoleAssignmentUnsupported(DistributedApplicationOperation operation)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
 
         var storage = builder.AddAzureStorage("storage");
 
@@ -24,8 +26,16 @@ public class AzureResourcePreparerTests
 
         var app = builder.Build();
 
-        var ex = Assert.Throws<InvalidOperationException>(app.Start);
-        Assert.Contains("role assignments", ex.Message);
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(app.Start);
+            Assert.Contains("role assignments", ex.Message);
+        }
+        else
+        {
+            await app.StartAsync();
+            // no exception is thrown in Run mode
+        }
     }
 
     [Theory]
@@ -38,7 +48,7 @@ public class AzureResourcePreparerTests
         using var builder = TestDistributedApplicationBuilder.Create(operation);
         if (addContainerAppsInfra)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var storage = builder.AddAzureStorage("storage");
@@ -48,24 +58,25 @@ public class AzureResourcePreparerTests
             .WithReference(blobs);
 
         using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
         Assert.True(storage.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultAssignments));
 
         if (!addContainerAppsInfra || operation == DistributedApplicationOperation.Run)
         {
-            // when AzureContainerAppsInfrastructure is not added, we always apply the default role assignments to AppliedRoleAssignmentsAnnotation.
+            // when AzureContainerAppsInfrastructure is not added, we always apply the default role assignments to a new 'storage-roles' resource.
             // The same applies when in RunMode and we are provisioning Azure resources for F5 local development.
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
-            Assert.True(storage.Resource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedAssignments));
-            Assert.Equal(defaultAssignments.Roles, appliedAssignments.Roles);
+            var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
+            await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
         }
         else
         {
-            // in PublishMode when AzureContainerAppsInfrastructure is added, we don't use AppliedRoleAssignmentsAnnotation.
-            // Instead, the DefaultRoleAssignmentsAnnotation is copied to referencing resources' RoleAssignmentAnnotation.
-
-            Assert.False(storage.Resource.HasAnnotationOfType<AppliedRoleAssignmentsAnnotation>());
+            // in PublishMode when AzureContainerAppsInfrastructure is added, the DefaultRoleAssignmentsAnnotation
+            // is copied to referencing resources' RoleAssignmentAnnotation.
 
             Assert.True(api.Resource.TryGetLastAnnotation<RoleAssignmentAnnotation>(out var apiRoleAssignments));
             Assert.Equal(storage.Resource, apiRoleAssignments.Target);
@@ -79,7 +90,7 @@ public class AzureResourcePreparerTests
     public async Task AppliesRoleAssignmentsInRunMode(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
@@ -93,25 +104,22 @@ public class AzureResourcePreparerTests
             .WithReference(blobs);
 
         using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
         if (operation == DistributedApplicationOperation.Run)
         {
-            // in RunMode, we apply the role assignments to AppliedRoleAssignmentsAnnotation, so the provisioned resource
+            // in RunMode, we apply the role assignments to a new 'storage-roles' resource, so the provisioned resource
             // adds these role assignments for F5 local development.
+            var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
-            Assert.True(storage.Resource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedAssignments));
-
-            Assert.Collection(appliedAssignments.Roles,
-                role => Assert.Equal(StorageBuiltInRole.StorageBlobDelegator.ToString(), role.Id),
-                role => Assert.Equal(StorageBuiltInRole.StorageBlobDataReader.ToString(), role.Id),
-                role => Assert.Equal(StorageBuiltInRole.StorageBlobDataContributor.ToString(), role.Id));
+            var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
+            await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
         }
         else
         {
-            // in PublishMode, we don't use AppliedRoleAssignmentsAnnotation.
-            Assert.False(storage.Resource.HasAnnotationOfType<AppliedRoleAssignmentsAnnotation>());
-
+            // in PublishMode, the role assignments are copied to the referencing resources' RoleAssignmentAnnotation.
             Assert.True(api.Resource.TryGetLastAnnotation<RoleAssignmentAnnotation>(out var apiRoleAssignments));
             Assert.Equal(storage.Resource, apiRoleAssignments.Target);
             Assert.Collection(apiRoleAssignments.Roles,
@@ -129,7 +137,7 @@ public class AzureResourcePreparerTests
     public async Task FindsAzureReferencesFromArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppsInfrastructure();
+        builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
@@ -151,9 +159,6 @@ public class AzureResourcePreparerTests
         Assert.Equal(storage.Resource, apiRoleAssignments.Target);
         Assert.Equal(defaultAssignments.Roles, apiRoleAssignments.Roles);
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
-    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     private sealed class Project : IProjectMetadata
     {

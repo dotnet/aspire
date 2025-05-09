@@ -65,7 +65,7 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= builder.GetRequiredDeploymentName();
-        var result = openAiClient.AsEmbeddingGenerator(deploymentName);
+        var result = openAiClient.GetEmbeddingClient(deploymentName).AsIEmbeddingGenerator();
 
         if (builder.DisableTracing)
         {

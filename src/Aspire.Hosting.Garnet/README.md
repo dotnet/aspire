@@ -12,7 +12,7 @@ dotnet add package Aspire.Hosting.Garnet
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, register a Garnet server and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Garnet server and consume the connection using the following methods:
 
 ```csharp
 var garnet = builder.AddGarnet("cache")

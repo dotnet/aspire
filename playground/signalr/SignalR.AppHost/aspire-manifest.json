@@ -4,11 +4,7 @@
     "signalrDefault": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalrDefault.outputs.hostName};AuthType=azure",
-      "path": "signalrDefault.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "signalrDefault.module.bicep"
     },
     "webfrontend": {
       "type": "project.v0",
@@ -39,11 +35,7 @@
     "signalrServerless": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalrServerless.outputs.hostName};AuthType=azure",
-      "path": "signalrServerless.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "signalrServerless.module.bicep"
     },
     "webserverless": {
       "type": "project.v0",
@@ -69,6 +61,24 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "signalrDefault-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalrDefault-roles.module.bicep",
+      "params": {
+        "signalrdefault_outputs_name": "{signalrDefault.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "signalrServerless-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalrServerless-roles.module.bicep",
+      "params": {
+        "signalrserverless_outputs_name": "{signalrServerless.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

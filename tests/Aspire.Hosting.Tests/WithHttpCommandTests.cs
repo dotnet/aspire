@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -29,6 +30,50 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         var httpClientFactory = app.Services.GetService<IHttpClientFactory>();
         Assert.NotNull(httpClientFactory);
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointByNameIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", endpointName: "nonhttp");
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", () => container.GetEndpoint("nonhttp"));
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
     }
 
     [Fact]
@@ -130,7 +175,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(404, false)]
     [InlineData(500, false)]
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8194")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
@@ -261,7 +305,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8192")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
@@ -306,7 +349,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
@@ -352,7 +394,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange

@@ -534,7 +534,7 @@ public class ManifestGenerationTests
 
     private static string[] GetManifestArgs()
     {
-        var manifestPath = Path.GetTempFileName();
+        var manifestPath = Path.Combine(Path.GetTempPath(), "tempmanifests", Guid.NewGuid().ToString(), "manifest.json");
         return ["--publisher", "manifest", "--output-path", manifestPath];
     }
 }

@@ -51,6 +51,9 @@ Aspire.Azure.Messaging.WebPubSub:
 Aspire.Azure.Npgsql:
 - Everything from `Aspire.Npgsql`
 
+Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL:
+- Everything from `Aspire.Npgsql.EntityFrameworkCore.PostgreSQL`
+
 Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"

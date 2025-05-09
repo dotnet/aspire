@@ -7,11 +7,6 @@ namespace Aspire.Dashboard.Extensions;
 
 internal static class ResourceViewModelExtensions
 {
-    public static bool IsHiddenState(this ResourceViewModel resource)
-    {
-        return resource.KnownState is KnownResourceState.Hidden;
-    }
-
     public static bool IsRunningState(this ResourceViewModel resource)
     {
         return resource.KnownState is KnownResourceState.Running;
@@ -20,6 +15,11 @@ internal static class ResourceViewModelExtensions
     public static bool IsFinishedState(this ResourceViewModel resource)
     {
         return resource.KnownState is KnownResourceState.Finished;
+    }
+
+    public static bool IsExitedState(this ResourceViewModel resource)
+    {
+        return resource.KnownState is KnownResourceState.Exited;
     }
 
     public static bool IsStopped(this ResourceViewModel resource)

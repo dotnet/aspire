@@ -18,7 +18,7 @@ dotnet add package Aspire.Milvus.Client
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddMilvusClient` extension method to register a `MilvusClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddMilvusClient` extension method to register a `MilvusClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddMilvusClient("milvus");
@@ -80,7 +80,7 @@ In your AppHost project, install the `Aspire.Hosting.Milvus` library with [NuGet
 dotnet add package Aspire.Hosting.Milvus
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Milvus server and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Milvus server and consume the connection using the following methods:
 
 ```csharp
 var milvus = builder.AddMilvus("milvus");

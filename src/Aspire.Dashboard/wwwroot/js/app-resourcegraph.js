@@ -31,6 +31,7 @@ class ResourceGraph {
     constructor(resourcesInterop) {
         this.resources = [];
         this.resourcesInterop = resourcesInterop;
+        this.openContextMenu = false;
 
         this.nodes = [];
         this.links = [];
@@ -311,6 +312,7 @@ class ResourceGraph {
             .append("g")
             .attr("class", "resource-scale")
             .on('click', this.selectNode)
+            .on('contextmenu', this.nodeContextMenu)
             .on('mouseover', this.hoverNode)
             .on('mouseout', this.unHoverNode);
         newNodesContainer
@@ -358,12 +360,10 @@ class ResourceGraph {
         var resourceNameGroup = newNodesContainer
             .append("g")
             .attr("transform", "translate(0,71)")
-            .attr("class", "resource-name")
-            .on('click', this.selectNode);
+            .attr("class", "resource-name");
         resourceNameGroup
             .append("text")
-            .text(n => trimText(n.label, 30))
-            .on('click', this.selectNode);
+            .text(n => trimText(n.label, 30));
         resourceNameGroup
             .append("title")
             .text(n => n.label);
@@ -473,6 +473,25 @@ class ResourceGraph {
         return 'resource-link';
     }
 
+    nodeContextMenu = async (event) => {
+        var data = event.target.__data__;
+
+        // Prevent default browser context menu.
+        event.preventDefault();
+
+        this.openContextMenu = true;
+
+        try {
+            // Wait for method completion. It completes when the context menu is closed.
+            await this.resourcesInterop.invokeMethodAsync('ResourceContextMenu', data.id, window.innerWidth, window.innerHeight, event.clientX, event.clientY);
+        } finally {
+            this.openContextMenu = false;
+
+            // Unselect the node when the context menu is closed to reset mouseover state.
+            this.updateNodeHighlights(null);
+        }
+    };
+
     selectNode = (event) => {
         var data = event.target.__data__;
 
@@ -518,7 +537,11 @@ class ResourceGraph {
     }
 
     unHoverNode = (event) => {
-        this.updateNodeHighlights(null);
+        // Don't unhover the selected node when the context menu is open.
+        // This is done to keep the node selected until the context menu is closed.
+        if (!this.openContextMenu) {
+            this.updateNodeHighlights(null);
+        }
     };
 
     nodeEquals(resource1, resource2) {

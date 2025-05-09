@@ -79,19 +79,6 @@ public static class AzureWebPubSubExtensions
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
 
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(service.CreateRoleAssignment(new WebPubSubBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
-
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)
             {
@@ -260,6 +247,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="target">The target Azure Web PubSub resource.</param>
     /// <param name="roles">The built-in Web PubSub roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the WebPubSubServiceReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -272,6 +260,7 @@ public static class AzureWebPubSubExtensions
     ///   .WithReference(webPubSub);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureWebPubSubResource> target,

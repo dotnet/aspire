@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -48,10 +47,6 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
                 param sku string = 'Standard'
 
-                param principalType string
-
-                param principalId string
-
                 resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
                   name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
                   location: location
@@ -64,16 +59,6 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
                   tags: {
                     'aspire-resource-name': 'sb'
                   }
-                }
-
-                resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-                  name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-                  properties: {
-                    principalId: principalId
-                    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-                    principalType: principalType
-                  }
-                  scope: sb
                 }
 
                 output serviceBusEndpoint string = sb.properties.serviceBusEndpoint

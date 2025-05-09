@@ -44,9 +44,10 @@
         "type": "azure.bicep.v0",
         "path": "cache.module.bicep",
         "params": {
-          "infra_outputs_volumes_cache_0": "{infra.outputs.volumes_cache_0}",
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "cache_password_value": "{cache-password.value}",
-          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+          "infra_outputs_volumes_cache_0": "{infra.outputs.volumes_cache_0}"
         }
       },
       "entrypoint": "/bin/sh",
@@ -108,6 +109,7 @@
         "type": "azure.bicep.v0",
         "path": "pythonapp.module.bicep",
         "params": {
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
           "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
           "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
@@ -122,18 +124,19 @@
         "type": "azure.bicep.v0",
         "path": "api.module.bicep",
         "params": {
+          "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "api_containerimage": "{api.containerImage}",
           "api_identity_outputs_id": "{api-identity.outputs.id}",
-          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
           "cache_password_value": "{cache-password.value}",
           "account_kv_outputs_name": "{account-kv.outputs.name}",
           "secretparam_value": "{secretparam.value}",
           "api_identity_outputs_principalname": "{api-identity.outputs.principalName}",
-          "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
-          "infra_outputs_azure_container_registry_endpoint": "{infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-          "infra_outputs_azure_container_registry_managed_identity_id": "{infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-          "api_containerimage": "{api.containerImage}",
+          "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
           "certificateName": "{certificateName.value}",
           "customDomain": "{customDomain.value}"
         }

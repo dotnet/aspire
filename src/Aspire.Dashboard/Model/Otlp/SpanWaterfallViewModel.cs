@@ -107,7 +107,7 @@ public sealed class SpanWaterfallViewModel
 
     private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
 
-    public sealed record TraceDetailState(IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers, List<string> CollapsedSpanIds);
+    public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds);
 
     public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
     {
@@ -173,12 +173,19 @@ public sealed class SpanWaterfallViewModel
         }
     }
 
-    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
+        if (span.UninstrumentedPeer?.ApplicationName is { } peerName)
+        {
+            // If the span has a peer name, use it.
+            return peerName;
+        }
+
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
+        // This should only match non-resource returning resolves such as Browser Link.
         foreach (var resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span.Attributes, out var name))
+            if (resolver.TryResolvePeer(span.Attributes, out var name, out _))
             {
                 return name;
             }

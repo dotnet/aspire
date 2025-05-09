@@ -419,9 +419,54 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
-        builder.WithAnnotation(new CreationScriptAnnotation(script));
+        builder.WithAnnotation(new PostgresCreateDatabaseScriptAnnotation(script));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the PostgreSQL resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithPassword(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the user name that the PostgreSQL resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithUserName(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> userName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(userName);
+
+        builder.Resource.UserNameParameter = userName.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the PostgreSQL resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithHostPort(this IResourceBuilder<PostgresServerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(PostgresServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
@@ -493,7 +538,10 @@ public static class PostgresBuilderExtensions
 
     private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
-        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<PostgresCreateDatabaseScriptAnnotation>().LastOrDefault();
+
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
+        logger.LogDebug("Creating database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
 
         try
         {
@@ -501,14 +549,15 @@ public static class PostgresBuilderExtensions
             using var command = npgsqlConnection.CreateCommand();
             command.CommandText = scriptAnnotation?.Script ?? $"CREATE DATABASE {quotedDatabaseIdentifier}";
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Database '{DatabaseName}' created successfully", npgsqlDatabase.DatabaseName);
         }
         catch (PostgresException p) when (p.SqlState == "42P04")
         {
             // Ignore the error if the database already exists.
+            logger.LogDebug("Database '{DatabaseName}' already exists", npgsqlDatabase.DatabaseName);
         }
         catch (Exception e)
         {
-            var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
             logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
         }
     }

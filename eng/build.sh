@@ -132,7 +132,7 @@ while [[ $# > 0 ]]; do
       ;;
 
      -testnobuild)
-      arguments="$arguments /p:TestNoBuild=true"
+      arguments="$arguments /p:VSTestNoBuild=true"
       shift 1
       ;;
 

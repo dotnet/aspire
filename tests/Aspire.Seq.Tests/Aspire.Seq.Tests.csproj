@@ -1,15 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-        <Nullable>enable</Nullable>
-        <RootNamespace>Aspire.Seq</RootNamespace>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aspire.Seq</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Seq\Aspire.Seq.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
-
   </ItemGroup>
 
 </Project>

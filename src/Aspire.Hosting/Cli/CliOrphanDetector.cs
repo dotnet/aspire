@@ -9,8 +9,6 @@ namespace Aspire.Hosting.Cli;
 
 internal sealed class CliOrphanDetector(IConfiguration configuration, IHostApplicationLifetime lifetime, TimeProvider timeProvider) : BackgroundService
 {
-    private const string CliProcessIdEnvironmentVariable = "ASPIRE_CLI_PID";
-
     internal Func<int, bool> IsProcessRunning { get; set; } = (int pid) =>
     {
         try
@@ -28,7 +26,7 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
     {
         try
         {
-            if (configuration[CliProcessIdEnvironmentVariable] is not { } pidString || !int.TryParse(pidString, out var pid))
+            if (configuration[KnownConfigNames.CliProcessId] is not { } pidString || !int.TryParse(pidString, out var pid))
             {
                 // If there is no PID environment variable, we assume that the process is not a child process
                 // of the .NET Aspire CLI and we won't continue monitoring.

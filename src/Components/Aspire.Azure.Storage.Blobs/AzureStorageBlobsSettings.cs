@@ -9,7 +9,7 @@ namespace Aspire.Azure.Storage.Blobs;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Blob Storage.
 /// </summary>
-public sealed class AzureStorageBlobsSettings : IConnectionStringSettings
+public class AzureStorageBlobsSettings : IConnectionStringSettings
 {
     /// <summary>
     /// Gets or sets the connection string used to connect to the blob service. 

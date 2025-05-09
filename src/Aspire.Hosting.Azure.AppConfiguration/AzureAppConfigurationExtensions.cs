@@ -53,19 +53,6 @@ public static class AzureAppConfigurationExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = store.Name });
-
-            if (infrastructure.AspireResource.TryGetLastAnnotation<AppliedRoleAssignmentsAnnotation>(out var appliedRoleAssignments))
-            {
-                var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-                infrastructure.Add(principalTypeParameter);
-                var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-                infrastructure.Add(principalIdParameter);
-
-                foreach (var role in appliedRoleAssignments.Roles)
-                {
-                    infrastructure.Add(store.CreateRoleAssignment(new AppConfigurationBuiltInRole(role.Id), principalTypeParameter, principalIdParameter));
-                }
-            }
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);
@@ -82,6 +69,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="target">The target Azure App Configuration resource.</param>
     /// <param name="roles">The built-in App Configuration roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the AppConfigurationDataReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -94,6 +82,7 @@ public static class AzureAppConfigurationExtensions
     ///   .WithReference(appStore);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureAppConfigurationResource> target,

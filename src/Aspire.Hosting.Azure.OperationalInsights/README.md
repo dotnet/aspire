@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure Log Analytics workspace and pass the workspace ID via an environment variable:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Azure Log Analytics workspace and pass the workspace ID via an environment variable:
 
 ```csharp
 var laws = builder.AddAzureLogAnalyticsWorkspace("laws");

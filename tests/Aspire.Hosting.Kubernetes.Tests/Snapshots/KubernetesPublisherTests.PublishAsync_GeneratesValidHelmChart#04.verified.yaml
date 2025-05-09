@@ -1,0 +1,45 @@
+﻿---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "myapp-deployment"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "myapp"
+    spec:
+      containers:
+        - image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+          name: "myapp"
+          envFrom:
+            - configMapRef:
+                name: "myapp-config"
+            - secretRef:
+                name: "myapp-secrets"
+          args:
+            - "--cs"
+            - "Url={{ .Values.config.myapp.param0 }}, Secret={{ .Values.secrets.myapp.param1 }}"
+          ports:
+            - name: "http"
+              protocol: "TCP"
+              containerPort: "8080"
+          volumeMounts:
+            - name: "logs"
+              mountPath: "/logs"
+          imagePullPolicy: "IfNotPresent"
+      volumes:
+        - name: "logs"
+          emptyDir: {}
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "myapp"
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: "RollingUpdate"

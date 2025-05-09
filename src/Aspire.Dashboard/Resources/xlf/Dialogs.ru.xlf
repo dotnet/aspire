@@ -62,6 +62,26 @@
         <target state="translated">Условие</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Отключить все</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Отключить фильтр</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Включить все</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableFilterButtonText">
+        <source>Enable filter</source>
+        <target state="translated">Включить фильтр</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Поле</target>
@@ -188,8 +208,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">Журналы панели мониторинга и телеметрия</target>
+        <source>Resource logs and telemetry</source>
+        <target state="translated">Журналы ресурсов и телеметрия</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogEnableTelemetry">
+        <source>Enable dashboard telemetry</source>
+        <target state="translated">Включить телеметрию панели мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -210,6 +235,21 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">Система</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">Телеметрия панели мониторинга включена. Aspire будет собирать данные об использовании и отправлять их в Майкрософт.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">Почему?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="new">Go to usage telemetry documentation</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

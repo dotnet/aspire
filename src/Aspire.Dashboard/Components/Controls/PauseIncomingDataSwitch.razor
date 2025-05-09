@@ -1,0 +1,15 @@
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<FluentButton Appearance="Appearance.Neutral"
+              Title="@(IsPaused ? Loc[nameof(ControlsStrings.ResumeButtonTitle)] : Loc[nameof(ControlsStrings.PauseButtonTitle)])"
+              OnClick="@OnTogglePauseCoreAsync">
+    @if (IsPaused)
+    {
+        <FluentIcon Value="@(new Icons.Regular.Size16.PauseOff())" />
+    }
+    else
+    {
+        <FluentIcon Value="@(new Icons.Regular.Size16.Pause())" />
+    }
+</FluentButton>

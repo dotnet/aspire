@@ -21,8 +21,7 @@
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -37,16 +36,9 @@
       <_DefaultWorkItems TestName="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), $(TargetFrameworkSuffixRegex), '$1'))" />
       <_DefaultWorkItems TestNameSuffix="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), $(TargetFrameworkSuffixRegex), '$2'))" />
 
-      <!-- runsettings timeout in ms, default to 15 mins -->
-      <_DefaultWorkItems TimeoutMs="900000" />
-
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Hosting.Elasticsearch.Tests'))" TimeoutMs="3600000" />
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Hosting.Oracle.Tests'))" TimeoutMs="1200000" />
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Pomelo.EntityFrameworkCore.MySql.Tests'))" TimeoutMs="1200000" />
-
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>

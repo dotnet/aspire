@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -10,13 +11,19 @@ namespace Aspire.Hosting.Utils;
 
 public sealed class AzureManifestUtils
 {
-    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource, bool skipPreparer = false)
+    public static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource, bool skipPreparer = false) =>
+        GetManifestWithBicep(new DistributedApplicationModel([resource]), resource, skipPreparer);
+
+    public static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(DistributedApplicationModel appModel, IResource resource) =>
+        GetManifestWithBicep(appModel, resource, skipPreparer: false);
+
+    private static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(DistributedApplicationModel appModel, IResource resource, bool skipPreparer)
     {
         if (!skipPreparer)
         {
             var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
             var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext);
-            await azurePreparer.BeforeStartAsync(new DistributedApplicationModel([resource]), cancellationToken: default);
+            await azurePreparer.BeforeStartAsync(appModel, cancellationToken: default);
         }
 
         string manifestDir = Directory.CreateTempSubdirectory(resource.Name).FullName;
@@ -35,4 +42,7 @@ public sealed class AzureManifestUtils
         var bicepText = await File.ReadAllTextAsync(Path.Combine(manifestDir, path));
         return (manifestNode, bicepText);
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    public static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

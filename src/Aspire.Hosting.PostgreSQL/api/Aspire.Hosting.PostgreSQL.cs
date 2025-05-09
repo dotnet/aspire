@@ -14,6 +14,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> builder, string script) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }

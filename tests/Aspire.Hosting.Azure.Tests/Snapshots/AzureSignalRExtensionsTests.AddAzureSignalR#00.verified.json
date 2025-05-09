@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+  "path": "signalr.module.bicep"
+}

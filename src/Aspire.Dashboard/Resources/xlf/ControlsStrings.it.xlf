@@ -107,6 +107,11 @@
         <target state="translated">Rimuovi per {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">Rimuovi dati</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Dettagli</target>
@@ -247,9 +252,14 @@
         <target state="translated">(Annulla)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Collega</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Indirizzo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Testo</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -310,6 +320,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Barra degli strumenti della pagina</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">Metti in pausa i dati in ingresso</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -400,6 +415,11 @@
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Risorsa</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">Riprendi i dati in ingresso</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -527,6 +547,16 @@
         <target state="translated">Timestamp</target>
         <note />
       </trans-unit>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Attiva/Disattiva annidamento</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterCapturePaused">
+        <source>Capture paused</source>
+        <target state="translated">Acquisizione in pausa</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Attributi</target>
@@ -558,7 +588,7 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
         <target state="translated">Totale: &lt;strong&gt;{0} risultati trovati&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>

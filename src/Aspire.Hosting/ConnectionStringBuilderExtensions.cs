@@ -12,13 +12,12 @@ public static class ConnectionStringBuilderExtensions
     /// <summary>
     /// Adds a connection string resource to the distributed application with the specified expression.
     /// </summary>
-    /// <remarks>
-    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
-    /// </remarks>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="connectionStringExpression">The connection string expression.</param>
     /// <returns>An <see cref="IResourceBuilder{ConnectionStringResource}"/> instance.</returns>
+    /// <remarks>
+    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
     /// <example>
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
@@ -35,15 +34,19 @@ public static class ConnectionStringBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression connectionStringExpression)
     {
         var cs = new ConnectionStringResource(name, connectionStringExpression);
         return builder.AddResource(cs)
+                      .WithReferenceRelationship(connectionStringExpression)
                       .WithInitialState(new CustomResourceSnapshot
                       {
                           ResourceType = "ConnectionString",
                           // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
+#pragma warning disable CS0618 // Type or member is obsolete
                           State = KnownResourceStates.Hidden,
+#pragma warning restore CS0618 // Type or member is obsolete
                           Properties = []
                       });
     }
@@ -53,7 +56,6 @@ public static class ConnectionStringBuilderExtensions
     /// </summary>
     /// <remarks>
     /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
-    /// </remarks>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="connectionStringBuilder">The callback to configure the connection string expression.</param>
@@ -74,6 +76,7 @@ public static class ConnectionStringBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ReferenceExpressionBuilder> connectionStringBuilder)
     {
         var rb = new ReferenceExpressionBuilder();

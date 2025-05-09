@@ -14,13 +14,13 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal sealed class KubernetesPublishingContext(
     DistributedApplicationExecutionContext executionContext,
-    KubernetesPublisherOptions publisherOptions,
+    string outputPath,
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    private readonly Dictionary<IResource, KubernetesResourceContext> _kubernetesComponents = [];
+    public readonly string OutputPath = outputPath;
 
-    private readonly Dictionary<string, object> _helmValues = new()
+    private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
         [HelmExtensions.ParametersKey] = new Dictionary<string, object>(),
         [HelmExtensions.SecretsKey] = new Dictionary<string, object>(),
@@ -41,7 +41,7 @@ internal sealed class KubernetesPublishingContext(
 
     public ILogger Logger => logger;
 
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         if (!executionContext.IsPublishMode)
         {
@@ -52,7 +52,7 @@ internal sealed class KubernetesPublishingContext(
         logger.StartGeneratingKubernetes();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(publisherOptions.OutputPath);
+        ArgumentNullException.ThrowIfNull(OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -60,38 +60,35 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        await WriteKubernetesOutputAsync(model).ConfigureAwait(false);
+        await WriteKubernetesOutputAsync(model, environment).ConfigureAwait(false);
 
-        logger.FinishGeneratingKubernetes(publisherOptions.OutputPath);
+        logger.FinishGeneratingKubernetes(OutputPath);
     }
 
-    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model)
+    private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) &&
-                lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
-                continue;
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
+                {
+                    foreach (var a in annotations)
+                    {
+                        a.Configure(serviceResource);
+                    }
+                }
+
+                await WriteKubernetesTemplatesForResource(resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
+                AppendResourceContextToHelmValues(resource, serviceResource);
             }
-
-            if (!resource.IsContainer() && resource is not ProjectResource)
-            {
-                continue;
-            }
-
-            var kubernetesComponentContext = await ProcessResourceAsync(resource).ConfigureAwait(false);
-            kubernetesComponentContext.BuildKubernetesResources();
-
-            await WriteKubernetesTemplatesForResource(resource, kubernetesComponentContext.TemplatedResources).ConfigureAwait(false);
-            AppendResourceContextToHelmValues(resource, kubernetesComponentContext);
         }
 
-        await WriteKubernetesHelmChartAsync().ConfigureAwait(false);
+        await WriteKubernetesHelmChartAsync(environment).ConfigureAwait(false);
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
-    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResourceContext resourceContext)
+    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResource resourceContext)
     {
         AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
         AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
@@ -100,7 +97,7 @@ internal sealed class KubernetesPublishingContext(
 
     private void AddValuesToHelmSection(
         IResource resource,
-        Dictionary<string, KubernetesResourceContext.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
@@ -126,9 +123,9 @@ internal sealed class KubernetesPublishingContext(
         }
     }
 
-    private async Task WriteKubernetesTemplatesForResource(IResource resource, List<BaseKubernetesResource> templatedItems)
+    private async Task WriteKubernetesTemplatesForResource(IResource resource, IEnumerable<BaseKubernetesResource> templatedItems)
     {
-        var templatesFolder = Path.Combine(publisherOptions.OutputPath!, "templates", resource.Name);
+        var templatesFolder = Path.Combine(OutputPath, "templates", resource.Name);
         Directory.CreateDirectory(templatesFolder);
 
         foreach (var templatedItem in templatedItems)
@@ -146,19 +143,19 @@ internal sealed class KubernetesPublishingContext(
     private async Task WriteKubernetesHelmValuesAsync()
     {
         var valuesYaml = _serializer.Serialize(_helmValues);
-        var outputFile = Path.Combine(publisherOptions.OutputPath!, "values.yaml");
-        Directory.CreateDirectory(publisherOptions.OutputPath!);
+        var outputFile = Path.Combine(OutputPath!, "values.yaml");
+        Directory.CreateDirectory(OutputPath!);
         await File.WriteAllTextAsync(outputFile, valuesYaml, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteKubernetesHelmChartAsync()
+    private async Task WriteKubernetesHelmChartAsync(KubernetesEnvironmentResource environment)
     {
         var helmChart = new HelmChart
         {
-            Name = publisherOptions.HelmChartName,
-            Version = publisherOptions.HelmChartVersion,
-            AppVersion = publisherOptions.HelmChartVersion,
-            Description = publisherOptions.HelmChartDescription,
+            Name = environment.HelmChartName,
+            Version = environment.HelmChartVersion,
+            AppVersion = environment.HelmChartVersion,
+            Description = environment.HelmChartDescription,
             Type = "application",
             ApiVersion = "v2",
             Keywords = ["aspire", "kubernetes"],
@@ -166,19 +163,8 @@ internal sealed class KubernetesPublishingContext(
         };
 
         var chartYaml = _serializer.Serialize(helmChart);
-        var outputFile = Path.Combine(publisherOptions.OutputPath!, "Chart.yaml");
-        Directory.CreateDirectory(publisherOptions.OutputPath!);
+        var outputFile = Path.Combine(OutputPath, "Chart.yaml");
+        Directory.CreateDirectory(OutputPath);
         await File.WriteAllTextAsync(outputFile, chartYaml, cancellationToken).ConfigureAwait(false);
-    }
-
-    internal async Task<KubernetesResourceContext> ProcessResourceAsync(IResource resource)
-    {
-        if (!_kubernetesComponents.TryGetValue(resource, out var context))
-        {
-            _kubernetesComponents[resource] = context = new(resource, this, publisherOptions);
-            await context.ProcessResourceAsync(executionContext, cancellationToken).ConfigureAwait(false);
-        }
-
-        return context;
     }
 }

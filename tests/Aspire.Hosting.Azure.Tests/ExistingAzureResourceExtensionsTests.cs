@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.ApplicationModel;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 

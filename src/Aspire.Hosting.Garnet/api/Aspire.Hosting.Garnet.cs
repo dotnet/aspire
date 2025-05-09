@@ -10,7 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class GarnetBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name, int? port = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.GarnetResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.GarnetResource> builder, string source, bool isReadOnly = false) { throw null; }
 
@@ -27,9 +29,13 @@ namespace Aspire.Hosting.ApplicationModel
 {
     public partial class GarnetResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
+        public GarnetResource(string name, ParameterResource password) : base(default!, default) { }
+
         public GarnetResource(string name) : base(default!, default) { }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ParameterResource? PasswordParameter { get { throw null; } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
     }
