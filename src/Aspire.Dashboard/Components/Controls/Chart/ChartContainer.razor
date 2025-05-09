@@ -15,6 +15,7 @@ else
         <div class="metrics-chart-header">
             <h3>@_instrument.Summary.Name</h3>
             <p>@_instrument.Summary.Description</p>
+
             @if (_instrument.HasOverflow)
             {
                 <div class="block-warning">
@@ -29,6 +30,12 @@ else
                     </div>
                 </div>
             }
+
+            @if (PauseText is not null)
+            {
+                <PauseWarning PauseText="@PauseText" />
+            }
+
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
