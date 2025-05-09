@@ -32,7 +32,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                return param.AsEnvPlaceHolder(resource);
+                return param.AsEnvironmentPlaceHolder(resource);
             }
 
             if (value is ConnectionStringReference cs)
@@ -82,7 +82,7 @@ internal static class DockerComposeServiceResourceExtensions
             // If we don't know how to process the value, we just return it as an external reference
             if (value is IManifestExpressionProvider r)
             {
-                return r.AsEnvPlaceHolder(resource);
+                return r.AsEnvironmentPlaceHolder(resource);
             }
 
             return value; // todo: we need to never get here really...
