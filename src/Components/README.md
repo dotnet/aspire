@@ -242,4 +242,17 @@ New components SHOULD* have:
 * Metrics support
 * Health checks
 
+Package validation will automatically try to download a previous version of a package to ensure you didn't break compat. As a result you might
+get the following message on builds:
+
+```shell
+error NU1101: Unable to find package [NEW PACKAGE NAME]. No packages exist with this id in source(s): dotnet-eng, dotnet-public, dotnet9, dotnet9-transport. PackageSourceMapping is enabled, the following source(s) were not considered: dotnet-libraries.
+```
+
+To prevent this the new package needs this line to be added to the `.csproj`:
+
+```xml
+<EnablePackageValidation>false</EnablePackageValidation>
+```
+
 `*` Components need to have justification for why these are not supported.
