@@ -130,6 +130,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // This is here so hosting does not throw an exception when CTRL+C during startup.
+            _logger.LogDebug("Cancellation received during application startup.");
+        }
         catch
         {
             _shutdownCancellation.Cancel();
@@ -940,7 +945,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 try
                 {
-                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
                     // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                     foreach (var er in executables)
                     {
@@ -1212,7 +1217,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             foreach (var cr in containerResources)
             {
-                // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (URLs, source) to ensure they're
+                // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (source) to ensure they're
                 // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                 await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container)cr.DcpResource, s))).ConfigureAwait(false);
 

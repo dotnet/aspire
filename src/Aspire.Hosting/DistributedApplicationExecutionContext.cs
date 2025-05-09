@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -87,10 +85,4 @@ public class DistributedApplicationExecutionContext
     /// Returns true if the current operation is running.
     /// </summary>
     public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
-
-    /// <summary>
-    /// Returns true if the current operation is inspecting.
-    /// </summary>
-    [Experimental("ASPIREPUBLISHERS001")]
-    public bool IsInspectMode => Operation == DistributedApplicationOperation.Inspect;
 }

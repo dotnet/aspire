@@ -47,7 +47,8 @@
         <span class="defaultHidden">
             <FluentButton Appearance="Appearance.Lightweight"
                           Disabled="@(ValueToVisualize is null && Value is null)"
-                          OnClick="OpenTextVisualizerAsync">
+                          OnClick="OpenTextVisualizerAsync"
+                          aria-label="@DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]">
                 <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
             </FluentButton>
         </span>

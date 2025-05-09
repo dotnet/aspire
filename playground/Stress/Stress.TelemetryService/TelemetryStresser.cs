@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Grpc.Core;
 using Grpc.Net.Client;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -20,19 +21,24 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
         var channel = GrpcChannel.ForAddress(address);
 
         var client = new MetricsService.MetricsServiceClient(channel);
+        var otlpApiKey = config["OTEL_EXPORTER_OTLP_HEADERS"]!.Split('=')[1];
+        var metadata = new Metadata
+        {
+            { "x-otlp-api-key", otlpApiKey }
+        };
 
         var value = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
             value += Random.Shared.Next(0, 10);
 
-            await ExportMetrics(logger, client, value, cancellationToken);
+            await ExportMetrics(logger, metadata, client, value, cancellationToken);
 
             await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
     }
 
-    private static async Task ExportMetrics(ILogger<TelemetryStresser> logger, MetricsService.MetricsServiceClient client, int value, CancellationToken cancellationToken)
+    private static async Task ExportMetrics(ILogger<TelemetryStresser> logger, Metadata metadata, MetricsService.MetricsServiceClient client, int value, CancellationToken cancellationToken)
     {
         var request = new ExportMetricsServiceRequest
         {
@@ -53,6 +59,14 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
                                 {
                                     CreateSumMetric("Test-<b>Bold</b>", DateTime.UtcNow, value: value)
                                 }
+                            },
+                            new ScopeMetrics
+                            {
+                                Scope = null,
+                                Metrics =
+                                {
+                                    CreateSumMetric("Test-<b>Bold</b>", DateTime.UtcNow, value: value)
+                                }
                             }
                         }
                     }
@@ -60,7 +74,7 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
         };
 
         logger.LogDebug("Exporting metrics");
-        var response = await client.ExportAsync(request, cancellationToken: cancellationToken);
+        var response = await client.ExportAsync(request, headers: metadata, cancellationToken: cancellationToken);
         logger.LogDebug($"Export complete. Rejected count: {response.PartialSuccess?.RejectedDataPoints ?? 0}");
     }
 

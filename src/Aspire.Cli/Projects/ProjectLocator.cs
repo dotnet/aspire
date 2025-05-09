@@ -23,7 +23,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var appHostProjects = new List<FileInfo>();
 
         logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
-        var projectFiles = searchDirectory.GetFiles("*.csproj", SearchOption.AllDirectories);
+        var enumerationOptions = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true
+        };
+        var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
         logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
         foreach (var projectFile in projectFiles)
@@ -137,9 +142,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 settingsFile.Directory.Create();
             }
 
+            // Get the relative path and normalize it to use '/' as the separator
+            var relativePath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+
             var settings = new CliSettings
             {
-                AppHostPath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName)
+                AppHostPath = relativePath
             };
 
             using var stream = settingsFile.OpenWrite();

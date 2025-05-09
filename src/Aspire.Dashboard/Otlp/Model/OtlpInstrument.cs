@@ -17,9 +17,9 @@ public class OtlpInstrumentSummary
     public required string Description { get; init; }
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
-    public required OtlpMeter Parent { get; init; }
+    public required OtlpScope Parent { get; init; }
 
-    public OtlpInstrumentKey GetKey() => new(Parent.MeterName, Name);
+    public OtlpInstrumentKey GetKey() => new(Parent.Name, Name);
 }
 
 public class OtlpInstrumentData

@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -177,8 +176,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             // Navigate to remove ?spanId=xxx in the URL.
             NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
         }
-
-        UpdateTelemetryProperties();
     }
 
     private void UpdateDetailViewData()
@@ -197,7 +194,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(_collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
     }
 
@@ -337,11 +334,4 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
-
-    public void UpdateTelemetryProperties()
-    {
-        TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.TraceDetailTraceId, new AspireTelemetryProperty(TraceId)),
-        ]);
-    }
 }

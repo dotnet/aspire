@@ -3,10 +3,12 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
@@ -59,7 +61,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(prereleaseOption);
     }
 
-    private async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // TODO: We need to integrate with the template engine to interrogate
         //       the list of available templates. For now we will just hard-code
@@ -68,29 +70,29 @@ internal sealed class NewCommand : BaseCommand
         //       Once we integrate with template engine we will also be able to
         //       interrogate the various options and add them. For now we will 
         //       keep it simple.
-        (string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates = [
-            ("aspire-starter", "Aspire Starter App", "./src") ,
-            ("aspire", "Aspire Empty App", "./src"),
-            ("aspire-apphost", "Aspire App Host", "./"),
-            ("aspire-servicedefaults", "Aspire Service Defaults", "./"),
-            ("aspire-mstest", "Aspire Test Project (MSTest)", "./"),
-            ("aspire-nunit", "Aspire Test Project (NUnit)", "./"),
-            ("aspire-xunit", "Aspire Test Project (xUnit)", "./")
-            ];
+        Dictionary<string, (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
+            { "aspire-starter", ("aspire-starter", "Aspire Starter App", projectName => $"./{projectName}")},
+            { "aspire", ("aspire", "Aspire Empty App", projectName => $"./{projectName}") },
+            { "aspire-apphost", ("aspire-apphost", "Aspire App Host",projectName => $"./{projectName}") },
+            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", projectName => $"./{projectName}") },
+            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", projectName => $"./{projectName}") },
+            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", projectName => $"./{projectName}") },
+            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", projectName => $"./{projectName}")}
+        };
 
-        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.SingleOrDefault(t => t.TemplateName == templateName) is { } template)
+        if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
         {
             return template;
         }
         else
         {
-            return await _prompter.PromptForTemplateAsync(validTemplates, cancellationToken);
+            return await _prompter.PromptForTemplateAsync(validTemplates.Values.ToArray(),  cancellationToken);
         }
     }
 
     private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--name") is not { } name)
+        if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
             name = await _prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
@@ -99,11 +101,11 @@ internal sealed class NewCommand : BaseCommand
         return name;
     }
 
-    private async Task<string> GetOutputPathAsync(ParseResult parseResult, string? pathAppendage, CancellationToken cancellationToken)
+    private async Task<string> GetOutputPathAsync(ParseResult parseResult, Func<string, string> pathDeriver, string projectName, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--output") is not { } outputPath)
         {
-            outputPath = await _prompter.PromptForOutputPath(pathAppendage ?? ".", cancellationToken);
+            outputPath = await _prompter.PromptForOutputPath(pathDeriver(projectName), cancellationToken);
         }
 
         return Path.GetFullPath(outputPath);
@@ -134,81 +136,86 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = _activitySource.StartActivity();
 
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
-        var name = await GetProjectNameAsync(parseResult, cancellationToken);
-        var outputPath = await GetOutputPathAsync(parseResult, template.PathAppendage, cancellationToken);
-        var prerelease = parseResult.GetValue<bool>("--prerelease");
-        var source = parseResult.GetValue<string?>("--source");
-        var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
-
-        var templateInstallCollector = new OutputCollector();
-        var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-            ":ice:  Getting latest templates...",
-            async () => {
-                var options = new DotNetCliRunnerInvocationOptions()
-                {
-                    StandardOutputCallback = templateInstallCollector.AppendOutput,
-                    StandardErrorCallback = templateInstallCollector.AppendOutput,
-                };
-
-                var result = await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, options, cancellationToken);
-                return result;
-            });
-
-        if (templateInstallResult.ExitCode != 0)
-        {
-            _interactionService.DisplayLines(templateInstallCollector.GetLines());
-            _interactionService.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
-            return ExitCodeConstants.FailedToInstallTemplates;
-        }
-
-        _interactionService.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
-
-        var newProjectCollector = new OutputCollector();
-        var newProjectExitCode = await _interactionService.ShowStatusAsync(
-            ":rocket:  Creating new Aspire project...",
-            async () => {
-                var options = new DotNetCliRunnerInvocationOptions()
-                {
-                    StandardOutputCallback = newProjectCollector.AppendOutput,
-                    StandardErrorCallback = newProjectCollector.AppendOutput,
-                };
-                var result = await _runner.NewProjectAsync(
-                            template.TemplateName,
-                            name,
-                            outputPath,
-                            options,
-                            cancellationToken);
-                return result;
-            });
-
-        if (newProjectExitCode != 0)
-        {
-            _interactionService.DisplayLines(newProjectCollector.GetLines());
-            _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
-            return ExitCodeConstants.FailedToCreateNewProject;
-        }
-
         try
         {
+            var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+            var name = await GetProjectNameAsync(parseResult, cancellationToken);
+            var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+            var prerelease = parseResult.GetValue<bool>("--prerelease");
+            var source = parseResult.GetValue<string?>("--source");
+            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
+
+            var templateInstallCollector = new OutputCollector();
+            var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
+                ":ice:  Getting latest templates...",
+                async () => {
+                    var options = new DotNetCliRunnerInvocationOptions()
+                    {
+                        StandardOutputCallback = templateInstallCollector.AppendOutput,
+                        StandardErrorCallback = templateInstallCollector.AppendOutput,
+                    };
+
+                    var result = await _runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, options, cancellationToken);
+                    return result;
+                });
+
+            if (templateInstallResult.ExitCode != 0)
+            {
+                _interactionService.DisplayLines(templateInstallCollector.GetLines());
+                _interactionService.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
+                return ExitCodeConstants.FailedToInstallTemplates;
+            }
+
+            _interactionService.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
+
+            var newProjectCollector = new OutputCollector();
+            var newProjectExitCode = await _interactionService.ShowStatusAsync(
+                ":rocket:  Creating new Aspire project...",
+                async () => {
+                    var options = new DotNetCliRunnerInvocationOptions()
+                    {
+                        StandardOutputCallback = newProjectCollector.AppendOutput,
+                        StandardErrorCallback = newProjectCollector.AppendOutput,
+                    };
+                    var result = await _runner.NewProjectAsync(
+                                template.TemplateName,
+                                name,
+                                outputPath,
+                                options,
+                                cancellationToken);
+                    return result;
+                });
+
+            if (newProjectExitCode != 0)
+            {
+                _interactionService.DisplayLines(newProjectCollector.GetLines());
+                _interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+
+            _interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
+
+            return ExitCodeConstants.Success;
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _interactionService.DisplayCancellationMessage();
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
+        catch (CertificateServiceException ex)
         {
             _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
             return ExitCodeConstants.FailedToTrustCertificates;
         }
-
-        _interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
-
-        return ExitCodeConstants.Success;
     }
 }
 
 internal interface INewCommandPrompter
 {
     Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
-    Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken);
+    Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
@@ -239,10 +246,15 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForStringAsync(
             "Enter the project name:",
             defaultValue: defaultName,
+            validator: (name) => {
+                return ProjectNameValidator.IsProjectNameValid(name)
+                    ? ValidationResult.Success()
+                    : ValidationResult.Error("Invalid project name.");
+            },
             cancellationToken: cancellationToken);
     }
 
-    public virtual async Task<(string TemplateName, string TemplateDescription, string? PathAppendage)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, string? PathAppendage)[] validTemplates, CancellationToken cancellationToken)
+    public virtual async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
             "Select a project template:",
@@ -250,5 +262,17 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => $"{t.TemplateName} ({t.TemplateDescription})",
             cancellationToken
         );
+    }
+}
+
+internal static partial class ProjectNameValidator
+{
+    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
+    internal static partial Regex GetAssemblyNameRegex();
+
+    public static bool IsProjectNameValid(string projectName)
+    {
+        var regex = GetAssemblyNameRegex();
+        return regex.IsMatch(projectName);
     }
 }

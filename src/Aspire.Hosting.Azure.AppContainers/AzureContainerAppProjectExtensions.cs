@@ -22,7 +22,6 @@ public static class AzureContainerAppProjectExtensions
     /// <remarks>
     /// This method adds the necessary infrastructure for container apps to the application builder
     /// and applies the specified configuration to the container app.
-    /// </remarks>
     /// <example>
     /// <code>
     /// builder.AddProject&lt;Projects.Api&gt;.PublishAsAzureContainerApp((infrastructure, app) =>
@@ -31,6 +30,7 @@ public static class AzureContainerAppProjectExtensions
     /// });
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> project, Action<AzureResourceInfrastructure, ContainerApp> configure)
         where T : ProjectResource
     {

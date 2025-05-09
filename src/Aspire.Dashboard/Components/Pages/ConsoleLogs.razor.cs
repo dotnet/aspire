@@ -66,6 +66,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Inject]
@@ -356,6 +359,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 GetResourceName,
                 ControlsStringsLoc,
                 ResourcesLoc,
+                CommandsLoc,
                 buttonId =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
@@ -393,7 +397,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsHiddenState())
+            .Where(r => !r.Value.IsResourceHidden())
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
@@ -738,7 +742,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsApplicationName, new AspireTelemetryProperty(PageViewModel.SelectedResource?.Name ?? string.Empty, AspireTelemetryPropertyType.Pii)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
         ]);
     }

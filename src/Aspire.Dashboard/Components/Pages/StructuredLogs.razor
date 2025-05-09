@@ -109,9 +109,9 @@
                                         ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
                     }
 
-                    <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.ScopeName})")">
+                    <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.Name})")">
                         @eventName
-                        <span class="pane-details-subtext">@context!.LogEntry.Scope.ScopeName</span>
+                        <span class="pane-details-subtext">@context!.LogEntry.Scope.Name</span>
                     </div>
                 </DetailsTitleTemplate>
                 <Summary>

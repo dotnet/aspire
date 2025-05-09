@@ -46,11 +46,14 @@ internal sealed class RunCommand : BaseCommand
         var watchOption = new Option<bool>("--watch", "-w");
         watchOption.Description = "Start project resources in watch mode.";
         Options.Add(watchOption);
+
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var buildOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector();
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
@@ -76,22 +79,14 @@ internal sealed class RunCommand : BaseCommand
 
             var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
             
-            var useRichConsole = forceUseRichConsole || !debug && !waitForDebugger;
+            var useRichConsole = forceUseRichConsole || !debug;
 
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            try
-            {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
-                return ExitCodeConstants.FailedToTrustCertificates;
-            }
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             var watch = parseResult.GetValue<bool>("--watch");
 
@@ -99,15 +94,15 @@ internal sealed class RunCommand : BaseCommand
             {
                 var buildOptions = new DotNetCliRunnerInvocationOptions
                 {
-                    StandardOutputCallback = outputCollector.AppendOutput,
-                    StandardErrorCallback = outputCollector.AppendError,
+                    StandardOutputCallback = buildOutputCollector.AppendOutput,
+                    StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
                 var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
-                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
@@ -122,17 +117,19 @@ internal sealed class RunCommand : BaseCommand
 
             var runOptions = new DotNetCliRunnerInvocationOptions
             {
-                StandardOutputCallback = outputCollector.AppendOutput,
-                StandardErrorCallback = outputCollector.AppendError,
+                StandardOutputCallback = runOutputCollector.AppendOutput,
+                StandardErrorCallback = runOutputCollector.AppendError,
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
+
+            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
                 !watch,
-                Array.Empty<string>(),
+                unmatchedTokens,
                 env,
                 backchannelCompletitionSource,
                 runOptions,
@@ -144,7 +141,23 @@ internal sealed class RunCommand : BaseCommand
                 // the AppHost is ready to accept requests.
                 var backchannel = await _interactionService.ShowStatusAsync(
                     ":linked_paperclips:  Starting Aspire app host...",
-                    () => backchannelCompletitionSource.Task);
+                    async () => {
+
+                        // If we use the --wait-for-debugger option we print out the process ID
+                        // of the apphost so that the user can attach to it. The process ID comes
+                        // from the ProcessIdCallback on the invocation options and we just await
+                        // the completion source to be set.
+                        if (waitForDebugger)
+                        {
+                            _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                        }
+
+                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
+                        // before the backchannel is created, therefore waiting on the backchannel is a 
+                        // good signal that the debugger was attached (or timed out).
+                        var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
 
                 // We wait for the first update of the console model via RPC from the AppHost.
                 var dashboardUrls = await _interactionService.ShowStatusAsync(
@@ -154,8 +167,14 @@ internal sealed class RunCommand : BaseCommand
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
+                var message = new Markup("Press [bold]CTRL-C[/] to stop the app host and exit.");
 
-                await _ansiConsole.Live(table).StartAsync(async context =>
+                var rows = new Rows(new List<IRenderable> {
+                    table,
+                    message
+                });
+
+                await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
                     var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
 
@@ -226,7 +245,7 @@ internal sealed class RunCommand : BaseCommand
                 var result =  await pendingRun;
                 if (result != 0)
                 {
-                    _interactionService.DisplayLines(outputCollector.GetLines());
+                    _interactionService.DisplayLines(runOutputCollector.GetLines());
                     _interactionService.DisplayError($"The project could not be run. For more information run with --debug switch.");
                     return result;
                 }
@@ -242,7 +261,7 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayMessage("stop_sign", "The run command was cancelled by user.");
+            _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
@@ -267,10 +286,21 @@ internal sealed class RunCommand : BaseCommand
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
         }
+        catch (CertificateServiceException ex)
+        {
+            _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            return ExitCodeConstants.FailedToTrustCertificates;
+        }
+        catch (FailedToConnectBackchannelConnection ex)
+        {
+            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
         catch (Exception ex)
         {
             _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
-            _interactionService.DisplayLines(outputCollector.GetLines());
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }

@@ -1,0 +1,7 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "path": "storage.module.bicep",
+  "scope": {
+    "resourceGroup": "existingResourceGroupName"
+  }
+}

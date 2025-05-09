@@ -81,6 +81,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="target">The target Azure Key Vault resource.</param>
     /// <param name="roles">The built-in Key Vault roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the KeyVaultReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -93,6 +94,7 @@ public static class AzureKeyVaultResourceExtensions
     ///   .WithReference(vault);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureKeyVaultResource> target,

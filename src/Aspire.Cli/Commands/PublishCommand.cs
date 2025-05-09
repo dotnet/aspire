@@ -55,19 +55,20 @@ internal sealed class PublishCommand : BaseCommand
         projectOption.Description = "The path to the Aspire app host project file.";
         Options.Add(projectOption);
 
-        var publisherOption = new Option<string>("--publisher", "-p");
-        publisherOption.Description = "The name of the publisher to use.";
-        Options.Add(publisherOption);
-
         var outputPath = new Option<string>("--output-path", "-o");
         outputPath.Description = "The output path for the generated artifacts.";
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
+
+        // In the `aspire publish` and run commands we forward all unrecognized tokens
+        // through to `dotnet run` when we launch the app host.
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var buildOutputCollector = new OutputCollector();
+        var publishOutputCollector = new OutputCollector();
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
 
@@ -88,7 +89,8 @@ internal sealed class PublishCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            if (parseResult.GetValue<bool?>("--wait-for-debugger") ?? false)
+            var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
+            if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
@@ -102,83 +104,24 @@ internal sealed class PublishCommand : BaseCommand
 
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
-                StandardOutputCallback = outputCollector.AppendOutput,
-                StandardErrorCallback = outputCollector.AppendError,
+                StandardOutputCallback = buildOutputCollector.AppendOutput,
+                StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
             var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
             if (buildExitCode != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
+                _interactionService.DisplayLines(buildOutputCollector.GetLines());
                 _interactionService.DisplayError("The project could not be built. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            var publisher = parseResult.GetValue<string>("--publisher");
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            var publishersResult = await _interactionService.ShowStatusAsync<(int ExitCode, string[] Publishers)>(
-                publisher is { } ? ":package:  Getting publisher..." : ":package:  Getting publishers...",
-                async () => {
-                    using var getPublishersActivity = _activitySource.StartActivity(
-                        $"{nameof(ExecuteAsync)}-Action-GetPublishers",
-                        ActivityKind.Client);
-
-                    var getPublishersRunOptions = new DotNetCliRunnerInvocationOptions
-                    {
-                        StandardOutputCallback = outputCollector.AppendOutput,
-                        StandardErrorCallback = outputCollector.AppendError,
-                    };
-
-                    var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-                    var pendingInspectRun = _runner.RunAsync(
-                        effectiveAppHostProjectFile,
-                        false,
-                        true,
-                        ["--operation", "inspect"],
-                        null,
-                        backchannelCompletionSource,
-                        getPublishersRunOptions,
-                        cancellationToken).ConfigureAwait(false);
-
-                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-                    var publishers = await backchannel.GetPublishersAsync(cancellationToken).ConfigureAwait(false);
-                    
-                    await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                    var exitCode = await pendingInspectRun;
-
-                    return (exitCode, publishers);
-                }
-            );
-
-            if (publishersResult.ExitCode != 0)
-            {
-                _interactionService.DisplayLines(outputCollector.GetLines());
-                _interactionService.DisplayError($"The publisher inspection failed with exit code {publishersResult.ExitCode}. For more information run with --debug switch.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
-
-            var publishers = publishersResult.Publishers;
-            if (publishers is null || publishers.Length == 0)
-            {
-                _interactionService.DisplayError($"No publishers were found.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
-
-            if (publishers?.Contains(publisher) != true)
-            {
-                if (publisher is not null)
-                {
-                    _interactionService.DisplayMessage("warning", $"[yellow bold]The specified publisher '{publisher}' was not found.[/]");
-                }
-
-                publisher = await _prompter.PromptForPublisherAsync(publishers!, cancellationToken);
-            }
-
-            _interactionService.DisplayMessage($"hammer_and_wrench", $"Generating artifacts for '{publisher}' publisher...");
-
+            _interactionService.DisplayMessage($"hammer_and_wrench", $"Generating artifacts...");
+            
             var exitCode = await AnsiConsole.Progress()
                 .AutoRefresh(true)
                 .Columns(
@@ -199,21 +142,39 @@ internal sealed class PublishCommand : BaseCommand
 
                     var publishRunOptions = new DotNetCliRunnerInvocationOptions
                     {
-                        StandardOutputCallback = outputCollector.AppendOutput,
-                        StandardErrorCallback = outputCollector.AppendError,
+                        StandardOutputCallback = publishOutputCollector.AppendOutput,
+                        StandardErrorCallback = publishOutputCollector.AppendError,
+                        NoLaunchProfile = true
                     };
+
+                    var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
                     var pendingRun = _runner.RunAsync(
                         effectiveAppHostProjectFile,
                         false,
                         true,
-                        ["--publisher", publisher ?? "manifest", "--output-path", fullyQualifiedOutputPath],
+                        ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens],
                         env,
                         backchannelCompletionSource,
                         publishRunOptions,
                         cancellationToken);
 
+                    ProgressTask? attachDebuggerTask = null;
+                    if (waitForDebugger)
+                    {
+                        attachDebuggerTask = context.AddTask($":bug:  Waiting for debugger to attach to app host process");
+                        attachDebuggerTask.IsIndeterminate();
+                        attachDebuggerTask.StartTask();
+                    }
+
                     var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+                    if (attachDebuggerTask is not null)
+                    {
+                        attachDebuggerTask.Description = $":check_mark:  Debugger attached (or timed out)";
+                        attachDebuggerTask.Value = 100;
+                        attachDebuggerTask.StopTask();
+                    }
 
                     launchingAppHostTask.Description = $":check_mark:  Launching apphost";
                     launchingAppHostTask.Value = 100;
@@ -286,7 +247,7 @@ internal sealed class PublishCommand : BaseCommand
 
             if (exitCode != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
+                _interactionService.DisplayLines(publishOutputCollector.GetLines());
                 _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -295,6 +256,16 @@ internal sealed class PublishCommand : BaseCommand
                 _interactionService.DisplaySuccess($"Successfully published artifacts to: {fullyQualifiedOutputPath}");
                 return ExitCodeConstants.Success;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _interactionService.DisplayError("The operation was canceled.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        catch (ProjectLocatorException ex) when (ex.Message == "Project file is not an Aspire app host project.")
+        {
+            _interactionService.DisplayError("The specified project file is not an Aspire app host project.");
+            return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
         {
@@ -317,6 +288,12 @@ internal sealed class PublishCommand : BaseCommand
                 ex,
                 appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
                 );
+        }
+        catch (FailedToConnectBackchannelConnection ex)
+        {
+            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayLines(publishOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {

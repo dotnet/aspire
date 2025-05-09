@@ -27,6 +27,7 @@
 
     <!-- FIXME: do not run Template tests in the outerloop until further notice -->
     <SkipTests Condition=" '$(RunQuarantinedTests)' == 'true' ">true</SkipTests>
+    <TestRunnerAdditionalArguments Condition="'$(RunOnlyBasicBuildTemplateTests)' == 'true'">$(TestRunnerAdditionalArguments) --filter-trait category=basic-build</TestRunnerAdditionalArguments>
   </PropertyGroup>
 
   <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />

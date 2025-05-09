@@ -4,9 +4,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
-using CommandsResources = Aspire.Dashboard.Resources.Commands;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting;
 using Google.Protobuf.Collections;
@@ -41,6 +39,7 @@ partial class Resource
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
+                IsHidden = IsHidden
             };
         }
         catch (Exception ex)
@@ -107,24 +106,8 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c =>
-                {
-                    var (displayName, displayDescription) = GetDisplayNameAndDescription(c.Name, c.DisplayName, c.DisplayDescription);
-                    return new CommandViewModel(c.Name, MapState(c.State), displayName, displayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant));
-                })
+                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
-
-            // Use custom localizations for built-in lifecycle commands
-            static (string DisplayName, string DisplayDescription) GetDisplayNameAndDescription(string commandName, string displayName, string description)
-            {
-                return commandName switch
-                {
-                    KnownResourceCommands.StartCommand => (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription),
-                    KnownResourceCommands.StopCommand => (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription),
-                    KnownResourceCommands.RestartCommand => (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription),
-                    _ => (displayName, description)
-                };
-            }
 
             static CommandViewModelState MapState(ResourceCommandState state)
             {

@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
@@ -91,12 +90,6 @@ internal sealed class AzureProvisioner(
                         childResources.Add(grandChild);
                     }
                 }
-
-                await notificationService.PublishUpdateAsync(child, s =>
-                {
-                    s = s with { Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, child.Parent.Name) };
-                    return stateFactory(s);
-                }).ConfigureAwait(false);
             }
         }
 
@@ -219,7 +212,7 @@ internal sealed class AzureProvisioner(
         var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(tokenCredentialHolder.Credential, userSecretsLazy, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -366,9 +359,13 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(TokenCredential credential, Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
+    private async Task<ProvisioningContext> GetProvisioningContextAsync(TokenCredentialHolder holder, Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+
+        var credential = holder.Credential;
+
+        holder.LogCredentialType();
 
         var armClient = new ArmClient(credential, subscriptionId);
 

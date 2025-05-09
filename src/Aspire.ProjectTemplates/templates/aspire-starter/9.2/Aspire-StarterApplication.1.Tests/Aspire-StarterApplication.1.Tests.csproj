@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+    <PackageReference Include="Aspire.Hosting.Testing" Version="9.2.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" Condition=" $(TestFx) == 'xUnit.net' " />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" Condition=" $(TestFx) != 'MSTest' " />
     <PackageReference Include="MSTest" Version="3.6.4" Condition=" $(TestFx) == 'MSTest' " />

@@ -209,12 +209,12 @@
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
-        <target state="new">Resource logs and telemetry</target>
+        <target state="translated">리소스 로그 및 원격 분석</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogEnableTelemetry">
         <source>Enable dashboard telemetry</source>
-        <target state="new">Enable dashboard telemetry</target>
+        <target state="translated">대시보드 원격 분석 사용</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -239,12 +239,17 @@
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryEnabledInfo">
         <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
-        <target state="new">Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</target>
+        <target state="translated">대시보드 원격 분석이 활성화되었습니다. Aspire가 사용량 데이터를 수집하여 Microsoft에 전송합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkText">
         <source>Why?</source>
-        <target state="new">Why?</target>
+        <target state="translated">이유</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="new">Go to usage telemetry documentation</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
