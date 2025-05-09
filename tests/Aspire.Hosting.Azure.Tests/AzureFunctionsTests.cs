@@ -15,10 +15,14 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureFunctionsTests
 {
     [Fact]
-    public void AddAzureFunctionsProject_Works()
+    public async Task AddAzureFunctionsProject_Works()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+        var funcApp = builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
 
         // Assert that default storage resource is configured
         Assert.Contains(builder.Resources, resource =>
@@ -26,6 +30,13 @@ public class AzureFunctionsTests
         // Assert that custom project resource type is configured
         Assert.Contains(builder.Resources, resource =>
             resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
+
+        var storage = Assert.Single(builder.Resources.OfType<AzureStorageResource>());
+        Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
+
+        var rel = Assert.Single(relAnnotations);
+        Assert.Equal("Reference", rel.Type);
+        Assert.Equal(storage, rel.Resource);
     }
 
     [Fact]
@@ -60,7 +71,7 @@ public class AzureFunctionsTests
                 e.UriScheme = "http";
                 e.AllocatedEndpoint = new(e, "localhost", 1234);
                 e.TargetPort = 9876;
-            });;
+            }); ;
 
         // Assert that the EndpointAnnotation is configured correctly
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
@@ -139,7 +150,7 @@ public class AzureFunctionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
-        builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp")
+        var funcApp = builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp")
             .WithHostStorage(storage);
 
         using var host = builder.Build();
@@ -151,6 +162,11 @@ public class AzureFunctionsTests
             r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
         var storageResource = Assert.Single(model.Resources.OfType<AzureStorageResource>());
         Assert.Equal("my-own-storage", storageResource.Name);
+
+        Assert.True(funcApp.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relAnnotations));
+        var rel = Assert.Single(relAnnotations);
+        Assert.Equal("Reference", rel.Type);
+        Assert.Equal(storage.Resource, rel.Resource);
 
         await host.StopAsync();
     }

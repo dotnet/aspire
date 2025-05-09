@@ -71,6 +71,12 @@ public static class AzureFunctionsProjectResourceExtensions
                 {
                     removeStorage = false;
                 }
+
+                if (item.HostStorage is not null)
+                {
+                    // Add the relationship to the host storage resource.
+                    builder.CreateResourceBuilder(item).WithReferenceRelationship(item.HostStorage);
+                }
             }
 
             if (removeStorage)
@@ -219,6 +225,8 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(source);
+
+        destination.WithReferenceRelationship(source.Resource);
 
         return destination.WithEnvironment(context =>
         {
