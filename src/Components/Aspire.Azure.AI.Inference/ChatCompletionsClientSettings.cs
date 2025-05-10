@@ -19,7 +19,7 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets the connection string used to connect to the AI Foundry account.
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentId"/> and <see cref="Credential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
@@ -55,7 +55,7 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
-    /// ServiceBus ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
+    /// Azure AI Inference client library ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
