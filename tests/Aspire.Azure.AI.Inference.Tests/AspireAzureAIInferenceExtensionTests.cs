@@ -25,11 +25,11 @@ public class AspireAzureAIInferenceExtensionTests
         ]);
         if (useKeyed)
         {
-            builder.AddKeyedChatCompletionsClient("inference");
+            builder.AddKeyedAzureChatCompletionsClient("inference");
         }
         else
         {
-            builder.AddChatCompletionsClient("inference");
+            builder.AddAzureChatCompletionsClient("inference");
         }
         using var host = builder.Build();
         var client = useKeyed ?
@@ -51,11 +51,11 @@ public class AspireAzureAIInferenceExtensionTests
 
         if (useKeyed)
         {
-            builder.AddKeyedChatCompletionsClient("inference", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureChatCompletionsClient("inference", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddChatCompletionsClient("inference", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureChatCompletionsClient("inference", settings => settings.ConnectionString = ConnectionString);
         }
 
         using var host = builder.Build();
@@ -75,8 +75,8 @@ public class AspireAzureAIInferenceExtensionTests
             new KeyValuePair<string, string?>("ConnectionStrings:inference1", ConnectionString),
             new KeyValuePair<string, string?>("ConnectionStrings:inference2", ConnectionString + "2")
         ]);
-        builder.AddKeyedChatCompletionsClient("inference1");
-        builder.AddKeyedChatCompletionsClient("inference2");
+        builder.AddKeyedAzureChatCompletionsClient("inference1");
+        builder.AddKeyedAzureChatCompletionsClient("inference2");
         using var host = builder.Build();
         var client1 = host.Services.GetKeyedService<ChatCompletionsClient>("inference1");
         var client2 = host.Services.GetKeyedService<ChatCompletionsClient>("inference2");
@@ -97,11 +97,11 @@ public class AspireAzureAIInferenceExtensionTests
         ]);
         if (useKeyed)
         {
-            builder.AddKeyedChatCompletionsClient("inference").AddKeyedChatClient("inference");
+            builder.AddKeyedAzureChatCompletionsClient("inference").AddKeyedChatClient("inference");
         }
         else
         {
-            builder.AddChatCompletionsClient("inference").AddChatClient();
+            builder.AddAzureChatCompletionsClient("inference").AddChatClient();
         }
         using var host = builder.Build();
         var client = useKeyed ?

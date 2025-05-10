@@ -14,7 +14,7 @@ public class AspireAzureAIInferencePublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "aiinference";
 
-        var action = () => builder.AddChatCompletionsClient(connectionName);
+        var action = () => builder.AddAzureChatCompletionsClient(connectionName);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -28,7 +28,7 @@ public class AspireAzureAIInferencePublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddChatCompletionsClient(connectionName);
+        var action = () => builder.AddAzureChatCompletionsClient(connectionName);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -42,7 +42,7 @@ public class AspireAzureAIInferencePublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "aiinference";
 
-        var action = () => builder.AddKeyedChatCompletionsClient(name);
+        var action = () => builder.AddKeyedAzureChatCompletionsClient(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -56,7 +56,7 @@ public class AspireAzureAIInferencePublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedChatCompletionsClient(name);
+        var action = () => builder.AddKeyedAzureChatCompletionsClient(name);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

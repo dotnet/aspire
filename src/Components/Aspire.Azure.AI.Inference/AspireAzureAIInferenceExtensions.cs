@@ -40,7 +40,7 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
     /// </para>
     /// </remarks>
-    public static AspireChatCompletionsClientBuilder AddChatCompletionsClient(
+    public static AspireChatCompletionsClientBuilder AddAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<ChatCompletionsClientSettings>? configureClient = null,
@@ -77,7 +77,7 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="name"/> parameter.
     /// </para>
     /// </remarks>
-    public static AspireChatCompletionsClientBuilder AddKeyedChatCompletionsClient(
+    public static AspireChatCompletionsClientBuilder AddKeyedAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<ChatCompletionsClientSettings>? configureClient = null,

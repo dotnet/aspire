@@ -49,11 +49,11 @@ public class ConformanceTests : ConformanceTests<ChatCompletionsClient, ChatComp
     {
         if (key is null)
         {
-            builder.AddChatCompletionsClient("inference", ConfigureCredentials);
+            builder.AddAzureChatCompletionsClient("inference", ConfigureCredentials);
         }
         else
         {
-            builder.AddChatCompletionsClient(key, ConfigureCredentials);
+            builder.AddAzureChatCompletionsClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(ChatCompletionsClientSettings settings)
