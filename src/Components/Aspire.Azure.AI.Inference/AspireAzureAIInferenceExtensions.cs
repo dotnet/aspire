@@ -12,6 +12,7 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -197,9 +198,8 @@ public static class AspireAzureAIInferenceExtensions
             return result;
         }
 
-        return new ChatClientBuilder(result)
-            .UseOpenTelemetry()
-            .Build();
+        var loggerFactory = services.GetService<ILoggerFactory>();
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
     }
 
 }
