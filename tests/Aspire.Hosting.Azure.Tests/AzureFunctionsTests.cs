@@ -71,7 +71,7 @@ public class AzureFunctionsTests
                 e.UriScheme = "http";
                 e.AllocatedEndpoint = new(e, "localhost", 1234);
                 e.TargetPort = 9876;
-            }); ;
+            });
 
         // Assert that the EndpointAnnotation is configured correctly
         var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsProjectResource>());
