@@ -8,7 +8,7 @@ using Aspire.Hosting.Docker;
 
 internal static class DockerComposeServiceResourceExtensions
 {
-    internal static async Task<object> ProcessValueAsync(this DockerComposeServiceResource resource, DockerComposeEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    internal static object ProcessValue(this DockerComposeServiceResource resource, object value)
     {
         while (true)
         {
@@ -19,9 +19,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is EndpointReference ep)
             {
-                var referencedResource = ep.Resource == resource
-                    ? resource
-                    : await context.CreateDockerComposeServiceResourceAsync(ep.Resource, executionContext, default).ConfigureAwait(false);
+                var referencedResource = resource.Parent.ResourceMapping[ep.Resource];
 
                 var mapping = referencedResource.EndpointMappings[ep.EndpointName];
 
@@ -49,9 +47,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is EndpointReferenceExpression epExpr)
             {
-                var referencedResource = epExpr.Endpoint.Resource == resource
-                    ? resource
-                    : await context.CreateDockerComposeServiceResourceAsync(epExpr.Endpoint.Resource, executionContext, default).ConfigureAwait(false);
+                var referencedResource = resource.Parent.ResourceMapping[epExpr.Endpoint.Resource];
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 
@@ -64,7 +60,7 @@ internal static class DockerComposeServiceResourceExtensions
             {
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
-                    return (await resource.ProcessValueAsync(context, executionContext, expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
+                    return resource.ProcessValue(expr.ValueProviders[0]).ToString() ?? string.Empty;
                 }
 
                 var args = new object[expr.ValueProviders.Count];
@@ -72,7 +68,7 @@ internal static class DockerComposeServiceResourceExtensions
 
                 foreach (var vp in expr.ValueProviders)
                 {
-                    var val = await resource.ProcessValueAsync(context, executionContext, vp).ConfigureAwait(false);
+                    var val = resource.ProcessValue(vp);
                     args[index++] = val ?? throw new InvalidOperationException("Value is null");
                 }
 
