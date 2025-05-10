@@ -17,11 +17,11 @@
     networks:
       - "aspire"
     configs:
-      - source: "cache__tmp_redis.conf"
-        target: "/tmp/redis.conf"
+      - source: "cache__usr_local_share_redis.conf"
+        target: "/usr/local/share/redis.conf"
         mode: 0644
-      - source: "cache__tmp_folder_file.sh"
-        target: "/tmp/folder/file.sh"
+      - source: "cache__usr_local_share_folder_file.sh"
+        target: "/usr/local/share/folder/file.sh"
         uid: 1000
         gid: 1000
         mode: 0700
@@ -64,7 +64,7 @@ networks:
   aspire:
     driver: "bridge"
 configs:
-  cache__tmp_redis.conf:
+  cache__usr_local_share_redis.conf:
     content: "hello world"
-  cache__tmp_folder_file.sh:
+  cache__usr_local_share_folder_file.sh:
     file: "./somefile.sh"

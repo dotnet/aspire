@@ -37,7 +37,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                     .WithHttpEndpoint(env: "REDIS_PORT")
                     .WithArgs("-c", "hello $MSG")
                     .WithEnvironment("MSG", "world")
-                    .WithContainerFiles("/tmp", [
+                    .WithContainerFiles("/usr/local/share", [
                         new ContainerFile
                         {
                             Name = "redis.conf",
