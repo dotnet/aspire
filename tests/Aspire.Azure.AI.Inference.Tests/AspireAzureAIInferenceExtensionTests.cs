@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.AI.Inference;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -83,5 +84,29 @@ public class AspireAzureAIInferenceExtensionTests
         Assert.NotNull(client2);
 
         Assert.NotSame(client1, client2);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanRegisterAsAnIChatClient(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:inference", ConnectionString)
+        ]);
+        if (useKeyed)
+        {
+            builder.AddKeyedChatCompletionsClient("inference").AddKeyedChatClient("inference");
+        }
+        else
+        {
+            builder.AddChatCompletionsClient("inference").AddChatClient();
+        }
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetKeyedService<IChatClient>("inference") :
+            host.Services.GetService<IChatClient>();
+        Assert.NotNull(client);
     }
 }

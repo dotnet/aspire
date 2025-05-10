@@ -155,24 +155,51 @@ public static class AspireAzureAIInferenceExtensions
     /// <summary>
     /// Creates a <see cref="IChatClient"/> from the <see cref="ChatCompletionsClient"/> registered in the service collection.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder) =>
-        builder.HostBuilder.Services.AddChatClient(services =>
+    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.HostBuilder.Services.AddChatClient(
+            services => CreateInnerChatClient(builder, services));
+    }
+
+    /// <summary>
+    /// Creates a <see cref="IChatClient"/> from the <see cref="ChatCompletionsClient"/> registered in the service collection.
+    /// </summary>
+    /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
+    /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
+    /// <returns></returns>
+    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        serviceKey = serviceKey ?? builder.ServiceKey;
+
+        ArgumentException.ThrowIfNullOrEmpty(serviceKey);
+
+        return builder.HostBuilder.Services.AddKeyedChatClient(
+            serviceKey,
+            services => CreateInnerChatClient(builder, services));
+    }
+
+    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services)
+    {
+        var chatCompletionsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
+                        services.GetRequiredService<ChatCompletionsClient>() :
+                        services.GetRequiredKeyedService<ChatCompletionsClient>(builder.ServiceKey);
+
+        var result = chatCompletionsClient.AsIChatClient();
+
+        if (builder.DisableTracing)
         {
-            var chatCompletionsClient = !string.IsNullOrEmpty(builder.ServiceKey) ?
-                services.GetRequiredService<ChatCompletionsClient>() :
-                services.GetRequiredKeyedService<ChatCompletionsClient>(builder.ServiceKey);
+            return result;
+        }
 
-            var result = chatCompletionsClient.AsIChatClient();
+        return new ChatClientBuilder(result)
+            .UseOpenTelemetry()
+            .Build();
+    }
 
-            if (builder.DisableTracing)
-            {
-                return result;
-            }
-
-            return new ChatClientBuilder(result)
-                .UseOpenTelemetry()
-                .Build();
-        });
 }
