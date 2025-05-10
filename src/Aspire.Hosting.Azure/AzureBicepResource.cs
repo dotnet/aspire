@@ -249,6 +249,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         /// <summary>
         /// The principal id of the user doing the deployment.
         /// </summary>
+        /// <remarks>Referred as Deployment principal in ARM documentation.</remarks>
         public static readonly string UserPrincipalId = UserPrincipalIdConst;
 
         /// <summary>

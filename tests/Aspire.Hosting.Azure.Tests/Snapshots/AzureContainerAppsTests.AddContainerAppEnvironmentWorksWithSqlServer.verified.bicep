@@ -1,9 +1,10 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
-
-param principalName string
+resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: take('sql-admin-${uniqueString(resourceGroup().id)}', 63)
+  location: location
+}
 
 resource sql 'Microsoft.Sql/servers@2021-11-01' = {
   name: take('sql-${uniqueString(resourceGroup().id)}', 63)
@@ -11,8 +12,8 @@ resource sql 'Microsoft.Sql/servers@2021-11-01' = {
   properties: {
     administrators: {
       administratorType: 'ActiveDirectory'
-      login: principalName
-      sid: principalId
+      login: sqlServerAdminManagedIdentity.name
+      sid: sqlServerAdminManagedIdentity.properties.principalId
       tenantId: subscription().tenantId
       azureADOnlyAuthentication: true
     }
@@ -43,3 +44,5 @@ resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
 output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
 
 output name string = sql.name
+
+output sqlServerAdminName string = sqlServerAdminManagedIdentity.name
