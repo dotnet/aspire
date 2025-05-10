@@ -2,7 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using Azure.Provisioning.Resources;
+using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting.Azure;
@@ -12,7 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString
 {
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, AzureSqlDatabaseResource> _databases = new Dictionary<string, AzureSqlDatabaseResource>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
 
     /// <summary>
@@ -42,6 +47,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
     private BicepOutputReference NameOutputReference => new("name", this);
+
+    private BicepOutputReference AdminName => new("sqlServerAdminName", this);
 
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
@@ -75,13 +82,21 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
-    /// A dictionary where the key is the resource name and the value is the database name.
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database resource.
     /// </summary>
-    public IReadOnlyDictionary<string, string> Databases => _databases;
+    public IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases => _databases;
 
-    internal void AddDatabase(string name, string databaseName)
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the Azure SQL database name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Databases => _databases.ToDictionary(
+        kvp => kvp.Key,
+        kvp => kvp.Value.DatabaseName
+    );
+
+    internal void AddDatabase(AzureSqlDatabaseResource db)
     {
-        _databases.TryAdd(name, databaseName);
+        _databases.TryAdd(db.Name, db);
     }
 
     internal void SetInnerResource(SqlServerServerResource innerResource)
@@ -107,12 +122,95 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// <inheritdoc/>
     public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
+        if (this.IsExisting())
+        {
+            // This resource is already an existing resource, so don't add role assignments
+            return;
+        }
+
         var infra = roleAssignmentContext.Infrastructure;
-        var postgres = (SqlServer)AddAsExistingResource(infra);
+        var sqlserver = (SqlServer)AddAsExistingResource(infra);
+        var isRunMode = roleAssignmentContext.ExecutionContext.IsRunMode;
 
-        var principalId = roleAssignmentContext.PrincipalId;
-        var principalName = roleAssignmentContext.PrincipalName;
+        var sqlServerAdmin = UserAssignedIdentity.FromExisting("sqlServerAdmin");
+        sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
+        infra.Add(sqlServerAdmin);
 
-        AzureSqlExtensions.AddActiveDirectoryAdministrator(infra, postgres, principalId, principalName);
+        // When not in Run Mode (F5) we reference the managed identity
+        // that will need to access the database so we can add db role for it
+        // using its ClientId. In the other case we use the PrincipalId.
+
+        var userId = roleAssignmentContext.PrincipalId;
+
+        if (!isRunMode)
+        {
+            var managedIdentity = UserAssignedIdentity.FromExisting("mi");
+            managedIdentity.Name = roleAssignmentContext.PrincipalName;
+            infra.Add(managedIdentity);
+
+            userId = managedIdentity.ClientId;
+        }
+
+        foreach (var (resource, database) in Databases)
+        {
+            var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{resource}");
+            var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
+            {
+                Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
+                Kind = "AzurePowerShell",
+                // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
+                AZPowerShellVersion = "10.0"
+            };
+
+            // Run the script as the administrator
+
+            var id = BicepFunction.Interpolate($"{sqlServerAdmin.Id}").Compile().ToString();
+            scriptResource.Identity.IdentityType = ArmDeploymentScriptManagedIdentityType.UserAssigned;
+            scriptResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+
+            // Script don't support Bicep expression, they need to be passed as ENVs
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
+            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = userId });
+
+            scriptResource.ScriptContent = $$"""
+                $sqlServerFqdn = "$env:DBSERVER"
+                $sqlDatabaseName = "$env:DBNAME"
+                $principalName = "$env:PRINCIPALNAME"
+                $id = "$env:ID"
+
+                # Install SqlServer module
+                Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
+                Import-Module SqlServer
+
+                $sqlCmd = @"
+                DECLARE @name SYSNAME = '$principalName';
+                DECLARE @id UNIQUEIDENTIFIER = '$id';
+                
+                -- Convert the guid to the right type
+                DECLARE @castId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @id), 1);
+                
+                -- Construct command: CREATE USER [@name] WITH SID = @castId, TYPE = E;
+                DECLARE @cmd NVARCHAR(MAX) = N'CREATE USER [' + @name + '] WITH SID = ' + @castId + ', TYPE = E;'
+                EXEC (@cmd);
+                
+                -- Assign roles to the new user
+                DECLARE @role1 NVARCHAR(MAX) = N'ALTER ROLE db_owner ADD MEMBER [' + @name + ']';
+                EXEC (@role1);
+                
+                "@
+                # Note: the string terminator must not have whitespace before it, therefore it is not indented.
+
+                Write-Host $sqlCmd
+
+                $connectionString = "Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Authentication=Active Directory Default;"
+
+                Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
+                """;
+
+            infra.Add(scriptResource);
+        }
     }
 }
