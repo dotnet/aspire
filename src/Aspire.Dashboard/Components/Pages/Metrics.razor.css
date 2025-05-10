@@ -47,6 +47,7 @@
 
 ::deep .metrics-chart-footer {
     grid-area: footer;
+    margin-bottom: calc(var(--design-unit) * 4px);
 }
 
 ::deep .metrics-chart-header h3 {
