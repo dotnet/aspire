@@ -28,7 +28,8 @@
     grid-template-rows: auto 1fr;
     grid-template-areas:
         "header"
-        "chart";
+        "chart"
+        "footer";
     width: 100%;
     gap: calc(var(--design-unit) * 4px);
 }
@@ -42,6 +43,10 @@
 ::deep .metrics-chart-header {
     grid-area: header;
     overflow-x: hidden;
+}
+
+::deep .metrics-chart-footer {
+    grid-area: footer;
 }
 
 ::deep .metrics-chart-header h3 {

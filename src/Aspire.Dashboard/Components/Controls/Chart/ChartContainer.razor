@@ -30,12 +30,6 @@ else
                     </div>
                 </div>
             }
-
-            @if (PauseText is not null)
-            {
-                <PauseWarning PauseText="@PauseText" />
-            }
-
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
@@ -58,5 +52,11 @@ else
                 </div>
             </FluentTab>
         </FluentTabs>
+        <div class="metrics-chart-footer">
+            @if (PauseText is not null)
+            {
+                <PauseWarning PauseText="@PauseText" />
+            }
+        </div>
     </div>
 }

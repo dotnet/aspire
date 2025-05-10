@@ -327,6 +327,11 @@
         <target state="translated">Pausar os dados recebidos</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="new">Capture paused</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Número</target>
@@ -550,11 +555,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">Ativar/desativar aninhamento</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">Captura em pausa</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
