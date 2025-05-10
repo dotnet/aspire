@@ -38,6 +38,10 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
 resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
   name: 'db2'
   location: location
+  properties: {
+    freeLimitExhaustionBehavior: 'AutoPause'
+    useFreeLimit: true
+  }
   sku: {
     name: 'GP_S_Gen5_2'
   }

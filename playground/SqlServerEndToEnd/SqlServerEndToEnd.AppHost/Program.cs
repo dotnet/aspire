@@ -1,36 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Provisioning.Sql;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var sql1 = builder.AddAzureSqlServer("sql1")
-        .ConfigureInfrastructure(c =>
-        {
-            const string FREE_DB_SKU = "GP_S_Gen5_2";
-
-            foreach (var database in c.GetProvisionableResources().OfType<SqlDatabase>())
-            {
-                database.Sku = new SqlSku() { Name = FREE_DB_SKU };
-            }
-        });
-
-//.RunAsContainer();
+    .RunAsContainer();
 
 var db1 = sql1.AddDatabase("db1");
 
-var sql2 = builder.AddAzureSqlServer("sql2")
-        .ConfigureInfrastructure(c =>
-        {
-            const string FREE_DB_SKU = "GP_S_Gen5_2";
-
-            foreach (var database in c.GetProvisionableResources().OfType<SqlDatabase>())
-            {
-                database.Sku = new SqlSku() { Name = FREE_DB_SKU };
-            }
-        });
-
+var sql2 = builder.AddAzureSqlServer("sql2");
 var db2 = sql2.AddDatabase("db2");
 
 var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")
