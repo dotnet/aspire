@@ -176,7 +176,7 @@ internal sealed class AzureResourcePreparer(
                     var roleAssignments = GetAllRoleAssignments(resource);
                     if (roleAssignments.Count > 0)
                     {
-                        var (identityResource, roleAssignmentResources) = CreateIdentityAndRoleAssignmentResources(options, resource, roleAssignments);
+                        var (identityResource, roleAssignmentResources) = CreateIdentityAndRoleAssignmentResources(options, resource, roleAssignments, executionContext);
 
                         if (resource != identityResource)
                         {
@@ -236,7 +236,8 @@ internal sealed class AzureResourcePreparer(
     private static (AzureUserAssignedIdentityResource IdentityResource, List<AzureBicepResource> RoleAssignmentResources) CreateIdentityAndRoleAssignmentResources(
         AzureProvisioningOptions provisioningOptions,
         IResource resource,
-        Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> roleAssignments)
+        Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> roleAssignments,
+        DistributedApplicationExecutionContext executionContext)
     {
         var identityResource = resource is AzureUserAssignedIdentityResource existingIdentityResource
             ? existingIdentityResource
@@ -245,7 +246,7 @@ internal sealed class AzureResourcePreparer(
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
             };
 
-        var roleAssignmentResources = CreateRoleAssignmentsResources(provisioningOptions, resource, roleAssignments, identityResource);
+        var roleAssignmentResources = CreateRoleAssignmentsResources(provisioningOptions, resource, roleAssignments, identityResource, executionContext);
         return (identityResource, roleAssignmentResources);
     }
 
@@ -253,14 +254,15 @@ internal sealed class AzureResourcePreparer(
         AzureProvisioningOptions provisioningOptions,
         IResource resource,
         Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> roleAssignments,
-        AzureUserAssignedIdentityResource appIdentityResource)
+        AzureUserAssignedIdentityResource appIdentityResource,
+        DistributedApplicationExecutionContext executionContext)
     {
         var roleAssignmentResources = new List<AzureBicepResource>();
         foreach (var (targetResource, roles) in roleAssignments)
         {
             var roleAssignmentResource = new AzureProvisioningResource(
                 $"{resource.Name}-roles-{targetResource.Name}",
-                infra => AddRoleAssignmentsInfrastructure(infra, targetResource, roles, appIdentityResource))
+                infra => AddRoleAssignmentsInfrastructure(infra, executionContext, targetResource, roles, appIdentityResource))
             {
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
             };
@@ -280,12 +282,15 @@ internal sealed class AzureResourcePreparer(
 
     private static void AddRoleAssignmentsInfrastructure(
         AzureResourceInfrastructure infra,
+        DistributedApplicationExecutionContext executionContext,
         AzureProvisioningResource azureResource,
         IEnumerable<RoleDefinition> roles,
         AzureUserAssignedIdentityResource appIdentityResource)
     {
+        
         var context = new AddRoleAssignmentsContext(
             infra,
+            executionContext,
             roles,
             new(() => RoleManagementPrincipalType.ServicePrincipal),
             new(() => appIdentityResource.PrincipalId.AsProvisioningParameter(infra, parameterName: AzureBicepResource.KnownParameters.PrincipalId)),
@@ -299,6 +304,7 @@ internal sealed class AzureResourcePreparer(
     /// </summary>
     private sealed class AddRoleAssignmentsContext(
         AzureResourceInfrastructure infrastructure,
+        DistributedApplicationExecutionContext executionContext,
         IEnumerable<RoleDefinition> roles,
         Lazy<BicepValue<RoleManagementPrincipalType>> getPrincipalType,
         Lazy<BicepValue<Guid>> getPrincipalId,
@@ -313,6 +319,8 @@ internal sealed class AzureResourcePreparer(
         public BicepValue<Guid> PrincipalId => getPrincipalId.Value;
 
         public BicepValue<string> PrincipalName => getPrincipalName.Value;
+
+        public DistributedApplicationExecutionContext ExecutionContext => executionContext;
     }
 
     private async Task<HashSet<IAzureResource>> GetAzureReferences(IResource resource, CancellationToken cancellationToken)
@@ -421,11 +429,11 @@ internal sealed class AzureResourcePreparer(
         existingRoles.UnionWith(newRoles);
     }
 
-    private static void CreateGlobalRoleAssignments(DistributedApplicationModel appModel, Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningOptions provisioningOptions)
+    private void CreateGlobalRoleAssignments(DistributedApplicationModel appModel, Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningOptions provisioningOptions)
     {
         foreach (var (azureResource, roles) in globalRoleAssignments)
         {
-            var roleAssignmentResource = CreateGlobalRoleAssignmentsResource(provisioningOptions, azureResource, roles);
+            var roleAssignmentResource = CreateGlobalRoleAssignmentsResource(provisioningOptions, azureResource, roles, executionContext);
             appModel.Resources.Add(roleAssignmentResource);
 
             azureResource.Annotations.Add(new RoleAssignmentResourceAnnotation(roleAssignmentResource));
@@ -437,11 +445,12 @@ internal sealed class AzureResourcePreparer(
     private static AzureProvisioningResource CreateGlobalRoleAssignmentsResource(
         AzureProvisioningOptions provisioningOptions,
         AzureProvisioningResource targetResource,
-        IEnumerable<RoleDefinition> roles)
+        IEnumerable<RoleDefinition> roles,
+        DistributedApplicationExecutionContext executionContext)
     {
         var roleAssignmentResource = new AzureProvisioningResource(
             $"{targetResource.Name}-roles",
-            infra => AddGlobalRoleAssignmentsInfrastructure(infra, targetResource, roles))
+            infra => AddGlobalRoleAssignmentsInfrastructure(infra, executionContext, targetResource, roles))
         {
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
         };
@@ -458,6 +467,7 @@ internal sealed class AzureResourcePreparer(
 
     private static void AddGlobalRoleAssignmentsInfrastructure(
         AzureResourceInfrastructure infra,
+        DistributedApplicationExecutionContext executionContext,
         AzureProvisioningResource azureResource,
         IEnumerable<RoleDefinition> roles)
     {
@@ -470,6 +480,7 @@ internal sealed class AzureResourcePreparer(
 
         var context = new AddRoleAssignmentsContext(
             infra,
+            executionContext,
             roles,
             new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalType)),
             new(() => CreatePrincipalParam(AzureBicepResource.KnownParameters.PrincipalId)),

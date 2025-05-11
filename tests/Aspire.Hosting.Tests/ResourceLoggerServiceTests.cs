@@ -268,13 +268,16 @@ public class ResourceLoggerServiceTests
         consoleLogsChannel1.Writer.Complete();
 
         var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+
+        // Get logger before SetConsoleLogsService is called so that we test there is no bad state stored on the resource logger instance.
+        var logger = service.GetLogger(testResource);
+
         service.SetConsoleLogsService(new TestConsoleLogsService(name => name switch
             {
                 "instance0" => consoleLogsChannel0,
                 "instance1" => consoleLogsChannel1,
                 string n => throw new InvalidOperationException($"Unexpected {n}")
             }));
-        var logger = service.GetLogger(testResource);
 
         // Log
         logger.LogInformation("Hello, world!");

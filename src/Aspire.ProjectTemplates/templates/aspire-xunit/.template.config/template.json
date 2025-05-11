@@ -14,7 +14,7 @@
   ],
   "name": ".NET Aspire Test Project (xUnit)",
   "defaultName": "Tests",
-  "description": "Modern, clean integration tests for your app using xUnit — great for scalable apps and teams.",
+  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "shortName": "aspire-xunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
@@ -122,20 +122,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }

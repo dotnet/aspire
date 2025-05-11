@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Узел приложений .NET Aspire",
-  "description": "Управляет и запускает несколько служб в приложении .NET Aspire из одного места.",
+  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

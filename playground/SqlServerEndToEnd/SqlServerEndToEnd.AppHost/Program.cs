@@ -4,13 +4,11 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var sql1 = builder.AddAzureSqlServer("sql1")
-                  .RunAsContainer();
+    .RunAsContainer();
 
 var db1 = sql1.AddDatabase("db1");
 
-var sql2 = builder.AddSqlServer("sql2")
-                  .PublishAsContainer();
-
+var sql2 = builder.AddAzureSqlServer("sql2");
 var db2 = sql2.AddDatabase("db2");
 
 var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")

@@ -249,7 +249,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
         ? string.Format(
             CultureInfo.CurrentCulture,
-            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            Loc[nameof(Dashboard.Resources.Traces.PauseInProgressText)],
             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
         : null;
 

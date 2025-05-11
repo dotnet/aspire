@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Hizmet Varsayılanları",
-  "description": "Hizmet ve bulut varsayılanları bağlandı - sadece uygulama mantığınızı ekleyin.",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

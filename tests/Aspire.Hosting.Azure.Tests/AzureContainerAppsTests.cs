@@ -147,7 +147,7 @@ public class AzureContainerAppsTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-       var container = Assert.IsType<IComputeResource>(Assert.Single(model.GetContainerResources()), exactMatch: false);
+        var container = Assert.IsType<IComputeResource>(Assert.Single(model.GetContainerResources()), exactMatch: false);
 
         var target = container.GetDeploymentTargetAnnotation();
 
@@ -423,6 +423,38 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(identityManifest.ToString(), "json")
               .AppendContentAsFile(identityBicep, "bicep")
+              .UseHelixAwareDirectory();
+    }
+
+    [Fact]
+    public async Task AzureContainerAppsMapsPortsForBaitAndSwitchResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddExecutable("api", "node", ".")
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
               .UseHelixAwareDirectory();
     }
 
@@ -1260,7 +1292,7 @@ public class AzureContainerAppsTests
         builder.AddAzureContainerAppEnvironment("env");
 
         var sql = builder.AddAzureSqlServer("sql");
-        var db = sql.AddDatabase("db");
+        var db = sql.AddDatabase("db").WithDefaultAzureSku();
 
         builder.AddContainer("cache", "redis")
                .WithReference(db);

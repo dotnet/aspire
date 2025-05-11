@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 服務預設值",
-  "description": "服務與雲端預設已連接—只需新增您的應用程式邏輯。",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

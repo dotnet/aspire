@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 測試專案 (MSTest)",
-  "description": "使用 MSTest 為您的 .NET Aspire 應用程式進行適合初學者的整合測試。",
+  "description": "A project that contains MSTest integration tests of a .NET Aspire app host project.",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

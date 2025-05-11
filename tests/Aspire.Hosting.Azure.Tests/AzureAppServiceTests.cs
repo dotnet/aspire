@@ -19,7 +19,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAppServiceEnvironment("env");
+        var env = builder.AddAzureAppServiceEnvironment("env");
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
@@ -57,7 +57,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         using var app = builder.Build();
 
@@ -79,7 +79,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
@@ -113,7 +113,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         // Add 2 projects with endpoints
         var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
@@ -144,11 +144,37 @@ public class AzureAppServiceTests
               .UseHelixAwareDirectory();
     }
 
+    [Fact]
+    public async Task AzureAppServiceDoesNotSupportBaitAndSwitchResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.Null(resource);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     private sealed class Project : IProjectMetadata
     {
-        public string ProjectPath => "project";
+        public string ProjectPath => "/foo/bar/project.csproj";
     }
 }

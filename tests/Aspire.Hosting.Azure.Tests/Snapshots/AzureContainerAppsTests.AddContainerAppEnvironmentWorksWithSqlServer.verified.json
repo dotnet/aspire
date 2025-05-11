@@ -1,9 +1,5 @@
 ﻿{
   "type": "azure.bicep.v0",
   "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-  "path": "sql.module.bicep",
-  "params": {
-    "principalId": "{env.outputs.MANAGED_IDENTITY_PRINCIPAL_ID}",
-    "principalName": "{env.outputs.MANAGED_IDENTITY_NAME}"
-  }
+  "path": "sql.module.bicep"
 }

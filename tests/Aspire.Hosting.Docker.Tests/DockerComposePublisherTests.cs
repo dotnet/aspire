@@ -262,6 +262,32 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .UseHelixAwareDirectory();
     }
 
+    [Fact]
+    public async Task DockerComposeMapsPortsProperly()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        var container = builder.AddExecutable("service", "foo", ".")
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeFile = File.ReadAllText(composePath);
+
+        await Verify(composeFile)
+            .UseHelixAwareDirectory();
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
