@@ -203,7 +203,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds arguments to be passed to a resource that supports startup arguments when it is launched.
+    /// Adds arguments to be passed to a resource that supports arguments when it is launched.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
@@ -218,7 +218,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds arguments to be passed to a resource that supports startup arguments when it is launched.
+    /// Adds arguments to be passed to a resource that supports arguments when it is launched.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
