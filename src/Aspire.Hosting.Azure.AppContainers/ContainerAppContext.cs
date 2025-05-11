@@ -34,7 +34,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     // Bicep build state
     private ProvisioningParameter? _containerRegistryUrlParameter;
     private ProvisioningParameter? _containerRegistryManagedIdentityIdParameter;
-    public List<ContainerAppWritableSecret> Secrets { get; } = [];
     public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
     public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
     private AzureResourceInfrastructure? _infrastructure;
@@ -107,11 +106,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         containerAppContainer.Name = resource.Name;
 
         SetEntryPoint(containerAppContainer);
-        AddEnvironmentVariablesAndCommandLineArgs(containerAppContainer);
+        AddEnvironmentVariablesAndCommandLineArgs(
+            containerAppContainer,
+            configuration,
+            containerAppIdentityId);
         AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer);
-
-        // Run this after AddEnvironmentVariablesAndCommandLineArgs
-        AddSecrets(containerAppIdentityId, configuration);
         AddVolumes(template, containerAppContainer);
 
         // Keyvault
@@ -711,7 +710,10 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
     }
 
-    private void AddEnvironmentVariablesAndCommandLineArgs(ContainerAppContainer container)
+    private void AddEnvironmentVariablesAndCommandLineArgs(
+        ContainerAppContainer container,
+        ContainerAppConfiguration containerAppConfiguration,
+        BicepValue<string>? containerAppIdentityId)
     {
         if (EnvironmentVariables.Count > 0)
         {
@@ -727,22 +729,37 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 {
                     var secretName = kv.Key.Replace("_", "-").ToLowerInvariant();
 
-                    var secret = new ContainerAppWritableSecret()
-                    {
-                        Name = secretName
-                    };
+                    containerAppConfiguration.Secrets ??= [];
 
-                    if (secretType == SecretType.KeyVault)
-                    {
-                        // TODO: this should be able to use ToUri(), but it hit an issue
-                        secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
-                    }
-                    else
-                    {
-                        secret.Value = argValue;
-                    }
+                    // Get or add the secret
+                    var secret = containerAppConfiguration.Secrets
+                                    .FirstOrDefault(s => s.Value?.Name.Value == secretName)
+                                    ?.Value;
 
-                    Secrets.Add(secret);
+                    if (secret is null)
+                    {
+                        secret = new ContainerAppWritableSecret()
+                        {
+                            Name = secretName
+                        };
+
+                        if (secretType == SecretType.KeyVault)
+                        {
+                            // TODO: this should be able to use ToUri(), but it hit an issue
+                            secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
+
+                            if (containerAppIdentityId is not null)
+                            {
+                                secret.Identity = containerAppIdentityId;
+                            }
+                        }
+                        else
+                        {
+                            secret.Value = argValue;
+                        }
+
+                        containerAppConfiguration.Secrets.Add(secret);
+                    }
 
                     // The value is the secret name
                     val = secretName;
@@ -769,28 +786,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
                 container.Args.Add(argValue);
             }
-        }
-    }
-
-    private void AddSecrets(BicepValue<string>? containerAppIdentityId, ContainerAppConfiguration config)
-    {
-        if (Secrets.Count == 0)
-        {
-            return;
-        }
-
-        config.Secrets = [];
-
-        foreach (var s in Secrets)
-        {
-            IBicepValue keyVaultUri = s.KeyVaultUri;
-
-            if (keyVaultUri.Kind != BicepValueKind.Unset && containerAppIdentityId is not null)
-            {
-                s.Identity = containerAppIdentityId;
-            }
-
-            config.Secrets.Add(s);
         }
     }
 
