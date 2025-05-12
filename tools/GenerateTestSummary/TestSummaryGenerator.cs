@@ -16,8 +16,6 @@ sealed partial class TestSummaryGenerator
             throw new DirectoryNotFoundException($"The directory '{basePath}' does not exist.");
         }
 
-        var trxFiles = System.IO.Directory.EnumerateFiles(basePath, "*.trx", System.IO.SearchOption.AllDirectories);
-
         int overallTotalTestCount = 0;
         int overallPassedTestCount = 0;
         int overallFailedTestCount = 0;
@@ -28,21 +26,22 @@ sealed partial class TestSummaryGenerator
         tableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total |");
         tableBuilder.AppendLine("|------|--------|--------|---------|-------|");
 
-        foreach (var file in trxFiles.OrderBy(f => Path.GetFileName(f)))
+        var trxFiles = System.IO.Directory.EnumerateFiles(basePath, "*.trx", System.IO.SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
         {
             TestRun? testRun;
             try
             {
-                testRun = TrxReader.DeserializeTrxFile(file);
+                testRun = TrxReader.DeserializeTrxFile(filePath);
                 if (testRun == null || testRun.ResultSummary?.Counters == null)
                 {
-                    Console.WriteLine($"Failed to deserialize or find results in file: {file}, tr: {testRun}");
+                    Console.WriteLine($"Failed to deserialize or find results in file: {filePath}, tr: {testRun}");
                     continue;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to deserialize file: {file}, exception: {ex}");
+                Console.WriteLine($"Failed to deserialize file: {filePath}, exception: {ex}");
                 continue;
             }
 
@@ -60,15 +59,15 @@ sealed partial class TestSummaryGenerator
 
             // Determine the OS from the path, assuming the path contains
             // os runner name like `windows-latest`, `ubuntu-latest`, or `macos-latest`
-            var os = file.Contains("windows-")
+            var os = filePath.Contains("windows-")
                         ? "win"
-                        : file.Contains("ubuntu-")
+                        : filePath.Contains("ubuntu-")
                             ? "lin"
-                            : file.Contains("macos-")
+                            : filePath.Contains("macos-")
                                 ? "mac"
                                 : "os?";
 
-            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(file)} | {passed} | {failed} | {skipped} | {total} |");
+            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
         }
 
         var overallTableBuilder = new StringBuilder();
