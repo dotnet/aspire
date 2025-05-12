@@ -189,8 +189,10 @@ public static class MySqlBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
+        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().SingleOrDefault() is { } existinghpMyAdminResource)
         {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existinghpMyAdminResource);
+            configureContainer?.Invoke(builderForExistingResource);
             return builder;
         }
 

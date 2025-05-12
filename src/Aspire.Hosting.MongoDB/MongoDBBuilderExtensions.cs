@@ -149,7 +149,7 @@ public static class MongoDBBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        containerName ??= "mongoexpress";
+        containerName ??= $"{builder.Resource.Name}-mongoexpress";
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(mongoExpressContainer)

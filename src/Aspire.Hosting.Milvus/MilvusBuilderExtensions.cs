@@ -132,7 +132,7 @@ public static class MilvusBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        containerName ??= "attu";
+        containerName ??= $"{builder.Resource.Name}-attu";
 
         var attuContainer = new AttuResource(containerName);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(attuContainer)

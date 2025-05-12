@@ -149,7 +149,7 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            containerName ??= "commander";
+            containerName ??= "rediscommander";
 
             var resource = new RedisCommanderResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
