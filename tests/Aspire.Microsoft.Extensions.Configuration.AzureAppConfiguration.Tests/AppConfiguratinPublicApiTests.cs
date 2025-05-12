@@ -5,9 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AppConfiguration.Tests;
+namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests;
 
-public class DataAppConfigurationPublicApiTests
+public class AppConfigurationPublicApiTests
 {
     [Fact]
     public void AddAzureAppConfigurationShouldThrowWhenBuilderIsNull()

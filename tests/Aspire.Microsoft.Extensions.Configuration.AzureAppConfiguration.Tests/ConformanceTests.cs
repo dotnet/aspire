@@ -12,7 +12,7 @@ using Microsoft.Extensions.Hosting;
 using System.Reflection;
 using Xunit;
 
-namespace Aspire.Azure.AppConfiguration.Tests;
+namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests;
 
 public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider, AzureAppConfigurationSettings>
 {

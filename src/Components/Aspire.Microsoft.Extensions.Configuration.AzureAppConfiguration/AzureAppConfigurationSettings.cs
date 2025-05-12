@@ -4,7 +4,7 @@
 using Aspire.Azure.Common;
 using Azure.Core;
 
-namespace Aspire.Azure.AppConfiguration;
+namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure App Configuration.

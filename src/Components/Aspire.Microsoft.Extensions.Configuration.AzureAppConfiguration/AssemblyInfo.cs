@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire;
-using Aspire.Azure.AppConfiguration;
+using Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
 
 [assembly: ConfigurationSchema("Aspire:Azure:AppConfiguration", typeof(AzureAppConfigurationSettings))]
 

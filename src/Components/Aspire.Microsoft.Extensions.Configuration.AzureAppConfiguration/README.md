@@ -1,4 +1,4 @@
-# Aspire.Azure.AppConfiguration
+# Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
 
 Retrieves configuration settings from Azure App Configuration to use in your application. Registers Azure App Configuration service as a configuration source. Enables corresponding logging and telemetry.
 
@@ -14,7 +14,7 @@ Retrieves configuration settings from Azure App Configuration to use in your app
 Install the .NET Aspire Azure App Configuration library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.AppConfiguration
+dotnet add package Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
 ```
 
 ## Usage examples

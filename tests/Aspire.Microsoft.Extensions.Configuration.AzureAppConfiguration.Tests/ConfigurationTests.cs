@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Azure.AppConfiguration.Tests;
+namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests;
 
 public class ConfigurationTests
 {

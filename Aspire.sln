@@ -660,9 +660,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.Npgsql.EntityF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Components.Common.Tests", "tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj", "{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.AppConfiguration", "src\Components\Aspire.Azure.AppConfiguration\Aspire.Azure.AppConfiguration.csproj", "{C33CE874-27B7-4194-A2E7-D0CD950997CC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration", "src\Components\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.csproj", "{C33CE874-27B7-4194-A2E7-D0CD950997CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.AppConfiguration.Tests", "tests\Aspire.Azure.AppConfiguration.Tests\Aspire.Azure.AppConfiguration.Tests.csproj", "{FE972BF3-F448-4CF0-8544-0056B26BF006}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests", "tests\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests.csproj", "{FE972BF3-F448-4CF0-8544-0056B26BF006}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.ContainerRegistry", "src\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj", "{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}"
 EndProject
