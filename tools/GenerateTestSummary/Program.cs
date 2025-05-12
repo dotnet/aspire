@@ -10,14 +10,16 @@ using Aspire.TestTools;
 // And write to $GITHUB_STEP_SUMMARY if running in GitHub Actions.
 
 var dirPathOrTrxFilePathArgument = new Argument<string>("dirPathOrTrxFilePath");
-var outputOption = new Option<string>("--output", "-o");
-var combinedSummaryOption = new Option<bool>("--combined", "-c");
+var outputOption = new Option<string>("--output", "-o") { Description = "Output file path" };
+var combinedSummaryOption = new Option<bool>("--combined", "-c") { Description = "Generate combined summary report" };
+var urlOption = new Option<string>("--url", "-u") { Description = "URL for test links" };
 
 var rootCommand = new RootCommand
 {
     dirPathOrTrxFilePathArgument,
     outputOption,
-    combinedSummaryOption
+    combinedSummaryOption,
+    urlOption
 };
 
 rootCommand.SetAction(result =>
@@ -49,7 +51,7 @@ rootCommand.SetAction(result =>
         }
         else
         {
-            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder);
+            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, result.GetValue<string>(urlOption));
         }
 
         report = reportBuilder.ToString();

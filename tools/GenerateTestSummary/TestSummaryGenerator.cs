@@ -74,7 +74,7 @@ sealed partial class TestSummaryGenerator
         return overallTableBuilder.ToString();
     }
 
-    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder)
+    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url = null)
     {
         if (!File.Exists(trxFilePath))
         {
@@ -122,10 +122,19 @@ sealed partial class TestSummaryGenerator
         {
             foreach (var test in failedTests)
             {
+                string title;
+                if (string.IsNullOrEmpty(url))
+                {
+                    title = $"🔴 <b>{test.TestName}</b>";
+                }
+                else
+                {
+
+                    title = $"🔴 <a href=\"{url}\">{test.TestName}</a>";
+                }
                 reportBuilder.AppendLine("<div>");
                 reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
-                    <details><summary>
-                🔴 <b>{test.TestName}</b></summary>
+                    <details><summary>{title}</summary>
                 """);
 
                 var errorMsgBuilder = new StringBuilder();
