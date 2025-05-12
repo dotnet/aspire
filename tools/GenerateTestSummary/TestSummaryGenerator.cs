@@ -66,7 +66,7 @@ sealed partial class TestSummaryGenerator
                             ? "lin"
                             : filePath.Contains("macos-")
                                 ? "mac"
-                                : "os?";
+                                : throw new InvalidOperationException($"Could not determine OS from file path: {filePath}");
 
             tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
         }
