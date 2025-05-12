@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
         <source>Go to usage telemetry documentation</source>
-        <target state="new">Go to usage telemetry documentation</target>
+        <target state="translated">使用状況テレメトリのドキュメントに移動する</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
