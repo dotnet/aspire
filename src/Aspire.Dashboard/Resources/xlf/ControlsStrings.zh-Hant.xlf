@@ -329,7 +329,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="new">Capture paused</target>
+        <target state="translated">擷取已暫停</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
