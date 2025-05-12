@@ -1,13 +1,13 @@
 # Aspire.Azure.Messaging.EventHubs
 
-Offers options for registering an [EventHubProducerClient](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.producer.eventhubproducerclient), an [EventHubConsumerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.consumer.eventhubconsumerclient), an [EventHubBufferedProducerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.producer.eventhubbufferedproducerclient), an [EventProcessorClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.eventprocessorclient) or a [PartitionReceiver](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.primitives.partitionreceiver) in the DI container for connecting to Azure Event Hubs.
+Offers options for registering an [EventHubProducerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.producer.eventhubproducerclient), an [EventHubConsumerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.consumer.eventhubconsumerclient), an [EventHubBufferedProducerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.producer.eventhubbufferedproducerclient), an [EventProcessorClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.eventprocessorclient) or a [PartitionReceiver](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.primitives.partitionreceiver) in the DI container for connecting to Azure Event Hubs.
 
 ## Getting started
 
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure Event Hubs namespace, learn more about how to [add an Event Hubs namespace](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create). Alternatively, you can use a connection string, which is not recommended in production environments.
+- Azure Event Hubs namespace, learn more about how to [add an Event Hubs namespace](https://learn.microsoft.com/azure/event-hubs/event-hubs-create). Alternatively, you can use a connection string, which is not recommended in production environments.
 
 ### Install the package
 

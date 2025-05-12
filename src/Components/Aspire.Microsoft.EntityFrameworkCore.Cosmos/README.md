@@ -1,6 +1,6 @@
 # Aspire.Microsoft.EntityFrameworkCore.Cosmos library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to Azure Cosmos DB. Enables connection pooling, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to Azure Cosmos DB. Enables connection pooling, logging and telemetry.
 
 ## Getting started
 

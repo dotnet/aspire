@@ -427,6 +427,42 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
+    public async Task AzureContainerAppsBicepGenerationIsIdempotent()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var secret = builder.AddParameter("secret", secret: true);
+        var kv = builder.AddAzureKeyVault("kv");
+
+        builder.AddContainer("api", "myimage")
+               .WithEnvironment("TOP_SECRET", secret)
+                .WithEnvironment("TOP_SECRET2", kv.Resource.GetSecret("secret"));
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        _ = await GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
+    }
+
+    [Fact]
     public async Task AzureContainerAppsMapsPortsForBaitAndSwitchResources()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

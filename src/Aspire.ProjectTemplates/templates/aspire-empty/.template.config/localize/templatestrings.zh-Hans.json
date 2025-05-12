@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 空应用",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "一个用于创建空 .NET Aspire 应用的项目模板。",
   "symbols/Framework/description": "项目的目标框架。",
   "symbols/Framework/choices/net8.0/description": "目标 net8.0",
   "symbols/Framework/choices/net9.0/description": "目标 net9.0",

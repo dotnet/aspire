@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Host dell'app .NET Aspire",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": "Modello di progetto per la creazione di un progetto host dell'app .NET Aspire (agente di orchestrazione).",
   "symbols/Framework/description": "Il framework di destinazione per il progetto.",
   "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
   "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",
