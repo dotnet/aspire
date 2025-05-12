@@ -8,7 +8,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureSqlExtensionsTests(ITestOutputHelper output)
+public class AzureSqlExtensionsTests()
 {
     [Theory]
     // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
@@ -21,8 +21,14 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         var sql = builder.AddAzureSqlServer("sql");
 
+        // database name same as the aspire resource name, free tier 
         sql.AddDatabase("db1");
+
+        // set the database name, free tier 
         sql.AddDatabase("db2", "db2Name");
+
+        // do not set any sku, use whatever is the default for Azure at that time
+        sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
 
         if (useAcaInfrastructure)
         {
@@ -39,112 +45,17 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource, skipPreparer: true);
 
-        var principalTypeParam = "";
-        if (!publishMode)
-        {
-            principalTypeParam = """
-                ,
-                    "principalType": ""
-                """;
-        }
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
               "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""{{principalTypeParam}}
-              }
+              "path": "sql.module.bicep"
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString(), ignoreLineEndingDifferences: true);
 
-        var allowAllIpsFirewall = "";
-        var bicepPrincipalTypeParam = "";
-        var bicepPrincipalTypeSetter = "";
-        if (!publishMode)
-        {
-            allowAllIpsFirewall = """
-
-                resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-                  name: 'AllowAllIps'
-                  properties: {
-                    endIpAddress: '255.255.255.255'
-                    startIpAddress: '0.0.0.0'
-                  }
-                  parent: sql
-                }
-                
-                """;
-
-            bicepPrincipalTypeParam = """
-                
-                param principalType string
-                
-                """;
-
-            bicepPrincipalTypeSetter = """
-
-                      principalType: principalType
-                """;
-        }
-
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalName string
-            {{bicepPrincipalTypeParam}}
-            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'{{bicepPrincipalTypeSetter}}
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-                minimalTlsVersion: '1.2'
-                publicNetworkAccess: 'Enabled'
-                version: '12.0'
-              }
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sql
-            }
-            {{allowAllIpsFirewall}}
-            resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db1'
-              location: location
-              parent: sql
-            }
-
-            resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db2Name'
-              location: location
-              parent: sql
-            }
-
-            output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
-
-            output name string = sql.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory();
     }
 
     [Theory]
@@ -158,11 +69,13 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
         sql.RunAsContainer(c =>
         {
@@ -173,6 +86,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
@@ -187,6 +101,10 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db3ConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
     }
 
     [Theory]
@@ -198,12 +116,16 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         var sql = builder.AddAzureSqlServer("sql");
         var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         IResourceBuilder<SqlServerServerResource>? innerSql = null;
@@ -221,6 +143,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
@@ -241,6 +164,9 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
     }
 
     [Theory]
@@ -299,7 +225,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
         Assert.Single(dbAnnotations);
-    }
+    }   
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {
@@ -307,5 +233,5 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
-    }
+    }    
 }

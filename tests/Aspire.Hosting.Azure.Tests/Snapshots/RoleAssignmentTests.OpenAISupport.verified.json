@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-openai.module.bicep",
+  "params": {
+    "openai_outputs_name": "{openai.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

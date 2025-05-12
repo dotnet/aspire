@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>

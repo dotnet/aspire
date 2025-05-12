@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -55,11 +54,97 @@ public class ApplicationOrchestratorTests
             }
         });
 
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, parentResource.Resource, parentResource.Resource.Name));
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
         await watchResourceTask.DefaultTimeout();
 
         Assert.Equal(parentResourceId, childParentResourceId);
+    }
+
+    [Fact]
+    public async Task ParentAnnotationOnChildResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddResource(new CustomResource("parent"));
+        var childResource = builder.AddResource(new CustomResource("child"))
+            .WithParentRelationship(parentResource);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parentResource.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == childResource.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+    }
+
+    [Fact]
+    public async Task InitializeResourceEventPublished()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var resource = builder.AddResource(new CustomResource("resource"));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var applicationEventing = new DistributedApplicationEventing();
+
+        var initResourceTcs = new TaskCompletionSource();
+        InitializeResourceEvent? initEvent = null;
+        applicationEventing.Subscribe<InitializeResourceEvent>(resource.Resource, (@event, ct) =>
+        {
+            initEvent = @event;
+            initResourceTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events, applicationEventing: applicationEventing);
+        await appOrchestrator.RunApplicationAsync();
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await initResourceTcs.Task.DefaultTimeout();
+
+        Assert.True(initResourceTcs.Task.IsCompletedSuccessfully);
+        Assert.NotNull(initEvent);
+        Assert.NotNull(initEvent.Logger);
+        Assert.NotNull(initEvent.Services);
+        Assert.Equal(resource.Resource, initEvent.Resource);
+        Assert.Equal(resourceNotificationService, initEvent.Notifications);
+        Assert.Equal(applicationEventing, initEvent.Eventing);
     }
 
     [Fact]
@@ -116,7 +201,7 @@ public class ApplicationOrchestratorTests
             }
         });
 
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, parent.Resource, parent.Resource.Name));
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
         await watchResourceTask.DefaultTimeout();
 
@@ -176,8 +261,7 @@ public class ApplicationOrchestratorTests
             }
         });
 
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, firstParent.Resource, firstParent.Resource.Name));
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, secondParent.Resource, secondParent.Resource.Name));
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
         await watchResourceTask.DefaultTimeout();
 
@@ -224,8 +308,7 @@ public class ApplicationOrchestratorTests
             }
         });
 
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, projectA.Resource, projectA.Resource.Name));
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, projectB.Resource, projectB.Resource.Name));
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
         await watchResourceTask.DefaultTimeout();
 
@@ -314,7 +397,7 @@ public class ApplicationOrchestratorTests
             distributedAppModel,
             new TestDcpExecutor(),
             dcpEvents ?? new DcpExecutorEvents(),
-            Array.Empty<IDistributedApplicationLifecycleHook>(),
+            [],
             notificationService,
             resourceLoggerService ?? new ResourceLoggerService(),
             applicationEventing ?? new DistributedApplicationEventing(),
@@ -323,6 +406,8 @@ public class ApplicationOrchestratorTests
                 new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
             );
     }
+
+    private sealed class CustomResource(string name) : Resource(name);
 
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent
     {

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire-Starter-App",
-  "description": "Eine vollständige Webanwendungseinrichtung: Frontend, Backend und optionale Caching für schnellere Antworten.",
+  "description": "Eine Projektvorlage zum Erstellen einer .NET Aspire-App mit einem Blazor-Web-Front-End und einem Web-API-Back-End-Dienst, die optional Redis zum Zwischenspeichern verwendet.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",

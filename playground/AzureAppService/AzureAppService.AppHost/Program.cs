@@ -6,7 +6,7 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAppServiceEnvironment("infra");
+builder.AddAzureAppServiceEnvironment("infra");
 
 // Testing secret parameters
 var param = builder.AddParameter("secretparam", "fakeSecret", secret: true);

@@ -122,17 +122,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "inspect" => DistributedApplicationOperation.Inspect,
             "run" => DistributedApplicationOperation.Run,
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
-            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
     }
 
@@ -397,15 +395,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
             if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
             {
-                return firstDashboardUrl;
+                // Health checks to the dashboard should go to the /health endpoint. This endpoint allows anonymous requests.
+                // Sending a request to other dashboard endpoints triggered auth, which the request fails, and is redirected to the login page.
+                var uriBuilder = new UriBuilder(firstDashboardUrl);
+                uriBuilder.Path = "/health";
+                return uriBuilder.Uri;
             }
             else
             {
                 throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
             }
-        }, KnownHealthCheckNames.DasboardHealthCheck);
+        }, KnownHealthCheckNames.DashboardHealthCheck);
 
-        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DasboardHealthCheck);
+        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DashboardHealthCheck);
     }
 
     private void ConfigureHealthChecks()

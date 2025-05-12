@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplicación de inicio de .NET Aspire",
-  "description": "Una configuración completa de la aplicación web: front-end, back-end y almacenamiento en caché opcional para obtener respuestas más rápidas.",
+  "description": "Una plantilla de proyecto para crear una aplicación de .NET Aspire con un front-end web de Blazor y un servicio back-end de API web, opcionalmente mediante Redis para el almacenamiento en caché.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",

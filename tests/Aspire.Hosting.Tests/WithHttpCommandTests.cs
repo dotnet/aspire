@@ -33,6 +33,50 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointByNameIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", endpointName: "nonhttp");
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", () => container.GetEndpoint("nonhttp"));
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
         // Arrange

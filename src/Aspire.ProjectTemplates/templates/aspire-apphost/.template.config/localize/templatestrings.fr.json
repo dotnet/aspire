@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Hôte de l’application .NET Aspire",
-  "description": "Gère et exécute plusieurs services dans votre application .NET Aspire à partir d’un seul endroit.",
+  "description": "Un modèle de projet pour créer un projet hôte d'application (orchestrateur) .NET Aspire.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",

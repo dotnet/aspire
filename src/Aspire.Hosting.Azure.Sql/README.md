@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Sql library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL Server.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL DB.
 
 ## Getting started
 
@@ -52,6 +52,37 @@ The `WithReference` method configures a connection in the `MyService` project na
 
 ```csharp
 builder.AddSqlServerClient("sqldata");
+```
+
+## Azure SQL DB defaults
+
+Unless otherwise specified, the Azure SQL DB created will be a 2vCores General Purpose Serverless database (GP_S_Gen5_2) with the free offer enabled.
+
+Read more about the free offer here: [Deploy Azure SQL Database for free](https://learn.microsoft.com/azure/azure-sql/database/free-offer?view=azuresql)
+
+The free offer is configured so that when the maximum usage limit is reached, the database is stopped to avoid incurring in unexpected costs.
+
+If you **don't want to use the free offer** and instead deploy the database use the default sku set by Azure, use the `WithAzureDefaultSku` method:
+
+```csharp
+var sql = builder.AddAzureSqlServer("sql")
+                 .AddDatabase("db", "my-db-name")
+                 .WithAzureDefaultSku();
+```
+
+## Setting a specific SKU
+
+If you want to manually define what SKU must be used when deploying the Azure SQL DB resource, use the `ConfigureInfrastructure` method:
+
+```csharp
+var sqlSrv = builder.AddAzureSqlServer("sqlsrv")
+    .ConfigureInfrastructure(infra => {
+        var azureResources = infra.GetProvisionableResources();
+        var azureDb = azureResources.OfType<SqlDatabase>().Single();
+        azureDb.Sku = new SqlSku() { Name = "HS_Gen5_2" };
+    })
+    .AddDatabase("sqldb", "DatabaseName");
+    .RunAsContainer();
 ```
 
 ## Additional documentation

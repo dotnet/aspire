@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
-using System.Text.RegularExpressions;
 using Aspire.Azure.Common;
 
 namespace Aspire.Azure.Storage.Blobs;

@@ -92,6 +92,11 @@
         <target state="translated">属性の表示</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">{0} で一時停止されたメトリック キャプチャ</target>
+        <note>{0} is a time</note>
+      </trans-unit>
     </body>
   </file>
 </xliff>

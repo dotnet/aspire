@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 시작 앱",
-  "description": "프런트엔드, 백엔드 및 선택적 캐싱을 포함한 완전한 웹앱 설정으로, 더 빠른 응답을 제공합니다.",
+  "description": "필요에 따라 캐싱에 Redis를 사용하여 Blazor 웹 프런트 엔드와 웹 API 백 엔드 서비스로 .NET Aspire 앱을 만들기 위한 프로젝트 템플릿입니다.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",

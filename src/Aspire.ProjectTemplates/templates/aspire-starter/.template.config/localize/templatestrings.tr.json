@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Starter Uygulaması",
-  "description": "Bir web uygulamasının eksiksiz kurulumu: ön uç, arka uç ve daha hızlı yanıtlar için isteğe bağlı önbelleğe alma.",
+  "description": "Blazor web ön ucu ve web API'si arka uç hizmetiyle ve önbelleğe alırken isteğe bağlı olarak Redis'i kullanarak bir .NET Aspire uygulaması oluşturmak için proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

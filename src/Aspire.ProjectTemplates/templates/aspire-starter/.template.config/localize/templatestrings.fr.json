@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Application de démarrage .NET Aspire",
-  "description": "Configuration complète d’une application web : front-end, back-end et mise en cache optionnelle pour des réponses plus rapides.",
+  "description": "Un modèle de projet pour créer une application .NET Aspire avec une interface web Blazor front-end et un service backend d’API web, en utilisant éventuellement Redis pour la mise en cache.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",

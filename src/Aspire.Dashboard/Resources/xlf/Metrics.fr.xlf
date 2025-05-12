@@ -92,6 +92,11 @@
         <target state="translated">Afficher les attributs</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">Capture des métriques suspendue à {0}</target>
+        <note>{0} is a time</note>
+      </trans-unit>
     </body>
   </file>
 </xliff>

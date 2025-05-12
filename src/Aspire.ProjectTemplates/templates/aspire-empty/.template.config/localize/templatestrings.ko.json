@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 빈 앱",
-  "description": "사전 설정된 서비스를 사용하지 않고 클라우드 네이티브 시스템을 구축하세요.",
+  "description": "빈 .NET Aspire 앱을 만들기 위한 프로젝트 템플릿입니다.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
