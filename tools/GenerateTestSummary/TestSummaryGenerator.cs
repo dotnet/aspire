@@ -26,7 +26,7 @@ sealed partial class TestSummaryGenerator
         tableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total |");
         tableBuilder.AppendLine("|------|--------|--------|---------|-------|");
 
-        var trxFiles = System.IO.Directory.EnumerateFiles(basePath, "*.trx", System.IO.SearchOption.AllDirectories);
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", System.IO.SearchOption.AllDirectories);
         foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
         {
             TestRun? testRun;
