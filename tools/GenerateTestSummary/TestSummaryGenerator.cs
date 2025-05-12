@@ -84,7 +84,7 @@ sealed partial class TestSummaryGenerator
         return overallTableBuilder.ToString();
     }
 
-    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url = null)
+    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url)
     {
         if (!File.Exists(trxFilePath))
         {
@@ -109,6 +109,7 @@ sealed partial class TestSummaryGenerator
         var failed = counters.Failed;
         if (failed == 0)
         {
+            Console.WriteLine($"No failed tests in {trxFilePath}");
             return;
         }
 
@@ -116,7 +117,11 @@ sealed partial class TestSummaryGenerator
         var passed = counters.Passed;
         var skipped = counters.NotExecuted;
 
-        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {GetTestTitle(trxFilePath)}");
+        var title = string.IsNullOrEmpty(url)
+            ? GetTestTitle(trxFilePath)
+            : $"{GetTestTitle(trxFilePath)} (<a href=\"{url}\">Logs</a>)";
+
+        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {title}");
         reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
         reportBuilder.AppendLine("|--------|--------|---------|-------|");
         reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
@@ -124,6 +129,7 @@ sealed partial class TestSummaryGenerator
         reportBuilder.AppendLine();
         if (testRun.Results?.UnitTestResults is null)
         {
+            System.Console.WriteLine($"Could not find any UnitTestResult entries in {trxFilePath}");
             return;
         }
 
@@ -132,18 +138,20 @@ sealed partial class TestSummaryGenerator
         {
             foreach (var test in failedTests)
             {
-                var title = string.IsNullOrEmpty(url)
-                                ? $"🔴 <b>{test.TestName}</b>"
-                                : $"🔴 <a href=\"{url}\">{test.TestName}</a>";
-
                 reportBuilder.AppendLine("<div>");
                 reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
-                    <details><summary>{title}</summary>
+                    <details><summary>🔴 <b>{test.TestName}</b></summary>
+
                 """);
 
                 var errorMsgBuilder = new StringBuilder();
                 errorMsgBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
-                errorMsgBuilder.AppendLine(test.Output?.StdOut ?? string.Empty);
+                if (test.Output?.StdOut is not null)
+                {
+                    errorMsgBuilder.AppendLine();
+                    errorMsgBuilder.AppendLine("### StdOut");
+                    errorMsgBuilder.AppendLine(test.Output.StdOut);
+                }
 
                 // Truncate long error messages for readability
                 var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000);

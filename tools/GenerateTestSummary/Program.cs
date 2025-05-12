@@ -27,11 +27,18 @@ rootCommand.SetAction(result =>
     var dirPathOrTrxFilePath = result.GetValue<string>(dirPathOrTrxFilePathArgument);
     if (string.IsNullOrEmpty(dirPathOrTrxFilePath))
     {
-        Console.WriteLine("Please provide a directory path with trx files or a trx file path.");
+        Console.WriteLine("Error: Please provide a directory path with trx files or a trx file path.");
         return;
     }
 
     var combinedSummary = result.GetValue<bool>(combinedSummaryOption);
+    var url = result.GetValue<string>(urlOption);
+
+    if (combinedSummary && !string.IsNullOrEmpty(url))
+    {
+        Console.WriteLine("Error: --url option is not supported with --combined option.");
+        return;
+    }
 
     string report;
     if (combinedSummary)
@@ -44,14 +51,21 @@ rootCommand.SetAction(result =>
         if (Directory.Exists(dirPathOrTrxFilePath))
         {
             var trxFiles = Directory.EnumerateFiles(dirPathOrTrxFilePath, "*.trx", SearchOption.AllDirectories);
-            foreach (var trxFile in trxFiles)
+            if (!trxFiles.Any())
             {
-                TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder);
+                Console.WriteLine($"Warning: No trx files found in directory: {dirPathOrTrxFilePath}");
+            }
+            else
+            {
+                foreach (var trxFile in trxFiles)
+                {
+                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url);
+                }
             }
         }
         else
         {
-            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, result.GetValue<string>(urlOption));
+            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url);
         }
 
         report = reportBuilder.ToString();
@@ -73,12 +87,11 @@ rootCommand.SetAction(result =>
     if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"
         && Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is string summaryPath)
     {
+        Console.WriteLine($"Detected GitHub Actions environment. Writing to {summaryPath}");
         File.WriteAllText(summaryPath, report);
     }
-    else
-    {
-        Console.WriteLine(report);
-    }
+
+    Console.WriteLine(report);
 });
 
 return rootCommand.Parse(args).Invoke();
