@@ -181,6 +181,14 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Metric names:
   - none
 
+Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
+- Log categories:
+  "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh"
+- Activity source names:
+  - none
+- Metric names:
+  - none
+
 Aspire.Milvus.Client:
 - Log categories:
   "Milvus.Client"
