@@ -8,9 +8,9 @@ In typical systems, service configuration changes over time. Service discovery a
 
 Service discovery uses configured _providers_ to resolve service endpoints. When service endpoints are resolved, each registered provider is called in the order of registration to contribute to a collection of service endpoints (an instance of `ServiceEndpointSource`).
 
-Providers implement the `IServiceEndpointProvider` interface. They are created by an instance of `IServiceEndpointProviderProvider`, which are registered with the [.NET dependency injection](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection) system.
+Providers implement the `IServiceEndpointProvider` interface. They are created by an instance of `IServiceEndpointProviderProvider`, which are registered with the [.NET dependency injection](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection) system.
 
-Developers typically add service discovery to their [`HttpClient`](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient) using the [`IHttpClientFactory`](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory) with the `AddServiceDiscovery` extension method.
+Developers typically add service discovery to their [`HttpClient`](https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient) using the [`IHttpClientFactory`](https://learn.microsoft.com/dotnet/core/extensions/httpclient-factory) with the `AddServiceDiscovery` extension method.
 
 Services can be resolved directly by calling `ServiceEndpointResolver`'s `GetEndpointsAsync` method, which returns a collection of resolved endpoints.
 
