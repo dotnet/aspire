@@ -77,8 +77,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "YOUR_URI"}}}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)
