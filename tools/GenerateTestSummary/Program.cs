@@ -50,8 +50,8 @@ rootCommand.SetAction(result =>
         var reportBuilder = new StringBuilder();
         if (Directory.Exists(dirPathOrTrxFilePath))
         {
-            var trxFiles = Directory.EnumerateFiles(dirPathOrTrxFilePath, "*.trx", SearchOption.AllDirectories);
-            if (!trxFiles.Any())
+            var trxFiles = Directory.EnumerateFiles(dirPathOrTrxFilePath, "*.trx", SearchOption.AllDirectories).ToList();
+            if (trxFiles.Count == 0)
             {
                 Console.WriteLine($"Warning: No trx files found in directory: {dirPathOrTrxFilePath}");
             }
