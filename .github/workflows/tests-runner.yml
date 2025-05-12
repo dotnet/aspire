@@ -120,7 +120,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
-      - name: Test ${{ matrix.tests.project }}
+      - name: Test ${{ matrix.tests.label }}
         env:
           CI: false
         run: |
@@ -184,7 +184,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y azure-functions-core-tools-4
 
-      - name: Test ${{ matrix.tests.project }}
+      - name: Test ${{ matrix.tests.label }}
         env:
           CI: false
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Release/Shipping
