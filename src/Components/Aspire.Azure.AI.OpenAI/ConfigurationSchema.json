@@ -67,6 +67,10 @@
                           },
                           "description": "The options to be used to configure logging within the 'System.ClientModel.Primitives.ClientPipeline'."
                         },
+                        "EnableDistributedTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets whether distributed tracing should be enabled. If null, this value will be treated as true. The default is null."
+                        },
                         "NetworkTimeout": {
                           "type": "string",
                           "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",

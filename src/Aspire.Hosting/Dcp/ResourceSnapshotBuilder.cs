@@ -24,9 +24,7 @@ internal class ResourceSnapshotBuilder
         var volumes = GetVolumes(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
-#pragma warning disable CS0618 // Type or member is obsolete
-        var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
-#pragma warning restore CS0618 // Type or member is obsolete
+        var state = container.Status?.State;
 
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
 

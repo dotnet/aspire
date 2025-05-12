@@ -20,6 +20,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(ProjectNames_TestData))]
+    [Trait("category", "basic-build")]
     public async Task TemplatesForIndividualTestFrameworks(string prefix)
     {
         var id = $"{prefix}-{_testTemplateName}";
@@ -32,7 +33,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : TemplateTestsBase
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        if (PlaywrightProvider.HasPlaywrightSupport && RequiresSSLCertificateAttribute.IsSupported)
+        if (BuildEnvironment.ShouldRunPlaywrightTests && RequiresSSLCertificateAttribute.IsSupported)
         {
             await using (var context = await CreateNewBrowserContextAsync())
             {

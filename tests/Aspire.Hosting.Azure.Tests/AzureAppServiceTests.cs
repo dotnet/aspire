@@ -19,7 +19,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAppServiceEnvironment("env");
+        var env = builder.AddAzureAppServiceEnvironment("env");
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
@@ -47,28 +47,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "api.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "api_containerimage": "{api.containerImage}",
-            "api_containerport": "{api.containerPort}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -76,7 +57,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         using var app = builder.Build();
 
@@ -88,23 +69,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "env.module.bicep",
-          "params": {
-            "userPrincipalId": ""
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -112,7 +79,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
@@ -136,30 +103,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
-
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "api.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "api_containerimage": "{api.containerImage}",
-            "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
-            "api_identity_outputs_id": "{api-identity.outputs.id}",
-            "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
-          }
-        }
-        """;
-
-        Assert.Equal(expectedManifest, m);
-
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -167,7 +113,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAppServiceEnvironment("env");
+        builder.AddAzureAppServiceEnvironment("env");
 
         // Add 2 projects with endpoints
         var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
@@ -193,28 +139,35 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        var m = manifest.ToString();
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .UseHelixAwareDirectory();
+    }
 
-        var expectedManifest =
-        """
-        {
-          "type": "azure.bicep.v0",
-          "path": "project2.module.bicep",
-          "params": {
-            "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
-            "env_outputs_planid": "{env.outputs.planId}",
-            "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
-            "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-            "project2_containerimage": "{project2.containerImage}",
-            "project2_containerport": "{project2.containerPort}"
-          }
-        }
-        """;
+    [Fact]
+    public async Task AzureAppServiceDoesNotSupportBaitAndSwitchResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        Assert.Equal(expectedManifest, m);
+        builder.AddAzureAppServiceEnvironment("env");
 
-        await Verifier.Verify(bicep, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.Null(resource);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
@@ -222,6 +175,6 @@ public class AzureAppServiceTests
 
     private sealed class Project : IProjectMetadata
     {
-        public string ProjectPath => "project";
+        public string ProjectPath => "/foo/bar/project.csproj";
     }
 }

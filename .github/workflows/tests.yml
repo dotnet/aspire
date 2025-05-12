@@ -7,9 +7,14 @@ on:
       - main
       - 'release/**'
 
+  push:
+    branches:
+      - main
+      - 'release/**'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # Duplicated jobs so their dependencies are not blocked on both the

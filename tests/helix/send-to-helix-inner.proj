@@ -83,6 +83,8 @@
 
   <ItemGroup>
     <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Azure.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Docker.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Kubernetes.Tests/Snapshots" Destination="Snapshots" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">
@@ -150,6 +152,9 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
+
+    <!-- Force container runtime to Docker since that's what is installed on Helix -->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DOTNET_ASPIRE_CONTAINER_RUNTIME=docker" />
 
     <!-- Set the DCP env -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />

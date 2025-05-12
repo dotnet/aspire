@@ -205,7 +205,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
-        var containerImage = AllocateParameter(ResourceExpression.GetContainerImageExpression(Resource));
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
         var webSite = new WebSite("webapp")
         {
@@ -305,7 +305,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.azurewebsites.net"),
             EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
             EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
-            EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(ResourceExpression.GetContainerPortExpression(Resource)),
+            EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
             EndpointProperty.Scheme => mapping.Scheme,
             EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
             EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
@@ -324,17 +324,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, SecretType secretType = SecretType.None)
     {
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
-    }
-
-    private sealed class ResourceExpression(IResource resource, string propertyExpression) : IManifestExpressionProvider
-    {
-        public string ValueExpression => $"{{{resource.Name}.{propertyExpression}}}";
-
-        public static IManifestExpressionProvider GetContainerImageExpression(IResource p) =>
-            new ResourceExpression(p, "containerImage");
-
-        public static IManifestExpressionProvider GetContainerPortExpression(IResource p) =>
-            new ResourceExpression(p, "containerPort");
     }
 
     enum SecretType

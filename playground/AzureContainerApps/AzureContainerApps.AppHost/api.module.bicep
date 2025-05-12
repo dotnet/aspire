@@ -65,7 +65,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: api_containerport
+        targetPort: int(api_containerport)
         transport: 'http'
         customDomains: [
           {

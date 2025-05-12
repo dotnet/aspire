@@ -3,11 +3,11 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using HealthChecks.Uris;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -282,6 +282,22 @@ public static class ResourceBuilderExtensions
 
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Registers an async callback which is invoked when publishing is performed for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        // You can only ever have one publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new PublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -1242,32 +1258,64 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        endpointName = endpointName ?? "http";
-        return builder.WithHttpHealthCheckInternal(
-            path: path,
-            desiredScheme: "http",
-            endpointName: endpointName,
-            statusCode: statusCode
-            );
+        var endpointSelector = endpointName is not null
+            ? NamedEndpointSelector(builder, [endpointName], "HTTP health check")
+            : NamedEndpointSelector(builder, s_httpSchemes, "HTTP health check");
+
+        return WithHttpHealthCheck(builder, endpointSelector, path, statusCode);
     }
 
-    internal static IResourceBuilder<T> WithHttpHealthCheckInternal<T>(this IResourceBuilder<T> builder, string desiredScheme, string endpointName, string? path = null, int? statusCode = null) where T : IResourceWithEndpoints
+    /// <summary>
+    /// Adds a health check to the resource which is mapped to a specific endpoint.
+    /// </summary>
+    /// <typeparam name="T">A resource type that implements <see cref="IResourceWithEndpoints" />.</typeparam>
+    /// <param name="builder">A resource builder.</param>
+    /// <param name="endpointSelector"></param>
+    /// <param name="path">The relative path to test.</param>
+    /// <param name="statusCode">The result code to interpret as healthy.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method adds a health check to the health check service which polls the specified endpoint on a periodic basis.
+    /// The base address is dynamically determined based on the endpoint that was selected. By default the path is set to "/"
+    /// and the status code is set to 200.
+    /// </para>
+    /// <example>
+    /// This example shows adding an HTTP health check to a backend project.
+    /// The health check makes sure that the front end does not start until the backend is
+    /// reporting a healthy status based on the return code returned from the
+    /// "/health" path on the backend server.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    /// backend.WithHttpHealthCheck(() => backend.GetEndpoint("https"), path: "/health")
+    /// builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///        .WithReference(backend).WaitFor(backend);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, Func<EndpointReference>? endpointSelector, string? path = null, int? statusCode = null) where T : IResourceWithEndpoints
     {
-        path = path ?? "/";
-        statusCode = statusCode ?? 200;
+        endpointSelector ??= DefaultEndpointSelector(builder);
 
-        var endpoint = builder.Resource.GetEndpoint(endpointName);
+        var endpoint = endpointSelector()
+            ?? throw new DistributedApplicationException($"Could not create HTTP health check for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+
+        if (endpoint.Scheme != "http" && endpoint.Scheme != "https")
+        {
+            throw new DistributedApplicationException($"Could not create HTTP health check for resource '{builder.Resource.Name}' as the endpoint with name '{endpoint.EndpointName}' and scheme '{endpoint.Scheme}' is not an HTTP endpoint.");
+        }
+
+        path ??= "/";
+        statusCode ??= 200;
+
+        var endpointName = endpoint.EndpointName;
 
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((@event, ct) =>
         {
             if (!endpoint.Exists)
             {
                 throw new DistributedApplicationException($"The endpoint '{endpointName}' does not exist on the resource '{builder.Resource.Name}'.");
-            }
-
-            if (endpoint.Scheme != desiredScheme)
-            {
-                throw new DistributedApplicationException($"The endpoint '{endpointName}' on resource '{builder.Resource.Name}' was not using the '{desiredScheme}' scheme.");
             }
 
             return Task.CompletedTask;
@@ -1285,7 +1333,7 @@ public static class ResourceBuilderExtensions
 
         builder.ApplicationBuilder.Services.SuppressHealthCheckHttpClientLogging(healthCheckKey);
 
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup((UriHealthCheckOptions options) =>
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
         {
             if (uri is null)
             {
@@ -1329,16 +1377,12 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the WithHttpHealthCheck method instead.")]
     public static IResourceBuilder<T> WithHttpsHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        endpointName = endpointName ?? "https";
-        return builder.WithHttpHealthCheckInternal(
-            path: path,
-            desiredScheme: "https",
-            endpointName: endpointName,
-            statusCode: statusCode);
+        return builder.WithHttpHealthCheck(path, statusCode, endpointName ?? "https");
     }
 
     /// <summary>
@@ -1359,6 +1403,7 @@ public static class ResourceBuilderExtensions
     /// and can be executed by a user using the dashboard UI.</para>
     /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
     /// </remarks>
+    [OverloadResolutionPriority(1)]
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
         string name,
@@ -1533,8 +1578,8 @@ public static class ResourceBuilderExtensions
             path: path,
             displayName: displayName,
             endpointSelector: endpointName is not null
-                ? NamedEndpointSelector(builder, [endpointName])
-                : NamedEndpointSelector(builder, s_httpSchemes),
+                ? NamedEndpointSelector(builder, [endpointName], "HTTP command")
+                : NamedEndpointSelector(builder, s_httpSchemes, "HTTP command"),
             commandName: commandName,
             commandOptions: commandOptions);
 
@@ -1607,6 +1652,11 @@ public static class ResourceBuilderExtensions
 
         var endpoint = endpointSelector()
             ?? throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+
+        if (endpoint.Scheme != "http" && endpoint.Scheme != "https")
+        {
+            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint with name '{endpoint.EndpointName}' and scheme '{endpoint.Scheme}' is not an HTTP endpoint.");
+        }
 
         builder.ApplicationBuilder.Services.AddHttpClient();
 
@@ -1698,7 +1748,7 @@ public static class ResourceBuilderExtensions
     // if found.
     private static readonly string[] s_httpSchemes = ["https", "http"];
 
-    private static Func<EndpointReference> NamedEndpointSelector<TResource>(IResourceBuilder<TResource> builder, string[] endpointNames)
+    private static Func<EndpointReference> NamedEndpointSelector<TResource>(IResourceBuilder<TResource> builder, string[] endpointNames, string errorDisplayNoun)
         where TResource : IResourceWithEndpoints
         => () =>
         {
@@ -1713,7 +1763,7 @@ public static class ResourceBuilderExtensions
                 {
                     if (!s_httpSchemes.Contains(matchingEndpoint.Scheme, StringComparers.EndpointAnnotationUriScheme))
                     {
-                        throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as the endpoint with name '{matchingEndpoint.EndpointName}' and scheme '{matchingEndpoint.Scheme}' is not an HTTP endpoint.");
+                        throw new DistributedApplicationException($"Could not create {errorDisplayNoun} for resource '{builder.Resource.Name}' as the endpoint with name '{matchingEndpoint.EndpointName}' and scheme '{matchingEndpoint.Scheme}' is not an HTTP endpoint.");
                     }
                     return matchingEndpoint;
                 }
@@ -1721,7 +1771,7 @@ public static class ResourceBuilderExtensions
 
             // No endpoint found with the specified names
             var endpointNamesString = string.Join(", ", endpointNames);
-            throw new DistributedApplicationException($"Could not create HTTP command for resource '{builder.Resource.Name}' as no endpoint was found matching one of the specified names: {endpointNamesString}");
+            throw new DistributedApplicationException($"Could not create {errorDisplayNoun} for resource '{builder.Resource.Name}' as no endpoint was found matching one of the specified names: {endpointNamesString}");
         };
 
     private static Func<EndpointReference> DefaultEndpointSelector<TResource>(IResourceBuilder<TResource> builder)
@@ -1941,7 +1991,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// This method allows associating a specific compute environment with the compute resource.
     /// </remarks>
-    [Experimental("ASPIRECOMPUTE001")]
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
         where T : IComputeResource
     {

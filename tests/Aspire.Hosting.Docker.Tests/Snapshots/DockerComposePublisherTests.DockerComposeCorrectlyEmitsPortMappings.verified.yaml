@@ -1,0 +1,13 @@
+﻿services:
+  resource:
+    image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      HTTP_PORT: "8000"
+    ports:
+      - "8001:8000"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
