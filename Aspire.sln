@@ -663,7 +663,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.AppConfiguration", "src\Components\Aspire.Azure.AppConfiguration\Aspire.Azure.AppConfiguration.csproj", "{C33CE874-27B7-4194-A2E7-D0CD950997CC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.AppConfiguration.Tests", "tests\Aspire.Azure.AppConfiguration.Tests\Aspire.Azure.AppConfiguration.Tests.csproj", "{FE972BF3-F448-4CF0-8544-0056B26BF006}"
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.ContainerRegistry", "src\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj", "{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}"
 EndProject
