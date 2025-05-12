@@ -508,7 +508,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 mySqlId2 = GetContainerId(resourceEvent);
             }
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-phpmyadmin", cts.Token);
+            resourceEvent = await rns.WaitForResourceHealthyAsync("phpmyadmin", cts.Token);
             var phpMyAdminId = GetContainerId(resourceEvent);
 
             await app.StopAsync(cts.Token).WaitAsync(cts.Token);

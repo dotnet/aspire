@@ -485,10 +485,10 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
             var postgresId = GetContainerId(resourceEvent);
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgweb", cts.Token);
+            resourceEvent = await rns.WaitForResourceHealthyAsync("pgweb", cts.Token);
             var pgWebId = GetContainerId(resourceEvent);
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("resource-pgadmin", cts.Token);
+            resourceEvent = await rns.WaitForResourceHealthyAsync("pgadmin", cts.Token);
             var pgadminId = GetContainerId(resourceEvent);
 
             await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);

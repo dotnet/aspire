@@ -425,7 +425,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
@@ -449,7 +449,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
@@ -470,7 +470,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
