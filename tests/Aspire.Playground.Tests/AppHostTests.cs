@@ -35,7 +35,7 @@ public class AppHostTests
     {
         var appHostType = testEndpoints.AppHostType!;
         var resourceEndpoints = testEndpoints.ResourceEndpoints!;
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostType, _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostType, _testOutput, testEndpoints.EnableParameterRandomisation);
         var projects = appHost.Resources.OfType<ProjectResource>();
         await using var app = await appHost.BuildAsync();
 
@@ -144,6 +144,7 @@ public class AppHostTests
             //    whenReady: TestEventHubsAppHost),
             new TestEndpoints(typeof(Projects.Redis_AppHost),
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set", "/valkey/ping", "/valkey/get", "/valkey/set"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("redis", "Ready to accept connections tcp"),
                     new ("valkey", "Ready to accept connections tcp"),
@@ -152,11 +153,13 @@ public class AppHostTests
                 ]),
             new TestEndpoints(typeof(Projects.AzureStorageEndToEnd_AppHost),
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("storage", "Azurite Table service is successfully listening")
                 ]),
             new TestEndpoints(typeof(Projects.MilvusPlayground_AppHost),
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
                 ]),
@@ -166,12 +169,14 @@ public class AppHostTests
             //    // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
             //    waitForTexts: [
             //        new ("cosmos", "Started$"),
-            //        new ("api", "Application started")
+            //        new("api", "Application started")
             //    ]),
             new TestEndpoints(typeof(Projects.Keycloak_AppHost),
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } },
+                enableParameterRandomisation: false),
             new TestEndpoints(typeof(Projects.Mongo_AppHost),
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("mongo", "Waiting for connections"),
                     new ("mongo-mongoexpress", "Mongo Express server listening"),
@@ -179,6 +184,7 @@ public class AppHostTests
                 ]),
             new TestEndpoints(typeof(Projects.MySqlDb_AppHost),
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("mysql", "ready for connections.* port: 33060"),
                     new ("apiservice", "Application started")
@@ -188,12 +194,14 @@ public class AppHostTests
                     { "api", ["/alive", "/health"] },
                     { "backend", ["/alive", "/health"] }
                 },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("nats", "Server is ready"),
                     new("api", "Application started")
                 ]),
             new TestEndpoints(typeof(Projects.ParameterEndToEnd_AppHost),
                 resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("sql", "SQL Server is now ready for client connections."),
                 ]),
@@ -202,6 +210,7 @@ public class AppHostTests
                     // Invoking "/" first as that *creates* the databases
                     { "api", ["/", "/alive", "/health"] }
                 },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("pg1", "PostgreSQL init process complete; ready for start up"),
                     new ("pg2", "PostgreSQL init process complete; ready for start up"),
@@ -213,6 +222,7 @@ public class AppHostTests
                 ]),
             new TestEndpoints(typeof(Projects.ProxylessEndToEnd_AppHost),
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("redis", "Ready to accept connections"),
                     new("api", "Application started"),
@@ -220,12 +230,14 @@ public class AppHostTests
                 ]),
             new TestEndpoints(typeof(Projects.Qdrant_AppHost),
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("qdrant", "Qdrant HTTP listening"),
                     new ("apiservice", "Application started")
                 ]),
             new TestEndpoints(typeof(Projects.Seq_AppHost),
                 resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("seq", "Seq listening"),
                     new ("api", "Application started")
@@ -233,6 +245,7 @@ public class AppHostTests
             // Invoke "/" first to create the databases
             new TestEndpoints(typeof(Projects.SqlServerEndToEnd_AppHost),
                 resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("sql1", "SQL Server is now ready for client connections"),
                     new ("sql2", "SQL Server is now ready for client connections"),
@@ -242,6 +255,7 @@ public class AppHostTests
                     { "catalogdbapp", ["/alive", "/health"] },
                     { "frontend", ["/alive", "/health"] }
                 },
+                enableParameterRandomisation: false,
                 waitForTexts: [
                     new ("messaging", "started TCP listener"),
                     new ("basketcache", "Ready to accept connections"),
@@ -279,14 +293,18 @@ public class TestEndpoints
 {
     public TestEndpoints(Type appHostType,
                          Dictionary<string, List<string>> resourceEndpoints,
+                         bool enableParameterRandomisation,
                          List<ReadyStateText>? waitForTexts = null)
     {
         AppHostType = appHostType;
         ResourceEndpoints = resourceEndpoints;
         WaitForTexts = waitForTexts;
+        EnableParameterRandomisation = enableParameterRandomisation;
     }
 
     public Type AppHostType { get; set; }
+
+    public bool EnableParameterRandomisation { get; set; }
 
     public List<ResourceWait>? WaitForResources { get; set; }
 
