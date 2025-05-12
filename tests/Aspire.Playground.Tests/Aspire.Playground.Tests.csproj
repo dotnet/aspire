@@ -22,10 +22,6 @@
      -->
     <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </TestRunnerPreCommand>
 
-    <!-- ignore exit code 8 (zero tests ran)
-         https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
-    <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --ignore-exit-code 8</TestRunnerAdditionalArguments>
-
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <TestArchiveTestsDir>$(TestArchiveTestsDirForBuildOnHelixTests)</TestArchiveTestsDir>
