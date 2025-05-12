@@ -122,140 +122,56 @@ internal sealed class PublishCommand : BaseCommand
 
             _interactionService.DisplayMessage($"hammer_and_wrench", $"Generating artifacts...");
             
-            var exitCode = await AnsiConsole.Progress()
-                .AutoRefresh(true)
-                .Columns(
-                    new TaskDescriptionColumn() { Alignment = Justify.Left },
-                    new ProgressBarColumn() { Width = 10 },
-                    new ElapsedTimeColumn())
-                .StartAsync(async context => {
+            var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
-                    using var generateArtifactsActivity = _activitySource.StartActivity(
-                        $"{nameof(ExecuteAsync)}-Action-GenerateArtifacts",
-                        ActivityKind.Internal);
-                    
-                    var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-
-                    var launchingAppHostTask = context.AddTask(":play_button:  Launching apphost");
-                    launchingAppHostTask.IsIndeterminate();
-                    launchingAppHostTask.StartTask();
-
-                    var publishRunOptions = new DotNetCliRunnerInvocationOptions
-                    {
-                        StandardOutputCallback = publishOutputCollector.AppendOutput,
-                        StandardErrorCallback = publishOutputCollector.AppendError,
-                        NoLaunchProfile = true
-                    };
-
-                    var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
-
-                    var pendingRun = _runner.RunAsync(
-                        effectiveAppHostProjectFile,
-                        false,
-                        true,
-                        ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens],
-                        env,
-                        backchannelCompletionSource,
-                        publishRunOptions,
-                        cancellationToken);
-
-                    ProgressTask? attachDebuggerTask = null;
-                    if (waitForDebugger)
-                    {
-                        attachDebuggerTask = context.AddTask($":bug:  Waiting for debugger to attach to app host process");
-                        attachDebuggerTask.IsIndeterminate();
-                        attachDebuggerTask.StartTask();
-                    }
-
-                    var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
-
-                    if (attachDebuggerTask is not null)
-                    {
-                        attachDebuggerTask.Description = $":check_mark:  Debugger attached (or timed out)";
-                        attachDebuggerTask.Value = 100;
-                        attachDebuggerTask.StopTask();
-                    }
-
-                    launchingAppHostTask.Description = $":check_mark:  Launching apphost";
-                    launchingAppHostTask.Value = 100;
-                    launchingAppHostTask.StopTask();
-
-                    var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-
-                    var progressTasks = new Dictionary<string, ProgressTask>();
-
-                    await foreach (var publishingActivity in publishingActivities)
-                    {
-                        if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
-                        {
-                            progressTask = context.AddTask(publishingActivity.Id);
-                            progressTask.StartTask();
-                            progressTask.IsIndeterminate();
-                            progressTasks.Add(publishingActivity.Id, progressTask);
-                        }
-
-                        progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
-
-                        if (publishingActivity.IsComplete && !publishingActivity.IsError)
-                        {
-                            progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
-                            progressTask.Value = 100;
-                            progressTask.StopTask();
-                        }
-                        else if (publishingActivity.IsError)
-                        {
-                            progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
-                            progressTask.Value = 0;
-                            break;
-                        }
-                        else
-                        {
-                            // Keep going man!
-                        }
-                    }
-
-                    // When we are running in publish mode we don't want the app host to
-                    // stop itself while we might still be streaming data back across
-                    // the RPC backchannel. So we need to take responsibility for stopping
-                    // the app host. If the CLI exits/crashes without explicitly stopping
-                    // the app host the orphan detector in the app host will kick in.
-                    if (progressTasks.Any(kvp => !kvp.Value.IsFinished))
-                    {
-                        // Depending on the failure the publisher may return a zero
-                        // exit code.
-                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                        var exitCode = await pendingRun;
-
-                        // If we are in the state where we've detected an error because there
-                        // is an incomplete task then we stop the app host, but depending on
-                        // where/how the failure occured, we might still get a zero exit
-                        // code. If we get a non-zero exit code we want to return that
-                        // as it might be useful for diagnostic purposes, however if we don't
-                        // get a non-zero exit code we want to return our built-in exit code
-                        // for failed artifact build.
-                        return exitCode == 0 ? ExitCodeConstants.FailedToBuildArtifacts : exitCode;
-                    }
-                    else
-                    {
-                        // If we are here then all the tasks are finished and we can
-                        // stop the app host.
-                        await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
-                        var exitCode = await pendingRun;
-                        return exitCode; // should be zero for orderly shutdown but we pass it along anyway.
-                    }
-                });
-
-            if (exitCode != 0)
+            var publishRunOptions = new DotNetCliRunnerInvocationOptions
             {
-                _interactionService.DisplayLines(publishOutputCollector.GetLines());
-                _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                StandardOutputCallback = publishOutputCollector.AppendOutput,
+                StandardErrorCallback = publishOutputCollector.AppendError,
+                NoLaunchProfile = true
+            };
+
+            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
+            var pendingRun = _runner.RunAsync(
+                effectiveAppHostProjectFile,
+                false,
+                true,
+                ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens],
+                env,
+                backchannelCompletionSource,
+                publishRunOptions,
+                cancellationToken);
+
+            // If we use the --wait-for-debugger option we print out the process ID
+            // of the apphost so that the user can attach to it.
+            if (waitForDebugger)
+            {
+                _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
             }
-            else
+
+            var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+            var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
+
+            var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+
+            var noFailuresReported = debugMode switch {
+                true => await ProcessPublishingActivitiesAsync(publishingActivities, cancellationToken),
+                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, cancellationToken),
+            };
+
+            await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+            var exitCode = await pendingRun;
+
+            if (exitCode == 0 && noFailuresReported)
             {
                 _interactionService.DisplaySuccess($"Successfully published artifacts to: {fullyQualifiedOutputPath}");
                 return ExitCodeConstants.Success;
             }
+
+            _interactionService.DisplayLines(publishOutputCollector.GetLines());
+            _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
         {
@@ -300,5 +216,65 @@ internal sealed class PublishCommand : BaseCommand
             _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
+    }
+
+    public static async Task<bool> ProcessPublishingActivitiesAsync(IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> publishingActivities, CancellationToken cancellationToken)
+    {
+        var lastActivityUpdateLookup = new Dictionary<string, (string Id, string StatusText, bool IsComplete, bool IsError)>();
+        await foreach (var publishingActivity in publishingActivities.WithCancellation(cancellationToken))
+        {
+            lastActivityUpdateLookup[publishingActivity.Id] = publishingActivity;
+
+            if (lastActivityUpdateLookup.Any(kvp => kvp.Value.IsError) || lastActivityUpdateLookup.All(kvp => kvp.Value.IsComplete))
+            {
+                // If we have an error or all tasks are complete then we can stop
+                // processing the publishing activities.
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> publishingActivities, CancellationToken cancellationToken)
+    {
+        return await AnsiConsole.Progress()
+            .AutoRefresh(true)
+            .Columns(
+                new TaskDescriptionColumn() { Alignment = Justify.Left },
+                new ProgressBarColumn() { Width = 10 },
+                new ElapsedTimeColumn())
+            .StartAsync<bool>(async context => {
+
+                var progressTasks = new Dictionary<string, ProgressTask>();
+
+                await foreach (var publishingActivity in publishingActivities.WithCancellation(cancellationToken))
+                {
+                    if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                    {
+                        progressTask = context.AddTask(publishingActivity.Id);
+                        progressTask.StartTask();
+                        progressTask.IsIndeterminate();
+                        progressTasks.Add(publishingActivity.Id, progressTask);
+                    }
+
+                    progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
+
+                    if (publishingActivity.IsComplete && !publishingActivity.IsError)
+                    {
+                        progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
+                        progressTask.Value = 100;
+                        progressTask.StopTask();
+                    }
+                    else if (publishingActivity.IsError)
+                    {
+                        progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
+                        progressTask.Value = 0;
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
     }
 }

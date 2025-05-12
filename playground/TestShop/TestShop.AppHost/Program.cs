@@ -77,7 +77,8 @@ var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
         .WithReference(messaging).WaitFor(messaging);
 
-builder.AddProject<Projects.ApiGateway>("apigateway")
+builder.AddYarp("apigateway")
+       .WithConfigFile("yarp.json")
        .WithReference(basketService)
        .WithReference(catalogService);
 

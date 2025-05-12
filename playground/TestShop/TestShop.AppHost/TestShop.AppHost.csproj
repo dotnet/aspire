@@ -18,8 +18,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
-
-    <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Yarp" />
     <ProjectReference Include="..\BasketService\BasketService.csproj" />
     <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />
     <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
