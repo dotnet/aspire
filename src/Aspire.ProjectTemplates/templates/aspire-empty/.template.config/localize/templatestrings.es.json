@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplicación vacía de .NET Aspire",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "Una plantilla de proyecto para crear una aplicación vacía de .NET Aspire.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",
