@@ -19,8 +19,8 @@
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
     <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
 
-    <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
-    <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
+    <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7030/Azure.Functions.Cli.min.win-x64_net8.4.0.7030.zip</_AzureFunctionsCliUrl>
+    <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7030/Azure.Functions.Cli.linux-x64_net8.4.0.7030.zip</_AzureFunctionsCliUrl>
 
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
   </PropertyGroup>
