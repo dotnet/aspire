@@ -1,0 +1,15 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends Omit<HTMLAttributes<'a'>, 'href' | 'target' | 'rel'> {
+    href: string;
+    target?: '_self' | '_blank' | '_parent' | '_top';
+    rel?: 'noopener noreferrer' | string;
+}
+
+const props = Astro.props as Props;
+---
+
+<a href={props.href} target={props.target ?? '_self'} rel={props.rel ?? ''}>
+    <slot />
+</a>

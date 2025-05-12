@@ -4,12 +4,13 @@ description: Learn about essential tooling concepts for Aspire.
 lastUpdated: true
 ---
 
-import { Aside, Icon, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Icon, Code, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 import IconAside from '../../../components/IconAside.astro';
+import IconLinkCard from '../../../components/IconLinkCard.astro';
 
-To get started with Aspire, you need to install a few prerequisites. This guide will help you set up your development environment for building and running Aspire applications.
+To get started with Aspire, you need to install a few prerequisites—if not already installed. This guide will help you set up your development environment for building and running Aspire applications.
 
-## Install the required SDK
+## Install the SDK
 
 Install either [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) to work with Aspire. No prior .NET experience is required.
 
@@ -23,39 +24,53 @@ Aspire uses an OCI compliant container runtime to run and manage containers. The
 
 Alternatively, you can use [Podman](https://podman.io/), which is a daemonless container engine that can run containers without requiring root privileges.
 
-### Install desired IDE
+<Tabs>
+  <TabItem label="Linux" icon="linux">
+	  <Code title='Set the ASPIRE_CONTAINER_RUNTIME env var to podman'
+          code={`export ASPIRE_CONTAINER_RUNTIME=podman`} lang="bash" />
+  </TabItem>
+
+  <TabItem label="Windows" icon="seti:windows">
+	  <Code title='Set the ASPIRE_CONTAINER_RUNTIME env var to podman'
+          code={`[System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME", "podman", "User")`} lang="powershell" />  
+  </TabItem>
+</Tabs>
+
+### Install an integrated development environment (IDE)
 
 Aspire supports multiple IDEs and code editors. You can choose the one that best fits your workflow:
 
 <CardGrid>
+  <IconLinkCard
+    title="Visual Studio Code"
+    href="https://code.visualstudio.com/"
+    description="Visual Studio Code is a lightweight code editor with support for .NET development through extensions. It's ideal for cross-platform development and quick edits."
+    icon="vscode" />
+  <IconLinkCard
+    title="JetBrains Rider" 
+    href="https://blog.jetbrains.com/dotnet/2024/02/19/jetbrains-rider-and-the-net-aspire-plugin"
+    description="JetBrains Rider is a cross-platform .NET IDE that provides advanced code analysis, refactoring, and debugging capabilities."
+    icon="jetbrains" />
   <LinkCard
     title="Visual Studio"
     href="https://visualstudio.microsoft.com/vs/"
     description="Visual Studio is a powerful IDE for .NET development. 
     It provides a rich set of features, including debugging, IntelliSense, and integrated Git support." />
-  <LinkCard
-    title="Visual Studio Code"
-    icon="seti:visual-studio-code"
-    href="https://code.visualstudio.com/"
-    description="Visual Studio Code is a lightweight code editor with support for .NET development through extensions. It's ideal for cross-platform development and quick edits." />
-  <LinkCard
-    title="JetBrains Rider" 
-    href="https://blog.jetbrains.com/dotnet/2024/02/19/jetbrains-rider-and-the-net-aspire-plugin"
-    description="JetBrains Rider is a cross-platform .NET IDE that provides advanced code analysis, refactoring, and debugging capabilities." />
 </CardGrid>
 
 <IconAside type='tip' icon='vscode' title='Visual Studio Code Tip'>
-  When choosing Visual Studio Code, it's recommended to install the [C# DevKit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for .NET developmet. This extension provides features like IntelliSense, debugging, and project managemen
+  When choosing Visual Studio Code, it's recommended to install the [C# DevKit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for .NET developmet. This extension provides features like IntelliSense, debugging, and project management.
 </IconAside>
 
 
 ### Alternatives to local installation
 
-If you prefer not to install the prerequisites locally, you can develop Aspire solutions using either:
+If you prefer to avoid installing the prerequisites on your local machine, you can develop Aspire solutions using one of the following cloud-based options:
 
 <CardGrid>
-  <LinkCard
+  <IconLinkCard
     title="GitHub Codespaces"
+    icon="github"
     href="../get-started/github-codespaces.md" />
   <LinkCard
     title="Dev Containers"

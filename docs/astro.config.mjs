@@ -5,6 +5,7 @@ import catppuccin from "@catppuccin/starlight";
 import starlightLlmsTxt from 'starlight-llms-txt'
 import starlightKbd from 'starlight-kbd'
 import starlightImageZoom from 'starlight-image-zoom'
+import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 
 // https://astro.build/config
 export default defineConfig({
@@ -75,7 +76,8 @@ export default defineConfig({
 				ContentPanel: './src/components/ContentPanel.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 				Search: './src/components/Search.astro',
-				Footer: './src/components/Footer.astro'
+				Footer: './src/components/Footer.astro',
+				MarkdownContent: './src/components/MarkdownContent.astro',
 			},
 			expressiveCode: {
 				/* TODO: decide which themes we want
@@ -155,6 +157,7 @@ export default defineConfig({
 				}
 			],
 			plugins: [
+				viewTransitions(),
 				catppuccin(),
 				starlightLlmsTxt(),
 				starlightImageZoom({

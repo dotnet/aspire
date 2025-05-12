@@ -1,20 +1,21 @@
 ---
 import { AstroError } from 'astro/errors';
 import { Icon } from '@astrojs/starlight/components';
+import type { StarlightIcon } from '@astrojs/starlight/types';
 
 const asideVariants = ['note', 'tip', 'caution', 'danger'] as const;
 
 interface Props {
 	type?: (typeof asideVariants)[number];
 	title?: string;
-    icon?: string;
+    icon?: StarlightIcon;
 }
 
 let { type = 'note', title, icon } = Astro.props;
 
 if (!asideVariants.includes(type)) {
 	throw new AstroError(
-		'Invalid `type` prop passed to the `<Aside>` component.\n',
+		'Invalid `type` prop passed to the `<IconAside>` custom component.\n',
 		`Received: ${JSON.stringify(type)}\n` +
 			`Expected one of ${asideVariants.map((i) => JSON.stringify(i)).join(', ')}`
 	);
