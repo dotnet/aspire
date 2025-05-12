@@ -373,7 +373,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         if (endpointsByTargetPort.Count > 5)
         {
-            _containerAppEnvironmentContext.Logger.LogWarning("More than 5 additional ports are not supported. See https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview#tcp for more details.");
+            _containerAppEnvironmentContext.Logger.LogWarning("More than 5 additional ports are not supported. See https://learn.microsoft.com/azure/container-apps/ingress-overview#tcp for more details.");
         }
 
         foreach (var g in endpointsByTargetPort)
@@ -686,7 +686,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         // Add additional ports
-        // https://learn.microsoft.com/en-us/azure/container-apps/ingress-how-to?pivots=azure-cli#use-additional-tcp-ports
+        // https://learn.microsoft.com/azure/container-apps/ingress-how-to?pivots=azure-cli#use-additional-tcp-ports
         var additionalPorts = _additionalPorts.Skip(skipAdditionalPort);
         if (additionalPorts.Any())
         {

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 // The existing class doesn't expose necessary properties like EnvironmentVariables and Kind.
 // This class is a workaround until the Azure SDK for .NET exposes these properties in the CDK
 // c.f. https://github.com/Azure/azure-sdk-for-net/issues/49283
-// Reference: https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template
+// Reference: https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-script-template
 sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
 {
     private BicepValue<string>? _scriptContent;
