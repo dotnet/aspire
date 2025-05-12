@@ -129,7 +129,7 @@ sealed partial class TestSummaryGenerator
         reportBuilder.AppendLine();
         if (testRun.Results?.UnitTestResults is null)
         {
-            System.Console.WriteLine($"Could not find any UnitTestResult entries in {trxFilePath}");
+            Console.WriteLine($"Could not find any UnitTestResult entries in {trxFilePath}");
             return;
         }
 
