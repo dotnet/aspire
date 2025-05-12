@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-//using System.Text;
 using Aspire.Components.ConformanceTests;
 using Azure.Core;
 using Microsoft.DotNet.RemoteExecutor;
@@ -44,7 +43,7 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:AppConfiguration", null, "Endpoint"), Endpoint)
+            new(CreateConfigKey("Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration", null, "Endpoint"), Endpoint)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureAppConfigurationSettings>? configure = null, string? key = null)
@@ -78,8 +77,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "YOUR_URI"}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)

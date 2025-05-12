@@ -4,7 +4,7 @@
 using Aspire;
 using Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
 
-[assembly: ConfigurationSchema("Aspire:Azure:AppConfiguration", typeof(AzureAppConfigurationSettings))]
+[assembly: ConfigurationSchema("Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration", typeof(AzureAppConfigurationSettings))]
 
 [assembly: LoggingCategories(
     "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh")]

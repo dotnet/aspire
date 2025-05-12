@@ -103,14 +103,19 @@ And then the App Configuration endpoint will be retrieved from the `ConnectionSt
 
 ### Use configuration providers
 
-The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureAppConfigurationSettings` from configuration by using the `Aspire:Azure:AppConfiguration` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureAppConfigurationSettings` from configuration by using the `Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
+  Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
   "Aspire": {
-    "Azure": {
-      "AppConfiguration": {
-        "Endpoint": "YOUR_APPCONFIGURATION_ENDPOINT_URI"
+    "Microsoft": {
+      "Extensions": {
+        "Configuration": {
+          "AzureAppConfiguration": {
+            "Endpoint": "YOUR_APPCONFIGURATION_ENDPOINT_URI"
+          }
+        }
       }
     }
   }

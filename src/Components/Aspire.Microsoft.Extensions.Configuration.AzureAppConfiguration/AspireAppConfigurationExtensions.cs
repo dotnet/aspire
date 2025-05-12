@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAppConfigurationExtensions
 {
-    internal const string DefaultConfigSectionName = "Aspire:Azure:AppConfiguration";
+    internal const string DefaultConfigSectionName = "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration";
 
     /// <summary>
     /// Adds the Azure App Configuration to be configuration in the <paramref name="builder"/>.
@@ -24,7 +24,7 @@ public static class AspireAppConfigurationExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAppConfigurationSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="AzureAppConfigurationOptions"/>.</param>
-    /// <remarks>Reads the settings from "Aspire:Azure:AppConfiguration" section.</remarks>
+    /// <remarks>Reads the settings from "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureAppConfigurationSettings.Endpoint"/> is not provided.</exception>
     public static void AddAzureAppConfiguration(
         this IHostApplicationBuilder builder,
