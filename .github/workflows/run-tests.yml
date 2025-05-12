@@ -257,6 +257,17 @@ jobs:
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+
       # Save the result of the previous steps - success or failure
       # in the form of a file result-success/result-failure -{name}.rst
       - name: Store result - success
