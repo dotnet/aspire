@@ -168,12 +168,10 @@ internal sealed class PublishCommand : BaseCommand
                 _interactionService.DisplaySuccess($"Successfully published artifacts to: {fullyQualifiedOutputPath}");
                 return ExitCodeConstants.Success;
             }
-            else
-            {
-                _interactionService.DisplayLines(publishOutputCollector.GetLines());
-                _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
+
+            _interactionService.DisplayLines(publishOutputCollector.GetLines());
+            _interactionService.DisplayError($"Publishing artifacts failed with exit code {exitCode}. For more information run with --debug switch.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
         {
@@ -273,10 +271,6 @@ internal sealed class PublishCommand : BaseCommand
                         progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
                         progressTask.Value = 0;
                         return false;
-                    }
-                    else
-                    {
-                        // Keep going man!
                     }
                 }
                 

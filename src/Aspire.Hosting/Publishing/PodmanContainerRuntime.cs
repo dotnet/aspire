@@ -39,11 +39,9 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
                 logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
-            else
-            {
-                logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
-                return processResult.ExitCode;
-            }
+            
+            logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
+            return processResult.ExitCode;
         }
     }
 

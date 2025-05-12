@@ -39,11 +39,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 logger.LogError("Docker build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
-            else
-            {
-                logger.LogInformation("Docker build for {ImageName} succeeded.", imageName);
-                return processResult.ExitCode;
-            }
+            
+            logger.LogInformation("Docker build for {ImageName} succeeded.", imageName);
+            return processResult.ExitCode;
         }
     }
 
