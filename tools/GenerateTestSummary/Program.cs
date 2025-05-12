@@ -57,6 +57,12 @@ rootCommand.SetAction(result =>
         report = reportBuilder.ToString();
     }
 
+    if (report.Length == 0)
+    {
+        Console.WriteLine("No test results found.");
+        return;
+    }
+
     var outputFilePath = result.GetValue<string>(outputOption);
     if (outputFilePath is not null)
     {
@@ -64,12 +70,14 @@ rootCommand.SetAction(result =>
         Console.WriteLine($"Report written to {outputFilePath}");
     }
 
-    if (report.Length > 0
-        && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"
-        && Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is string summaryPath
-        && !string.IsNullOrEmpty(summaryPath))
+    if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"
+        && Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is string summaryPath)
     {
         File.WriteAllText(summaryPath, report);
+    }
+    else
+    {
+        Console.WriteLine(report);
     }
 });
 
