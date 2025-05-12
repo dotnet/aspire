@@ -157,13 +157,14 @@ public static class AspireAzureAIInferenceExtensions
     /// Creates a <see cref="IChatClient"/> from the <see cref="ChatCompletionsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
+    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder)
+    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentId = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(builder, services));
+            services => CreateInnerChatClient(builder, services, deploymentId));
     }
 
     /// <summary>
@@ -171,27 +172,26 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
+    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string? serviceKey)
+    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentId = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
-        serviceKey = serviceKey ?? builder.ServiceKey;
 
         ArgumentException.ThrowIfNullOrEmpty(serviceKey);
 
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            services => CreateInnerChatClient(builder, services));
+            services => CreateInnerChatClient(builder, services, deploymentId));
     }
 
-    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services)
+    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentId)
     {
         var chatCompletionsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
                         services.GetRequiredService<ChatCompletionsClient>() :
                         services.GetRequiredKeyedService<ChatCompletionsClient>(builder.ServiceKey);
 
-        var result = chatCompletionsClient.AsIChatClient();
+        var result = chatCompletionsClient.AsIChatClient(deploymentId ?? builder.DeploymentId);
 
         if (builder.DisableTracing)
         {
@@ -201,5 +201,4 @@ public static class AspireAzureAIInferenceExtensions
         var loggerFactory = services.GetService<ILoggerFactory>();
         return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
     }
-
 }
