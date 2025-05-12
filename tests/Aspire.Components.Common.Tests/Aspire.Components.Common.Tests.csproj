@@ -9,11 +9,6 @@
     <IsTestUtilityProject>true</IsTestUtilityProject>
     <SkipTests>true</SkipTests>
     <DeployOutsideOfRepoSupportFiles>false</DeployOutsideOfRepoSupportFiles>
-
-    <!-- https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
-    <!-- Exit code 8 is "zero tests ran" -->
-    <!-- Currently, none of the tests in this project run in CI. All are ignored -->
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
