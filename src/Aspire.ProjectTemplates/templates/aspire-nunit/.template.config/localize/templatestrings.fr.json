@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Projet de test .NET Aspire (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
+  "description": "Projet qui contient les tests d’intégration NUnit d’un projet d’application hôte .NET Aspire.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",

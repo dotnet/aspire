@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 앱 호스트",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": ".NET Aspire 앱 호스트(오케스트레이터) 프로젝트를 만들기 위한 프로젝트 템플릿입니다.",
   "symbols/Framework/description": "프로젝트에 대한 대상 프레임워크입니다.",
   "symbols/Framework/choices/net8.0/description": "대상 net8.0",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
