@@ -222,6 +222,7 @@ jobs:
           TestsRunningOutsideOfRepo: true
         run: >
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          --ignore-exit-code 8
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
@@ -250,6 +251,7 @@ jobs:
           --no-restore
           --no-build
           --
+          --ignore-exit-code 8
           --report-trx
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
