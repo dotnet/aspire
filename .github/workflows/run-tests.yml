@@ -301,6 +301,7 @@ jobs:
         env:
           CI: false
         run: >
+          test -d ${{ github.workspace }}/testresults &&
           ${{ github.workspace }}/dotnet.sh
           run
           --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
