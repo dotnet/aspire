@@ -46,7 +46,7 @@ public class AspireAzureAIInferenceExtensionTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:inference", "Endpoint=unused;Key=myAccount;DeploymentId=unused")
+            new KeyValuePair<string, string?>("ConnectionStrings:inference", "Endpoint=https://endpoint;Key=myAccount;DeploymentId=unused")
         ]);
 
         if (useKeyed)
