@@ -300,11 +300,8 @@ jobs:
         if: always()
         env:
           CI: false
-        run: >
-          test -d ${{ github.workspace }}/testresults &&
-          ${{ github.workspace }}/dotnet.sh
-          run
-          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
-          --
-          ${{ github.workspace }}/testresults
-          -u ${{ steps.upload-logs.outputs.artifact-url }}
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+          }
