@@ -511,11 +511,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Link.
+        ///   Looks up a localized string similar to Address.
         /// </summary>
-        public static string LinkColumnHeader {
+        public static string LinkAddressColumnHeader {
             get {
-                return ResourceManager.GetString("LinkColumnHeader", resourceCulture);
+                return ResourceManager.GetString("LinkAddressColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        public static string LinkTextColumnHeader {
+            get {
+                return ResourceManager.GetString("LinkTextColumnHeader", resourceCulture);
             }
         }
         
@@ -633,6 +642,15 @@ namespace Aspire.Dashboard.Resources {
         public static string PauseButtonTitle {
             get {
                 return ResourceManager.GetString("PauseButtonTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Capture paused.
+        /// </summary>
+        public static string PauseWarningTitle {
+            get {
+                return ResourceManager.GetString("PauseWarningTitle", resourceCulture);
             }
         }
         
@@ -1060,11 +1078,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Capture paused.
+        ///   Looks up a localized string similar to Toggle nesting.
         /// </summary>
-        public static string TotalItemsFooterCapturePaused {
+        public static string ToggleNesting {
             get {
-                return ResourceManager.GetString("TotalItemsFooterCapturePaused", resourceCulture);
+                return ResourceManager.GetString("ToggleNesting", resourceCulture);
             }
         }
         

@@ -237,6 +237,9 @@ message Resource {
 
     // The list of relationships for this resource.
     repeated ResourceRelationship relationships = 20;
+
+    // Whether the resource should be visually hidden in the dashboard.
+    bool is_hidden = 21;
 }
 
 ////////////////////////////////////////////
@@ -297,6 +300,9 @@ message ConsoleLogLine {
 message WatchResourceConsoleLogsRequest {
     // Specifies the resource to watch logs from.
     string resource_name = 1;
+    // A flag that indicates whether to suppress following new logs.
+    // The method completes once the current set of logs is received.
+    bool suppress_follow = 2;
 }
 
 // A message received from the server when watching resource logs.

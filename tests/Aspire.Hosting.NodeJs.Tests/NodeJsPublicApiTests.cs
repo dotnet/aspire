@@ -42,20 +42,16 @@ public class NodeJsPublicApiTests
         Assert.Equal(nameof(command), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void CtorNodeAppResourceShouldThrowWhenWorkingDirectoryIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void CtorNodeAppResourceShouldThrowWhenWorkingDirectoryIsNull()
     {
         const string name = "NodeApp";
         const string command = "npm";
-        var workingDirectory = isNull ? null! : string.Empty;
+        string workingDirectory = null!;
 
         var action = () => new NodeAppResource(name, command, workingDirectory);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(workingDirectory), exception.ParamName);
     }
 
@@ -136,20 +132,16 @@ public class NodeJsPublicApiTests
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void AddNpmAppShouldThrowWhenWorkingDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "NpmApp";
-        var workingDirectory = isNull ? null! : string.Empty;
+        string workingDirectory = null!;
 
         var action = () => builder.AddNpmApp(name, workingDirectory);
 
-        var exception = isNull
-             ? Assert.Throws<ArgumentNullException>(action)
-             : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(workingDirectory), exception.ParamName);
     }
 

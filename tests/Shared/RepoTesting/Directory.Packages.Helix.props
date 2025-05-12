@@ -22,6 +22,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ContainerRegistry" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="$(PackageVersion)" />
@@ -34,6 +35,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
@@ -55,6 +57,7 @@
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Yarp" Version="$(PackageVersion)" />
 
     <PackageVersion Include="Aspire.Keycloak.Authentication" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
@@ -86,7 +89,5 @@
 
   <ItemGroup Label="For tests">
     <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterVersion)" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitAssert" Version="$(MicrosoftDotNetXUnitAssertVersion)" />
   </ItemGroup>
 </Project>

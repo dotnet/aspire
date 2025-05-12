@@ -13,12 +13,14 @@ using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication;
@@ -202,6 +204,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        builder.Services.AddHealthChecks();
         if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
         {
             builder.Services.AddCors(options =>
@@ -228,11 +231,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Data from the server.
-        builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
-        builder.Services.TryAddSingleton<IDashboardClientStatus, DashboardClientStatus>();
+        builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         builder.Services.AddSingleton<PauseManager>();
+
+        // Telemetry
+        builder.Services.TryAddScoped<ComponentTelemetryContextProvider>();
+        builder.Services.TryAddSingleton<DashboardTelemetryService>();
+        builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -244,8 +251,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddTransient<OtlpMetricsService>();
 
         builder.Services.AddTransient<TracesViewModel>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
 
@@ -261,7 +268,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
         builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
 
-        builder.Services.AddScoped<IKnownPropertyLookup, KnownPropertyLookup>();
+        builder.Services.AddSingleton<IKnownPropertyLookup, KnownPropertyLookup>();
 
         builder.Services.AddScoped<DimensionManager>();
 
@@ -343,6 +350,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
                 }
             }
+
+            // One-off async initialization of telemetry service.
+            var telemetryService = _app.Services.GetRequiredService<DashboardTelemetryService>();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await telemetryService.InitializeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error initializing telemetry service.");
+                }
+            });
         });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
@@ -351,7 +372,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
             {
-                var client = context.RequestServices.GetRequiredService<IDashboardClientStatus>();
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
                 if (!client.IsEnabled)
                 {
                     context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
@@ -421,6 +442,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
         _app.MapDashboardApi(dashboardOptions);
+        _app.MapDashboardHealthChecks();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

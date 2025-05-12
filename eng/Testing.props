@@ -1,19 +1,30 @@
 <Project>
-  <PropertyGroup Condition="'$(UseVSTestRunner)' != 'true'">
-    <_QuarantinedTestRunAdditionalArgs>-trait "quarantined=true"</_QuarantinedTestRunAdditionalArgs>
-    <_NonQuarantinedTestRunAdditionalArgs>-notrait "quarantined=true"</_NonQuarantinedTestRunAdditionalArgs>
-  </PropertyGroup>
+  <PropertyGroup>
+    <IncludeTestUtilities>true</IncludeTestUtilities>
 
-  <PropertyGroup Condition="'$(UseVSTestRunner)' == 'true'">
-    <_QuarantinedTestRunAdditionalArgs>--filter "quarantined=true"</_QuarantinedTestRunAdditionalArgs>
-    <_NonQuarantinedTestRunAdditionalArgs>--filter "quarantined!=true"</_NonQuarantinedTestRunAdditionalArgs>
+    <!-- By default any test can run on all test platforms -->
+    <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
+    <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+    <RunOnAzdoCIWindows>true</RunOnAzdoCIWindows>
+    <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
+    <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>true</RunOnAzdoHelixLinux>
+
+    <_QuarantinedTestRunAdditionalArgs>--filter-trait "quarantined=true"</_QuarantinedTestRunAdditionalArgs>
+    <_NonQuarantinedTestRunAdditionalArgs>--filter-not-trait "quarantined=true"</_NonQuarantinedTestRunAdditionalArgs>
   </PropertyGroup>
 
   <PropertyGroup>
+    <BlameHangTimeout Condition="'$(BlameHangTimeout)' == '' and '$(MSBuildProjectName)' == 'Aspire.Hosting.SqlServer.Tests'">20m</BlameHangTimeout>
     <BlameHangTimeout Condition="'$(BlameHangTimeout)' == ''">10m</BlameHangTimeout>
-    <_BlameArgs>--blame --blame-hang-timeout $(BlameHangTimeout) --blame-crash</_BlameArgs>
+    <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crashdump</_BlameArgs>
 
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == ''">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --filter-not-trait &quot;category=failing&quot;</TestRunnerAdditionalArguments>
+    <!-- ignore exit code 8 (zero tests ran)
+         https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
+    <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --ignore-exit-code 8</TestRunnerAdditionalArguments>
+
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' != 'true'">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
   </PropertyGroup>
 </Project>

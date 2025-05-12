@@ -45,6 +45,8 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected virtual bool SupportsKeyedRegistrations => false;
 
+    protected virtual bool IsComponentBuiltBeforeHost => false;
+
     protected bool MetricsAreSupported => CheckIfImplemented(SetMetrics);
 
     // every Component has to support health checks, this property is a temporary workaround
@@ -310,20 +312,18 @@ public abstract class ConformanceTests<TService, TOptions>
     [Theory]
     [InlineData(null)]
     [InlineData("key")]
-    public async Task HealthCheckReportsExpectedStatus(string? key)
+    public virtual async Task HealthCheckReportsExpectedStatus(string? key)
     {
         SkipIfHealthChecksAreNotSupported();
 
         // DisableRetries so the test doesn't take so long retrying when the server isn't available.
         using IHost host = CreateHostWithComponent(configureComponent: DisableRetries, key: key);
 
-        HealthCheckService healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
+        var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
-#pragma warning disable xUnit1030 // Do not call ConfigureAwait(false) in test method
-        HealthReport healthReport = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
-#pragma warning restore xUnit1030 // Do not call ConfigureAwait(false) in test method
+        var healthReport = await healthCheckService.CheckHealthAsync();
 
-        HealthStatus expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+        var expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
 
         Assert.Equal(expected, healthReport.Status);
         Assert.NotEmpty(healthReport.Entries);
@@ -366,6 +366,8 @@ public abstract class ConformanceTests<TService, TOptions>
     [InlineData(false)]
     public void ConnectionInformationIsDelayValidated(bool useKey)
     {
+        SkipIfComponentIsBuiltBeforeHost();
+
         SetupConnectionInformationIsDelayValidated();
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -545,6 +547,14 @@ public abstract class ConformanceTests<TService, TOptions>
 
     public static string CreateConfigKey(string prefix, string? key, string suffix)
         => string.IsNullOrEmpty(key) ? $"{prefix}:{suffix}" : $"{prefix}:{key}:{suffix}";
+
+    protected void SkipIfComponentIsBuiltBeforeHost()
+    {
+        if (IsComponentBuiltBeforeHost)
+        {
+            Assert.Skip("Component is built before host.");
+        }
+    }
 
     protected HostApplicationBuilder CreateHostBuilder(HostApplicationBuilderSettings? hostSettings = null, string? key = null)
     {

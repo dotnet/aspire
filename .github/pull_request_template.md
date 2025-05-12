@@ -29,9 +29,8 @@ Fixes # (issue)
   - [ ] No
 - Does the change require an update in our Aspire docs?
   - [ ] Yes
-    - Is this introducing a breaking change?
-      - [ ] Yes
-        - Link to aspire-docs issue (please use this [`breaking-change` template](https://github.com/dotnet/docs-aspire/issues/new?template=04-breaking-change.yml)):
-      - [ ] No
-        - Link to aspire-docs issue (please use this [`doc-idea` template](https://github.com/dotnet/docs-aspire/issues/new?template=02-docs-request.yml)):
+    - Link to aspire-docs issue (consider using one of the following templates):
+      - [New (or update) `doc-idea` template](https://github.com/dotnet/docs-aspire/issues/new?template=02-docs-request.yml)
+      - [New `breaking-change` template](https://github.com/dotnet/docs-aspire/issues/new?template=04-breaking-change.yml)
+      - [New `diagnostic` template](https://github.com/dotnet/docs-aspire/issues/new?template=06-diagnostic-addition.yml)
   - [ ] No

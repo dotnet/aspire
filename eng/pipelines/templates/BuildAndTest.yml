@@ -38,7 +38,31 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
+              /p:SkipTestProjects=true
       displayName: Build
+
+    - script: ${{ parameters.dotnetScript }}
+              build
+              tests/workloads.proj
+              /p:SkipPackageCheckForTemplatesTesting=true
+      displayName: Prepare sdks for templates testing
+
+    - script: ${{ parameters.buildScript }}
+              -build
+              -restore
+              -test
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/BuildTemplatesTests.binlog
+              $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
+              /p:SkipTests=false
+              -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
+      env:
+        RunOnlyBasicBuildTemplateTests: true
+        # test root path for template test projects
+        DEV_TEMP: $(Build.SourcesDirectory)\..
+        TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
+      displayName: Run Template tests
 
   # Public pipeline - helix tests
   - ${{ if eq(parameters.runAsPublic, 'true') }}:
@@ -46,7 +70,7 @@ steps:
               -restore -build
               -configuration ${{ parameters.buildConfig }}
               -pack
-              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /p:PrepareForHelix=${{ lower(eq(parameters.runHelixTests, 'true')) }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build
@@ -60,12 +84,7 @@ steps:
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
-                chmod +x ubuntu-create-dotnet-devcert.sh &&
-                ./ubuntu-create-dotnet-devcert.sh
+      - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
         displayName: Install devcerts
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
@@ -87,6 +106,7 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /maxcpucount:1 /p:BuildInParallel=false $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
+        DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
         DCP_DIAGNOSTICS_LOG_LEVEL: debug

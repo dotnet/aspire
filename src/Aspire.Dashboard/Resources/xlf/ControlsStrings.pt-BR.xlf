@@ -252,9 +252,14 @@
         <target state="translated">(Remover definição)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Link</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Endereço</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Texto</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -320,6 +325,11 @@
       <trans-unit id="PauseButtonTitle">
         <source>Pause incoming data</source>
         <target state="translated">Pausar os dados recebidos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">Captura em pausa</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -542,9 +552,9 @@
         <target state="translated">Carimbo de data/hora</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">Captura em pausa</target>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Ativar/desativar aninhamento</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">

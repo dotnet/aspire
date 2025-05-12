@@ -7,14 +7,13 @@
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForTemplateTests)</TestArchiveTestsDir>
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
-    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ArchiveTests)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(PrepareForHelix)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
-    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
+    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Templates.Tests</ExtractTestClassNamesPrefix>
 
     <!--
@@ -25,6 +24,10 @@
       gets built independently on helix.
     -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+
+    <!-- FIXME: do not run Template tests in the outerloop until further notice -->
+    <SkipTests Condition=" '$(RunQuarantinedTests)' == 'true' ">true</SkipTests>
+    <TestRunnerAdditionalArguments Condition="'$(RunOnlyBasicBuildTemplateTests)' == 'true'">$(TestRunnerAdditionalArguments) --filter-trait category=basic-build</TestRunnerAdditionalArguments>
   </PropertyGroup>
 
   <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />

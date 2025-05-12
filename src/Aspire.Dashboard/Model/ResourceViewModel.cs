@@ -3,13 +3,16 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
@@ -37,6 +40,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
+    public bool IsHidden { private get; init; }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -77,6 +81,11 @@ public sealed class ResourceViewModel
         return null;
     }
 
+    public bool IsResourceHidden()
+    {
+        return IsHidden || KnownState is KnownResourceState.Hidden;
+    }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
         if (state != KnownResourceState.Running)
@@ -98,7 +107,7 @@ public sealed class ResourceViewModel
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.IsHiddenState())
+            if (item.IsResourceHidden())
             {
                 continue;
             }
@@ -116,6 +125,23 @@ public sealed class ResourceViewModel
         }
 
         return resource.DisplayName;
+    }
+
+    public static bool TryGetResourceByName(string resourceName, IDictionary<string, ResourceViewModel> resourceByName, [NotNullWhen(true)] out ResourceViewModel? resource)
+    {
+        if (resourceByName.TryGetValue(resourceName, out resource))
+        {
+            return true;
+        }
+
+        var resourcesWithDisplayName = resourceByName.Values.Where(r => string.Equals(resourceName, r.DisplayName, StringComparisons.ResourceName)).ToList();
+        if (resourcesWithDisplayName.Count == 1)
+        {
+            resource = resourcesWithDisplayName.Single();
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -147,8 +173,9 @@ public sealed class CommandViewModel
 {
     public string Name { get; }
     public CommandViewModelState State { get; }
-    public string DisplayName { get; }
-    public string DisplayDescription { get; }
+    private string DisplayName { get; }
+    private string DisplayDescription { get; }
+
     public string ConfirmationMessage { get; }
     public Value? Parameter { get; }
     public bool IsHighlighted { get; }
@@ -169,6 +196,28 @@ public sealed class CommandViewModel
         IsHighlighted = isHighlighted;
         IconName = iconName;
         IconVariant = iconVariant;
+    }
+
+    public string GetDisplayName(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            _ => DisplayName
+        };
+    }
+
+    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription
+        };
     }
 }
 
@@ -201,51 +250,47 @@ public sealed class EnvironmentVariableViewModel : IPropertyGridItem
     }
 }
 
-[DebuggerDisplay("Name = {Name}, Value = {Value}, IsValueSensitive = {IsValueSensitive}, IsValueMasked = {IsValueMasked}")]
-public sealed class ResourcePropertyViewModel : IPropertyGridItem
+[DebuggerDisplay("{_propertyViewModel}")]
+public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
 {
     private readonly Lazy<string> _displayValue;
     private readonly Lazy<string> _tooltip;
 
-    public string Name { get; }
-    public Value Value { get; }
-    public KnownProperty? KnownProperty { get; }
-    public string ToolTip => _tooltip.Value;
-    public bool IsValueSensitive { get; }
-    public bool IsValueMasked { get; set; }
-    internal int Priority { get; }
     private readonly string _key;
+    private readonly ResourcePropertyViewModel _propertyViewModel;
+    private readonly IStringLocalizer<Resources.Resources> _loc;
+    private readonly BrowserTimeProvider _browserTimeProvider;
 
-    string IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
+    public string ToolTip => _tooltip.Value;
+    public KnownProperty? KnownProperty => _propertyViewModel.KnownProperty;
+    public int Priority => _propertyViewModel.Priority;
+    public Value Value => _propertyViewModel.Value;
+    public string DisplayName => _propertyViewModel.KnownProperty?.GetDisplayName(_loc) ?? _propertyViewModel.Name;
+
+    string IPropertyGridItem.Name => DisplayName;
     string? IPropertyGridItem.Value => _displayValue.Value;
-
     object IPropertyGridItem.Key => _key;
 
-    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
+    public DisplayedResourcePropertyViewModel(ResourcePropertyViewModel propertyViewModel, IStringLocalizer<Resources.Resources> loc, BrowserTimeProvider browserTimeProvider)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        Name = name;
-        Value = value;
-        IsValueSensitive = isValueSensitive;
-        KnownProperty = knownProperty;
-        Priority = priority;
-        IsValueMasked = isValueSensitive;
+        _propertyViewModel = propertyViewModel;
+        _loc = loc;
+        _browserTimeProvider = browserTimeProvider;
 
         // Known and unknown properties are displayed together. Avoid any duplicate keys.
-        _key = KnownProperty != null ? KnownProperty.Key : $"unknown-{Name}";
+        _key = propertyViewModel.KnownProperty != null ? propertyViewModel.KnownProperty.Key : $"unknown-{propertyViewModel.Name}";
 
-        _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
+        _tooltip = new(() => propertyViewModel.Value.HasStringValue ? propertyViewModel.Value.StringValue : propertyViewModel.Value.ToString());
 
         _displayValue = new(() =>
         {
-            var value = Value is { HasStringValue: true, StringValue: var stringValue }
+            var value = propertyViewModel.Value is { HasStringValue: true, StringValue: var stringValue }
                 ? stringValue
                 // Complex values such as arrays and objects will be output as JSON.
                 // Consider how complex values are rendered in the future.
-                : Value.ToString();
+                : propertyViewModel.Value.ToString();
 
-            if (Name == KnownProperties.Container.Id)
+            if (propertyViewModel.Name == KnownProperties.Container.Id)
             {
                 // Container images have a short ID of 12 characters
                 if (value.Length > 12)
@@ -258,7 +303,7 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
                 // Dates are returned as ISO 8601 text. Try to parse. If successful, format with the current culture.
                 if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
                 {
-                    value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
+                    value = FormatHelpers.FormatDateTime(_browserTimeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
                 }
             }
 
@@ -267,11 +312,34 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
     }
 
     public bool MatchesFilter(string filter) =>
-        Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+        _propertyViewModel.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
         ToolTip.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
 }
 
-public sealed record KnownProperty(string Key, string DisplayName);
+[DebuggerDisplay("Name = {Name}, Value = {Value}, IsValueSensitive = {IsValueSensitive}, IsValueMasked = {IsValueMasked}")]
+public sealed class ResourcePropertyViewModel
+{
+    public string Name { get; }
+    public Value Value { get; }
+    public KnownProperty? KnownProperty { get; }
+    public bool IsValueSensitive { get; }
+    public bool IsValueMasked { get; set; }
+    public int Priority { get; }
+
+    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        Name = name;
+        Value = value;
+        IsValueSensitive = isValueSensitive;
+        KnownProperty = knownProperty;
+        Priority = priority;
+        IsValueMasked = isValueSensitive;
+    }
+}
+
+public sealed record KnownProperty(string Key, Func<IStringLocalizer<Resources.Resources>, string> GetDisplayName);
 
 [DebuggerDisplay("EndpointName = {EndpointName}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel

@@ -161,8 +161,8 @@ public static class RabbitMQBuilderExtensions
             // Existing annotation is in a state we can update to enable the management plugin
             // See tag details at https://hub.docker.com/_/rabbitmq
 
-            const string management = "-management";
-            const string alpine = "-alpine";
+            const string management = "management";
+            const string alpine = "alpine";
 
             var annotation = containerAnnotations[0];
             var existingTag = annotation.Tag;
@@ -174,23 +174,30 @@ public static class RabbitMQBuilderExtensions
                 handled = true;
             }
             else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)
-                     || existingTag.EndsWith($"{management}{alpine}", StringComparison.OrdinalIgnoreCase))
+                     || existingTag.EndsWith($"{management}-{alpine}", StringComparison.OrdinalIgnoreCase))
             {
                 // Already using the management tag
                 handled = true;
             }
-            else if (existingTag.EndsWith(alpine, StringComparison.OrdinalIgnoreCase)
-                     && existingTag.Length > alpine.Length)
+            else if (existingTag.EndsWith(alpine, StringComparison.OrdinalIgnoreCase))
             {
-                // Transform tag like "3.12-alpine" to "3.12-management-alpine"
-                var tagPrefix = existingTag[..existingTag.IndexOf(alpine)];
-                annotation.Tag = $"{tagPrefix}{management}{alpine}";
+                if (existingTag.Length > alpine.Length)
+                {
+                    // Transform tag like "3.12-alpine" to "3.12-management-alpine"
+                    var tagPrefix = existingTag[..existingTag.IndexOf($"-{alpine}")];
+                    annotation.Tag = $"{tagPrefix}-{management}-{alpine}";
+                }
+                else
+                {
+                    // Transform tag "alpine" to "management-alpine"
+                    annotation.Tag = $"{management}-{alpine}";
+                }
                 handled = true;
             }
             else if (IsVersion(existingTag))
             {
                 // Tag is in version format so just append "-management"
-                annotation.Tag = $"{existingTag}{management}";
+                annotation.Tag = $"{existingTag}-{management}";
                 handled = true;
             }
         }

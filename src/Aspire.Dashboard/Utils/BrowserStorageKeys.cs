@@ -13,11 +13,14 @@ internal static class BrowserStorageKeys
     public const string StructuredLogsPageState = "Aspire_PageState_StructuredLogs";
     public const string MetricsPageState = "Aspire_PageState_Metrics";
     public const string ConsoleLogsPageState = "Aspire_PageState_ConsoleLogs";
+    public const string ResourcesPageState = "Resources_PageState";
     public const string ConsoleLogConsoleSettings = "Aspire_ConsoleLog_ConsoleSettings";
     public const string ConsoleLogFilters = "Aspire_ConsoleLog_Filters";
     public const string ResourcesCollapsedResourceNames = "Aspire_Resources_CollapsedResourceNames";
     public const string TextVisualizerDialogSettings = "Aspire_TextVisualizerDialog_TextVisualizerDialogSettings";
     public const string ResourcesShowResourceTypes = "Aspire_Resources_ShowResourceTypes";
+
+    public const string DashboardTelemetrySettings = "Aspire_Settings_DashboardTelemetry";
 
     public static string SplitterOrientationKey(string viewKey)
     {

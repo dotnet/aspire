@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -25,7 +25,7 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var redis = builder.AddAzureRedis("redis-cache");
@@ -35,68 +35,15 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var manifest = await GetManifestWithBicep(model, redis.Resource);
+        var (manifest, bicep) = await GetManifestWithBicep(model, redis.Resource);
+        var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "redis-cache-roles");
+        var (redisRolesManifest, redisRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
-              name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                sku: {
-                  name: 'Basic'
-                  family: 'C'
-                  capacity: 1
-                }
-                enableNonSslPort: false
-                disableAccessKeyAuthentication: true
-                minimumTlsVersion: '1.2'
-                redisConfiguration: {
-                  'aad-enabled': 'true'
-                }
-              }
-              tags: {
-                'aspire-resource-name': 'redis-cache'
-              }
-            }
-
-            output connectionString string = '${redis_cache.properties.hostName},ssl=true'
-
-            output name string = redis_cache.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-
-        var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"redis-cache-roles"));
-        var redisRolesManifest = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param redis_cache_outputs_name string
-
-            param principalId string
-
-            param principalName string
-
-            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' existing = {
-              name: redis_cache_outputs_name
-            }
-
-            resource redis_cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: guid(redis_cache.id, principalId, 'Data Contributor')
-              properties: {
-                accessPolicyName: 'Data Contributor'
-                objectId: principalId
-                objectIdAlias: principalName
-              }
-              parent: redis_cache
-            }
-            """;
-        output.WriteLine(redisRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, redisRolesManifest.BicepText);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(redisRolesManifest.ToString(), "json")
+              .AppendContentAsFile(redisRolesBicep, "bicep")
+              .UseHelixAwareDirectory();
     }
 
     [Fact]
@@ -149,45 +96,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-            
-            param keyVaultName string
-            
-            resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
-              name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                sku: {
-                  name: 'Basic'
-                  family: 'C'
-                  capacity: 1
-                }
-                enableNonSslPort: false
-                minimumTlsVersion: '1.2'
-              }
-              tags: {
-                'aspire-resource-name': 'redis-cache'
-              }
-            }
-            
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-            
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--redis-cache'
-              properties: {
-                value: '${redis_cache.properties.hostName},ssl=true,password=${redis_cache.listKeys().primaryKey}'
-              }
-              parent: keyVault
-            }
-            
-            output name string = redis_cache.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verifier.Verify(manifest.BicepText, extension: "bicep")
+            .UseHelixAwareDirectory("Snapshots");
     }
 
     [Fact]
@@ -208,6 +118,40 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         Assert.NotNull(redisResource?.PasswordParameter);
         Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AddAzureRedisRunAsContainerProducesCorrectHostAndPassword()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
+        RedisResource? redisResource = null;
+        var redis = builder.AddAzureRedis("cache")
+            .RunAsContainer(c =>
+            {
+                redisResource = c.Resource;
+
+                c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                    .WithHostPort(12455)
+                    .WithPassword(pass);
+            });
+
+        Assert.NotNull(redisResource);
+
+        var endpoint = Assert.Single(redisResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(6379, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
+
+        Assert.NotNull(redisResource?.PasswordParameter);
+        Assert.Equal($"localhost:12455,password=p@ssw0rd1", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 
     [Theory]

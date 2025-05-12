@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
+[RequiresPlaywright]
 public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 {
     public AppBarTests(DashboardServerFixture dashboardServerFixture)
@@ -18,7 +19,6 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7943")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
@@ -65,7 +65,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7943")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9152")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange

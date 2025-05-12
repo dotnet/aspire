@@ -31,7 +31,7 @@ namespace Aspire.Dashboard.Model;
 /// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
 /// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
 /// <see cref="IDashboardClient.SubscribeResourcesAsync"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
-/// will throw if <see cref="IDashboardClientStatus.IsEnabled"/> is <see langword="false"/>. Callers should
+/// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
 /// check this property first, before calling these methods.
 /// </para>
 /// </remarks>
@@ -47,8 +47,6 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IDashboardClientStatus _dashboardClientStatus;
-    private readonly BrowserTimeProvider _timeProvider;
     private readonly IKnownPropertyLookup _knownPropertyLookup;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
@@ -72,14 +70,10 @@ internal sealed class DashboardClient : IDashboardClient
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
         IOptions<DashboardOptions> dashboardOptions,
-        IDashboardClientStatus dashboardClientStatus,
-        BrowserTimeProvider timeProvider,
         IKnownPropertyLookup knownPropertyLookup,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
-        _dashboardClientStatus = dashboardClientStatus;
-        _timeProvider = timeProvider;
         _knownPropertyLookup = knownPropertyLookup;
         _dashboardOptions = dashboardOptions.Value;
 
@@ -88,7 +82,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        if (!_dashboardClientStatus.IsEnabled)
+        if (dashboardOptions.Value.ResourceServiceClient.GetUri() is null)
         {
             _state = StateDisabled;
             _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
@@ -341,7 +335,7 @@ internal sealed class DashboardClient : IDashboardClient
                                 foreach (var resource in response.InitialData.Resources)
                                 {
                                     // Add to map.
-                                    var viewModel = resource.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
+                                    var viewModel = resource.ToViewModel(_knownPropertyLookup, _logger);
                                     _resourceByName[resource.Name] = viewModel;
 
                                     // Send this update to any subscribers too.
@@ -361,7 +355,7 @@ internal sealed class DashboardClient : IDashboardClient
                                     if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
                                         // Upsert (i.e. add or replace)
-                                        var viewModel = change.Upsert.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
+                                        var viewModel = change.Upsert.ToViewModel(_knownPropertyLookup, _logger);
                                         _resourceByName[change.Upsert.Name] = viewModel;
                                         changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                     }
@@ -492,15 +486,8 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    var logLines = new ResourceLogLine[response.LogLines.Count];
-
-                    for (var i = 0; i < logLines.Length; i++)
-                    {
-                        logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
-                    }
-
                     // Channel is unbound so TryWrite always succeeds.
-                    channel.Writer.TryWrite(logLines);
+                    channel.Writer.TryWrite(CreateLogLines(response.LogLines));
                 }
             }
             finally
@@ -522,6 +509,35 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         await readTask.ConfigureAwait(false);
+    }
+
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> IDashboardClient.GetConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+        var call = _client!.WatchResourceConsoleLogs(
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, SuppressFollow = true },
+            headers: _headers,
+            cancellationToken: combinedTokens.Token);
+
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
+        {
+            yield return CreateLogLines(response.LogLines);
+        }
+    }
+
+    private static ResourceLogLine[] CreateLogLines(IList<ConsoleLogLine> logLines)
+    {
+        var resourceLogLines = new ResourceLogLine[logLines.Count];
+
+        for (var i = 0; i < logLines.Count; i++)
+        {
+            resourceLogLines[i] = new ResourceLogLine(logLines[i].LineNumber, logLines[i].Text, logLines[i].IsStdErr);
+        }
+
+        return resourceLogLines;
     }
 
     public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)
@@ -584,7 +600,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel(_timeProvider, _knownPropertyLookup, _logger);
+                    _resourceByName[data.Name] = data.ToViewModel(_knownPropertyLookup, _logger);
                 }
             }
         }

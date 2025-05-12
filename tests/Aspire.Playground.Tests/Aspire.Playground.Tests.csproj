@@ -2,15 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Test related properties">
     <!-- Set this explicitly so the project can build without arcade -->
     <IsTestProject>true</IsTestProject>
-    <ExcludeTestUtilities>true</ExcludeTestUtilities>
+    <IncludeTestUtilities>false</IncludeTestUtilities>
 
-    <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <!-- no docker support on GHA/windows yet -->
-    <RunTestsOnGithubActions Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnGithubActions>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!-- Only run on Linux; no docker support on Windows yet -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+
+    <!--
+      Command to be executed directly before 'build.sh -test' is executed.
+      This is used by TestRunsheetBuilder.
+
+      FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969
+     -->
+    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true &amp;&amp; </TestRunnerPreCommand>
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
@@ -18,7 +28,6 @@
 
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <!-- Skip emulators that don't start consistently when running in CI. -->
     <SkipUnstableEmulators Condition="'$(SkipUnstableEmulators)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipUnstableEmulators>
 
@@ -53,6 +62,7 @@
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestAttribute.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -89,7 +99,7 @@
     <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
+  <ItemGroup Condition="'$(PrepareForHelix)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />

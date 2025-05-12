@@ -252,9 +252,14 @@
         <target state="translated">(Annuler)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Lien</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Adresse</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Texte</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -320,6 +325,11 @@
       <trans-unit id="PauseButtonTitle">
         <source>Pause incoming data</source>
         <target state="translated">Suspendre les données entrantes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">La capture est suspendue</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -542,9 +552,9 @@
         <target state="translated">Horodatage</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">Capture suspendue</target>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Activer/désactiver l’imbrication</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">

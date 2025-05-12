@@ -13,16 +13,18 @@ namespace Aspire.Dashboard.Model.ResourceGraph;
 
 public static class ResourceGraphMapper
 {
-
     public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc)
     {
         var resolvedNames = new List<string>();
 
-        foreach (var resourceRelationships in r.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
+        // Remove relationships back to the current resource. The graph doesn't display self referential relationships.
+        var filteredRelationships = r.Relationships.Where(relationship => relationship.ResourceName != r.DisplayName);
+
+        foreach (var resourceRelationships in filteredRelationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
             var matches = resourcesByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => r.KnownState != KnownResourceState.Hidden)
+                .Where(r => !r.IsResourceHidden())
                 .ToList();
 
             foreach (var match in matches)
@@ -68,7 +70,7 @@ public static class ResourceGraphMapper
 
     private static string ResolvedEndpointText(DisplayedUrl? endpoint)
     {
-        var text = endpoint?.Url;
+        var text = endpoint?.OriginalUrlString;
         if (string.IsNullOrEmpty(text))
         {
             return ControlsStrings.ResourceGraphNoEndpoints;

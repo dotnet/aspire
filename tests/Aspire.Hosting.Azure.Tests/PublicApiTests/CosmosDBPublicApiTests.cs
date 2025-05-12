@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
@@ -213,7 +212,7 @@ public class CosmosDBPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void RunAsPreviewEmulatorShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<AzureCosmosDBResource> builder = null!;
@@ -372,7 +371,7 @@ public class CosmosDBPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void WithDataExplorerShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<AzureCosmosDBEmulatorResource> builder = null!;

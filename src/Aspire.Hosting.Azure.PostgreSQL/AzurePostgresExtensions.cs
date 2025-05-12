@@ -118,8 +118,7 @@ public static class AzurePostgresExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
     ///
-    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{IKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
-    /// </remarks>
+    /// You can use the <see cref="WithPasswordAuthentication(IResourceBuilder{AzurePostgresFlexibleServerResource}, IResourceBuilder{IAzureKeyVaultResource}, IResourceBuilder{ParameterResource}?, IResourceBuilder{ParameterResource}?)"/> method to configure the resource to use password authentication.
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
     /// <code lang="csharp">
@@ -133,6 +132,7 @@ public static class AzurePostgresExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> AddAzurePostgresFlexibleServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -187,6 +187,7 @@ public static class AzurePostgresExtensions
     /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource that runs locally in a
     /// PostgreSQL container and referencing that resource in a .NET project.
@@ -202,6 +203,7 @@ public static class AzurePostgresExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -265,6 +267,7 @@ public static class AzurePostgresExtensions
     /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
     /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource that uses password authentication.
     /// <code lang="csharp">
@@ -279,6 +282,7 @@ public static class AzurePostgresExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -317,7 +321,7 @@ public static class AzurePostgresExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
-        IResourceBuilder<IKeyVaultResource> keyVaultBuilder,
+        IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
@@ -333,7 +337,7 @@ public static class AzurePostgresExtensions
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
-        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecretReference($"connectionstrings--{builder.Resource.Name}");
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{builder.Resource.Name}");
 
         builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
 

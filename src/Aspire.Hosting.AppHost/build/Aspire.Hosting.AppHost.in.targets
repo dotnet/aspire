@@ -109,7 +109,7 @@ namespace Projects%3B
   </Target>
 
   <Target Name="_WarnOnUnsupportedLanguage" Condition="'$(Language)' != 'C#'">
-    <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
+    <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." HelpLink="https://aka.ms/aspire/diagnostics/aspire001" />
   </Target>
 
   <!--
@@ -178,7 +178,8 @@ namespace Projects%3B
 
     <Warning Code="ASPIRE004"
              Condition="'@(_AspireNonExecutableProjectResource)' != ''"
-             Text="'%(_AspireNonExecutableProjectResource.OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?" />
+             Text="'%(_AspireNonExecutableProjectResource.OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?"
+             HelpLink="https://aka.ms/aspire/diagnostics/aspire004" />
   </Target>
 
   <PropertyGroup>
@@ -268,8 +269,10 @@ namespace Projects%3B
 
   <Target Name="__ErrorOnMininumSdkVersionMissing" BeforeTargets="PrepareForBuild"
   Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '9.0.0')))">
-    <Error Code="ASPIRE006"
-      Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`." />
+    <Error Code="ASPIRE007"
+      Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`."
+      File="$(MSBuildProjectFullPath)"
+      HelpLink="https://aka.ms/aspire/diagnostics/aspire007" />
   </Target>
 
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->

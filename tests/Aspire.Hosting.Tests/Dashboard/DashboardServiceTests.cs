@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
@@ -23,13 +25,72 @@ namespace Aspire.Hosting.Tests.Dashboard;
 public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task WatchResourceConsoleLogs_NoFollow_ResultsEnd()
+    {
+        // Arrange
+        const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
+
+        var getConsoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<LogEntry>>();
+        var consoleLogsService = new TestConsoleLogsService(name => getConsoleLogsChannel);
+
+        var resourceLoggerService = new ResourceLoggerService();
+        resourceLoggerService.SetConsoleLogsService(consoleLogsService);
+
+        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
+        var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
+
+        var logger = resourceLoggerService.GetLogger("test-resource");
+
+        // Three long lines
+        logger.LogInformation(new string('1', LongLineCharacters));
+        logger.LogInformation(new string('2', LongLineCharacters));
+        logger.LogInformation(new string('3', LongLineCharacters));
+        logger.LogInformation("Test1");
+        logger.LogInformation("Test2");
+
+        var context = TestServerCallContext.Create();
+        var writer = new TestServerStreamWriter<WatchResourceConsoleLogsUpdate>(context);
+
+        // Act
+        var task = dashboardService.WatchResourceConsoleLogs(
+            new WatchResourceConsoleLogsRequest { ResourceName = "test-resource", SuppressFollow = true },
+            writer,
+            context);
+
+        // Assert
+        var update1 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update1.LogLines,
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length));
+
+        var update2 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update2.LogLines,
+            l => Assert.Equal(LongLineCharacters, l.Text.Split(' ')[1].Length),
+            l => Assert.Equal("Test1", l.Text.Split(' ')[1]),
+            l => Assert.Equal("Test2", l.Text.Split(' ')[1]));
+
+        await getConsoleLogsChannel.Writer.WriteAsync([LogEntry.Create(null, "Test3", isErrorMessage: false)]);
+
+        var update3 = await writer.ReadNextAsync().DefaultTimeout();
+        Assert.Collection(update3.LogLines,
+            l => Assert.Equal("Test3", l.Text));
+
+        Assert.False(task.IsCompleted, "Waiting for channel to complete.");
+
+        getConsoleLogsChannel.Writer.TryComplete();
+
+        await task.DefaultTimeout();
+    }
+
+    [Fact]
     public async Task WatchResourceConsoleLogs_LargePendingData_BatchResults()
     {
         // Arrange
         const int LongLineCharacters = DashboardService.LogMaxBatchCharacters / 3;
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardService>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
@@ -81,7 +142,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(loggerFactory.CreateLogger<ResourceNotificationService>(), new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
-        using var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, loggerFactory.CreateLogger<DashboardServiceData>(), new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardService(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardService>());
 
         var testResource = new TestResource("test-resource");
@@ -145,6 +206,35 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         Assert.True(commandData.IsHighlighted);
 
         await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
+    }
+
+    [Fact]
+    public void WithCommandOverloadNotAmbiguous()
+    {
+        var testResource = new TestResource("test-resource");
+        using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
+        var builder = applicationBuilder.AddResource(testResource);
+        builder.WithCommand(
+            name: "TestName",
+            displayName: "Display name!",
+            executeCommand: c => Task.FromResult(CommandResults.Success()));
+
+        // This test simply needs to compile.
+        Assert.True(true);
+    }
+
+    private static DashboardServiceData CreateDashboardServiceData(
+        ResourceLoggerService resourceLoggerService,
+        ResourceNotificationService resourceNotificationService,
+        ILoggerFactory? loggerFactory = null)
+    {
+        loggerFactory ??= NullLoggerFactory.Instance;
+
+        return new DashboardServiceData(
+            resourceNotificationService,
+            resourceLoggerService,
+            loggerFactory.CreateLogger<DashboardServiceData>(),
+            new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

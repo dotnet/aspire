@@ -33,6 +33,50 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointByNameIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", endpointName: "nonhttp");
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", () => container.GetEndpoint("nonhttp"));
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
     public void WithHttpCommand_AddsResourceCommandAnnotation_WithDefaultValues()
     {
         // Arrange
@@ -131,7 +175,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(404, false)]
     [InlineData(500, false)]
     [Theory]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8194")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
@@ -262,7 +305,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8192")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
@@ -307,7 +349,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8200")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange

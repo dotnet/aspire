@@ -5,8 +5,9 @@ using System.CommandLine;
 
 #if DEBUG
 using System.Diagnostics;
-using Spectre.Console;
 #endif
+
+using Aspire.Cli.Interaction;
 
 using BaseRootCommand = System.CommandLine.RootCommand;
 
@@ -14,37 +15,56 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand) : base("Aspire CLI")
+    private readonly IInteractionService _interactionService;
+
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, IInteractionService interactionService)
+        : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
+        ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(runCommand);
+        ArgumentNullException.ThrowIfNull(addCommand);
+        ArgumentNullException.ThrowIfNull(publishCommand);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        
+        _interactionService = interactionService;
+
         var debugOption = new Option<bool>("--debug", "-d");
+        debugOption.Description = "Enable debug logging to the console.";
         debugOption.Recursive = true;
         Options.Add(debugOption);
         
-        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger", "-w");
+        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
+        waitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
+        var cliWaitForDebuggerOption = new Option<bool>("--cli-wait-for-debugger");
+        cliWaitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
+        cliWaitForDebuggerOption.Recursive = true;
+        cliWaitForDebuggerOption.Hidden = true;
+        cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
+
         #if DEBUG
-        waitForDebuggerOption.Validators.Add((result) => {
+        cliWaitForDebuggerOption.Validators.Add((result) => {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
 
             if (waitForDebugger)
             {
-                AnsiConsole.Status().Start(
-                    $":bug:  Waiting for debugger to attach to process ID: {Environment.ProcessId}",
-                    context => {
+                _interactionService.ShowStatus(
+                    $":bug:  Waiting for debugger to attach to CLI process ID: {Environment.ProcessId}",
+                    () => {
                         while (!Debugger.IsAttached)
                         {
                             Thread.Sleep(1000);
                         }
-                    }
-                );
+                    });
             }
         });
         #endif
 
         Options.Add(waitForDebuggerOption);
+        Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
         Subcommands.Add(runCommand);

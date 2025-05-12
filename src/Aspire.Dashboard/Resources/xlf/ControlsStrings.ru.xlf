@@ -252,9 +252,14 @@
         <target state="translated">(Удалить)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">Ссылка</target>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">Адрес</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">Текст</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -320,6 +325,11 @@
       <trans-unit id="PauseButtonTitle">
         <source>Pause incoming data</source>
         <target state="translated">Приостановить входящие данные</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">Запись приостановлена</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -542,9 +552,9 @@
         <target state="translated">Метка времени</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">Запись приостановлена</target>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">Переключить вложение</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">

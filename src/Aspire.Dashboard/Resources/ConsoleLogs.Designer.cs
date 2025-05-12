@@ -151,11 +151,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource commands.
+        ///   Looks up a localized string similar to Resource actions.
         /// </summary>
-        public static string ConsoleLogsResourceCommands {
+        public static string ConsoleLogsResourceActions {
             get {
-                return ResourceManager.GetString("ConsoleLogsResourceCommands", resourceCulture);
+                return ResourceManager.GetString("ConsoleLogsResourceActions", resourceCulture);
             }
         }
         

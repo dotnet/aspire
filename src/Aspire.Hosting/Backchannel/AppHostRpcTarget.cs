@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,18 +18,18 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    IDistributedApplicationEventing eventing,
     PublishingActivityProgressReporter activityReporter,
-    IHostApplicationLifetime lifetime
+    IHostApplicationLifetime lifetime,
+    DistributedApplicationOptions options
     ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
-            var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var publishingActivityStatus = await activityReporter.ActivityStatusUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-            if (publishingActivity == null)
+            if (publishingActivityStatus == null)
             {
                 // If the publishing activity is null, it means that the activity has been removed.
                 // This can happen if the activity is complete or an error occurred.
@@ -38,13 +37,13 @@ internal class AppHostRpcTarget(
             }
 
             yield return (
-                publishingActivity.Id,
-                publishingActivity.StatusMessage,
-                publishingActivity.IsComplete,
-                publishingActivity.IsError
+                publishingActivityStatus.Activity.Id,
+                publishingActivityStatus.StatusText,
+                publishingActivityStatus.IsComplete,
+                publishingActivityStatus.IsError
             );
 
-            if ( publishingActivity.IsPrimary &&(publishingActivity.IsComplete || publishingActivity.IsError))
+            if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
@@ -101,6 +100,24 @@ internal class AppHostRpcTarget(
 
     public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
     {
+        return GetDashboardUrlsAsync(CancellationToken.None);
+    }
+
+    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    {
+        if (!options.DashboardEnabled)
+        {
+            logger.LogError("Dashboard URL requested but dashboard is disabled.");
+            throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
+        }
+
+        // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
+        // endpoint for the resource is available and the dashboard is ready to be used. This helps
+        // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
+        await resourceNotificationService.WaitForResourceHealthyAsync(
+            KnownResourceNames.AspireDashboard,
+            cancellationToken).ConfigureAwait(false);
+
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
         if (dashboardOptions is null)
@@ -122,20 +139,38 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return Task.FromResult<(string, string?)>((baseUrlWithLoginToken, null));
+            return (baseUrlWithLoginToken, null);
         }
         else
         {
-            return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+            return (baseUrlWithLoginToken, codespacesUrlWithLoginToken);
         }
     }
 
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
+#pragma warning disable CA1822
+    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
-        var e = new PublisherAdvertisementEvent();
-        await eventing.PublishAsync(e, cancellationToken).ConfigureAwait(false);
+        // The purpose of this API is to allow the CLI to determine what API surfaces
+        // the AppHost supports. In 9.2 we'll be saying that you need a 9.2 apphost,
+        // but the 9.3 CLI might actually support working with 9.2 apphosts. The idea
+        // is that when the backchannel is established the CLI will call this API
+        // and store the results. The "baseline.v0" capability is the bare minimum
+        // that we need as of CLI version 9.2-preview*.
+        //
+        // Some capabilties will be opt in. For example in 9.3 we might refine the
+        // publishing activities API to return more information, or add log streaming
+        // features. So that would add a new capability that the apphsot can report
+        // on initial backchannel negotiation and the CLI can adapt its behavior around
+        // that. There may be scenarios where we need to break compataiblity at which
+        // point we might increase the baseline version that the apphost reports.
+        //
+        // The ability to support a back channel at all is determined by the CLI by
+        // making sure that the apphost version is at least > 9.2.
 
-        var publishers = e.Advertisements.Select(x => x.Name);
-        return [..publishers];
+        _ = cancellationToken;
+        return Task.FromResult(new string[] {
+            "baseline.v1"
+            });
     }
+#pragma warning restore CA1822
 }

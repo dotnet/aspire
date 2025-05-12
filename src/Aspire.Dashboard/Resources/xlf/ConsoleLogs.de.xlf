@@ -52,9 +52,9 @@
         <target state="translated">&lt;Protokollerfassung wurde zwischen {0} und {1} angehalten, {2} Protokoll(e) herausgefiltert&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Ressourcenbefehle</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Ressourcenaktionen</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

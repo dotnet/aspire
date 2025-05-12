@@ -18,7 +18,7 @@ dotnet add package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
@@ -110,7 +110,7 @@ In your AppHost project, install the `Aspire.Hosting.PostgreSQL` library with [N
 dotnet add package Aspire.Hosting.PostgreSQL
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddPostgres("pg").AddDatabase("postgresdb");

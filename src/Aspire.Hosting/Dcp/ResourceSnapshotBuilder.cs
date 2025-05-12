@@ -20,11 +20,11 @@ internal class ResourceSnapshotBuilder
     public CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
         var containerId = container.Status?.ContainerId;
-        var urls = GetUrls(container);
+        var urls = GetUrls(container, container.Status?.State);
         var volumes = GetVolumes(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
-        var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
+        var state = container.Status?.State;
 
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
 
@@ -99,7 +99,7 @@ internal class ResourceSnapshotBuilder
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
 
-        var urls = GetUrls(executable);
+        var urls = GetUrls(executable, executable.Status?.State);
 
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
 
@@ -183,7 +183,7 @@ internal class ResourceSnapshotBuilder
         return (launchArgsBuilder.ToImmutable(), argsAreSensitiveBuilder.ToImmutable(), anySensitive);
     }
 
-    private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
+    private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource, string? resourceState)
     {
         var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
         var appModelResourceName = resource.AppModelResourceName;
@@ -199,21 +199,26 @@ internal class ResourceSnapshotBuilder
             var name = resource.Metadata.Name;
 
             // Add the endpoint URLs
-            foreach (var service in resourceServices)
+            var serviceEndpoints = new HashSet<(string EndpointName, string ServiceMetadataName)>(resourceServices.Where(s => !string.IsNullOrEmpty(s.EndpointName)).Select(s => (s.EndpointName!, s.Metadata.Name)));
+            foreach (var endpoint in serviceEndpoints)
             {
-                if (endpointUrls.FirstOrDefault(u => string.Equals(service.EndpointName, u.Endpoint?.EndpointName, StringComparisons.EndpointAnnotationName)) is { Endpoint: { } } endpointUrl)
+                var (endpointName, serviceName) = endpoint;
+                var urlsForEndpoint = endpointUrls.Where(u => string.Equals(endpointName, u.Endpoint?.EndpointName, StringComparisons.EndpointAnnotationName)).ToList();
+
+                foreach (var endpointUrl in urlsForEndpoint)
                 {
-                    var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == service.Metadata.Name && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
+                    var activeEndpoint = _resourceState.EndpointsMap.SingleOrDefault(e => e.Value.Spec.ServiceName == serviceName && e.Value.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) == true).Value;
                     var isInactive = activeEndpoint is null;
 
-                    urls.Add(new(Name: endpointUrl.Endpoint.EndpointName, Url: endpointUrl.Url, IsInternal: false) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
+                    urls.Add(new(Name: endpointUrl.Endpoint!.EndpointName, Url: endpointUrl.Url, IsInternal: endpointUrl.IsInternal) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
                 }
             }
 
             // Add the non-endpoint URLs
+            var resourceRunning = string.Equals(resourceState, KnownResourceStates.Running, StringComparisons.ResourceState);
             foreach (var url in nonEndpointUrls)
             {
-                urls.Add(new(Name: null, Url: url.Url, IsInternal: false) { IsInactive = false, DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0) });
+                urls.Add(new(Name: null, Url: url.Url, IsInternal: url.IsInternal) { IsInactive = !resourceRunning, DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0) });
             }
         }
 

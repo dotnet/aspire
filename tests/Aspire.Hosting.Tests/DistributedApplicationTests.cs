@@ -177,26 +177,39 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
+        // Source should be populated on non-started resources.
         Assert.Contains("TestProject.ServiceA.csproj", notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5156", u.Url);
+            Assert.Equal("http", u.Name);
             Assert.True(u.IsInactive);
         });
-        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
         Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
             Assert.True(u.IsInactive);
         });
 
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5156", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentResourceRunningEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentResourceRunningEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -239,26 +252,37 @@ public class DistributedApplicationTests
         var notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         var dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Inactive URLs and source should be populated on non-started resources.
-        Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
         Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("tcp://localhost:6379", u.Url);
             Assert.True(u.IsInactive);
         });
-        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
         Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
         {
             Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
             Assert.True(u.IsInactive);
         });
 
+        // Source should be populated on non-started resources.
+        Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+        Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
         logger.LogInformation("Start explicit start resource.");
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("tcp://localhost:6379", u.Url);
+        });
 
         // Dependent resource should now run.
-        await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
+        {
+            Assert.Equal("http://localhost:5254", u.Url);
+            Assert.Equal("http", u.Name);
+        });
 
         logger.LogInformation("Stop resource.");
         await orchestrator.StopResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -306,12 +330,11 @@ public class DistributedApplicationTests
 
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
-        Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
+        Assert.Single(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback1);
         Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram("ports-assigned-after-hook-runs");
@@ -344,7 +367,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -401,7 +423,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
@@ -486,7 +507,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
@@ -574,7 +594,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8871")]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         const string testName = "ports-flow-to-env";
@@ -626,12 +646,11 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         const string testName = "dashboard-auth-config";
@@ -667,7 +686,7 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
@@ -703,13 +722,12 @@ public class DistributedApplicationTests
         static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
         {
             Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+            return Assert.Single(envVars, e => e.Name == name).Value;
         }
     }
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         const string testName = "docker-entrypoint";
@@ -738,7 +756,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         const string testName = "docker-bindmount-absolute";
@@ -769,7 +786,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         const string testName = "docker-bindmount-relative";
@@ -800,7 +816,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         const string testName = "docker-volume";
@@ -830,7 +845,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         const string testName = "kube-resource-names";
@@ -888,7 +902,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         const string testName = "replicas-no-proxyless-endpoints";
@@ -907,7 +920,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         const string testName = "proxyess-endpoint-without-port";
@@ -927,7 +939,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8728")]
     public async Task ProxylessEndpointWorks()
     {
         const string testName = "proxyless-endpoint-works";
@@ -963,7 +975,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4599")]
+    [RequiresSSLCertificate]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         const string testName = "proxyless-and-proxied-endpoints";
@@ -990,6 +1002,9 @@ public class DistributedApplicationTests
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         var token = cts.Token;
+
+        // Wait for servicea to be ready
+        await app.WaitForTextAsync("Content root path:", resourceName: testProgram.ServiceABuilder.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         var urls = string.Empty;
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
@@ -1024,6 +1039,7 @@ public class DistributedApplicationTests
             }
             catch (Exception ex) when (ex is not EqualException)
             {
+                _testOutputHelper.WriteLine($"Exception {ex} while trying to get https url");
                 await Task.Delay(100, token);
             }
         }
@@ -1031,7 +1047,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task ProxylessContainerCanBeReferenced()
     {
         const string testName = "proxyless-container";
@@ -1064,18 +1079,18 @@ public class DistributedApplicationTests
         var s = app.Services.GetRequiredService<IKubernetesService>();
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
-        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
-        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
+        var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
+        var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
@@ -1118,18 +1133,18 @@ public class DistributedApplicationTests
 
         var exeList = await s.ListAsync<Executable>().DefaultTimeout();
 
-        var service = Assert.Single(exeList.Where(c => $"{testName}-servicea".Equals(c.AppModelResourceName)));
-        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redis"));
+        var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
+        var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
-        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}")));
+        var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
-        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == $"ConnectionStrings__{testName}-redisNoPort"));
+        var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}")));
+        var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
@@ -1137,7 +1152,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         const string testName = "proxyless-container-without-ports";
@@ -1156,7 +1170,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         const string testName = "lifecycle-hook-after-resource-created";

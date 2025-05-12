@@ -82,6 +82,25 @@ public class ExecutableResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public void ExecutableResourceNullCommand()
+        => Assert.Throws<ArgumentNullException>("command", () => new ExecutableResource("name", command: null!, workingDirectory: "."));
+
+    [Fact]
+    public void ExecutableResourceEmptyCommand()
+        => Assert.Throws<ArgumentException>("command", () => new ExecutableResource("name", command: "", workingDirectory: "."));
+
+    [Fact]
+    public void ExecutableResourceNullWorkingDirectory()
+        => Assert.Throws<ArgumentNullException>("workingDirectory", () => new ExecutableResource("name", command: "cmd", workingDirectory: null!));
+
+    [Fact]
+    public void ExecutableResourceEmptyWorkingDirectory()
+    {
+        var er = new ExecutableResource("name", command: "cmd", workingDirectory: "");
+        Assert.Empty(er.WorkingDirectory);
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>

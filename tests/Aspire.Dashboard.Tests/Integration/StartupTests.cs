@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
+using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.InternalTesting;
@@ -263,6 +265,35 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Configuration_OptionsMonitor_DebugSession()
+    {
+        // Arrange
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
+                initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
+
+        var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
+        Assert.NotNull(cert);
+        Assert.Equal(testCert.Thumbprint, cert.Thumbprint);
+
+        Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
+        Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
+    }
+
+    [Fact]
     public async Task Configuration_BrowserAndOtlpGrpcEndpointSame_Https_EndPointPortsAssigned()
     {
         // Arrange
@@ -499,9 +530,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
     }
 
     [Theory]
@@ -540,9 +571,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
         }
         finally
         {

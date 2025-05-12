@@ -54,7 +54,8 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
     {
         if (Uri.TryCreate(location, UriKind.Absolute, out var result))
         {
-            var isResources = result.AbsolutePath.TrimStart('/') == DashboardUrls.ResourcesBasePath;
+            var trimmedPath = result.AbsolutePath.TrimStart('/');
+            var isResources = trimmedPath == DashboardUrls.ResourcesBasePath || trimmedPath[0] == '?';
             if (isResources != _isResources)
             {
                 _isResources = isResources;

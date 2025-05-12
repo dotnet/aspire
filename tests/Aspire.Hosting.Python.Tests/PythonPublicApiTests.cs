@@ -42,20 +42,15 @@ public class PythonPublicApiTests
         Assert.Equal("command", exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void CtorPythonAppResourceShouldThrowWhenAppDirectoryIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void CtorPythonAppResourceShouldThrowWhenAppDirectoryIsNull()
     {
         const string name = "Python";
         const string executablePath = "/src/python";
-        var appDirectory = isNull ? null! : string.Empty;
 
-        var action = () => new PythonAppResource(name, executablePath, appDirectory);
+        var action = () => new PythonAppResource(name, executablePath, appDirectory: null!);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal("workingDirectory", exception.ParamName);
     }
 
@@ -379,21 +374,16 @@ public class PythonPublicApiTests
         Assert.Equal("command", exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [Fact]
     [Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
-    public void CtorPythonProjectResourceShouldThrowWhenAppDirectoryIsNullOrEmpty(bool isNull)
+    public void CtorPythonProjectResourceShouldThrowWhenAppDirectoryIsNull()
     {
         const string name = "Python";
         const string executablePath = "/src/python";
-        var projectDirectory = isNull ? null! : string.Empty;
 
-        var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
+        var action = () => new PythonProjectResource(name, executablePath, projectDirectory: null!);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal("workingDirectory", exception.ParamName);
     }
 

@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001")]
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IResourceContainerImageBuilder
 {
     /// <summary>
@@ -130,17 +130,19 @@ internal sealed class ResourceContainerImageBuilder(
                 stdout,
                 stderr);
 
-            publishingActivity.IsError = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsError = true },
+                cancellationToken).ConfigureAwait(false);
 
             throw new DistributedApplicationException($"Failed to build container image, stdout: {stdout}, stderr: {stderr}");
         }
         else
         {
-            publishingActivity.IsComplete = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsComplete = true },
+                cancellationToken).ConfigureAwait(false);
 
-            logger.LogError(
+            logger.LogDebug(
                 ".NET CLI completed with exit code: {ExitCode}",
                 process.ExitCode);
 
@@ -148,7 +150,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<string> BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
         var publishingActivity = await activityReporter.CreateActivityAsync(
             $"{resourceName}-build-image",
@@ -165,23 +167,23 @@ internal sealed class ResourceContainerImageBuilder(
                 null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
             };
 
-            var image = await containerRuntime.BuildImageAsync(
+            await containerRuntime.BuildImageAsync(
                 contextPath,
                 dockerfilePath,
                 imageName,
                 cancellationToken).ConfigureAwait(false);
 
-            publishingActivity.IsComplete = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
-
-            return image;
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsComplete = true },
+                cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to build container image from Dockerfile.");
 
-            publishingActivity.IsError = true;
-            await activityReporter.UpdateActivityAsync(publishingActivity, cancellationToken).ConfigureAwait(false);
+            await activityReporter.UpdateActivityStatusAsync(
+                publishingActivity, (status) => status with { IsError = true },
+                cancellationToken).ConfigureAwait(false);
 
             throw;
         }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
@@ -249,6 +251,59 @@ public class ResourceLoggerServiceTests
         Assert.False(await logsEnumerator.MoveNextAsync().DefaultTimeout());
 
         await logsEnumerator.DisposeAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task MultipleInstancesGetLogForAll()
+    {
+        var testResource = new TestResource("myResource");
+        testResource.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance("instance0", "0", 0), new DcpInstance("instance1", "1", 1)]));
+
+        var consoleLogsChannel0 = Channel.CreateUnbounded<IReadOnlyList<LogEntry>>();
+        consoleLogsChannel0.Writer.TryWrite([LogEntry.Create(timestamp: null, logMessage: "instance0!", isErrorMessage: false)]);
+        consoleLogsChannel0.Writer.Complete();
+
+        var consoleLogsChannel1 = Channel.CreateUnbounded<IReadOnlyList<LogEntry>>();
+        consoleLogsChannel1.Writer.TryWrite([LogEntry.Create(timestamp: null, logMessage: "instance1!", isErrorMessage: false)]);
+        consoleLogsChannel1.Writer.Complete();
+
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+
+        // Get logger before SetConsoleLogsService is called so that we test there is no bad state stored on the resource logger instance.
+        var logger = service.GetLogger(testResource);
+
+        service.SetConsoleLogsService(new TestConsoleLogsService(name => name switch
+            {
+                "instance0" => consoleLogsChannel0,
+                "instance1" => consoleLogsChannel1,
+                string n => throw new InvalidOperationException($"Unexpected {n}")
+            }));
+
+        // Log
+        logger.LogInformation("Hello, world!");
+        logger.LogError("Hello, error!");
+
+        Assert.True(service.Loggers.ContainsKey("instance0"));
+        Assert.True(service.Loggers.ContainsKey("instance1"));
+
+        // Wait for logs to be read
+        var allLogs = new List<LogLine>();
+        await foreach (var logs in service.GetAllAsync(testResource).DefaultTimeout())
+        {
+            allLogs.AddRange(logs);
+        }
+
+        var sortedLogs = allLogs.OrderBy(l => l.LineNumber).ToList();
+
+        Assert.Equal(6, sortedLogs.Count);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", sortedLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", sortedLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", sortedLogs[2].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", sortedLogs[3].Content);
+
+        var consoleLogsSourceLogs = sortedLogs.Slice(4, 2).ToList();
+        Assert.Contains(consoleLogsSourceLogs, l => l.Content == "instance0!");
+        Assert.Contains(consoleLogsSourceLogs, l => l.Content == "instance1!");
     }
 
     private sealed class TestResource(string name) : Resource(name)

@@ -14,4 +14,5 @@ internal static class ExitCodeConstants
     public const int FailedToBuildArtifacts = 6;
     public const int FailedToFindProject = 7;
     public const int FailedToTrustCertificates = 8;
+    public const int AppHostIncompatible = 9;
 }

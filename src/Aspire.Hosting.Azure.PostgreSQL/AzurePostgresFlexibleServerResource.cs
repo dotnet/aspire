@@ -33,7 +33,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     ///
     /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     private BicepOutputReference NameOutputReference => new("name", this);
 
@@ -99,7 +99,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         // Note that the bicep template puts each database's connection string in a KeyVault secret.
         if (InnerResource is null && ConnectionStringSecretOutput is not null)
         {
-            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecretReference(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
+            return ReferenceExpression.Create($"{ConnectionStringSecretOutput.Resource.GetSecret(GetDatabaseKeyVaultSecretName(databaseResourceName))}");
         }
 
         return ReferenceExpression.Create($"{this};Database={databaseName}");

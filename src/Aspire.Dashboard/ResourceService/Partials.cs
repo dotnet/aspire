@@ -4,9 +4,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.Dashboard;
 using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
-using CommandsResources = Aspire.Dashboard.Resources.Commands;
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting;
 using Google.Protobuf.Collections;
@@ -18,7 +16,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    public ResourceViewModel ToViewModel(IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -31,7 +29,7 @@ partial class Resource
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),
-                Properties = CreatePropertyViewModels(Properties, timeProvider, knownPropertyLookup, logger),
+                Properties = CreatePropertyViewModels(Properties, knownPropertyLookup, logger),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
@@ -41,6 +39,7 @@ partial class Resource
                 StateStyle = HasStateStyle ? StateStyle : null,
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
+                IsHidden = IsHidden
             };
         }
         catch (Exception ex)
@@ -107,24 +106,8 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c =>
-                {
-                    var (displayName, displayDescription) = GetDisplayNameAndDescription(c.Name, c.DisplayName, c.DisplayDescription);
-                    return new CommandViewModel(c.Name, MapState(c.State), displayName, displayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant));
-                })
+                .Select(c => new CommandViewModel(c.Name, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
-
-            // Use custom localizations for built-in lifecycle commands
-            static (string DisplayName, string DisplayDescription) GetDisplayNameAndDescription(string commandName, string displayName, string description)
-            {
-                return commandName switch
-                {
-                    KnownResourceCommands.StartCommand => (CommandsResources.StartCommandDisplayName, CommandsResources.StartCommandDisplayDescription),
-                    KnownResourceCommands.StopCommand => (CommandsResources.StopCommandDisplayName, CommandsResources.StopCommandDisplayDescription),
-                    KnownResourceCommands.RestartCommand => (CommandsResources.RestartCommandDisplayName, CommandsResources.RestartCommandDisplayDescription),
-                    _ => (displayName, description)
-                };
-            }
 
             static CommandViewModelState MapState(ResourceCommandState state)
             {
@@ -149,7 +132,7 @@ partial class Resource
         }
     }
 
-    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    private ImmutableDictionary<string, ResourcePropertyViewModel> CreatePropertyViewModels(RepeatedField<ResourceProperty> properties, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         var builder = ImmutableDictionary.CreateBuilder<string, ResourcePropertyViewModel>(StringComparers.ResourcePropertyName);
 
@@ -161,8 +144,7 @@ partial class Resource
                 value: ValidateNotNull(property.Value),
                 isValueSensitive: property.IsSensitive,
                 knownProperty: knownProperty,
-                priority: priority,
-                timeProvider: timeProvider);
+                priority: priority);
 
             if (builder.ContainsKey(propertyViewModel.Name))
             {

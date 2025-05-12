@@ -208,8 +208,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">Pano günlükleri ve telemetri</target>
+        <source>Resource logs and telemetry</source>
+        <target state="translated">Kaynak günlükleri ve telemetri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogEnableTelemetry">
+        <source>Enable dashboard telemetry</source>
+        <target state="translated">Pano telemetrisini etkinleştir</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -230,6 +235,21 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">Sistem</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">Pano telemetrisi etkin. Aspire, kullanım verilerini toplar ve bu verileri Microsoft’a gönderir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">Neden?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="translated">Kullanım telemetri belgelerine erişin</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

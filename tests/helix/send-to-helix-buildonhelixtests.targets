@@ -31,14 +31,15 @@
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
       <_TestBlameArguments Remove="@(_TestBlameArguments)" />
-      <_TestBlameArguments Include="--blame-crash" />
-      <_TestBlameArguments Include="--blame-crash-dump-type full" />
+      <_TestBlameArguments Include="--crashdump" />
+      <_TestBlameArguments Include="--crashdump-type Full" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath) -v:n" />
+      <_TestRunCommandArguments Include="dotnet test -- --results-directory $(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
-      <_TestRunCommandArguments Include="--filter &quot;quarantined!=true&quot;" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
+      <_TestRunCommandArguments Include="--ignore-exit-code 8" />
     </ItemGroup>
 
     <PropertyGroup>

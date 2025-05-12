@@ -3,6 +3,7 @@
 
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+
 @namespace Aspire.Dashboard.Components.Pages
 
 <PageTitle>
@@ -34,12 +35,12 @@
             {
                 if (_highlightedCommands.Count > 0)
                 {
-                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]</span>
+                    <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]</span>
 
                     @foreach (var command in _highlightedCommands)
                     {
                         <FluentButton Appearance="Appearance.Lightweight"
-                                      Title="@(!string.IsNullOrEmpty(command.DisplayDescription) ? command.DisplayDescription : command.DisplayName)"
+                                      Title="@(!string.IsNullOrEmpty(command.GetDisplayDescription(CommandsLoc)) ? command.GetDisplayDescription(CommandsLoc) : command.GetDisplayName(CommandsLoc))"
                                       Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selectedResource.Name, command.Name))"
                                       OnClick="@(() => ExecuteResourceCommandAsync(command))"
                                       Class="highlighted-command">
@@ -49,7 +50,7 @@
                             }
                             else
                             {
-                                @command.DisplayName
+                                @command.GetDisplayName(CommandsLoc)
                             }
                         </FluentButton>
                     }
@@ -60,7 +61,7 @@
                     <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                                       Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
                                       Items="@_resourceMenuItems"
-                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceCommands)]" />
+                                      Title="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]" />
                 }
             }
 

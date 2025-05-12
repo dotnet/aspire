@@ -20,8 +20,7 @@
     "language": "C#",
     "type": "solution",
     "editorTreatAs": "solution",
-    "aspire-8.2-tfms": "net8.0",
-    "aspire-9.1-tfms": "net8.0;net9.0",
+    "aspire-9.3-tfms": "net8.0;net9.0",
     "aspire-9.2-tfms": "net8.0;net9.0"
   },
   "precedence": "9000",
@@ -49,22 +48,9 @@
       ]
     },
     {
-      "source": "./9.1",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 9.1",
-      "modifiers": [
-        {
-          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
-          "exclude": [
-            "*.sln"
-          ]
-        }
-      ]
-    },
-    {
-      "source": "./8.2",
-      "target": "./",
-      "condition": "AspireVersionActual == 8.2",
+      "condition": "AspireVersionActual == 9.3",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -105,17 +91,12 @@
           "description": "Chooses .NET Aspire 9.2"
         },
         {
-          "choice": "9.1",
-          "displayName": "9.1",
-          "description": "Chooses .NET Aspire 9.1"
-        },
-        {
-          "choice": "8.2",
-          "displayName": "8.2 (.NET 8.0 only)",
-          "description": "Chooses .NET Aspire 8.2 (valid only when '--framework net8.0' is specified)"
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.2"
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -124,16 +105,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "(AspireVersion == 8.2 && Framework == net8.0)",
-            "value": "8.2"
-          },
-          {
-            "condition": "AspireVersion == 9.1",
-            "value": "9.1"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }

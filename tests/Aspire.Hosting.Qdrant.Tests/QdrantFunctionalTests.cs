@@ -221,6 +221,33 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task AddQdrantWithDefaultsAddsUrlAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var qdrant = builder.AddQdrant("qdrant");
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            tcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var urls = qdrant.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "grpc" && u.DisplayText == "Qdrant (GRPC)" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
+        Assert.Single(urls, u => u.Endpoint?.EndpointName == "http" && u.DisplayText == "Qdrant (HTTP)");
+        Assert.Single(urls, u => u.DisplayText == "Qdrant Dashboard" && u.Url.EndsWith("/dashboard"));
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyWaitForOnQdrantBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

@@ -19,7 +19,8 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
-    ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
+    ResourceLoggerService loggerService,
+    TokenCredentialHolder tokenCredentialHolder) : AzureResourceProvisioner<AzureBicepResource>
 {
     public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
         => !resource.IsContainer();
@@ -67,6 +68,12 @@ internal sealed class BicepProvisioner(
             }
         }
 
+        if (resource is IAzureKeyVaultResource kvr)
+        {
+            ConfigureSecretResolver(kvr);
+        }
+
+        // Populate secret outputs from key vault (if any)
         foreach (var item in section.GetSection("SecretOutputs").GetChildren())
         {
             resource.SecretOutputs[item.Key] = item.Value;
@@ -278,17 +285,9 @@ internal sealed class BicepProvisioner(
         }
 
         // Populate secret outputs from key vault (if any)
-        if (resource is IKeyVaultResource kvr)
+        if (resource is IAzureKeyVaultResource kvr)
         {
-            var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
-
-            // Set the client for resolving secrets at runtime
-            var client = new SecretClient(new(vaultUri), context.Credential);
-            kvr.SecretResolver = async (secretRef, ct) =>
-            {
-                var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);
-                return secret.Value.Value;
-            };
+            ConfigureSecretResolver(kvr);
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -306,6 +305,21 @@ internal sealed class BicepProvisioner(
             };
         })
         .ConfigureAwait(false);
+    }
+
+    private void ConfigureSecretResolver(IAzureKeyVaultResource kvr)
+    {
+        var resource = (AzureBicepResource)kvr;
+
+        var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
+
+        // Set the client for resolving secrets at runtime
+        var client = new SecretClient(new(vaultUri), tokenCredentialHolder.Credential);
+        kvr.SecretResolver = async (secretRef, ct) =>
+        {
+            var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);
+            return secret.Value.Value;
+        };
     }
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)

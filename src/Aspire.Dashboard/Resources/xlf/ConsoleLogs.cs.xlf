@@ -52,9 +52,9 @@
         <target state="translated">&lt;Zachytávání protokolů bylo pozastaveno mezi {0} a {1}, odfiltrované protokoly: {2} &gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceCommands">
-        <source>Resource commands</source>
-        <target state="translated">Příkazy prostředku</target>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Akce prostředku</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

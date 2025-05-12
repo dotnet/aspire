@@ -65,7 +65,6 @@ public static class ContainerResourceBuilderExtensions
     /// <para>
     /// The <paramref name="target"/> path specifies the path the volume will be mounted inside the container's file system.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adds a volume named <c>data</c> that will be mounted in the container's file system at the path <c>/usr/data</c>:
     /// <code language="csharp">
@@ -77,6 +76,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -105,7 +105,6 @@ public static class ContainerResourceBuilderExtensions
     /// <para>
     /// The <paramref name="target"/> path specifies the path the volume will be mounted inside the container's file system.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adds an anonymous volume that will be mounted in the container's file system at the path <c>/usr/data</c>:
     /// <code language="csharp">
@@ -117,6 +116,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -147,7 +147,6 @@ public static class ContainerResourceBuilderExtensions
     /// <para>
     /// The <paramref name="target"/> path specifies the path the file or directory will be mounted inside the container's file system.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adds a bind mount that will mount the <c>config</c> directory in the app host project directory, to the container's file system at the path <c>/database/config</c>,
     /// and mark it read-only so that the container cannot modify it:
@@ -172,6 +171,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -384,6 +384,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="lifetime">The lifetime behavior of the container resource. The defaults behavior is <see cref="ContainerLifetime.Session"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
     /// <example>
     /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
     /// <code language="csharp">
@@ -395,6 +396,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -458,7 +460,6 @@ public static class ContainerResourceBuilderExtensions
     /// method results in an additional attribute being added to the `container.v0` resource type which contains the configuration
     /// necessary to allow the deployment tool to build the container image prior to deployment.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Creates a container called <c>mycontainer</c> with an image called <c>myimage</c>.
     /// <code language="csharp">
@@ -470,6 +471,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, string? dockerfilePath = null, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -511,7 +513,6 @@ public static class ContainerResourceBuilderExtensions
     /// method results in an additional attribute being added to the `container.v1` resource type which contains the configuration
     /// necessary to allow the deployment tool to build the container image prior to deployment.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Creates a container called <c>mycontainer</c> based on a Dockerfile in the context path <c>path/to/context</c>.
     /// <code language="csharp">
@@ -522,6 +523,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, string? dockerfilePath = null, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -571,7 +573,6 @@ public static class ContainerResourceBuilderExtensions
     /// adds an additional build argument the container resource to be used when the image is built. This method must be called after
     /// <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adding a static build argument.
     /// <code language="csharp">
@@ -584,6 +585,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object? value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -619,7 +621,6 @@ public static class ContainerResourceBuilderExtensions
     /// adds an additional build argument the container resource to be used when the image is built. This method must be called after
     /// <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adding a build argument based on a parameter..
     /// <code language="csharp">
@@ -634,6 +635,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -666,7 +668,6 @@ public static class ContainerResourceBuilderExtensions
     /// results in a <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload results in an environment
     /// variable-based secret being passed to the build process. The value of the environment variable is the value of the secret referenced by the <see cref="ParameterResource"/>.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Adding a build secret based on a parameter.
     /// <code language="csharp">
@@ -681,6 +682,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -706,8 +708,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="destinationPath">The destination (absolute) path in the container.</param>
     /// <param name="entries">The file system entries to create.</param>
-    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
     /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -716,7 +718,6 @@ public static class ContainerResourceBuilderExtensions
     /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
     /// unique on a per-run basis.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Create a directory called <c>custom-entry</c> in the container's file system at the path <c>/usr/data</c> and create a file called <c>entrypoint.sh</c> inside it with the content <c>echo hello world</c>.
     /// The default permissions for these files will be for the user or group to be able to read and write to the files, but not execute them. entrypoint.sh will be created with execution permissions for the owner.
@@ -741,7 +742,8 @@ public static class ContainerResourceBuilderExtensions
     ///     defaultOwner: 1000);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -769,8 +771,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="destinationPath">The destination (absolute) path in the container.</param>
     /// <param name="callback">The callback that will be invoked when the resource is being created.</param>
-    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root.</param>
-    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
     /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -779,7 +781,6 @@ public static class ContainerResourceBuilderExtensions
     /// Make sure any data being written to containers is idempotent for a given app model configuration. Specifically, be careful not to include any data that will be
     /// unique on a per-run basis.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Create a configuration file for every Postgres instance in the application model.
     /// <code language="csharp">
@@ -814,7 +815,8 @@ public static class ContainerResourceBuilderExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int defaultOwner = 0, int defaultGroup = 0, UnixFileMode? umask = null) where T : ContainerResource
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(destinationPath);
@@ -848,7 +850,7 @@ public static class ContainerResourceBuilderExtensions
     /// The user needs to be careful to ensure that container endpoints are using unique ports when disabling proxy support as by default for proxy-less
     /// endpoints, Aspire will allocate the internal container port as the host port, which will increase the chance of port conflicts.
     /// </remarks>
-    [Experimental("ASPIREPROXYENDPOINTS001")]
+    [Experimental("ASPIREPROXYENDPOINTS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithEndpointProxySupport<T>(this IResourceBuilder<T> builder, bool proxyEnabled) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

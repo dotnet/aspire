@@ -11,21 +11,20 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
+public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     private sealed class ConsoleLogsSubscription
     {
@@ -55,13 +54,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; init; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
@@ -80,6 +85,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required PauseManager PauseManager { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -161,6 +172,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
 
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         async Task TrackResourceSnapshotsAsync()
         {
             if (!DashboardClient.IsEnabled)
@@ -183,7 +196,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // Set loading task result if the selected resource is already in the snapshot or there is no selected resource.
             if (ResourceName != null)
             {
-                if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+                if (ResourceViewModel.TryGetResourceByName(ResourceName, _resourceByName, out var selectedResource))
                 {
                     SetSelectedResourceOption(selectedResource);
                 }
@@ -227,14 +240,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            Debug.Assert(_resources is not null);
-
-            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            PageViewModel.SelectedOption = GetSelectedOption();
             PageViewModel.SelectedResource = resource;
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
         }
+    }
+
+    private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
+    {
+        Debug.Assert(_resources is not null);
+        return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -288,6 +305,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 LoadLogs(newConsoleLogsSubscription);
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
     private void UpdateMenuButtons()
@@ -331,23 +350,25 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            var menuCommands = PageViewModel.SelectedResource.Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
-            if (menuCommands.Count > 0)
-            {
-                foreach (var command in menuCommands)
+            ResourceMenuItems.AddMenuItems(
+                _resourceMenuItems,
+                openingMenuButtonId: null,
+                PageViewModel.SelectedResource,
+                NavigationManager,
+                TelemetryRepository,
+                GetResourceName,
+                ControlsStringsLoc,
+                ResourcesLoc,
+                CommandsLoc,
+                buttonId =>
                 {
-                    var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
-
-                    _resourceMenuItems.Add(new MenuButtonItem
-                    {
-                        Text = command.DisplayName,
-                        Tooltip = command.DisplayDescription,
-                        Icon = icon,
-                        OnClick = () => ExecuteResourceCommandAsync(command),
-                        IsDisabled = command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(PageViewModel.SelectedResource!.Name, command.Name)
-                    });
-                }
-            }
+                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
+                    return Task.CompletedTask;
+                },
+                ExecuteResourceCommandAsync,
+                (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showConsoleLogsItem: false,
+                showUrls: true);
         }
     }
 
@@ -376,7 +397,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsHiddenState())
+            .Where(r => !r.Value.IsResourceHidden())
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
@@ -466,7 +487,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 var timestampFilterDate = GetFilteredDateFromRemove();
 
-                var logParser = new LogParser();
+                var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in subscription.ConfigureAwait(true))
                 {
                     if (batch.Count is 0)
@@ -670,6 +691,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         await StopAndClearConsoleLogsSubscriptionAsync();
+        TelemetryContext.Dispose();
     }
 
     public class ConsoleLogsViewModel
@@ -687,10 +709,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (_resources is not null && ResourceName is not null)
         {
-            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Id?.InstanceId, StringComparisons.ResourceName)) ?? _noSelection;
-
-            viewModel.SelectedOption = selectedOption;
-            viewModel.SelectedResource = selectedOption.Id?.InstanceId is null ? null : _resourceByName[selectedOption.Id.InstanceId];
+            viewModel.SelectedOption = GetSelectedOption();
+            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
             viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
         else
@@ -710,6 +730,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        return new ConsoleLogsPageState(PageViewModel.SelectedResource?.Name);
+        var selectedResourceName = PageViewModel.SelectedResource is { } selectedResource
+            ? GetResourceName(selectedResource)
+            : null;
+        return new ConsoleLogsPageState(selectedResourceName);
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.ConsoleLogBasePath);
+
+    public void UpdateTelemetryProperties()
+    {
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
+        ]);
     }
 }

@@ -18,7 +18,7 @@ dotnet add package Aspire.MongoDB.Driver
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddMongoDBClient` extension method to register a `IMongoClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddMongoDBClient` extension method to register a `IMongoClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddMongoDBClient("mongodb");
@@ -94,7 +94,7 @@ In your AppHost project, install the `Aspire.Hosting.MongoDB` library with [NuGe
 dotnet add package Aspire.Hosting.MongoDB
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a MongoDB database and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a MongoDB database and consume the connection using the following methods:
 
 ```csharp
 var mongodb = builder.AddMongoDB("mongodb").AddDatabase("mydatabase");
