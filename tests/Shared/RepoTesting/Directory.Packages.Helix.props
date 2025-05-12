@@ -56,6 +56,7 @@
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Yarp" Version="$(PackageVersion)" />
 
     <PackageVersion Include="Aspire.Keycloak.Authentication" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
