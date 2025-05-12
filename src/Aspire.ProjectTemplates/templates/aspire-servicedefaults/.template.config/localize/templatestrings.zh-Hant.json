@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 服務預設值",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "用於建立 .NET Aspire 服務預設專案的專案範本。",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",

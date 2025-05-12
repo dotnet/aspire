@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Standardwerte für den .NET Aspire-Dienst",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "Eine Projektvorlage zum Erstellen eines Standardprojekts für den .NET Aspire-Dienst.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/Framework/choices/net9.0/description": "Ziel-Net9.0",
