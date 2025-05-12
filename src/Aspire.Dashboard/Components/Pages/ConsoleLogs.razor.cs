@@ -340,7 +340,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             value =>
             {
                 _showHiddenResources = value;
-                return InvokeAsync(StateHasChanged);
+
+                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                {
+                    PageViewModel.SelectedResource = null;
+                    PageViewModel.SelectedOption = _noSelection;
+                    return this.AfterViewModelChangedAsync(_contentLayout, false);
+                }
+
+                return Task.CompletedTask;
             });
 
         _logsMenuItems.Add(new()
