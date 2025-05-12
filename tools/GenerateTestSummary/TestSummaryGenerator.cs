@@ -122,16 +122,10 @@ sealed partial class TestSummaryGenerator
         {
             foreach (var test in failedTests)
             {
-                string title;
-                if (string.IsNullOrEmpty(url))
-                {
-                    title = $"🔴 <b>{test.TestName}</b>";
-                }
-                else
-                {
+                var title = string.IsNullOrEmpty(url)
+                                ? $"🔴 <b>{test.TestName}</b>"
+                                : $"🔴 <a href=\"{url}\">{test.TestName}</a>";
 
-                    title = $"🔴 <a href=\"{url}\">{test.TestName}</a>";
-                }
                 reportBuilder.AppendLine("<div>");
                 reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
                     <details><summary>{title}</summary>
@@ -141,8 +135,8 @@ sealed partial class TestSummaryGenerator
                 errorMsgBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
                 errorMsgBuilder.AppendLine(test.Output?.StdOut ?? string.Empty);
 
-                var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000); // Truncate long error messages for readability
-
+                // Truncate long error messages for readability
+                var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000);
 
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
