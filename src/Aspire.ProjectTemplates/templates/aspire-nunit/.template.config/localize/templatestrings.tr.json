@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Test Projesi (NUnit)",
-  "description": "Esnek ve zengin özelliklere sahip NUnit altyapısıyla uygulamanız için güçlü tümleştirme testi.",
+  "description": ".NET Aspire uygulama konağı projesinin NUnit tümleştirme testlerini içeren bir proje.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

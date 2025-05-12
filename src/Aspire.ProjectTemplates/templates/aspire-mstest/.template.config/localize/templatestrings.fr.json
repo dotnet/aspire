@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Projet de test .NET Aspire (MSTest)",
-  "description": "Tests d’intégration conviviaux pour les débutants de votre application .NET Aspire en utilisant MSTest.",
+  "description": "Un projet qui contient des tests d’intégration MSTest d’un projet hôte d’application .NET Aspire.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",

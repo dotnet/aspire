@@ -179,8 +179,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                //mongodb shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                await Task.Delay(TimeSpan.FromSeconds(10));
                 mongodb2.WithDataBindMount(bindMountPath!);
             }
 

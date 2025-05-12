@@ -481,7 +481,7 @@
   <data name="ClearSignalsButtonTitle" xml:space="preserve">
     <value>Remove data</value>
   </data>
-  <data name="TotalItemsFooterCapturePaused" xml:space="preserve">
+  <data name="PauseWarningTitle" xml:space="preserve">
     <value>Capture paused</value>
   </data>
   <data name="LinkTextColumnHeader" xml:space="preserve">

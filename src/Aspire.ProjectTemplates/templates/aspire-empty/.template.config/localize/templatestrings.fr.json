@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Application vide .NET Aspire",
-  "description": "Créez des systèmes cloud natifs sans services prédéfinis.",
+  "description": "Modèle de projet pour créer une application .NET Aspire vide.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",

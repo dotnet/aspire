@@ -8,7 +8,7 @@ using Aspire.Hosting.Docker;
 
 internal static class DockerComposeServiceResourceExtensions
 {
-    internal static async Task<object> ProcessValueAsync(this DockerComposeServiceResource resource, DockerComposeEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    internal static object ProcessValue(this DockerComposeServiceResource resource, object value)
     {
         while (true)
         {
@@ -19,9 +19,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is EndpointReference ep)
             {
-                var referencedResource = ep.Resource == resource
-                    ? resource
-                    : await context.CreateDockerComposeServiceResourceAsync(ep.Resource, executionContext, default).ConfigureAwait(false);
+                var referencedResource = resource.Parent.ResourceMapping[ep.Resource];
 
                 var mapping = referencedResource.EndpointMappings[ep.EndpointName];
 
@@ -32,7 +30,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                return AllocateParameter(param, context);
+                return param.AsEnvironmentPlaceholder(resource);
             }
 
             if (value is ConnectionStringReference cs)
@@ -49,9 +47,7 @@ internal static class DockerComposeServiceResourceExtensions
 
             if (value is EndpointReferenceExpression epExpr)
             {
-                var referencedResource = epExpr.Endpoint.Resource == resource
-                    ? resource
-                    : await context.CreateDockerComposeServiceResourceAsync(epExpr.Endpoint.Resource, executionContext, default).ConfigureAwait(false);
+                var referencedResource = resource.Parent.ResourceMapping[epExpr.Endpoint.Resource];
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 
@@ -64,7 +60,7 @@ internal static class DockerComposeServiceResourceExtensions
             {
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
-                    return (await resource.ProcessValueAsync(context, executionContext, expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
+                    return resource.ProcessValue(expr.ValueProviders[0]).ToString() ?? string.Empty;
                 }
 
                 var args = new object[expr.ValueProviders.Count];
@@ -72,7 +68,7 @@ internal static class DockerComposeServiceResourceExtensions
 
                 foreach (var vp in expr.ValueProviders)
                 {
-                    var val = await resource.ProcessValueAsync(context, executionContext, vp).ConfigureAwait(false);
+                    var val = resource.ProcessValue(vp);
                     args[index++] = val ?? throw new InvalidOperationException("Value is null");
                 }
 
@@ -82,7 +78,7 @@ internal static class DockerComposeServiceResourceExtensions
             // If we don't know how to process the value, we just return it as an external reference
             if (value is IManifestExpressionProvider r)
             {
-                return ResolveUnknownValue(r, resource);
+                return r.AsEnvironmentPlaceholder(resource);
             }
 
             return value; // todo: we need to never get here really...
@@ -106,43 +102,5 @@ internal static class DockerComposeServiceResourceExtensions
         {
             return $"{prefix}{mapping.Host}{suffix}";
         }
-    }
-
-    private static string ResolveParameterValue(ParameterResource parameter, DockerComposeEnvironmentContext context)
-    {
-        // Placeholder for resolving the actual parameter value
-        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
-        var env = parameter.Name.ToUpperInvariant().Replace("-", "_");
-
-        context.AddEnv(env, $"Parameter {parameter.Name}",
-                                            parameter.Secret || parameter.Default is null ? null : parameter.Value);
-
-        return $"${{{env}}}";
-    }
-
-    private static string AllocateParameter(ParameterResource parameter, DockerComposeEnvironmentContext context)
-    {
-        return ResolveParameterValue(parameter, context);
-    }
-
-    private static string ResolveUnknownValue(IManifestExpressionProvider parameter, DockerComposeServiceResource serviceResource)
-    {
-        // Placeholder for resolving the actual parameter value
-        // https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#interpolation-syntax
-
-        // Treat secrets as environment variable placeholders as for now
-        // this doesn't handle generation of parameter values with defaults
-        var env = parameter.ValueExpression.Replace("{", "")
-                 .Replace("}", "")
-                 .Replace(".", "_")
-                 .Replace("-", "_")
-                 .ToUpperInvariant();
-
-        serviceResource.EnvironmentVariables.Add(env, $"Unknown reference {parameter.ValueExpression}");
-
-        return $"${{{env}}}";
     }
 }

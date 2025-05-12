@@ -342,7 +342,7 @@ public static class KnownResourceStates
     /// <summary>
     /// The hidden state. Useful for hiding the resource.
     /// </summary>
-    [Obsolete("Use CustomResourceSnapshot.Hidden instead.")]
+    [Obsolete("Use CustomResourceSnapshot.IsHidden instead.")]
     public static readonly string Hidden = nameof(Hidden);
 
     /// <summary>

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Empty Uygulaması",
-  "description": "Önceden ayarlanmış hizmetler olmadan, buluta özel sistemler oluşturun.",
+  "description": "Boş bir .NET Aspire uygulaması oluşturmak için proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

@@ -16,6 +16,7 @@ namespace Aspire.Playground.Tests;
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9171")]
     public async Task WithDockerfileTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput);
@@ -59,6 +60,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [Fact]
     [RequiresDocker]
     [RequiresTools(["func"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9243")]
     public async Task AzureFunctionsTest()
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);

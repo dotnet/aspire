@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire 空のアプリ",
-  "description": "事前設定されたサービスを使用せずにクラウドネイティブ システムを構築します。",
+  "description": "空の .NET Aspire アプリを作成するためのプロジェクト テンプレート。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
   "symbols/Framework/choices/net9.0/description": "ターゲット net9.0",

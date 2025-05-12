@@ -44,6 +44,8 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.Storage\AzureStorageEmulatorConnectionString.cs" />
     <Compile Include="$(TestsSharedDir)\VerifyExtensions.cs" />
     <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
+    <Compile Include="..\..\src\Shared\Model\KnownProperties.cs" Link="KnownProperties.cs" />
+    <Compile Include="..\..\src\Shared\StringComparers.cs" Link="StringComparers.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,19 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
 
 internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentResource environment, ILogger logger)
 {
-    private readonly Dictionary<IResource, DockerComposeServiceResource> _resourceMapping = [];
-    private readonly PortAllocator _portAllocator = new();
-
     public async Task<DockerComposeServiceResource> CreateDockerComposeServiceResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        if (_resourceMapping.TryGetValue(resource, out var existingResource))
+        if (environment.ResourceMapping.TryGetValue(resource, out var existingResource))
         {
             return existingResource;
         }
@@ -22,7 +18,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
         logger.LogInformation("Creating Docker Compose resource for {ResourceName}", resource.Name);
 
         var serviceResource = new DockerComposeServiceResource(resource.Name, resource, environment);
-        _resourceMapping[resource] = serviceResource;
+        environment.ResourceMapping[resource] = serviceResource;
 
         // Process endpoints
         ProcessEndpoints(serviceResource);
@@ -48,11 +44,11 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
 
         foreach (var endpoint in endpoints)
         {
-            var internalPort = endpoint.TargetPort ?? _portAllocator.AllocatePort();
-            _portAllocator.AddUsedPort(internalPort);
+            var internalPort = endpoint.TargetPort ?? environment.PortAllocator.AllocatePort();
+            environment.PortAllocator.AddUsedPort(internalPort);
 
-            var exposedPort = _portAllocator.AllocatePort();
-            _portAllocator.AddUsedPort(exposedPort);
+            var exposedPort = endpoint.Port ?? environment.PortAllocator.AllocatePort();
+            environment.PortAllocator.AddUsedPort(exposedPort);
 
             serviceResource.EndpointMappings.Add(endpoint.Name, new(endpoint.UriScheme, serviceResource.TargetResource.Name, internalPort, exposedPort, false));
         }
@@ -83,11 +79,15 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
         }
     }
 
-    private async Task ProcessEnvironmentVariablesAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private static async Task ProcessEnvironmentVariablesAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (serviceResource.TargetResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
         {
-            var context = new EnvironmentCallbackContext(executionContext, serviceResource.TargetResource, cancellationToken: cancellationToken);
+            var context = new EnvironmentCallbackContext(
+                executionContext,
+                serviceResource.TargetResource,
+                serviceResource.EnvironmentVariables,
+                cancellationToken: cancellationToken);
 
             foreach (var callback in environmentCallbacks)
             {
@@ -96,12 +96,6 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
 
             // Remove HTTPS service discovery variables as Docker Compose doesn't handle certificates
             RemoveHttpsServiceDiscoveryVariables(context.EnvironmentVariables);
-
-            foreach (var kv in context.EnvironmentVariables)
-            {
-                var value = await serviceResource.ProcessValueAsync(this, executionContext, kv.Value).ConfigureAwait(false);
-                serviceResource.EnvironmentVariables.Add(kv.Key, value?.ToString() ?? string.Empty);
-            }
         }
     }
 
@@ -118,32 +112,19 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
         }
     }
 
-    private async Task ProcessArgumentsAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private static async Task ProcessArgumentsAsync(DockerComposeServiceResource serviceResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (serviceResource.TargetResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbacks))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext(serviceResource.Args, cancellationToken: cancellationToken)
+            {
+                ExecutionContext = executionContext
+            };
 
             foreach (var callback in commandLineArgsCallbacks)
             {
                 await callback.Callback(context).ConfigureAwait(false);
             }
-
-            foreach (var arg in context.Args)
-            {
-                var value = await serviceResource.ProcessValueAsync(this, executionContext, arg).ConfigureAwait(false);
-                if (value is not string str)
-                {
-                    throw new NotSupportedException("Command line args must be strings");
-                }
-
-                serviceResource.Commands.Add(str);
-            }
         }
-    }
-
-    public void AddEnv(string name, string description, string? defaultValue = null)
-    {
-        environment.CapturedEnvironmentVariables[name] = (description, defaultValue);
     }
 }

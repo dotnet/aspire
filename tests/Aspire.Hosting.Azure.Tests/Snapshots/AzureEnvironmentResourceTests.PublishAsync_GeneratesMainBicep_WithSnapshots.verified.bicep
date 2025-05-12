@@ -1,8 +1,8 @@
 ﻿targetScope = 'subscription'
 
-param azure_rg_default string
+param resourceGroupName string
 
-param azure_location_default string
+param location string
 
 param principalId string
 
@@ -14,21 +14,16 @@ param storageSku string = 'Standard_LRS'
 
 param skuDescription string = 'The sku is '
 
-var tags = {
-  'aspire-env-name': azure_rg_default
-}
-
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
-  name: azure_rg_default
-  location: azure_location_default
-  tags: tags
+  name: resourceGroupName
+  location: location
 }
 
 module acaEnv 'acaEnv/acaEnv.bicep' = {
   name: 'acaEnv'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     userPrincipalId: principalId
   }
 }
@@ -37,7 +32,7 @@ module kv 'kv/kv.bicep' = {
   name: 'kv'
   scope: resourceGroup(kvRg)
   params: {
-    location: azure_location_default
+    location: location
     kvName: kvName
   }
 }
@@ -46,7 +41,7 @@ module existing_storage 'existing-storage/existing-storage.bicep' = {
   name: 'existing-storage'
   scope: resourceGroup('rg-shared')
   params: {
-    location: azure_location_default
+    location: location
   }
 }
 
@@ -54,7 +49,7 @@ module pg 'pg/pg.bicep' = {
   name: 'pg'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
   }
 }
 
@@ -62,7 +57,7 @@ module account 'account/account.bicep' = {
   name: 'account'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
   }
 }
 
@@ -70,7 +65,7 @@ module storage 'storage/storage.bicep' = {
   name: 'storage'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     storageSku: storageSku
     sku_description: '${skuDescription} ${storageSku}'
   }
@@ -80,7 +75,7 @@ module mod 'mod/mod.bicep' = {
   name: 'mod'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     pgdb: '${pg.outputs.connectionString};Database=pgdb'
   }
 }
@@ -89,7 +84,7 @@ module myapp_identity 'myapp-identity/myapp-identity.bicep' = {
   name: 'myapp-identity'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
   }
 }
 
@@ -97,7 +92,7 @@ module myapp_roles_account 'myapp-roles-account/myapp-roles-account.bicep' = {
   name: 'myapp-roles-account'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     account_outputs_name: account.outputs.name
     principalId: myapp_identity.outputs.principalId
   }
@@ -107,7 +102,7 @@ module fe_identity 'fe-identity/fe-identity.bicep' = {
   name: 'fe-identity'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
   }
 }
 
@@ -115,7 +110,7 @@ module fe_roles_storage 'fe-roles-storage/fe-roles-storage.bicep' = {
   name: 'fe-roles-storage'
   scope: rg
   params: {
-    location: azure_location_default
+    location: location
     storage_outputs_name: storage.outputs.name
     principalId: fe_identity.outputs.principalId
   }

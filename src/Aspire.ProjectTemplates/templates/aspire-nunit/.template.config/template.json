@@ -14,7 +14,7 @@
   ],
   "name": ".NET Aspire Test Project (NUnit)",
   "defaultName": "Tests",
-  "description": "Powerful integration testing for your app with the flexible and feature-rich NUnit framework.",
+  "description": "A project that contains NUnit integration tests of a .NET Aspire app host project.",
   "shortName": "aspire-nunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
@@ -122,20 +122,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }

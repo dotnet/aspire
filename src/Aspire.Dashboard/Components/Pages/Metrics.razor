@@ -108,7 +108,8 @@
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="@_applications" />
+                                            Applications="@_applications"
+                                            PauseText="@PauseText" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
