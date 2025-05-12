@@ -1,76 +1,63 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
 {
-    private async Task<(int ExitCode, string? Output)> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo
+        var spec = new ProcessSpec("podman")
         {
-            FileName = "podman",
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
+            Arguments = $"build --file {dockerfilePath} --tag {imageName} {contextPath}",
+            OnOutputData = output =>
+            {
+                logger.LogInformation("podman build (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("podman build (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
         };
 
-        startInfo.ArgumentList.Add("build");
-        startInfo.ArgumentList.Add("--file");
-        startInfo.ArgumentList.Add(dockerfilePath);
-        startInfo.ArgumentList.Add("--tag");
-        startInfo.ArgumentList.Add(imageName);
-        startInfo.ArgumentList.Add("--quiet");
-        startInfo.ArgumentList.Add(contextPath);
+        logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        logger.LogInformation("Running Podman CLI with arguments: {Arguments}", startInfo.ArgumentList);
-
-        using var process = Process.Start(startInfo);
-
-        if (process is null)
+        await using (processDisposable)
         {
-            throw new DistributedApplicationException("Failed to start Podman CLI.");
-        }
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
-        {
-            var stderr = process.StandardError.ReadToEnd();
-            var stdout = process.StandardOutput.ReadToEnd();
-
-            logger.LogError(
-                "Podman CLI failed with exit code {ExitCode}. Output: {Stdout}, Error: {Stderr}",
-                process.ExitCode,
-                stdout,
-                stderr);
-
-            return (process.ExitCode, null);
-        }
-        else
-        {
-            var stdout = process.StandardOutput.ReadToEnd();
-            logger.LogInformation("Podman CLI succeeded. Output: {Stdout}", stdout);
-            return (process.ExitCode, stdout);
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                return processResult.ExitCode;
+            }
+            else
+            {
+                logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
+                return processResult.ExitCode;
+            }
         }
     }
 
-    public async Task<string> BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
-        var result = await RunDockerBuildAsync(
+        var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
             cancellationToken).ConfigureAwait(false);
 
-        if (result.ExitCode == 0)
+        if (exitCode != 0)
         {
-            return result.Output!;
+            throw new DistributedApplicationException($"Podman build failed with exit code {exitCode}.");
         }
-        else
-        {
-            throw new DistributedApplicationException($"Docker build failed with exit code {result.ExitCode}.");
-        }
-    }}
+    }
+}
