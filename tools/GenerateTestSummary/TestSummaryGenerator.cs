@@ -143,7 +143,6 @@ sealed partial class TestSummaryGenerator
 
                 var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000); // Truncate long error messages for readability
 
-                // Truncate long error messages for readability
 
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
