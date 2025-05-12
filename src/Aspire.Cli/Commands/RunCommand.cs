@@ -144,9 +144,7 @@ internal sealed class RunCommand : BaseCommand
                     async () => {
 
                         // If we use the --wait-for-debugger option we print out the process ID
-                        // of the apphost so that the user can attach to it. The process ID comes
-                        // from the ProcessIdCallback on the invocation options and we just await
-                        // the completion source to be set.
+                        // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
                             _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");

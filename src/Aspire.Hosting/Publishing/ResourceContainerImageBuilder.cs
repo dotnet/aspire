@@ -150,7 +150,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<string> BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
         var publishingActivity = await activityReporter.CreateActivityAsync(
             $"{resourceName}-build-image",
@@ -167,7 +167,7 @@ internal sealed class ResourceContainerImageBuilder(
                 null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
             };
 
-            var image = await containerRuntime.BuildImageAsync(
+            await containerRuntime.BuildImageAsync(
                 contextPath,
                 dockerfilePath,
                 imageName,
@@ -176,8 +176,6 @@ internal sealed class ResourceContainerImageBuilder(
             await activityReporter.UpdateActivityStatusAsync(
                 publishingActivity, (status) => status with { IsComplete = true },
                 cancellationToken).ConfigureAwait(false);
-
-            return image;
         }
         catch (Exception ex)
         {
