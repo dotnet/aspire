@@ -142,9 +142,7 @@ Then, in the _Program.cs_ file of `AppHost`, add a App Configuration connection 
 
 ```csharp
 // Service registration
-var appConfig = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureAppConfiguration("appConfig")
-    : builder.AddConnectionString("appConfig");
+var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
 // Service consumption
 var myService = builder.AddProject<Projects.MyService>()
