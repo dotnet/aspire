@@ -659,6 +659,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Components.Common.Tests", "tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj", "{30950CEB-2232-F9FC-04FF-ADDCB8AC30A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Yarp", "src\Aspire.Hosting.Yarp\Aspire.Hosting.Yarp.csproj", "{A3399DE9-AAB0-43EA-B99B-6A62ABBDD7BF}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.ContainerRegistry", "src\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj", "{6CBA29C8-FF78-4ABC-BEFA-2A53CB4DB2A3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.AppService", "src\Aspire.Hosting.Azure.AppService\Aspire.Hosting.Azure.AppService.csproj", "{5DDF8E89-FBBD-4A6F-BF32-7D2140724941}"
@@ -668,6 +669,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAppService.ApiService", "playground\AzureAppService\AzureAppService.ApiService\AzureAppService.ApiService.csproj", "{A617DC84-65DA-41B5-B378-6C2F569CEE48}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAppService.AppHost", "playground\AzureAppService\AzureAppService.AppHost\AzureAppService.AppHost.csproj", "{2C879943-DF34-44FA-B2C3-29D97F24DD76}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Yarp.Tests", "tests\Aspire.Hosting.Yarp.Tests\Aspire.Hosting.Yarp.Tests.csproj", "{2652012B-C28B-461B-93F6-9D1C8247EAB7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -3931,6 +3934,18 @@ Global
 		{2C879943-DF34-44FA-B2C3-29D97F24DD76}.Release|x64.Build.0 = Release|Any CPU
 		{2C879943-DF34-44FA-B2C3-29D97F24DD76}.Release|x86.ActiveCfg = Release|Any CPU
 		{2C879943-DF34-44FA-B2C3-29D97F24DD76}.Release|x86.Build.0 = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|x64.Build.0 = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Debug|x86.Build.0 = Debug|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|x64.ActiveCfg = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|x64.Build.0 = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|x86.ActiveCfg = Release|Any CPU
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -4253,6 +4268,7 @@ Global
 		{2D9974C2-3AB2-FBFD-5156-080508BB7449} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{A617DC84-65DA-41B5-B378-6C2F569CEE48} = {2D9974C2-3AB2-FBFD-5156-080508BB7449}
 		{2C879943-DF34-44FA-B2C3-29D97F24DD76} = {2D9974C2-3AB2-FBFD-5156-080508BB7449}
+		{2652012B-C28B-461B-93F6-9D1C8247EAB7} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {47DCFECF-5631-4BDE-A1EC-BE41E90F60C4}
