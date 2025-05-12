@@ -109,12 +109,63 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     [Fact]
     public async Task ResolveIPv4_Aliases_Loop_ReturnsEmpty()
     {
-        IPAddress address = IPAddress.Parse("172.213.245.111");
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
             builder.Answers.AddCname("www.example1.com", 3600, "www.example2.com");
             builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
             builder.Answers.AddCname("www.example3.com", 3600, "www.example1.com");
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example1.com", AddressFamily.InterNetwork);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task ResolveIPv4_Aliases_Loop_Reverse_ReturnsEmpty()
+    {
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Answers.AddCname("www.example3.com", 3600, "www.example1.com");
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
+            builder.Answers.AddCname("www.example1.com", 3600, "www.example2.com");
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example1.com", AddressFamily.InterNetwork);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task ResolveIPv4_Alias_And_Address()
+    {
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Answers.AddCname("www.example1.com", 3600, "www.example2.com");
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
+            builder.Answers.AddAddress("www.example2.com", 3600, address);
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example1.com", AddressFamily.InterNetwork);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task ResolveIPv4_DuplicateAlias()
+    {
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Answers.AddCname("www.example1.com", 3600, "www.example2.com");
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example3.com");
+            builder.Answers.AddCname("www.example2.com", 3600, "www.example4.com");
+            builder.Answers.AddAddress("www.example2.com", 3600, address);
+            builder.Answers.AddAddress("www.example4.com", 3600, address);
             return Task.CompletedTask;
         });
 
@@ -166,5 +217,71 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
         Options.Timeout = TimeSpan.FromSeconds(1);
         AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
         Assert.Empty(result);
+    }
+
+    [Theory]
+    [InlineData("not-example.com", (int)QueryType.A, (int)QueryClass.Internet)]
+    [InlineData("example.com", (int)QueryType.AAAA, (int)QueryClass.Internet)]
+    [InlineData("example.com", (int)QueryType.A, 0)]
+    public async Task Resolve_QuestionMismatch_ReturnsEmpty(string name, int type, int @class)
+    {
+        Options.Timeout = TimeSpan.FromSeconds(1);
+
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Questions[0] = (name, (QueryType)type, (QueryClass)@class);
+            builder.Answers.AddAddress("www.example4.com", 3600, address);
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task Resolve_HeaderMismatch_Ignores()
+    {
+        string name = "example.com";
+        Options.Timeout = TimeSpan.FromSeconds(5);
+
+        SemaphoreSlim responseSemaphore = new SemaphoreSlim(0, 1);
+        SemaphoreSlim requestSemaphore = new SemaphoreSlim(0, 1);
+
+        IPEndPoint clientAddress = null!;
+
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+        ushort transactionId = 0x1234;
+        _ = DnsServer.ProcessUdpRequest((builder, clientAddr) =>
+        {
+            clientAddress = clientAddr;
+            transactionId = (ushort)(builder.TransactionId + 1);
+
+            builder.Answers.AddAddress(name, 3600, address);
+            requestSemaphore.Release();
+            return responseSemaphore.WaitAsync();
+        });
+
+        ValueTask<AddressResult[]> task = Resolver.ResolveIPAddressesAsync(name, AddressFamily.InterNetwork);
+
+        await requestSemaphore.WaitAsync().WaitAsync(Options.Timeout);
+
+        using Socket socket = new Socket(clientAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+        LoopbackDnsResponseBuilder responseBuilder = new LoopbackDnsResponseBuilder(name, QueryType.A, QueryClass.Internet)
+        {
+            TransactionId = transactionId,
+            ResponseCode = QueryResponseCode.NoError
+        };
+
+        responseBuilder.Questions.Add((name, QueryType.A, QueryClass.Internet));
+        responseBuilder.Answers.AddAddress(name, 3600, IPAddress.Loopback);
+        socket.SendTo(responseBuilder.GetMessageBytes(), clientAddress);
+
+        responseSemaphore.Release();
+
+        AddressResult[] results = await task;
+        AddressResult result = Assert.Single(results);
+
+        Assert.Equal(address, result.Address);
     }
 }

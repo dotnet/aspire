@@ -36,7 +36,7 @@ internal sealed class LoopbackDnsServer : IDisposable
         _tcpSocket.Close();
     }
 
-    private static async Task<int> ProcessRequestCore(ArraySegment<byte> message, Func<LoopbackDnsResponseBuilder, Task> action, Memory<byte> responseBuffer)
+    private static async Task<int> ProcessRequestCore(IPEndPoint remoteEndPoint, ArraySegment<byte> message, Func<LoopbackDnsResponseBuilder, IPEndPoint, Task> action, Memory<byte> responseBuffer)
     {
         DnsDataReader reader = new DnsDataReader(message);
 
@@ -51,58 +51,12 @@ internal sealed class LoopbackDnsServer : IDisposable
         responseBuilder.Flags = header.QueryFlags | QueryFlags.HasResponse;
         responseBuilder.ResponseCode = QueryResponseCode.NoError;
 
-        await action(responseBuilder);
+        await action(responseBuilder, remoteEndPoint);
 
-        DnsDataWriter writer = new(responseBuffer);
-        if (!writer.TryWriteHeader(new DnsMessageHeader
-        {
-            TransactionId = responseBuilder.TransactionId,
-            QueryFlags = responseBuilder.Flags | (QueryFlags)responseBuilder.ResponseCode,
-            QueryCount = (ushort)responseBuilder.Questions.Count,
-            AnswerCount = (ushort)responseBuilder.Answers.Count,
-            AuthorityCount = (ushort)responseBuilder.Authorities.Count,
-            AdditionalRecordCount = (ushort)responseBuilder.Additionals.Count
-        }))
-        {
-            throw new InvalidOperationException("Failed to write header");
-        }
-
-        foreach (var (questionName, questionType, questionClass) in responseBuilder.Questions)
-        {
-            if (!writer.TryWriteQuestion(questionName, questionType, questionClass))
-            {
-                throw new InvalidOperationException("Failed to write question");
-            }
-        }
-
-        foreach (var answer in responseBuilder.Answers)
-        {
-            if (!writer.TryWriteResourceRecord(answer))
-            {
-                throw new InvalidOperationException("Failed to write answer");
-            }
-        }
-
-        foreach (var authority in responseBuilder.Authorities)
-        {
-            if (!writer.TryWriteResourceRecord(authority))
-            {
-                throw new InvalidOperationException("Failed to write authority");
-            }
-        }
-
-        foreach (var additional in responseBuilder.Additionals)
-        {
-            if (!writer.TryWriteResourceRecord(additional))
-            {
-                throw new InvalidOperationException("Failed to write additional records");
-            }
-        }
-
-        return writer.Position;
+        return responseBuilder.Write(responseBuffer);
     }
 
-    public async Task ProcessUdpRequest(Func<LoopbackDnsResponseBuilder, Task> action)
+    public async Task ProcessUdpRequest(Func<LoopbackDnsResponseBuilder, IPEndPoint, Task> action)
     {
         byte[] buffer = ArrayPool<byte>.Shared.Rent(512);
         try
@@ -110,7 +64,7 @@ internal sealed class LoopbackDnsServer : IDisposable
             EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
             SocketReceiveFromResult result = await _dnsSocket.ReceiveFromAsync(buffer, remoteEndPoint);
 
-            int bytesWritten = await ProcessRequestCore(new ArraySegment<byte>(buffer, 0, result.ReceivedBytes), action, buffer.AsMemory(0, 512));
+            int bytesWritten = await ProcessRequestCore((IPEndPoint)result.RemoteEndPoint, new ArraySegment<byte>(buffer, 0, result.ReceivedBytes), action, buffer.AsMemory(0, 512));
 
             await _dnsSocket.SendToAsync(buffer.AsMemory(0, bytesWritten), SocketFlags.None, result.RemoteEndPoint);
         }
@@ -120,15 +74,18 @@ internal sealed class LoopbackDnsServer : IDisposable
         }
     }
 
-    public async Task ProcessTcpRequest(Func<LoopbackDnsResponseBuilder, Task> action)
+    public Task ProcessUdpRequest(Func<LoopbackDnsResponseBuilder, Task> action)
+    {
+        return ProcessUdpRequest((builder, _) => action(builder));
+    }
+
+    public async Task ProcessTcpRequest(Func<LoopbackDnsResponseBuilder, IPEndPoint, Task> action)
     {
         using Socket tcpClient = await _tcpSocket.AcceptAsync();
 
         byte[] buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
         try
         {
-            EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
-
             int bytesRead = 0;
             int length = -1;
             while (length < 0 || bytesRead < length + 2)
@@ -143,7 +100,7 @@ internal sealed class LoopbackDnsServer : IDisposable
                 }
             }
 
-            int bytesWritten = await ProcessRequestCore(new ArraySegment<byte>(buffer, 2, length), action, buffer.AsMemory(2));
+            int bytesWritten = await ProcessRequestCore((IPEndPoint)tcpClient.RemoteEndPoint!, new ArraySegment<byte>(buffer, 2, length), action, buffer.AsMemory(2));
             BinaryPrimitives.WriteUInt16BigEndian(buffer.AsSpan(0, 2), (ushort)bytesWritten);
             await tcpClient.SendAsync(buffer.AsMemory(0, bytesWritten + 2), SocketFlags.None);
         }
@@ -151,6 +108,11 @@ internal sealed class LoopbackDnsServer : IDisposable
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    public Task ProcessTcpRequest(Func<LoopbackDnsResponseBuilder, Task> action)
+    {
+        return ProcessTcpRequest((builder, _) => action(builder));
     }
 }
 
@@ -176,6 +138,71 @@ internal sealed class LoopbackDnsResponseBuilder
     public List<DnsResourceRecord> Answers { get; } = new List<DnsResourceRecord>();
     public List<DnsResourceRecord> Authorities { get; } = new List<DnsResourceRecord>();
     public List<DnsResourceRecord> Additionals { get; } = new List<DnsResourceRecord>();
+
+    public int Write(Memory<byte> responseBuffer)
+    {
+        DnsDataWriter writer = new(responseBuffer);
+        if (!writer.TryWriteHeader(new DnsMessageHeader
+        {
+            TransactionId = TransactionId,
+            QueryFlags = Flags | (QueryFlags)ResponseCode,
+            QueryCount = (ushort)Questions.Count,
+            AnswerCount = (ushort)Answers.Count,
+            AuthorityCount = (ushort)Authorities.Count,
+            AdditionalRecordCount = (ushort)Additionals.Count
+        }))
+        {
+            throw new InvalidOperationException("Failed to write header");
+        }
+
+        foreach (var (questionName, questionType, questionClass) in Questions)
+        {
+            if (!writer.TryWriteQuestion(questionName, questionType, questionClass))
+            {
+                throw new InvalidOperationException("Failed to write question");
+            }
+        }
+
+        foreach (var answer in Answers)
+        {
+            if (!writer.TryWriteResourceRecord(answer))
+            {
+                throw new InvalidOperationException("Failed to write answer");
+            }
+        }
+
+        foreach (var authority in Authorities)
+        {
+            if (!writer.TryWriteResourceRecord(authority))
+            {
+                throw new InvalidOperationException("Failed to write authority");
+            }
+        }
+
+        foreach (var additional in Additionals)
+        {
+            if (!writer.TryWriteResourceRecord(additional))
+            {
+                throw new InvalidOperationException("Failed to write additional records");
+            }
+        }
+
+        return writer.Position;
+    }
+
+    public byte[] GetMessageBytes()
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(512);
+        try
+        {
+            int bytesWritten = Write(buffer.AsMemory(0, 512));
+            return buffer.AsSpan(0, bytesWritten).ToArray();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
 }
 
 internal static class LoopbackDnsServerExtensions

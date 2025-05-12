@@ -196,7 +196,6 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
             foreach (var answer in response.Answers)
             {
-
                 switch (answer.Type)
                 {
                     case QueryType.CNAME:

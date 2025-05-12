@@ -78,4 +78,53 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
         Assert.Empty(results);
     }
+
+    [Fact]
+    public async Task TcpFailover_HeaderMismatch_ReturnsEmpty()
+    {
+        Options.Timeout = TimeSpan.FromSeconds(1);
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Flags |= QueryFlags.ResultTruncated;
+            return Task.CompletedTask;
+        });
+
+        _ = DnsServer.ProcessTcpRequest(builder =>
+        {
+            builder.TransactionId++;
+            builder.Answers.AddAddress("www.example.com", 3600, address);
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        Assert.Empty(result);
+    }
+
+    [Theory]
+    [InlineData("not-example.com", (int)QueryType.A, (int)QueryClass.Internet)]
+    [InlineData("example.com", (int)QueryType.AAAA, (int)QueryClass.Internet)]
+    [InlineData("example.com", (int)QueryType.A, 0)]
+    public async Task TcpFailover_QuestionMismatch_ReturnsEmpty(string name, int type, int @class)
+    {
+        Options.Timeout = TimeSpan.FromSeconds(1);
+        IPAddress address = IPAddress.Parse("172.213.245.111");
+
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            builder.Flags |= QueryFlags.ResultTruncated;
+            return Task.CompletedTask;
+        });
+
+        _ = DnsServer.ProcessTcpRequest(builder =>
+        {
+            builder.Questions[0] = (name, (QueryType)type, (QueryClass)@class);
+            builder.Answers.AddAddress("www.example.com", 3600, address);
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        Assert.Empty(result);
+    }
 }
