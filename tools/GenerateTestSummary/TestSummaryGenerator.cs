@@ -58,7 +58,17 @@ sealed partial class TestSummaryGenerator
             overallFailedTestCount += failed;
             overallSkippedTestCount += skipped;
 
-            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} {GetTestTitle(file)} | {passed} | {failed} | {skipped} | {total} |");
+            // Determine the OS from the path, assuming the path contains
+            // os runner name like `windows-latest`, `ubuntu-latest`, or `macos-latest`
+            var os = file.Contains("windows-")
+                        ? "win"
+                        : file.Contains("ubuntu-")
+                            ? "lin"
+                            : file.Contains("macos-")
+                                ? "mac"
+                                : "os?";
+
+            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(file)} | {passed} | {failed} | {skipped} | {total} |");
         }
 
         var overallTableBuilder = new StringBuilder();
