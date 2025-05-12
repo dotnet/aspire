@@ -11,9 +11,10 @@ sealed partial class TestSummaryGenerator
 {
     public static string CreateCombinedTestSummaryReport(string basePath)
     {
-        if (!Directory.Exists(basePath))
+        var resolved = Path.GetFullPath(basePath);
+        if (!Directory.Exists(resolved))
         {
-            throw new DirectoryNotFoundException($"The directory '{basePath}' does not exist.");
+            throw new DirectoryNotFoundException($"The directory '{resolved}' does not exist.");
         }
 
         int overallTotalTestCount = 0;
@@ -26,14 +27,14 @@ sealed partial class TestSummaryGenerator
         tableBuilder.AppendLine("| Name | Passed | Failed | Skipped | Total |");
         tableBuilder.AppendLine("|------|--------|--------|---------|-------|");
 
-        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", System.IO.SearchOption.AllDirectories);
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
         foreach (var filePath in trxFiles.OrderBy(f => Path.GetFileName(f)))
         {
             TestRun? testRun;
             try
             {
                 testRun = TrxReader.DeserializeTrxFile(filePath);
-                if (testRun == null || testRun.ResultSummary?.Counters == null)
+                if (testRun?.ResultSummary?.Counters is null)
                 {
                     Console.WriteLine($"Failed to deserialize or find results in file: {filePath}, tr: {testRun}");
                     continue;
@@ -94,7 +95,7 @@ sealed partial class TestSummaryGenerator
         try
         {
             testRun = TrxReader.DeserializeTrxFile(trxFilePath);
-            if (testRun == null || testRun.ResultSummary?.Counters == null)
+            if (testRun?.ResultSummary?.Counters is null)
             {
                 throw new InvalidOperationException($"Failed to deserialize or find results in file: {trxFilePath}");
             }
