@@ -20,7 +20,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     public void HasEndPoints()
     {
         // Get an endpoint from a resource
-        var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
+        var workerEndpoint = _app.GetEndpoint("myworker1", "myendpot1");
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
     }
