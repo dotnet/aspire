@@ -28,7 +28,7 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
     /// <param name="connectionName">The name of the client. This is used to retrieve the connection string from configuration.</param>
-    /// <param name="configureClient">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
     /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
     /// <returns>An <see cref="AspireChatCompletionsClientBuilder"/> that can be used to further configure the client.</returns>
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
@@ -43,7 +43,7 @@ public static class AspireAzureAIInferenceExtensions
     public static AspireChatCompletionsClientBuilder AddAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<ChatCompletionsClientSettings>? configureClient = null,
+        Action<ChatCompletionsClientSettings>? configureSettings = null,
         Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -52,7 +52,7 @@ public static class AspireAzureAIInferenceExtensions
         var settings = new ChatCompletionsClientServiceComponent().AddClient(
             builder,
             DefaultConfigSectionName,
-            configureClient,
+            configureSettings,
             configureClientBuilder,
             connectionName,
             serviceKey: null);
@@ -65,7 +65,7 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the client to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureClient">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
+    /// <param name="configureSettings">An optional callback to configure the <see cref="ChatCompletionsClientSettings"/>.</param>
     /// <param name="configureClientBuilder">An optional callback to configure the <see cref="IAzureClientBuilder{TClient, TOptions}"/> for the client.</param>
     /// <returns>An <see cref="AspireChatCompletionsClientBuilder"/> that can be used to further configure the client.</returns>
     /// <exception cref="InvalidOperationException">Thrown when endpoint is missing from settings.</exception>
@@ -80,7 +80,7 @@ public static class AspireAzureAIInferenceExtensions
     public static AspireChatCompletionsClientBuilder AddKeyedAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string name,
-        Action<ChatCompletionsClientSettings>? configureClient = null,
+        Action<ChatCompletionsClientSettings>? configureSettings = null,
         Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>>? configureClientBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -89,7 +89,7 @@ public static class AspireAzureAIInferenceExtensions
         var settings = new ChatCompletionsClientServiceComponent().AddClient(
             builder,
             DefaultConfigSectionName,
-            configureClient,
+            configureSettings,
             configureClientBuilder,
             name,
             serviceKey: name);
