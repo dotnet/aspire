@@ -105,6 +105,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
+    public Task InitializeResourceAsync(IResource resource, CancellationToken ct)
+    {
+        return Task.CompletedTask;
+    }
+
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();

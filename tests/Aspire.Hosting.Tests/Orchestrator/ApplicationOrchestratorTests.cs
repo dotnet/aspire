@@ -29,7 +29,7 @@ public class ApplicationOrchestratorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService);
         await appOrchestrator.RunApplicationAsync();
 
         string? parentResourceId = null;
@@ -76,7 +76,7 @@ public class ApplicationOrchestratorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService);
         await appOrchestrator.RunApplicationAsync();
 
         string? parentResourceId = null;
@@ -131,7 +131,7 @@ public class ApplicationOrchestratorTests
             return Task.CompletedTask;
         });
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events, applicationEventing: applicationEventing);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, applicationEventing: applicationEventing);
         await appOrchestrator.RunApplicationAsync();
 
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
@@ -164,7 +164,7 @@ public class ApplicationOrchestratorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService);
         await appOrchestrator.RunApplicationAsync();
 
         string? parentResourceId = null;
@@ -231,7 +231,7 @@ public class ApplicationOrchestratorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService);
         await appOrchestrator.RunApplicationAsync();
 
         string? firstParentResourceId = null;
@@ -283,7 +283,7 @@ public class ApplicationOrchestratorTests
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService);
         await appOrchestrator.RunApplicationAsync();
 
         string? projectAResourceId = null;
@@ -354,7 +354,7 @@ public class ApplicationOrchestratorTests
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var applicationEventing = new DistributedApplicationEventing();
 
-        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events, applicationEventing: applicationEventing);
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, applicationEventing: applicationEventing);
         await appOrchestrator.RunApplicationAsync();
 
         bool parentConnectionStringAvailable = false;
@@ -387,7 +387,6 @@ public class ApplicationOrchestratorTests
     private static ApplicationOrchestrator CreateOrchestrator(
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
-        DcpExecutorEvents? dcpEvents = null,
         DistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
@@ -395,8 +394,6 @@ public class ApplicationOrchestratorTests
 
         return new ApplicationOrchestrator(
             distributedAppModel,
-            new TestDcpExecutor(),
-            dcpEvents ?? new DcpExecutorEvents(),
             [],
             notificationService,
             resourceLoggerService ?? new ResourceLoggerService(),
