@@ -19,7 +19,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9171")]
     public async Task WithDockerfileTest()
     {
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.WithDockerfile_AppHost), _testOutput, enableParameterRandomisation: false);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -36,7 +36,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/6867")]
     public async Task KafkaTest()
     {
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.KafkaBasic_AppHost), _testOutput, enableParameterRandomisation: false);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -62,7 +62,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.AzureFunctionsEndToEnd_AppHost), _testOutput, enableParameterRandomisation: true);
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
