@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Hosting.Yarp.Tests;
@@ -26,43 +25,23 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
         var yarp = builder
             .AddYarp("yarp")
             .WithConfigFile("yarp.json")
-            .WithReference(backend.GetEndpoint("http"));
+            .WithReference(backend.GetEndpoint("http"))
+            .WithHttpHealthCheck("/heath", 404); // TODO we don't have real health check path yet
 
         var app = builder.Build();
 
         await app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(yarp.Resource.Name, KnownResourceStates.Running).WaitAsync(cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(yarp.Resource.Name, cts.Token);
 
         var endpoint = yarp.Resource.GetEndpoint("http");
         var httpClient = new HttpClient() { BaseAddress = new Uri(endpoint.Url) };
-        var errorCounter = 0;
 
-        while (true)
-        {
-            // We still need to wait a bit for YARP to be really ready
-            // TODO: remove when we have healthcheck on YARP container
-            await Task.Delay(TimeSpan.FromMilliseconds(500));
+        using var response200 = await httpClient.GetAsync("/aspnetapp");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response200.StatusCode);
 
-            try
-            {
-                using var response200 = await httpClient.GetAsync("/aspnetapp");
-                Assert.Equal(System.Net.HttpStatusCode.OK, response200.StatusCode);
-
-                using var response404 = await httpClient.GetAsync("/another");
-                Assert.Equal(System.Net.HttpStatusCode.NotFound, response404.StatusCode);
-            }
-            catch (HttpRequestException)
-            {
-                errorCounter++;
-                if (errorCounter >= 10)
-                {
-                    throw;
-                }
-            }
-            break;
-        }
+        using var response404 = await httpClient.GetAsync("/another");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response404.StatusCode);
 
         await app.StopAsync();
     }
