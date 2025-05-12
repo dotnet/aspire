@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Valores predeterminados del servicio .NET Aspire",
-  "description": "Los valores predeterminados de servicio y nube están conectados: solo tiene que agregar la lógica de la aplicación.",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",

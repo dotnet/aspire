@@ -3,4 +3,4 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: Experimental("ASPIREHOSTINGPYTHON001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+[assembly: Experimental("ASPIREHOSTINGPYTHON001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]

@@ -9,16 +9,7 @@
 
     @if (PauseText is not null)
     {
-        <div class="block-warning">
-            <div class="block-warning-icon">
-                <FluentIcon Value="new Icons.Filled.Size16.Warning()" Color="Color.Warning" />
-            </div>
-
-            <div class="block-warning-message">
-                <span class="title">@Loc[nameof(ControlsStrings.TotalItemsFooterCapturePaused)]</span>
-                @PauseText
-            </div>
-        </div>
+        <PauseWarning PauseText="@PauseText" />
     }
 </div>
 

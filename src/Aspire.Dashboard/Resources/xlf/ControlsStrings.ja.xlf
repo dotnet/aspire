@@ -327,6 +327,11 @@
         <target state="translated">受信データを一時停止</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">キャプチャが一時停止されました</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">カウント</target>
@@ -550,11 +555,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">入れ子の切り替え</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">キャプチャが一時停止されました</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">

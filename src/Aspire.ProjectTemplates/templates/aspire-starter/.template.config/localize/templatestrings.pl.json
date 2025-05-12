@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplikacja startowa platformy .NET Aspire",
-  "description": "Pełna konfiguracja aplikacji internetowej: wewnętrzna baza danych i opcjonalne buforowanie w celu zapewnienia szybszego reagowania.",
+  "description": "Szablon projektu służący do tworzenia aplikacji Aspire platformy .NET z frontonem internetowym platformy Blazor i usługą zaplecza internetowego interfejsu API, opcjonalnie używając usługi Redis do buforowania.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",

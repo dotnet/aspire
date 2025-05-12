@@ -456,7 +456,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
             {
                 var line = await reader.ReadLineAsync(cancellationToken);
-                logger.LogTrace(
+                logger.LogDebug(
                     "dotnet({ProcessId}) {Identifier}: {Line}",
                     process.Id,
                     identifier,

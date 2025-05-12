@@ -146,6 +146,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
+        var containerNameParam = builder.AddParameter("param-1", "default-name", publishValueAsDefault: true);
+
         builder.AddDockerComposeEnvironment("docker-compose")
                .WithProperties(e => e.DefaultNetworkName = "default-network")
                .ConfigureComposeFile(file =>
@@ -169,6 +171,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 // Set a restart policy
                 composeService.Restart = "always";
 
+                composeService.ContainerName = containerNameParam.AsEnvironmentPlaceholder(serviceResource);
+
                 // Add a custom network
                 composeService.Networks.Add("custom-network");
             });
@@ -176,11 +180,15 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var app = builder.Build();
 
         app.Run();
+
         // Assert
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
             .UseHelixAwareDirectory();
     }
 
@@ -251,6 +259,32 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         await Verify(firstContent, "env")
             .AppendContentAsFile(secondContent, "env")
+            .UseHelixAwareDirectory();
+    }
+
+    [Fact]
+    public async Task DockerComposeMapsPortsProperly()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        var container = builder.AddExecutable("service", "foo", ".")
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeFile = File.ReadAllText(composePath);
+
+        await Verify(composeFile)
             .UseHelixAwareDirectory();
     }
 

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Начальное приложение .NET Aspire",
-  "description": "Полная настройка веб-приложения: интерфейс, серверная часть и дополнительное кэширование для более быстрого отклика.",
+  "description": "Шаблон проекта для создания приложения .NET Aspire с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
