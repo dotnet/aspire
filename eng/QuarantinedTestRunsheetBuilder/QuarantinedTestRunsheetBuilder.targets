@@ -123,7 +123,7 @@
         So, instead of using "%(TestToRun.ResultsFilePathWithoutExtension)" (which looks something like "Aspire.Cli.Tests_net8.0_x64")
         we use the project name (which looks something like "Aspire.Cli.Tests").
         -->
-      <_TestRunsheet>$(MSBuildProjectName)</_TestRunsheet>
+      <_TestRunsheet>$([System.String]::Copy('$(MSBuildProjectName)').Replace('Aspire.', ''))</_TestRunsheet>
       <_TestBinLog>$([MSBuild]::NormalizePath($(ArtifactsLogDir), '$(_TestRunsheet).binlog'))</_TestBinLog>
 
       <_RelativeTestProjectPath>$([System.String]::Copy('$(MSBuildProjectFullPath)').Replace('$(RepoRoot)', '%24(pwd)/'))</_RelativeTestProjectPath>
@@ -142,8 +142,8 @@
       <!-- Replace \ with /, and then escape " with \", so we have a compliant JSON -->
       <_TestCommand>$([System.String]::Copy($(_TestCommand)).Replace("\", "/").Replace('&quot;', '\&quot;'))</_TestCommand>
 
-      <_TestRunsheetWindows>{ "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
-      <_TestRunsheetLinux>{ "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
+      <_TestRunsheetWindows>{ "label": "w: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
+      <_TestRunsheetLinux>{ "label": "l: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
     </PropertyGroup>
 
     <WriteLinesToFile
