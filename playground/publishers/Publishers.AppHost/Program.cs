@@ -10,11 +10,15 @@ using Microsoft.Extensions.Configuration;
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration.AddCommandLine(args, new Dictionary<string, string> { ["--target"] = "Deployment:Target" });
 
-IResourceBuilder<IComputeEnvironmentResource> environment = builder.Configuration["Deployment:Target"] switch
+var target = builder.Configuration["Deployment:Target"];
+var publisher = builder.ExecutionContext.PublisherName;
+
+IResourceBuilder<IComputeEnvironmentResource>? environment = (publisher, target) switch
 {
-    "k8s" or "kube" => builder.AddKubernetesEnvironment("env"),
-    "aca" or "azure" => builder.AddAzureContainerAppEnvironment("env"),
-    _ => builder.AddDockerComposeEnvironment("env"),
+    ("default", "kube") => builder.AddKubernetesEnvironment("env"),
+    ("default", "azure") => builder.AddAzureContainerAppEnvironment("env"),
+    ("default", _) => builder.AddDockerComposeEnvironment("env"),
+    _ => null
 };
 
 var param0 = builder.AddParameter("param0");
@@ -22,7 +26,10 @@ var param1 = builder.AddParameter("param1", secret: true);
 var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
 var param3 = builder.AddParameter("param3", "default"); // Runtime only default value.
 
-var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg").RunAsContainer().AddDatabase("azdb");
+var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg")
+                    .WithPasswordAuthentication()
+                    .RunAsContainer()
+                    .AddDatabase("azdb");
 
 var db = builder.AddPostgres("pg").AddDatabase("db");
 
