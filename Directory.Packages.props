@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
+    <PackageVersion Include="Azure.AI.Inference" Version="1.0.0-beta.4" />
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
@@ -25,6 +26,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.1.2" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.1.2" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.49.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.3" />
@@ -158,6 +160,7 @@
     <!-- dotnet/extensions dependencies ** Common between net8 and net9 ** -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />

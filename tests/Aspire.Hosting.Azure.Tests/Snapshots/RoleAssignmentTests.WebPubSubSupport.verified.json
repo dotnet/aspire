@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-webpubsub.module.bicep",
+  "params": {
+    "webpubsub_outputs_name": "{webpubsub.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

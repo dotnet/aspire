@@ -233,7 +233,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             if (secretType == SecretType.KeyVault)
             {
-                // https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
+                // https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
                 // @Microsoft.KeyVault({referenceString})
                 value = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={val})");
             }
@@ -317,7 +317,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         var secret = secretReference.AsKeyVaultSecret(Infra);
 
-        // https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
+        // https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli#-understand-source-app-settings-from-key-vault
         return secret.Properties.SecretUri;
     }
 

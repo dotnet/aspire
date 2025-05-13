@@ -61,7 +61,7 @@ jobs:
         if: matrix.tests.os == 'ubuntu-latest'
         run: ./dotnet.sh dev-certs https --trust
 
-      - name: Test ${{ matrix.tests.project }}
+      - name: Test ${{ matrix.tests.label }}
         run: |
           ${{ matrix.tests.command }}
 

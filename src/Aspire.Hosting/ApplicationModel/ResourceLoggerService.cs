@@ -196,7 +196,7 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).GetAllAsync();
+        return GetResourceLoggerState(resourceName).GetAllAsync(_consoleLogsService);
     }
 
     /// <summary>
@@ -327,7 +327,7 @@ public class ResourceLoggerService
     internal ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, (name, context) =>
         {
-            var state = new ResourceLoggerState(name, TimeProvider, _consoleLogsService);
+            var state = new ResourceLoggerState(name, TimeProvider);
             context._loggerAdded?.Invoke((name, state));
             return state;
         },
@@ -349,17 +349,15 @@ public class ResourceLoggerService
         private readonly LogEntries _backlog = new(MaxLogCount) { BaseLineNumber = 0 };
         private readonly string _name;
         private readonly TimeProvider _timeProvider;
-        private readonly IConsoleLogsService _consoleLogsService;
 
         /// <summary>
         /// Creates a new <see cref="ResourceLoggerState"/>.
         /// </summary>
-        public ResourceLoggerState(string name, TimeProvider timeProvider, IConsoleLogsService consoleLogsService)
+        public ResourceLoggerState(string name, TimeProvider timeProvider)
         {
             _logger = new ResourceLogger(this);
             _name = name;
             _timeProvider = timeProvider;
-            _consoleLogsService = consoleLogsService;
         }
 
         private Action<bool>? _onSubscribersChanged;
@@ -390,9 +388,9 @@ public class ResourceLoggerService
             }
         }
 
-        public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var consoleLogsEnumerable = _consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
+            var consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
 
             List<LogEntry> inMemoryEntries;
             lock (_lock)

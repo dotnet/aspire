@@ -327,6 +327,11 @@
         <target state="translated">Obnovit příchozí data</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">Zachytávání pozastaveno</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Počet</target>
@@ -550,11 +555,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">Přepnout vnoření</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TotalItemsFooterCapturePaused">
-        <source>Capture paused</source>
-        <target state="translated">Zachytávání pozastaveno</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">

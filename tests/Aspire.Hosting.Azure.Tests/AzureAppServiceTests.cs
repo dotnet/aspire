@@ -144,11 +144,37 @@ public class AzureAppServiceTests
               .UseHelixAwareDirectory();
     }
 
+    [Fact]
+    public async Task AzureAppServiceDoesNotSupportBaitAndSwitchResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        using var app = builder.Build();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.Null(resource);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     private sealed class Project : IProjectMetadata
     {
-        public string ProjectPath => "project";
+        public string ProjectPath => "/foo/bar/project.csproj";
     }
 }

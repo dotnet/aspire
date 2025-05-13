@@ -222,6 +222,7 @@ jobs:
           TestsRunningOutsideOfRepo: true
         run: >
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          --ignore-exit-code 8
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
@@ -250,6 +251,7 @@ jobs:
           --no-restore
           --no-build
           --
+          --ignore-exit-code 8
           --report-trx
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
@@ -283,6 +285,7 @@ jobs:
           docker network ls
 
       - name: Upload logs, and test results
+        id: upload-logs
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
@@ -292,3 +295,13 @@ jobs:
             testresults/**
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
+
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+          }

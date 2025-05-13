@@ -105,7 +105,7 @@ internal sealed class ApplicationOrchestrator
         // Fire the endpoints allocated event for all resources.
         foreach (var resource in _model.Resources)
         {
-            await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
+            await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, _serviceProvider), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
         }
     }
 

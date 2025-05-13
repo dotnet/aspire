@@ -873,12 +873,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": "",
-                "principalType": ""
-              }
+              "path": "sql.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
@@ -910,11 +905,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             {
               "type": "azure.bicep.v0",
               "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""
-              }
+              "path": "sql.module.bicep"
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());

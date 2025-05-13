@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Test Projesi (xUnit)",
-  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
+  "description": "Bir .NET Aspire AppHost projesinin xUnit.net tümleştirme testlerini içeren bir proje.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/Framework/choices/net9.0/description": "Hedef net9.0",

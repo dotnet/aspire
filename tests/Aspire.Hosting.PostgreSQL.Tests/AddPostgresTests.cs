@@ -380,7 +380,7 @@ public class AddPostgresTests
         // The mount annotation is added in the AfterEndpointsAllocatedEvent.
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var container = builder.Resources.Single(r => r.Name == "pgadmin");
         var createFile = container.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createFile.DestinationPath);
@@ -434,7 +434,7 @@ public class AddPostgresTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithImageTag("8.3"));
 
-        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var container = builder.Resources.Single(r => r.Name == "pgadmin");
         var imageAnnotation = container.Annotations.OfType<ContainerImageAnnotation>().Single();
 
         Assert.Equal("8.3", imageAnnotation.Tag);
@@ -447,7 +447,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        Assert.Single(builder.Resources, r => r.Name.EndsWith("-pgadmin"));
+        Assert.Single(builder.Resources, r => r.Name.Equals("pgadmin"));
     }
 
     [Fact]
@@ -470,7 +470,7 @@ public class AddPostgresTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+        var pgadmin = builder.Resources.Single(r => r.Name.Equals("pgadmin"));
 
         var createServers = pgadmin.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
@@ -542,7 +542,7 @@ public class AddPostgresTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var pgweb = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
+        var pgweb = builder.Resources.Single(r => r.Name.Equals("pgweb"));
         var createBookmarks = pgweb.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/", createBookmarks.DestinationPath);

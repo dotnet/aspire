@@ -150,9 +150,9 @@ public class AddKafkaTests
         return new()
         {
             { "kafka-ui", "kafka-ui", 8081 },
-            { null, "kafka1-kafka-ui", 8081 },
+            { null, "kafka-ui", 8081 },
             { "kafka-ui", "kafka-ui", null },
-            { null, "kafka1-kafka-ui", null },
+            { null, "kafka-ui", null },
         };
     }
 
