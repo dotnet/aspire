@@ -29,24 +29,6 @@
         }
       }
     },
-    "redis2": {
-      "type": "container.v0",
-      "connectionString": "{redis2.bindings.tcp.host}:{redis2.bindings.tcp.port}",
-      "image": "docker.io/library/redis:7.4",
-      "entrypoint": "/bin/sh",
-      "args": [
-        "-c",
-        "redis-server"
-      ],
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 6379
-        }
-      }
-    },
     "garnet": {
       "type": "container.v0",
       "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port},password={garnet-password.value}",
