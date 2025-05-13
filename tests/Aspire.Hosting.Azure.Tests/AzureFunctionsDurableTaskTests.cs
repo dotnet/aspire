@@ -9,7 +9,7 @@ using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CommunityToolkit.Aspire.Hosting.DurableTask.Tests.Scheduler;
+namespace Aspire.Hosting.Azure.Tests;
 
 public class AddDurableTaskSchedulerTests
 {

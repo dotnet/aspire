@@ -38,6 +38,22 @@ public static class DurableTaskSchedulerExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="DurableTaskConstants.Scheduler.Emulator.Container.Tag" /> tag of the <inheritdoc cref="DurableTaskConstants.Scheduler.Emulator.Container.Image" /> container image in the <inheritdoc cref="DurableTaskConstants.Scheduler.Emulator.Container.Registry" /> registry.
     /// </remarks>
+    /// <example>
+    /// The following example creates a Durable Task Scheduler resource that runs locally in an emulator and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///                        .RunAsEmulator();
+    ///
+    /// var taskHub = scheduler.AddDurableTaskHub("taskhub");
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(taskHub);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsEmulator(this IResourceBuilder<DurableTaskSchedulerResource> builder, Action<IResourceBuilder<DurableTaskSchedulerEmulatorResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -133,6 +149,24 @@ public static class DurableTaskSchedulerExtensions
     /// <param name="builder">The Durable Task Scheduler resource builder.</param>
     /// <param name="connectionString">The connection string to the existing Durable Task Scheduler instance.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{DurableTaskSchedulerResource}" />.</returns>
+    /// <example>
+    /// The following example creates a preexisting Durable Task Scheduler resource configured via external parameters and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///                        .RunAsExisting(builder.AddParameter("scheduler-connection-string"));
+    ///
+    /// var taskHub =
+    ///     scheduler.AddDurableTaskHub("taskhub")
+    ///              .WithTaskHubName(builder.AddParameter("taskhub-name"));
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(taskHub);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, IResourceBuilder<ParameterResource> connectionString)
     {
         return builder.RunAsExisting(connectionString.Resource.Value);
