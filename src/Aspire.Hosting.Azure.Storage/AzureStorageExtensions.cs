@@ -294,7 +294,7 @@ public static class AzureStorageExtensions
                 if (blobContainerClient is null)
                 {
                     var blobServiceClient = CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string client is not initialized."));
-                    blobContainerClient = blobServiceClient.GetBlobContainerClient(resource.BlobContainerName);
+                    blobContainerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
                     blobContainerClient.CreateIfNotExists();
                 }
 
