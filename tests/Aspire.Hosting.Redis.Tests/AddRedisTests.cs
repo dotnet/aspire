@@ -251,7 +251,9 @@ public class AddRedisTests
         builder.AddRedis("myredis1").WithRedisInsight();
         builder.AddRedis("myredis2").WithRedisInsight();
 
-        Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+        var redisinsight = builder.Resources.Single(r => r.Name.Equals("redisinsight"));
+
+        Assert.NotNull(redisinsight);
     }
 
     [Fact]

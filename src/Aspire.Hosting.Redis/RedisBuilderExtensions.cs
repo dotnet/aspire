@@ -220,7 +220,7 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            containerName ??= "insight";
+            containerName ??= "redisinsight";
 
             var resource = new RedisInsightResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
