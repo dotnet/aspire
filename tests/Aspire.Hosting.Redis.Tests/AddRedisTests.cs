@@ -347,17 +347,17 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST3", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal(redis3.Resource.Name, item.Value);
             },
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PORT3", item.Key);
-                Assert.Equal($"{redis2.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
+                Assert.Equal($"{redis3.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
             },
             (item) =>
             {
                 Assert.Equal("RI_REDIS_ALIAS3", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal(redis3.Resource.Name, item.Value);
             });
 
     }
