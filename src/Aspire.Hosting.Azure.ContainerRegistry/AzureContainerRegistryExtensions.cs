@@ -5,7 +5,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.ContainerRegistry;
 using Azure.Provisioning;
 using Azure.Provisioning.ContainerRegistry;
 
