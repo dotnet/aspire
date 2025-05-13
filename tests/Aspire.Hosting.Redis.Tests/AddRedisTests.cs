@@ -172,12 +172,12 @@ public class AddRedisTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "entrypoint": "/bin/sh",
               "args": [
                 "-c",
-                "redis-server
+                "redis-server"
               ],
               "bindings": {
                 "tcp": {
