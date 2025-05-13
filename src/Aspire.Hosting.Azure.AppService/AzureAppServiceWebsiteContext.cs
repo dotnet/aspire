@@ -214,7 +214,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             AppServicePlanId = appServicePlanParameter,
             SiteConfig = new SiteConfigProperties()
             {
-                LinuxFxVersion = BicepFunction.Interpolate($"DOCKER|{containerImage}"),
+                LinuxFxVersion = "SITECONTAINERS",
                 AcrUserManagedIdentityId = acrClientIdParameter,
                 UseManagedIdentityCreds = true,
                 AppSettings = []
@@ -225,6 +225,19 @@ internal sealed class AzureAppServiceWebsiteContext(
                 UserAssignedIdentities = []
             },
         };
+
+        var mainContainer = new SiteContainer("mainContainer")
+        {
+            Parent = webSite,
+            Name = "main",
+            Image = containerImage,
+            TargetPort = "8080",
+            AuthType = SiteContainerAuthType.UserAssigned,
+            UserManagedIdentityClientId = acrClientIdParameter,
+            IsMain = true
+        };
+
+        infra.Add(mainContainer);
 
         foreach (var kv in EnvironmentVariables)
         {
