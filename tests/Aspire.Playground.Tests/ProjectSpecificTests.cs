@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Aspire.Playground.Tests;
 
+[Collection("AppHostTests")]
 [RequiresDocker]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
