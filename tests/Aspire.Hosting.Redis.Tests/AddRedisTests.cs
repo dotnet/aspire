@@ -291,7 +291,7 @@ public class AddRedisTests
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisInsight();
         var redis2 = builder.AddRedis("myredis2").WithRedisInsight();
-        var redis3 = builder.AddRedis("myredis2").WithRedisInsight().WithPassword(null);
+        var redis3 = builder.AddRedis("myredis3").WithRedisInsight().WithPassword(null);
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
@@ -347,17 +347,17 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_HOST3", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal(redis3.Resource.Name, item.Value);
             },
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PORT3", item.Key);
-                Assert.Equal($"{redis2.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
+                Assert.Equal($"{redis3.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
             },
             (item) =>
             {
                 Assert.Equal("RI_REDIS_ALIAS3", item.Key);
-                Assert.Equal(redis2.Resource.Name, item.Value);
+                Assert.Equal(redis3.Resource.Name, item.Value);
             });
 
     }
