@@ -9,6 +9,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -131,7 +132,6 @@ public static class AzureStorageExtensions
                });
 
         BlobServiceClient? blobServiceClient = null;
-
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
             var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
@@ -144,20 +144,9 @@ public static class AzureStorageExtensions
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(healthCheckKeysp =>
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
         {
-            // This health check is used to ensure that the storage emulator is running, we can access BlobServiceClient,
-            // and that the blob containers are created.
-
-            _ = blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
-
-            foreach (var blobContainer in builder.Resource.BlobContainers)
-            {
-                blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExists();
-            }
-
-            return blobServiceClient;
+            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
         }, name: healthCheckKey);
 
         builder.WithHealthCheck(healthCheckKey);
@@ -173,18 +162,6 @@ public static class AzureStorageExtensions
         configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
-
-        static BlobServiceClient CreateBlobServiceClient(string connectionString)
-        {
-            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-            {
-                return new BlobServiceClient(uri, new DefaultAzureCredential());
-            }
-            else
-            {
-                return new BlobServiceClient(connectionString);
-            }
-        }
     }
 
     /// <summary>
@@ -317,10 +294,40 @@ public static class AzureStorageExtensions
         blobContainerName ??= name;
 
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource);
-
         builder.Resource.Parent.BlobContainers.Add(resource);
 
-        return builder.ApplicationBuilder.AddResource(resource);
+        BlobServiceClient? blobServiceClient = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            var parentResource = resource.Parent;
+            var parentConnectionString = await parentResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            if (parentConnectionString is null)
+            {
+                throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{parentResource.Name}' resource but the connection string was null.");
+            }
+
+            blobServiceClient = CreateBlobServiceClient(parentConnectionString);
+        });
+
+        var healthCheckKey = $"{resource.Name}_check";
+        var healthCheckRegistration = new HealthCheckRegistration(
+            healthCheckKey,
+            sp =>
+            {
+                _ = blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+                var blobContainerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
+                return new AzureBlobStorageContainerHealthCheck(blobContainerClient);
+            },
+            failureStatus: default,
+            tags: default);
+
+        builder.ApplicationBuilder.Services
+            .AddHealthChecks()
+            .Add(healthCheckRegistration);
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -351,6 +358,18 @@ public static class AzureStorageExtensions
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    private static BlobServiceClient CreateBlobServiceClient(string connectionString)
+    {
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            return new BlobServiceClient(uri, new DefaultAzureCredential());
+        }
+        else
+        {
+            return new BlobServiceClient(connectionString);
+        }
     }
 
     /// <summary>
