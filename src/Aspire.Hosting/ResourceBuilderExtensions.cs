@@ -291,6 +291,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">Callback method which takes a <see cref="PublishingContext"/> which can be used to publish assets.</param>
     /// <returns></returns>
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithPublishingCallback<T>(this IResourceBuilder<T> builder, Func<PublishingContext, Task> callback) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
