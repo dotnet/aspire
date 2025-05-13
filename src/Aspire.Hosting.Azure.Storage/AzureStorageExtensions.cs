@@ -279,9 +279,10 @@ public static class AzureStorageExtensions
 
         var healthCheckKey = $"{resource.Name}_check";
 
+        BlobServiceClient? blobServiceClient = null;
         builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
         {
-            return CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+            return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
         }, name: healthCheckKey);
 
         return builder.ApplicationBuilder.AddResource(resource);
