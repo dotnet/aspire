@@ -231,7 +231,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             Parent = webSite,
             Name = "main",
             Image = containerImage,
-            TargetPort = "8080",
             AuthType = SiteContainerAuthType.UserAssigned,
             UserManagedIdentityClientId = acrClientIdParameter,
             IsMain = true
