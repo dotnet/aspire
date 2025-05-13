@@ -47,7 +47,7 @@
 				"remote.otherPortsAttributes": {
 					"onAutoForward": "ignore"
 				},
-				"dotnet.defaultSolution": "Aspire.sln"
+				"dotnet.defaultSolution": "Aspire.slnx"
 			}
 		}
 	},

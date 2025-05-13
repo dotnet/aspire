@@ -15,7 +15,7 @@ This will confirm that you're all set up.
 
 If you are using Visual Studio:
 
-1. Open `Aspire.sln`
+1. Open `Aspire.slnx`
 1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
 1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
 
