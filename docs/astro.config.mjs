@@ -10,7 +10,7 @@ import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://IEvangelist.github.io',
-	//base: 'aspire',
+	base: 'aspire',
 	integrations: [
 		starlight({
 			title: 'Aspire',
