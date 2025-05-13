@@ -96,6 +96,7 @@ public static class AzureStorageExtensions
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
+
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(StorageBuiltInRole.GetBuiltInRoleName,
                 StorageBuiltInRole.StorageBlobDataContributor,
@@ -130,26 +131,6 @@ public static class AzureStorageExtensions
                    Image = StorageEmulatorContainerImageTags.Image,
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
-
-        BlobServiceClient? blobServiceClient = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
-        {
-            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"BeforeResourceStartedEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
-
-            blobServiceClient = CreateBlobServiceClient(connectionString);
-        });
-
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
-        {
-            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
-        }, name: healthCheckKey);
-
-        builder.WithHealthCheck(healthCheckKey);
 
         // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
         // They need to be repeated in order to be able to add --skipApiVersionCheck
@@ -296,28 +277,26 @@ public static class AzureStorageExtensions
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource);
         builder.Resource.Parent.BlobContainers.Add(resource);
 
-        BlobServiceClient? blobServiceClient = null;
+        string? connectionString = null;
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
             var parentResource = resource.Parent;
-            var parentConnectionString = await parentResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            if (parentConnectionString is null)
-            {
-                throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{parentResource.Name}' resource but the connection string was null.");
-            }
-
-            blobServiceClient = CreateBlobServiceClient(parentConnectionString);
+            connectionString = await parentResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{parentResource.Name}' resource but the connection string was null.");
         });
 
         var healthCheckKey = $"{resource.Name}_check";
+
+        BlobContainerClient? blobContainerClient = null;
         var healthCheckRegistration = new HealthCheckRegistration(
             healthCheckKey,
             sp =>
             {
-                _ = blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
-
-                var blobContainerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
-                blobContainerClient.CreateIfNotExists();
+                if (blobContainerClient is null)
+                {
+                    var blobServiceClient = CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string client is not initialized."));
+                    blobContainerClient = blobServiceClient.GetBlobContainerClient(resource.BlobContainerName);
+                    blobContainerClient.CreateIfNotExists();
+                }
 
                 return new AzureBlobStorageContainerHealthCheck(blobContainerClient);
             },

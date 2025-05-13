@@ -21,8 +21,12 @@ internal sealed class AzureBlobStorageContainerHealthCheck(BlobContainerClient b
     {
         try
         {
-            await blobContainerClient.ExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            return HealthCheckResult.Healthy();
+            if (await blobContainerClient.ExistsAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return HealthCheckResult.Healthy();
+            }
+
+            return HealthCheckResult.Unhealthy("Blob container does not exist.");
         }
         catch (Exception ex)
         {

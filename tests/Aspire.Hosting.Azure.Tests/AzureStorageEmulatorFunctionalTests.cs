@@ -145,15 +145,15 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         using var app = builder.Build();
         await app.StartAsync();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, CancellationToken.None);
+
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureBlobClient("BlobConnection");
 
         using var host = hb.Build();
         await host.StartAsync();
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, CancellationToken.None);
 
         var serviceClient = host.Services.GetRequiredService<BlobServiceClient>();
         var blobContainerClient = serviceClient.GetBlobContainerClient("testblobcontainer");
