@@ -6,6 +6,8 @@ using Aspire.Azure.Storage.Blobs;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
+using HealthChecks.Azure.Storage.Blobs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,7 +57,7 @@ partial class AspireBlobStorageExtensions
         }
 
         protected override IHealthCheck CreateHealthCheck(BlobContainerClient client, AzureBlobStorageContainerSettings settings)
-            => new AzureBlobStorageContainerHealthCheck(client);
+            => new AzureBlobStorageHealthCheck(client.GetParentBlobServiceClient(), new AzureBlobStorageHealthCheckOptions { ContainerName = client.Name });
 
         protected override bool GetHealthCheckEnabled(AzureBlobStorageContainerSettings settings)
             => !settings.DisableHealthChecks;
