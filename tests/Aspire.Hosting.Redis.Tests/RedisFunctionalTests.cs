@@ -173,16 +173,16 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         },
         db =>
         {
-            Assert.Equal(redis2.Resource.Name, db.Name);
-            Assert.Equal(redis2.Resource.Name, db.Host);
-            Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
+            Assert.Equal(redis3.Resource.Name, db.Name);
+            Assert.Equal(redis3.Resource.Name, db.Host);
+            Assert.Equal(redis3.Resource.PrimaryEndpoint.TargetPort, db.Port);
         });
 
         foreach (var db in databases)
         {
             var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts2.Token);
-            response.EnsureSuccessStatusCode();
+            var testConnectionResponse = await client.GetAsync($"/api/databases/{db.Id}/connect", cts2.Token);
+            testConnectionResponse.EnsureSuccessStatusCode();
         }
     }
 
