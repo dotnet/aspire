@@ -417,14 +417,13 @@ public static class RedisBuilderExtensions
     /// Configures the password that the Redis resource is used.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="password">The parameter used to provide the password for the Redis resource.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/>, no password will be configured.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, IResourceBuilder<ParameterResource> password)
+    public static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, IResourceBuilder<ParameterResource>? password)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(password);
 
-        builder.Resource.SetPassword(password.Resource);
+        builder.Resource.SetPassword(password?.Resource);
         return builder;
     }
 
