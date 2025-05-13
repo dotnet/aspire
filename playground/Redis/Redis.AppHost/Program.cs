@@ -1,7 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var redis = builder.AddRedis("redis");
-var redis2 = builder.AddRedis("redis2").WithPassword(null);
 redis.WithDataVolume()
     .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redis))
     .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis));
