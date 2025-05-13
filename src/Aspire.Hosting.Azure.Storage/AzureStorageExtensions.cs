@@ -132,6 +132,20 @@ public static class AzureStorageExtensions
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
 
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ResourceReadyEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            var blobServiceClient = CreateBlobServiceClient(connectionString);
+
+            // Wait for the service to be responsive before creating the containers
+            await blobServiceClient.GetAccountInfoAsync(ct).ConfigureAwait(false);
+
+            foreach (var container in builder.Resource.BlobContainers)
+            {
+                await blobServiceClient.GetBlobContainerClient(container.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).WaitAsync(ct).ConfigureAwait(false);
+            }
+        });
+
         // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
         // They need to be repeated in order to be able to add --skipApiVersionCheck
 
@@ -295,7 +309,6 @@ public static class AzureStorageExtensions
                 {
                     var blobServiceClient = CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string client is not initialized."));
                     blobContainerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
-                    blobContainerClient.CreateIfNotExists();
                 }
 
                 return new AzureBlobStorageContainerHealthCheck(blobContainerClient);
