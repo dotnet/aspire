@@ -136,6 +136,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
         var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
         Assert.NotNull(redisInsightBuilder);
+        var redis3 = builder.AddRedis("redis-3").WithPassword(null);
 
         using var app = builder.Build();
 
@@ -163,6 +164,12 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.Equal(redis1.Resource.Name, db.Name);
             Assert.Equal(redis1.Resource.Name, db.Host);
             Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
+        },
+        db =>
+        {
+            Assert.Equal(redis2.Resource.Name, db.Name);
+            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
         },
         db =>
         {

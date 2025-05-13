@@ -77,10 +77,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         return BuildConnectionString().GetValueAsync(cancellationToken);
     }
 
-    internal void SetPassword(ParameterResource password)
+    internal void SetPassword(ParameterResource? password)
     {
-        ArgumentNullException.ThrowIfNull(password);
-
         PasswordParameter = password;
     }
 }
