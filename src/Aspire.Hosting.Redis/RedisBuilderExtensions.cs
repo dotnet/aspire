@@ -149,7 +149,7 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-commander";
+            containerName ??= "rediscommander";
 
             var resource = new RedisCommanderResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
@@ -220,7 +220,7 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-insight";
+            containerName ??= "redisinsight";
 
             var resource = new RedisInsightResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)

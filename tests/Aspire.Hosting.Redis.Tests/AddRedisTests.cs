@@ -282,7 +282,9 @@ public class AddRedisTests
         builder.AddRedis("myredis1").WithRedisInsight();
         builder.AddRedis("myredis2").WithRedisInsight();
 
-        Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+        var redisinsight = builder.Resources.Single(r => r.Name.Equals("redisinsight"));
+
+        Assert.NotNull(redisinsight);
     }
 
     [Fact]
@@ -490,7 +492,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
@@ -514,7 +516,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
@@ -535,7 +537,7 @@ public class AddRedisTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
