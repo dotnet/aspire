@@ -74,7 +74,7 @@
 
       <_TestRunsheetWindows>{ "label": "w: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
       <_TestRunsheetLinux>{ "label": "l: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
-      <_TestRunsheetMacOS>{ "label": "l: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
+      <_TestRunsheetMacOS>{ "label": "m: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "$(_PreCommand)./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
     </PropertyGroup>
 
     <ItemGroup>
