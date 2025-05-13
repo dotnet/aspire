@@ -99,7 +99,9 @@ public static class AzureContainerAppExtensions
             infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             }
