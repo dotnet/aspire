@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -315,7 +316,10 @@ public static class AzureStorageExtensions
             sp =>
             {
                 _ = blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+
                 var blobContainerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
+                blobContainerClient.CreateIfNotExists();
+
                 return new AzureBlobStorageContainerHealthCheck(blobContainerClient);
             },
             failureStatus: default,

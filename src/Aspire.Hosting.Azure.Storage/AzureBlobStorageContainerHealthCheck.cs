@@ -6,16 +6,22 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Azure Blob Storage container health check.
+/// </summary>
+/// <param name="blobContainerClient">
+/// The <see cref="BlobContainerClient"/> used to perform Azure Blob Storage container operations.
+/// Azure SDK recommends treating clients as singletons <see href="https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/"/>,
+/// so this should be the exact same instance used by other parts of the application.
+/// </param>
 internal sealed class AzureBlobStorageContainerHealthCheck(BlobContainerClient blobContainerClient) : IHealthCheck
 {
-    private readonly BlobContainerClient _blobServiceClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
-
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _blobServiceClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            await blobContainerClient.ExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             return HealthCheckResult.Healthy();
         }
         catch (Exception ex)

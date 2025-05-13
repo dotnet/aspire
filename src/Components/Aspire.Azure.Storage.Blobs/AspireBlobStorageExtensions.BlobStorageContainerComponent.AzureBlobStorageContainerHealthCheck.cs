@@ -20,14 +20,12 @@ partial class AspireBlobStorageExtensions
         /// </param>
         private sealed class AzureBlobStorageContainerHealthCheck(BlobContainerClient blobContainerClient) : IHealthCheck
         {
-            private readonly BlobContainerClient _blobServiceClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
-
             /// <inheritdoc />
             public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
             {
                 try
                 {
-                    await _blobServiceClient.ExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                    await blobContainerClient.ExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
                     return HealthCheckResult.Healthy();
                 }
                 catch (Exception ex)
