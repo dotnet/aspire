@@ -291,7 +291,7 @@ public class AddRedisTests
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisInsight();
         var redis2 = builder.AddRedis("myredis2").WithRedisInsight();
-        var redis3 = builder.AddRedis("myredis2").WithRedisInsight().WithPassword(null);
+        var redis3 = builder.AddRedis("myredis3").WithRedisInsight().WithPassword(null);
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
