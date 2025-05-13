@@ -27,7 +27,6 @@ var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: tr
 var param3 = builder.AddParameter("param3", "default"); // Runtime only default value.
 
 var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg")
-                    .WithPasswordAuthentication()
                     .RunAsContainer()
                     .AddDatabase("azdb");
 
