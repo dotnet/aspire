@@ -169,7 +169,7 @@ public static class DurableTaskSchedulerExtensions
     /// </example>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, IResourceBuilder<ParameterResource> connectionString)
     {
-        return builder.RunAsExisting(connectionString.Resource.Value);
+        return builder.RunAsExisting(ReferenceExpression.Create($"{connectionString}"));
     }
 
     /// <summary>
@@ -178,13 +178,68 @@ public static class DurableTaskSchedulerExtensions
     /// <param name="builder">The Durable Task Scheduler resource builder.</param>
     /// <param name="connectionString">The connection string to the existing Durable Task Scheduler instance.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{DurableTaskSchedulerResource}" />.</returns>
+    /// <example>
+    /// The following example creates a preexisting Durable Task Scheduler resource configured via strings and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// string connectionString = "...";
+    /// 
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///                        .RunAsExisting(connectionString);
+    ///
+    /// string taskHubName = "...";
+    /// 
+    /// var taskHub =
+    ///     scheduler.AddDurableTaskHub("taskhub")
+    ///              .WithTaskHubName(taskHubName);
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(taskHub);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, string connectionString)
+    {
+        return builder.RunAsExisting(ReferenceExpression.Create($"{connectionString}"));
+    }
+
+    /// <summary>
+    /// Marks the resource as an existing Durable Task Scheduler instance when the application is running.
+    /// </summary>
+    /// <param name="builder">The Durable Task Scheduler resource builder.</param>
+    /// <param name="connectionString">The connection string to the existing Durable Task Scheduler instance.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{DurableTaskSchedulerResource}" />.</returns>
+    /// <example>
+    /// The following example creates a preexisting Durable Task Scheduler resource configured via strings and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var connectionString = ReferenceExpression.Create($"...");
+    /// 
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///                        .RunAsExisting(connectionString);
+    ///
+    /// string taskHubName = "...";
+    /// 
+    /// var taskHub =
+    ///     scheduler.AddDurableTaskHub("taskhub")
+    ///              .WithTaskHubName(taskHubName);
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(taskHub);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, ReferenceExpression connectionString)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
-            builder.WithAnnotation(new ExistingDurableTaskSchedulerAnnotation(ParameterOrValue.Create(connectionString)));
+            builder.WithAnnotation(new ExistingDurableTaskSchedulerAnnotation(connectionString));
 
-            var connectionStringParameters = ParseConnectionString(connectionString);
+            var connectionStringParameters = ParseConnectionString(connectionString.ValueExpression);
 
             if (connectionStringParameters.TryGetValue("Endpoint", out string? endpoint))
             {
@@ -229,7 +284,7 @@ public static class DurableTaskSchedulerExtensions
     /// <returns></returns>
     public static IResourceBuilder<DurableTaskSchedulerResource> WithDashboard(this IResourceBuilder<DurableTaskSchedulerResource> builder, string dashboardEndpoint)
     {
-        return builder.WithDashboard(ParameterOrValue.Create(dashboardEndpoint));
+        return builder.WithDashboard(ReferenceExpression.Create($"{dashboardEndpoint}"));
     }
 
     /// <summary>
@@ -240,10 +295,10 @@ public static class DurableTaskSchedulerExtensions
     /// <returns></returns>
     public static IResourceBuilder<DurableTaskSchedulerResource> WithDashboard(this IResourceBuilder<DurableTaskSchedulerResource> builder, IResourceBuilder<ParameterResource>? dashboardEndpoint = null)
     {
-        return builder.WithDashboard(dashboardEndpoint is not null ? ParameterOrValue.Create(dashboardEndpoint) : null);
+        return builder.WithDashboard(dashboardEndpoint is not null ? ReferenceExpression.Create($"{dashboardEndpoint}") : null);
     }
 
-    static IResourceBuilder<DurableTaskSchedulerResource> WithDashboard(this IResourceBuilder<DurableTaskSchedulerResource> builder, ParameterOrValue? dashboardEndpoint)
+    static IResourceBuilder<DurableTaskSchedulerResource> WithDashboard(this IResourceBuilder<DurableTaskSchedulerResource> builder, ReferenceExpression? dashboardEndpoint)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -316,8 +371,8 @@ public static class DurableTaskSchedulerExtensions
     public static IResourceBuilder<DurableTaskHubResource> WithDashboard(this IResourceBuilder<DurableTaskHubResource> builder, string? dashboardEndpoint, string? subscriptionId)
     {
         return builder.WithDashboard(
-            dashboardEndpoint: dashboardEndpoint is not null ? ParameterOrValue.Create(dashboardEndpoint) : null,
-            subscriptionId: subscriptionId is not null ? ParameterOrValue.Create(subscriptionId) : null);
+            dashboardEndpoint: dashboardEndpoint is not null ? ReferenceExpression.Create($"{dashboardEndpoint}") : null,
+            subscriptionId: subscriptionId is not null ? ReferenceExpression.Create($"{subscriptionId}") : null);
     }
 
     /// <summary>
@@ -330,11 +385,11 @@ public static class DurableTaskSchedulerExtensions
     public static IResourceBuilder<DurableTaskHubResource> WithDashboard(this IResourceBuilder<DurableTaskHubResource> builder, IResourceBuilder<ParameterResource>? dashboardEndpoint = null, IResourceBuilder<ParameterResource>? subscriptionId = null)
     {
         return builder.WithDashboard(
-            dashboardEndpoint: dashboardEndpoint is not null ? ParameterOrValue.Create(dashboardEndpoint) : null,
-            subscriptionId: subscriptionId is not null ? ParameterOrValue.Create(subscriptionId) : null);
+            dashboardEndpoint: dashboardEndpoint is not null ? ReferenceExpression.Create($"{dashboardEndpoint}") : null,
+            subscriptionId: subscriptionId is not null ? ReferenceExpression.Create($"{subscriptionId}") : null);
     }
 
-    static IResourceBuilder<DurableTaskHubResource> WithDashboard(this IResourceBuilder<DurableTaskHubResource> builder, ParameterOrValue? dashboardEndpoint, ParameterOrValue? subscriptionId)
+    static IResourceBuilder<DurableTaskHubResource> WithDashboard(this IResourceBuilder<DurableTaskHubResource> builder, ReferenceExpression? dashboardEndpoint, ReferenceExpression? subscriptionId)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {

@@ -57,7 +57,7 @@ public class DurableTaskHubResource(string name, DurableTaskSchedulerResource pa
         if (this.TryGetLastAnnotation<DurableTaskSchedulerDashboardAnnotation>(out var annotation)
             && annotation.DashboardEndpoint is not null)
         {
-            return ReferenceExpression.Create($"{annotation.DashboardEndpoint}");
+            return annotation.DashboardEndpoint;
         }
 
         return (this.Parent as IResourceWithDashboard).DashboardEndpointExpression;
@@ -68,7 +68,7 @@ public class DurableTaskHubResource(string name, DurableTaskSchedulerResource pa
         if (this.TryGetLastAnnotation<DurableTaskSchedulerDashboardAnnotation>(out var annotation)
             && annotation.SubscriptionId is not null)
         {
-            return ReferenceExpression.Create($"{annotation.SubscriptionId}");
+            return annotation.SubscriptionId;
         }
 
         return this.Parent.SubscriptionIdExpression;

@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-sealed class ExistingDurableTaskSchedulerAnnotation(ParameterOrValue connectionString) : IResourceAnnotation
+sealed class ExistingDurableTaskSchedulerAnnotation(ReferenceExpression connectionString) : IResourceAnnotation
 {
-    public ParameterOrValue ConnectionString => connectionString;
+    public ReferenceExpression ConnectionString => connectionString;
 }

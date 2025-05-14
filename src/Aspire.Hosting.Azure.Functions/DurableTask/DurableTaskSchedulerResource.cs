@@ -67,7 +67,7 @@ public sealed class DurableTaskSchedulerResource(string name)
     {
         if (this.TryGetLastAnnotation(out DurableTaskSchedulerDashboardAnnotation? annotation) && annotation.SubscriptionId is not null)
         {
-            return ReferenceExpression.Create($"{annotation.SubscriptionId}");
+            return annotation.SubscriptionId;
         }
 
         return null;
@@ -92,7 +92,7 @@ public sealed class DurableTaskSchedulerResource(string name)
     {
         if (this.TryGetLastAnnotation(out ExistingDurableTaskSchedulerAnnotation? annotation))
         {
-            return ReferenceExpression.Create($"{annotation.ConnectionString}");
+            return annotation.ConnectionString;
         }
 
         string connectionString = $"Authentication={this.Authentication ?? DurableTaskSchedulerAuthentication.None}";
