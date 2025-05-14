@@ -28,15 +28,13 @@ public sealed class TelemetryLoggerProvider : ILoggerProvider
 
     private sealed class TelemetryLogger : ILogger
     {
-        private readonly DashboardTelemetryService? _telemetryService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly bool _isCircuitHostLogger;
 
         public TelemetryLogger(IServiceProvider serviceProvider, string categoryName)
         {
-            if (categoryName == CircuitHostLogCategory)
-            {
-                // Set this lazily to avoid a circular reference between resolving telemetry service and logging.
-                _telemetryService = serviceProvider.GetRequiredService<DashboardTelemetryService>();
-            }
+            _serviceProvider = serviceProvider;
+            _isCircuitHostLogger = categoryName == CircuitHostLogCategory;
         }
 
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
@@ -45,19 +43,30 @@ public sealed class TelemetryLoggerProvider : ILoggerProvider
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            if (_telemetryService != null && eventId == CircuitUnhandledExceptionEventId && exception != null)
+            if (_isCircuitHostLogger && eventId == CircuitUnhandledExceptionEventId && exception != null)
             {
-                _telemetryService.PostFault(
-                    TelemetryEventKeys.Error,
-                    $"{exception.GetType().FullName}: {exception.Message}",
-                    FaultSeverity.Critical,
-                    new Dictionary<string, AspireTelemetryProperty>
-                    {
-                        [TelemetryPropertyKeys.ExceptionType] = new AspireTelemetryProperty(exception.GetType().FullName!),
-                        [TelemetryPropertyKeys.ExceptionMessage] = new AspireTelemetryProperty(exception.Message),
-                        [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(exception.StackTrace ?? string.Empty)
-                    }
-                );
+                try
+                {
+                    // Get the telemetry service lazily to avoid a circular reference between resolving telemetry service and logging.
+                    var telemetryService = _serviceProvider.GetRequiredService<DashboardTelemetryService>();
+
+                    telemetryService.PostFault(
+                        TelemetryEventKeys.Error,
+                        $"{exception.GetType().FullName}: {exception.Message}",
+                        FaultSeverity.Critical,
+                        new Dictionary<string, AspireTelemetryProperty>
+                        {
+                            [TelemetryPropertyKeys.ExceptionType] = new AspireTelemetryProperty(exception.GetType().FullName!),
+                            [TelemetryPropertyKeys.ExceptionMessage] = new AspireTelemetryProperty(exception.Message),
+                            [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(exception.StackTrace ?? string.Empty)
+                        }
+                    );
+                }
+                catch
+                {
+                    // We should never throw an error out of logging.
+                    // Logging the error to telemetry shouldn't throw. But, for extra safety, send error to telemetry is inside a try/catch.
+                }
             }
         }
     }
