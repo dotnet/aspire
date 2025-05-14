@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Model;
 
 internal static class DebugSessionHelpers
 {
-    public static HttpClient CreateHttpClient(Uri debugSessionUri, string token, X509Certificate2? cert, Func<HttpClientHandler, HttpMessageHandler>? createHandler)
+    public static HttpClient CreateHttpClient(Uri? debugSessionUri, string? token, X509Certificate2? cert, Func<HttpClientHandler, HttpMessageHandler>? createHandler)
     {
         var handler = new HttpClientHandler();
         if (cert is not null)
@@ -23,22 +23,33 @@ internal static class DebugSessionHelpers
                     return true;
                 }
 
+                if (c == null)
+                {
+                    return false;
+                }
+
                 // Certificate isn't immediately valid. Check if it is the same as the one we expect.
                 // It's ok that comparison isn't time constant because this is public information.
-                return cert.RawData.SequenceEqual(c?.RawData);
+                return cert.RawData.SequenceEqual(c.RawData);
             };
         }
 
         var resolvedHandler = createHandler?.Invoke(handler) ?? handler;
         var client = new HttpClient(resolvedHandler)
         {
-            BaseAddress = debugSessionUri,
-            DefaultRequestHeaders =
-            {
-                { "Authorization", $"Bearer {token}" },
-                { "User-Agent", "Aspire Dashboard" }
-            }
+            Timeout = Timeout.InfiniteTimeSpan
         };
+
+        if (debugSessionUri is not null)
+        {
+            client.BaseAddress = debugSessionUri;
+        }
+
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Aspire Dashboard");
+        if (token != null)
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {token}");
+        }
 
         return client;
     }

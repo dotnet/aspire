@@ -184,7 +184,7 @@
     <value>URLs</value>
   </data>
   <data name="RunningAndUnhealthyResourceStateToolTip" xml:space="preserve">
-    <value>Resource is running but not in a healthy state. Click for details.</value>
+    <value>Resource is running but not in a healthy state.</value>
     <comment>Tool tip text explaining that the resource is running but not yet ready to receive requests.</comment>
   </data>
   <data name="PersistentContainerIconTooltip" xml:space="preserve">
@@ -194,5 +194,11 @@
     <value>Container runtime was found but appears to be unhealthy. Ensure that it is running.
 For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</value>
     <comment>Contains a new line</comment>
+  </data>
+  <data name="StateColumnResourceNotStarted" xml:space="preserve">
+    <value>Resource has not started because it's configured to not automatically start.</value>
+  </data>
+  <data name="StateColumnResourceWaiting" xml:space="preserve">
+    <value>Resource is waiting for other resources to be in a running and healthy state.</value>
   </data>
 </root>

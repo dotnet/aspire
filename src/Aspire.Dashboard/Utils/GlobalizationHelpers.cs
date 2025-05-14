@@ -13,7 +13,7 @@ internal static class GlobalizationHelpers
 {
     private const int MaxCultureParentDepth = 5;
 
-    public static List<CultureInfo> LocalizedCultures { get; }
+    public static List<CultureInfo> OrderedLocalizedCultures { get; }
 
     public static List<CultureInfo> AllCultures { get; }
 
@@ -27,11 +27,14 @@ internal static class GlobalizationHelpers
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
         };
 
-        LocalizedCultures = localizedCultureNames.Select(CultureInfo.GetCultureInfo).ToList();
+        var localizedCultureInfos = localizedCultureNames.Select(CultureInfo.GetCultureInfo).ToList();
 
         AllCultures = GetAllCultures();
 
-        ExpandedLocalizedCultures = GetExpandedLocalizedCultures(LocalizedCultures, AllCultures);
+        ExpandedLocalizedCultures = GetExpandedLocalizedCultures(localizedCultureInfos, AllCultures);
+
+        // Order cultures for display in the UI with invariant culture. This prevents the order of languages changing when the culture changes.
+        OrderedLocalizedCultures = localizedCultureInfos.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase).ToList();
     }
 
     private static Dictionary<string, List<CultureInfo>> GetExpandedLocalizedCultures(List<CultureInfo> localizedCultures, List<CultureInfo> allCultures)
@@ -85,6 +88,11 @@ internal static class GlobalizationHelpers
         }
 
         return allCultures;
+    }
+
+    public static bool TryGetKnownParentCulture(CultureInfo culture, [NotNullWhen(true)] out CultureInfo? matchedCulture)
+    {
+        return TryGetKnownParentCulture(OrderedLocalizedCultures, culture, out matchedCulture);
     }
 
     public static bool TryGetKnownParentCulture(List<CultureInfo> knownCultures, CultureInfo culture, [NotNullWhen(true)] out CultureInfo? matchedCulture)

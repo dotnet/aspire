@@ -24,6 +24,8 @@ public static class OtlpHelpers
         WriteIndented = false
     };
 
+    public const int ShortenedIdLength = 7;
+
     public static ApplicationKey GetApplicationKey(this Resource resource)
     {
         string? serviceName = null;
@@ -62,7 +64,7 @@ public static class OtlpHelpers
         return new ApplicationKey(serviceName, serviceInstanceId ?? serviceName);
     }
 
-    public static string ToShortenedId(string id) => TruncateString(id, maxLength: 7);
+    public static string ToShortenedId(string id) => TruncateString(id, maxLength: ShortenedIdLength);
 
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
     {
@@ -427,6 +429,20 @@ public static class OtlpHelpers
             TotalItemCount = totalItemCount,
             IsFull = isFull
         };
+    }
+
+    public static bool MatchTelemetryId(string incomingId, string existingId)
+    {
+        // This method uses StartsWith to find a match.
+        // We only want to use that logic if the traceId is at least the length of a shortened id.
+        if (incomingId.Length >= ShortenedIdLength)
+        {
+            return existingId.StartsWith(incomingId, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            return existingId.Equals(incomingId, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     public static bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, [NotNullWhen(true)] out OtlpScope? s)
