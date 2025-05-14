@@ -641,6 +641,58 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
     }
 
+    [Fact]
+    public async Task NewCommand_SanitizesInvalidProjectName_WhenProvidedOnCommandLine()
+    {
+        string? sanitizedNameUsed = null;
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                {
+                    // This captures the sanitized name passed to the CLI
+                    sanitizedNameUsed = name;
+                    return 0; // Success
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new --name Invalid@Name");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        Assert.Equal(0, exitCode);
+        Assert.Equal("Invalid_Name", sanitizedNameUsed);
+    }
+
     private sealed class ThrowingCertificateService : ICertificateService
     {
         public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)

@@ -87,6 +87,11 @@ internal class InteractionService : IInteractionService
         DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
     }
 
+    public void DisplayWarning(string warningMessage)
+    {
+        DisplayMessage("warning", $"[yellow bold]{warningMessage}[/]");
+    }
+
     public void DisplayMessage(string emoji, string message)
     {
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
