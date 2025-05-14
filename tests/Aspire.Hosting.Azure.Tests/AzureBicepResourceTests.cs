@@ -1503,6 +1503,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 };
             });
 
+        var blob = storage.AddBlobs("blob");
+        var queue = storage.AddQueues("queue");
+        var table = storage.AddTables("table");
+
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
         storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
@@ -1578,7 +1582,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, storageRolesManifest.BicepText);
 
         // Check blob resource.
-        var blob = storage.AddBlobs("blob");
 
         var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
 
@@ -1593,8 +1596,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBlobManifest, blobManifest.ToString());
 
         // Check queue resource.
-        var queue = storage.AddQueues("queue");
-
         var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
 
         Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
@@ -1608,8 +1609,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedQueueManifest, queueManifest.ToString());
 
         // Check table resource.
-        var table = storage.AddTables("table");
-
         var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
 
         Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
