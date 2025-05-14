@@ -200,13 +200,11 @@ internal static class AsyncTestHelpers
         return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger);
     }
 
-    public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null)
+    public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null, int retries = 10)
     {
-        const int Retries = 10;
-
         logger?.LogInformation("Start: " + message);
 
-        for (var i = 0; i < Retries; i++)
+        for (var i = 0; i < retries; i++)
         {
             if (i > 0)
             {
@@ -220,6 +218,6 @@ internal static class AsyncTestHelpers
             }
         }
 
-        throw new InvalidOperationException($"Assert failed after {Retries} retries: {message}");
+        throw new InvalidOperationException($"Assert failed after {retries} retries: {message}");
     }
 }
