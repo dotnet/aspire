@@ -646,7 +646,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName, StateHasChanged);
     }
 
     private static string GetUrlsTooltip(ResourceViewModel resource)
