@@ -92,7 +92,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (_telemetryService == null)
         {
-            throw new InvalidOperationException("InitializeAsync has not been called");
+            throw new InvalidOperationException("InitializeAsync has not been called.");
         }
 
         _telemetryService.PostOperation(
