@@ -212,6 +212,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             // Use the host name as the name of the web app
             Name = HostName,
             AppServicePlanId = appServicePlanParameter,
+            // Creating the app service with new sidecar configuration
             SiteConfig = new SiteConfigProperties()
             {
                 LinuxFxVersion = "SITECONTAINERS",
@@ -226,6 +227,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             },
         };
 
+        // Defining the main container for the app service
         var mainContainer = new SiteContainer("mainContainer")
         {
             Parent = webSite,
