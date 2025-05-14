@@ -6,8 +6,13 @@ namespace Aspire.Dashboard.Telemetry;
 /// <summary>
 /// Log an error to dashboard telemetry when there is an unhandled Blazor error.
 /// </summary>
-public class TelemetryLoggerProvider : ILoggerProvider
+public sealed class TelemetryLoggerProvider : ILoggerProvider
 {
+    // Log when an unhandled error is caught by Blazor.
+    // https://github.com/dotnet/aspnetcore/blob/0230498dfccaef6f782a5e37c60ea505081b72bf/src/Components/Server/src/Circuits/CircuitHost.cs#L695
+    public const string CircuitHostLogCategory = "Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost";
+    public static readonly EventId CircuitUnhandledExceptionEventId = new EventId(111, "CircuitUnhandledException");
+
     private readonly IServiceProvider _serviceProvider;
 
     public TelemetryLoggerProvider(IServiceProvider serviceProvider)
@@ -23,23 +28,18 @@ public class TelemetryLoggerProvider : ILoggerProvider
 
     private sealed class TelemetryLogger : ILogger
     {
-        // Log when an unhandled error is caught by Blazor.
-        // https://github.com/dotnet/aspnetcore/blob/0230498dfccaef6f782a5e37c60ea505081b72bf/src/Components/Server/src/Circuits/CircuitHost.cs#L695
-        private const string BlazorLogCategory = "Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost";
-        private const int CircuitUnhandledExceptionEventId = 111;
-
         private readonly DashboardTelemetryService? _telemetryService;
 
         public TelemetryLogger(IServiceProvider serviceProvider, string categoryName)
         {
-            if (categoryName == BlazorLogCategory)
+            if (categoryName == CircuitHostLogCategory)
             {
                 // Set this lazily to avoid a circular reference between resolving telemetry service and logging.
                 _telemetryService = serviceProvider.GetRequiredService<DashboardTelemetryService>();
             }
         }
 
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null!;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
