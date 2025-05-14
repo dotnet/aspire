@@ -41,8 +41,6 @@ public sealed class ComponentTelemetryContext : IDisposable
     // Internal for testing
     internal Dictionary<string, AspireTelemetryProperty> Properties { get; } = [];
 
-    private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
-
     public void Initialize(DashboardTelemetryService telemetryService, string? browserUserAgent)
     {
         _telemetryService = telemetryService;
@@ -92,7 +90,12 @@ public sealed class ComponentTelemetryContext : IDisposable
 
     private void PostProperties()
     {
-        TelemetryService.PostOperation(
+        if (_telemetryService == null)
+        {
+            throw new InvalidOperationException("InitializeAsync has not been called.");
+        }
+
+        _telemetryService.PostOperation(
             TelemetryEventKeys.ParametersSet,
             TelemetryResult.Success,
             properties: Properties,
@@ -103,7 +106,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (!_disposed)
         {
-            TelemetryService.PostOperation(
+            _telemetryService?.PostOperation(
                 TelemetryEventKeys.ComponentDispose,
                 TelemetryResult.Success,
                 properties: new Dictionary<string, AspireTelemetryProperty>
