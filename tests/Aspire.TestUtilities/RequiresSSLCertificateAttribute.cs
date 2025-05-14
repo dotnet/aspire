@@ -8,8 +8,8 @@ namespace Aspire.TestUtilities;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresSSLCertificateAttribute(string? reason = null) : Attribute, ITraitAttribute
 {
-    // Not supported on Windows CI
-    public static bool IsSupported => !PlatformDetection.IsRunningOnCI || !OperatingSystem.IsWindows();
+    // Always supported on linux (local and CI), but only local otherwise
+    public static bool IsSupported => OperatingSystem.IsLinux() || !PlatformDetection.IsRunningOnCI;
 
     public string? Reason { get; init; } = reason;
 

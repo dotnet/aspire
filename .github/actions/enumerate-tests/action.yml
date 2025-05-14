@@ -69,7 +69,7 @@ runs:
         "integrations_tests_matrix=$jsonString"
         "integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
-    - name: Generate tests matrix
+    - name: Generate templates matrix
       id: generate_templates_matrix
       if: ${{ inputs.includeTemplates }}
       shell: pwsh
