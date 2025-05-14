@@ -15,7 +15,7 @@ internal static class DistributedApplicationTestFactory
     /// <summary>
     /// Creates an <see cref="IDistributedApplicationTestingBuilder"/> for the specified app host assembly.
     /// </summary>
-    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type appHostProgramType, ITestOutputHelper? testOutput)
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type appHostProgramType, ITestOutputHelper? testOutput, bool enableParameterRandomisation)
     {
         var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
 
@@ -24,7 +24,11 @@ internal static class DistributedApplicationTestFactory
         // always override.
         builder.Services.AddLifecycleHook<ContainerRegistryHook>();
 
-        builder.WithRandomParameterValues();
+        if (enableParameterRandomisation)
+        {
+            builder.WithRandomParameterValues();
+        }
+
         builder.WithRandomVolumeNames();
 
         builder.Services.AddLogging(logging =>
