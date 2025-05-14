@@ -137,6 +137,8 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     [RequiresDocker]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
         var blobs = storage.AddBlobs("BlobConnection");
@@ -146,7 +148,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await app.StartAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(storage.Resource.Name, CancellationToken.None);
+        await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);

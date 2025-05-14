@@ -121,7 +121,6 @@ public static class AzureCosmosExtensions
             }
         });
 
-        // Use custom health check that also seeds the databases and containers
         var healthCheckKey = $"{builder.Resource.Name}_check";
         builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
             sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),

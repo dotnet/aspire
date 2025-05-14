@@ -291,7 +291,22 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(resource);
+
+        string? connectionString = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+        });
+
+        var healthCheckKey = $"{resource.Name}_check";
+
+        BlobServiceClient? blobServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+        }, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(resource).WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -311,8 +326,24 @@ public static class AzureStorageExtensions
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource);
         builder.Resource.Parent.BlobContainers.Add(resource);
 
+        string? connectionString = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+        });
+
+        var healthCheckKey = $"{resource.Name}_check";
+
+        BlobServiceClient? blobServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+        },
+        optionsFactory: sp => new HealthChecks.Azure.Storage.Blobs.AzureBlobStorageHealthCheckOptions { ContainerName = blobContainerName },
+        name: healthCheckKey);
+
         return builder.ApplicationBuilder
-            .AddResource(resource);
+            .AddResource(resource).WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
