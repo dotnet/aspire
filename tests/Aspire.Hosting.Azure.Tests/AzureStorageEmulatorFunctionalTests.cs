@@ -146,7 +146,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await app.StartAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, CancellationToken.None);
+        await rns.WaitForResourceHealthyAsync(storage.Resource.Name, CancellationToken.None);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
