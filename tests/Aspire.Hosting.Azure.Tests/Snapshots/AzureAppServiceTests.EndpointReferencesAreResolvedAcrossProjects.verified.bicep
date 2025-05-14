@@ -13,13 +13,24 @@ param project2_containerimage string
 
 param project2_containerport string
 
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
+  name: 'main'
+  properties: {
+    authType: 'UserAssigned'
+    image: project2_containerimage
+    isMain: true
+    userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
+  }
+  parent: webapp
+}
+
 resource webapp 'Microsoft.Web/sites@2024-04-01' = {
   name: take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     serverFarmId: env_outputs_planid
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${project2_containerimage}'
+      linuxFxVersion: 'SITECONTAINERS'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
