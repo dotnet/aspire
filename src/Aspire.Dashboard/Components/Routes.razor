@@ -10,22 +10,20 @@
     return;
 }
 
-<TelemetryErrorBoundary>
-    <CascadingValue Value="@_viewportInformation">
-        <Router AppAssembly="@typeof(App).Assembly">
-            <Found Context="routeData">
-                <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
-                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-            </Found>
-            <NotFound>
-                <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
-                <LayoutView Layout="@typeof(Layout.MainLayout)">
-                    <Aspire.Dashboard.Components.Pages.NotFound />
-                </LayoutView>
-            </NotFound>
-        </Router>
-    </CascadingValue>
-</TelemetryErrorBoundary>
+<CascadingValue Value="@_viewportInformation">
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        </Found>
+        <NotFound>
+            <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <Aspire.Dashboard.Components.Pages.NotFound />
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingValue>
 
 @code {
     private ViewportInformation? _viewportInformation;
