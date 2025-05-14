@@ -195,18 +195,16 @@ internal static class AsyncTestHelpers
         ? $"The operation timed out after reaching the limit of {timeout.TotalMilliseconds}ms."
         : $"The operation at {filePath}:{lineNumber} timed out after reaching the limit of {timeout.TotalMilliseconds}ms.";
 
-    public static Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null)
+    public static Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null, int retries = 10)
     {
-        return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger);
+        return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger, retries);
     }
 
-    public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null)
+    public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null, int retries = 10)
     {
-        const int Retries = 10;
-
         logger?.LogInformation("Start: " + message);
 
-        for (var i = 0; i < Retries; i++)
+        for (var i = 0; i < retries; i++)
         {
             if (i > 0)
             {
@@ -220,6 +218,6 @@ internal static class AsyncTestHelpers
             }
         }
 
-        throw new InvalidOperationException($"Assert failed after {Retries} retries: {message}");
+        throw new InvalidOperationException($"Assert failed after {retries} retries: {message}");
     }
 }
