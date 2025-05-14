@@ -104,8 +104,13 @@ public sealed class ResourceViewModel
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
+        return GetResourceName(resource, allResources.Values);
+    }
+
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    {
         var count = 0;
-        foreach (var (_, item) in allResources)
+        foreach (var item in allResources)
         {
             if (item.IsResourceHidden())
             {
