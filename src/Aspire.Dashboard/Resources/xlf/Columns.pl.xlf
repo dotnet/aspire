@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state.</source>
-        <target state="needs-review-translation">Zasób jest uruchomiony, ale nie jest w dobrej kondycji. Kliknij, aby uzyskać szczegółowe informacje.</target>
+        <target state="new">Resource is running but not in a healthy state.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
