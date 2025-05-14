@@ -12,9 +12,10 @@ const titleText = `Toggle collapse/expand '${title}' details.`;
 
 <style>
     .expand {
-        background-color: var(--sl-color-gray-6);        
+        background-color: var(--sl-color-gray-4);        
         border: var(--ec-brdWd) solid var(--ec-brdCol);
         border-inline-start-width: 0.25rem;
+        border-left-color: initial;
         margin-bottom: 1rem;
         overflow: hidden;
     }
@@ -40,6 +41,7 @@ const titleText = `Toggle collapse/expand '${title}' details.`;
     }
 
     .expand summary:hover::after {
+        border-left-color: var(--sl-details-border-color--hover);
         color: var(--sl-details-border-color--hover);
     }
 

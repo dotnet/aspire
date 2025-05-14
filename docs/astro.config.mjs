@@ -5,7 +5,6 @@ import catppuccin from "@catppuccin/starlight";
 import starlightLlmsTxt from 'starlight-llms-txt'
 import starlightKbd from 'starlight-kbd'
 import starlightImageZoom from 'starlight-image-zoom'
-import { viewTransitions } from "astro-vtbot/starlight-view-transitions";
 
 // https://astro.build/config
 export default defineConfig({
@@ -158,7 +157,6 @@ export default defineConfig({
 				}
 			],
 			plugins: [
-				viewTransitions(),
 				catppuccin(),
 				starlightLlmsTxt(),
 				starlightImageZoom({
