@@ -33,10 +33,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64Version>0.14.1</MicrosoftDeveloperControlPlanewindowsamd64Version>
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.14.1</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25255.5</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25263.5</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25178.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
-    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25255.5</MicrosoftDotNetBuildTasksInstallersVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25255.5</MicrosoftDotNetBuildTasksWorkloadsVersion>
+    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25263.5</MicrosoftDotNetBuildTasksInstallersVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25263.5</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.4.3-preview.1.25230.7</MicrosoftExtensionsAIVersion>
     <!-- when updating this, also update cgmanifest.json as it is consumed in templates -->
