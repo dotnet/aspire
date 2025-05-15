@@ -212,9 +212,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             // Use the host name as the name of the web app
             Name = HostName,
             AppServicePlanId = appServicePlanParameter,
+            // Creating the app service with new sidecar configuration
             SiteConfig = new SiteConfigProperties()
             {
-                LinuxFxVersion = BicepFunction.Interpolate($"DOCKER|{containerImage}"),
+                LinuxFxVersion = "SITECONTAINERS",
                 AcrUserManagedIdentityId = acrClientIdParameter,
                 UseManagedIdentityCreds = true,
                 AppSettings = []
@@ -225,6 +226,19 @@ internal sealed class AzureAppServiceWebsiteContext(
                 UserAssignedIdentities = []
             },
         };
+
+        // Defining the main container for the app service
+        var mainContainer = new SiteContainer("mainContainer")
+        {
+            Parent = webSite,
+            Name = "main",
+            Image = containerImage,
+            AuthType = SiteContainerAuthType.UserAssigned,
+            UserManagedIdentityClientId = acrClientIdParameter,
+            IsMain = true
+        };
+
+        infra.Add(mainContainer);
 
         foreach (var kv in EnvironmentVariables)
         {
