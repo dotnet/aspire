@@ -213,7 +213,6 @@ jobs:
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           CI: false
-          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
@@ -236,7 +235,6 @@ jobs:
         id: run-tests
         env:
           CI: false
-          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
