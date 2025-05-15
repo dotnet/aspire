@@ -153,9 +153,6 @@
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
-    <!-- Force container runtime to Docker since that's what is installed on Helix -->
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DOTNET_ASPIRE_CONTAINER_RUNTIME=docker" />
-
     <!-- Set the DCP env -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
