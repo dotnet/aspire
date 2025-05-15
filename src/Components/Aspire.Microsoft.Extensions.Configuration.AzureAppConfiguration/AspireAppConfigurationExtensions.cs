@@ -66,7 +66,7 @@ public static class AspireAppConfigurationExtensions
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder =>
-                    traceBuilder.AddSource(["Microsoft.Extensions.Configuration.AzureAppConfiguration"]));
+                    traceBuilder.AddSource("Microsoft.Extensions.Configuration.AzureAppConfiguration"));
         }
     }
 }
