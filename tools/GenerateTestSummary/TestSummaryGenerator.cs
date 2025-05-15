@@ -150,9 +150,23 @@ sealed partial class TestSummaryGenerator
                 reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
                 if (test.Output?.StdOut is not null)
                 {
+                    const int halfLength = 25_000;
+                    var stdOutSpan = test.Output.StdOut.AsSpan();
+
                     reportBuilder.AppendLine();
                     reportBuilder.AppendLine("### StdOut");
-                    reportBuilder.AppendLine(TruncateTheStart(test.Output.StdOut, 50_000));
+
+                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+                    reportBuilder.AppendLine(startSpan.ToString());
+
+                    if (stdOutSpan.Length > halfLength)
+                    {
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                        var endSpan = stdOutSpan[^halfLength..];
+                        // `endSpan` might not begin at the true beginning of the original line
+                        reportBuilder.Append("... ");
+                        reportBuilder.Append(endSpan);
+                    }
                 }
 
                 reportBuilder.AppendLine("```");
@@ -177,9 +191,4 @@ sealed partial class TestSummaryGenerator
 
     [GeneratedRegex(@"(?<testName>.*)_(?<tfm>net\d+\.0)_.*")]
     private static partial Regex TestNameFromTrxFileNameRegex();
-
-    private static string? TruncateTheStart(string? s, int maxLength)
-        => s is null || s.Length <= maxLength
-            ? s
-            : "... (truncated) " + s[^maxLength..];
 }
