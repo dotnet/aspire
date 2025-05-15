@@ -19,9 +19,9 @@
     <PackageReference Include="Npgsql.DependencyInjection" VersionOverride="$(Npgsql8Version)" />
     <PackageReference Include="Npgsql.OpenTelemetry" VersionOverride="$(Npgsql8Version)" />
     <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
 
-    <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" />
     <PackageReference Include="Microsoft.Azure.SignalR" />
   </ItemGroup>
 
