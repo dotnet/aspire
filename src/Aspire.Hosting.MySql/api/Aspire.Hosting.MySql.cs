@@ -14,6 +14,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlDatabaseResource> builder, string script) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }

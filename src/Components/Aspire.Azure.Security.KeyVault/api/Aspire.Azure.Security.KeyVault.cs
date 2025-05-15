@@ -24,10 +24,18 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireKeyVaultExtensions
     {
+        public static void AddAzureKeyVaultCertificateClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Certificates.CertificateClient, global::Azure.Security.KeyVault.Certificates.CertificateClientOptions>>? configureClientBuilder = null) { }
+
         public static void AddAzureKeyVaultClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Secrets.SecretClient, global::Azure.Security.KeyVault.Secrets.SecretClientOptions>>? configureClientBuilder = null) { }
+
+        public static void AddAzureKeyVaultKeyClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Keys.KeyClient, global::Azure.Security.KeyVault.Keys.KeyClientOptions>>? configureClientBuilder = null) { }
 
         public static void AddAzureKeyVaultSecrets(this Configuration.IConfigurationManager configurationManager, string connectionName, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Security.KeyVault.Secrets.SecretClientOptions>? configureClientOptions = null, global::Azure.Extensions.AspNetCore.Configuration.Secrets.AzureKeyVaultConfigurationOptions? options = null) { }
 
+        public static void AddKeyedAzureKeyVaultCertificateClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Certificates.CertificateClient, global::Azure.Security.KeyVault.Certificates.CertificateClientOptions>>? configureClientBuilder = null) { }
+
         public static void AddKeyedAzureKeyVaultClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Secrets.SecretClient, global::Azure.Security.KeyVault.Secrets.SecretClientOptions>>? configureClientBuilder = null) { }
+
+        public static void AddKeyedAzureKeyVaultKeyClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Security.KeyVault.Keys.KeyClient, global::Azure.Security.KeyVault.Keys.KeyClientOptions>>? configureClientBuilder = null) { }
     }
 }
