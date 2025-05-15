@@ -38,7 +38,7 @@ namespace Aspire.Hosting
 
     public static partial class ContainerAppExtensions
     {
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static void ConfigureCustomDomain(this global::Azure.Provisioning.AppContainers.ContainerApp app, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> customDomain, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> certificateName) { }
     }
 }
@@ -55,8 +55,14 @@ namespace Aspire.Hosting.Azure
 
 namespace Aspire.Hosting.Azure.AppContainers
 {
-    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
         public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Endpoint { get { throw null; } }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
+
+        ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
     }
 }

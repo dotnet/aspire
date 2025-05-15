@@ -12,6 +12,8 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageContainerResource> AddBlobContainer(this ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> builder, string name, string? blobContainerName = null) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobs(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueues(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
@@ -39,6 +41,17 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    public partial class AzureBlobStorageContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureBlobStorageResource>, ApplicationModel.IResourceWithParent
+    {
+        public AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : base(default!) { }
+
+        public string BlobContainerName { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public AzureBlobStorageResource Parent { get { throw null; } }
+    }
+
     public partial class AzureBlobStorageResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureStorageResource>, ApplicationModel.IResourceWithParent, IResourceWithAzureFunctionsConfig
     {
         public AzureBlobStorageResource(string name, AzureStorageResource storage) : base(default!) { }
