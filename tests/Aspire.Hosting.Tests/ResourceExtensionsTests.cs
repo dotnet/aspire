@@ -306,7 +306,7 @@ public class ResourceExtensionsTests
                 .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
                 .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
 
-            var ex = Assert.Throws<InvalidOperationException>(resourceBuilder.Resource.GetDeploymentTargetAnnotation);
+            var ex = Assert.Throws<InvalidOperationException>(() => resourceBuilder.Resource.GetDeploymentTargetAnnotation());
             Assert.Contains("'compute1, compute2'", ex.Message);
 
             resourceBuilder.WithComputeEnvironment(compute2);

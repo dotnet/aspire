@@ -65,6 +65,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9152", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange
@@ -103,7 +104,8 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 
                 await AsyncTestHelpers.AssertIsTrueRetryAsync(
                     async () => await checkbox.IsCheckedAsync(),
-                    "Checkbox isn't immediately checked.");
+                    "Checkbox isn't immediately checked.",
+                    retries: 15 /* this seems to take a very long time to run, so needs a long timeout */);
             }
         });
     }

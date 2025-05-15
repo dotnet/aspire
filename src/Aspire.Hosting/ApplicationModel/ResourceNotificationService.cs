@@ -419,9 +419,7 @@ public class ResourceNotificationService : IDisposable
         var watchToken = watchCts.Token;
         await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
-            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
-                && predicate(resourceEvent))
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName) && predicate(resourceEvent))
             {
                 return resourceEvent;
             }
@@ -543,6 +541,7 @@ public class ResourceNotificationService : IDisposable
                     "ResourceType = {ResourceType}, " +
                     "CreationTimeStamp = {CreationTimeStamp:s}, " +
                     "State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "IsHidden = {IsHidden}, " +
                     "HeathStatus = {HealthStatus}, " +
                     "ResourceReady = {ResourceReady}, " +
                     "ExitCode = {ExitCode}, " +
@@ -558,6 +557,7 @@ public class ResourceNotificationService : IDisposable
                     newState.CreationTimeStamp,
                     newState.State?.Text,
                     newState.State?.Style,
+                    newState.IsHidden,
                     newState.HealthStatus,
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
@@ -565,7 +565,7 @@ public class ResourceNotificationService : IDisposable
                     string.Join(" ", newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
                     string.Join(" ", newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
                     string.Join(" ", newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")),
-                    string.Join(" ", newState.Commands.Select(c => $"{c.DisplayName} ({c.Name}) = {Stringify(c.State)}")));
+                    string.Join(" ", newState.Commands.Select(c => $"{c.Name} ({c.DisplayName}) = {Stringify(c.State)}")));
 
                 static string Stringify(object? o) => o switch
                 {

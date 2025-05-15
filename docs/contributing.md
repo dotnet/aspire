@@ -15,7 +15,7 @@ This will confirm that you're all set up.
 
 If you are using Visual Studio:
 
-1. Open `Aspire.sln`
+1. Open `Aspire.slnx`
 1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
 1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
 
@@ -75,3 +75,17 @@ Make sure you have started Docker before trying to run an Aspire app.
 For information on who can help in PRs and issues, see the [area owners](area-owners.md) page.
 
 See the [tips and known issues](tips-and-known-issues.md) page.
+
+### Package validation
+
+When creating a new integration, package validation will automatically try to download a previous version of the package to ensure you didn't break compat. As a result you might get the following build error:
+
+```shell
+error NU1101: Unable to find package [NEW PACKAGE NAME]. No packages exist with this id in source(s): dotnet-eng, dotnet-public, dotnet9, dotnet9-transport. PackageSourceMapping is enabled, the following source(s) were not considered: dotnet-libraries.
+```
+
+To prevent this the new package needs this line to be added to the `.csproj`:
+
+```xml
+<EnablePackageValidation>false</EnablePackageValidation>
+```

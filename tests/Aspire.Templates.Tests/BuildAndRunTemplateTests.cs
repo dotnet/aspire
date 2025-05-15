@@ -29,6 +29,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -37,7 +38,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        if (PlaywrightProvider.HasPlaywrightSupport)
+        if (BuildEnvironment.ShouldRunPlaywrightTests)
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
@@ -97,6 +98,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
@@ -106,11 +108,12 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
+        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()
     {
         string id = GetNewProjectId(prefix: "aspire");
@@ -136,7 +139,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
         await project.StartAppHostAsync();
 
-        if (PlaywrightProvider.HasPlaywrightSupport)
+        if (BuildEnvironment.ShouldRunPlaywrightTests)
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
@@ -147,6 +150,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [Theory]
     [InlineData("9.*-*")]
     [InlineData("[9.0.0]")]
+    [Trait("category", "basic-build")]
     public async Task CreateAndModifyAspireAppHostTemplate(string version)
     {
         string id = GetNewProjectId(prefix: $"aspire_apphost_{version.Replace("*", "wildcard").Replace("[", "").Replace("]", "")}");

@@ -32,7 +32,7 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
 
             var publishingActivity = await activityReporter.CreateActivityAsync(
                 "publishing-artifacts",
-                $"Executing publisher {executionContext.PublisherName}",
+                $"Publishing artifacts",
                 isPrimary: true,
                 stoppingToken).ConfigureAwait(false);
 

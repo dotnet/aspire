@@ -123,6 +123,11 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
 
+    /// <summary>
+    /// Whether this resource should be hidden in UI.
+    /// </summary>
+    public bool IsHidden { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
@@ -337,6 +342,7 @@ public static class KnownResourceStates
     /// <summary>
     /// The hidden state. Useful for hiding the resource.
     /// </summary>
+    [Obsolete("Use CustomResourceSnapshot.IsHidden instead.")]
     public static readonly string Hidden = nameof(Hidden);
 
     /// <summary>

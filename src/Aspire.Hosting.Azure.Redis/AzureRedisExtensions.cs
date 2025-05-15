@@ -97,7 +97,6 @@ public static class AzureRedisExtensions
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
     ///
     /// You can use the <see cref="WithAccessKeyAuthentication(IResourceBuilder{AzureRedisCacheResource}, IResourceBuilder{IAzureKeyVaultResource})"/> method to configure the resource to use access key authentication.
-    /// </remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
     /// <code lang="csharp">
@@ -111,6 +110,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -131,6 +131,7 @@ public static class AzureRedisExtensions
     /// <param name="builder">The Azure Cache for Redis resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource that runs locally in a
     /// Redis container and referencing that resource in a .NET project.
@@ -146,6 +147,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureRedisCacheResource> RunAsContainer(
         this IResourceBuilder<AzureRedisCacheResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
@@ -174,6 +176,7 @@ public static class AzureRedisExtensions
     /// </summary>
     /// <param name="builder">The Azure Cache for Redis resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource that uses access key authentication.
     /// <code lang="csharp">
@@ -188,6 +191,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

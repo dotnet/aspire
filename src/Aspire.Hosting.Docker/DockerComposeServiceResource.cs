@@ -14,8 +14,6 @@ namespace Aspire.Hosting.Docker;
 /// </summary>
 public class DockerComposeServiceResource(string name, IResource resource, DockerComposeEnvironmentResource composeEnvironmentResource) : Resource(name), IResourceWithParent<DockerComposeEnvironmentResource>
 {
-    private Service? _composeService;
-
     /// <summary>
     /// Most common shell executables used as container entrypoints in Linux containers.
     /// These are used to identify when a container's entrypoint is a shell that will execute commands.
@@ -44,12 +42,12 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
     /// <summary>
     /// Gets the collection of environment variables for the Docker Compose service.
     /// </summary>
-    internal Dictionary<string, string?> EnvironmentVariables { get; } = [];
+    internal Dictionary<string, object> EnvironmentVariables { get; } = [];
 
     /// <summary>
     /// Gets the collection of commands to be executed by the Docker Compose service.
     /// </summary>
-    internal List<string> Commands { get; } = [];
+    internal List<object> Args { get; } = [];
 
     /// <summary>
     /// Gets the collection of volumes for the Docker Compose service.
@@ -61,15 +59,10 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
     /// </summary>
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
 
-    /// <summary>
-    /// Gets the Docker Compose service definition for this resource.
-    /// </summary>
-    public Service ComposeService => _composeService ??= GetComposeService();
-
     /// <inheritdoc/>
     public DockerComposeEnvironmentResource Parent => composeEnvironmentResource;
 
-    private Service GetComposeService()
+    internal Service BuildComposeService()
     {
         var composeService = new Service
         {
@@ -98,9 +91,12 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         {
             var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
 
-            composeEnvironmentResource.CapturedEnvironmentVariables.Add(imageEnvName, ($"Container image name for {resourceInstance.Name}", $"{resourceInstance.Name}:latest"));
-
-            containerImageName = $"${{{imageEnvName}}}";
+            containerImageName = composeEnvironmentResource.AddEnvironmentVariable(
+                 imageEnvName,
+                 description: $"Container image name for {resourceInstance.Name}",
+                 defaultValue: $"{resourceInstance.Name}:latest",
+                 source: new ContainerImageReference(resourceInstance)
+            );
             return true;
         }
 
@@ -164,20 +160,43 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
 
     private void AddEnvironmentVariablesAndCommandLineArgs(Service composeService)
     {
-        if (EnvironmentVariables.Count > 0)
+        var env = new Dictionary<string, string>();
+
+        foreach (var kv in EnvironmentVariables)
         {
-            foreach (var variable in EnvironmentVariables)
+            var value = this.ProcessValue(kv.Value);
+
+            env[kv.Key] = value?.ToString() ?? string.Empty;
+        }
+
+        if (env.Count > 0)
+        {
+            foreach (var variable in env)
             {
                 composeService.AddEnvironmentalVariable(variable.Key, variable.Value);
             }
         }
 
-        if (Commands.Count > 0)
+        var args = new List<string>();
+
+        foreach (var arg in Args)
+        {
+            var value = this.ProcessValue(arg);
+
+            if (value is not string str)
+            {
+                throw new NotSupportedException("Command line args must be strings");
+            }
+
+            args.Add(str);
+        }
+
+        if (args.Count > 0)
         {
             if (IsShellExec)
             {
                 var sb = new StringBuilder();
-                foreach (var command in Commands)
+                foreach (var command in args)
                 {
                     // Escape any environment variables expressions in the command
                     // to prevent them from being interpreted by the docker compose CLI
@@ -188,7 +207,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             }
             else
             {
-                composeService.Command.AddRange(Commands);
+                composeService.Command.AddRange(args);
             }
         }
     }

@@ -92,6 +92,11 @@
         <target state="translated">檢視屬性</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">計量擷取已在 {0} 暫停</target>
+        <note>{0} is a time</note>
+      </trans-unit>
     </body>
   </file>
 </xliff>

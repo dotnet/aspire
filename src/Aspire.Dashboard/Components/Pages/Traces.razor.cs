@@ -11,7 +11,6 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -182,7 +181,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
-        UpdateTelemetryProperties();
     }
 
     private void UpdateApplications()
@@ -251,7 +249,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
         ? string.Format(
             CultureInfo.CurrentCulture,
-            Loc[nameof(Dashboard.Resources.StructuredLogs.PauseInProgressText)],
+            Loc[nameof(Dashboard.Resources.Traces.PauseInProgressText)],
             FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, startTime.Value, MillisecondsDisplay.Truncated))
         : null;
 
@@ -385,11 +383,4 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
-
-    public void UpdateTelemetryProperties()
-    {
-        TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ApplicationInstanceId, new AspireTelemetryProperty(PageViewModel.SelectedApplication.Id?.InstanceId ?? string.Empty)),
-        ]);
-    }
 }

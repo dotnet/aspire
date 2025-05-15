@@ -113,9 +113,9 @@ public sealed class DashboardTelemetryService
     /// <summary>
     /// Ends a long-running operation. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndOperation(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndOperation(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (SkipQueuingRequests() || operationId is null)
+        if (SkipQueuingRequests())
         {
             return;
         }
@@ -159,9 +159,9 @@ public sealed class DashboardTelemetryService
     /// <summary>
     /// Ends a long-running user task. This will post the end event and calculate the duration.
     /// </summary>
-    public void EndUserTask(OperationContextProperty? operationId, TelemetryResult result, string? errorMessage = null)
+    public void EndUserTask(OperationContextProperty operationId, TelemetryResult result, string? errorMessage = null)
     {
-        if (SkipQueuingRequests() || operationId is null)
+        if (SkipQueuingRequests())
         {
             return;
         }

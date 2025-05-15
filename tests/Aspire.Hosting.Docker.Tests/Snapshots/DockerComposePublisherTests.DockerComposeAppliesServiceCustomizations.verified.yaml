@@ -1,0 +1,19 @@
+﻿name: "my application"
+services:
+  service:
+    image: "nginx:latest"
+    container_name: "${PARAM_1}"
+    environment:
+      ORIGINAL_ENV: "value"
+      CUSTOM_ENV: "custom-value"
+    networks:
+      - "default-network"
+      - "custom-network"
+    restart: "always"
+    labels:
+      custom-label: "test-value"
+networks:
+  default-network:
+    driver: "bridge"
+  custom-network:
+    driver: "host"

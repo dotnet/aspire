@@ -179,8 +179,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                //mongodb shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                await Task.Delay(TimeSpan.FromSeconds(10));
                 mongodb2.WithDataBindMount(bindMountPath!);
             }
 
@@ -246,7 +244,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.

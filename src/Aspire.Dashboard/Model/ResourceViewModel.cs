@@ -6,8 +6,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -39,6 +40,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
+    public bool IsHidden { private get; init; }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -79,6 +81,11 @@ public sealed class ResourceViewModel
         return null;
     }
 
+    public bool IsResourceHidden()
+    {
+        return IsHidden || KnownState is KnownResourceState.Hidden;
+    }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportViewModel> healthReports, KnownResourceState? state)
     {
         if (state != KnownResourceState.Running)
@@ -97,10 +104,15 @@ public sealed class ResourceViewModel
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
+        return GetResourceName(resource, allResources.Values);
+    }
+
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    {
         var count = 0;
-        foreach (var (_, item) in allResources)
+        foreach (var item in allResources)
         {
-            if (item.IsHiddenState())
+            if (item.IsResourceHidden())
             {
                 continue;
             }
@@ -166,8 +178,9 @@ public sealed class CommandViewModel
 {
     public string Name { get; }
     public CommandViewModelState State { get; }
-    public string DisplayName { get; }
-    public string DisplayDescription { get; }
+    private string DisplayName { get; }
+    private string DisplayDescription { get; }
+
     public string ConfirmationMessage { get; }
     public Value? Parameter { get; }
     public bool IsHighlighted { get; }
@@ -188,6 +201,28 @@ public sealed class CommandViewModel
         IsHighlighted = isHighlighted;
         IconName = iconName;
         IconVariant = iconVariant;
+    }
+
+    public string GetDisplayName(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            _ => DisplayName
+        };
+    }
+
+    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    {
+        return Name switch
+        {
+            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription
+        };
     }
 }
 

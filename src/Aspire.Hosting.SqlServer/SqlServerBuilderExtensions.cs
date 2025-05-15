@@ -221,7 +221,7 @@ public static partial class SqlServerBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int port)
+    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.WithEndpoint(SqlServerServerResource.PrimaryEndpointName, endpoint =>

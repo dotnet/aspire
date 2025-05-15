@@ -13,5 +13,14 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Kubernetes\Aspire.Hosting.Kubernetes.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Verify.XunitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)\VerifyExtensions.cs" />
+    <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
+  </ItemGroup>
   
 </Project>

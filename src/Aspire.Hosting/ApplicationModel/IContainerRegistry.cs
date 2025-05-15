@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents container registry information for deployment targets.
 /// </summary>
-[Experimental("ASPIRECOMPUTE001")]
+[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IContainerRegistry
 {
     /// <summary>

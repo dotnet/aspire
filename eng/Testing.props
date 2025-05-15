@@ -5,6 +5,7 @@
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+    <RunOnGithubActionsMacOS>true</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>true</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
     <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>
@@ -20,7 +21,9 @@
     <_BlameArgs>--hangdump --hangdump-timeout $(BlameHangTimeout) --crashdump</_BlameArgs>
 
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --filter-not-trait &quot;category=failing&quot;</TestRunnerAdditionalArguments>
-    <TestRunnerAdditionalArguments Condition=" '$(IgnoreZeroTestResult)' == 'true' ">$(TestRunnerAdditionalArguments) --ignore-exit-code 8</TestRunnerAdditionalArguments>
+    <!-- ignore exit code 8 (zero tests ran)
+         https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
+    <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --ignore-exit-code 8</TestRunnerAdditionalArguments>
 
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' != 'true'">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>

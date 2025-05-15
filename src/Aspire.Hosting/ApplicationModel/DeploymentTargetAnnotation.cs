@@ -19,12 +19,12 @@ public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnno
     /// Gets or sets the container registry information associated with
     /// the deployment target, if the deployment target is an image-based environment.
     /// </summary>
-    [Experimental("ASPIRECOMPUTE001")]
-    public IContainerRegistry? ContainerRegistryInfo { get; set; }
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IContainerRegistry? ContainerRegistry { get; set; }
 
     /// <summary>
     /// Gets or sets the compute environment resource associated with the deployment target.
     /// </summary>
-    [Experimental("ASPIRECOMPUTE001")]
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public IComputeEnvironmentResource? ComputeEnvironment { get; set; }
 }

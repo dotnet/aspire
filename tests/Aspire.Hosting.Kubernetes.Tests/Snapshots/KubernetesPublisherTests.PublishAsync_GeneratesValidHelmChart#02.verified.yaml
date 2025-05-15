@@ -1,0 +1,30 @@
+﻿---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "project1-deployment"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "project1"
+    spec:
+      containers:
+        - image: "{{ .Values.parameters.project1.project1_image }}"
+          name: "project1"
+          envFrom:
+            - configMapRef:
+                name: "project1-config"
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "project1"
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: "RollingUpdate"

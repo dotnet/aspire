@@ -9,17 +9,34 @@ namespace Aspire.Hosting.Azure;
 
 internal sealed class ContainerAppEnvironmentContext(
     ILogger logger,
+    DistributedApplicationExecutionContext executionContext,
     IAzureContainerAppEnvironment environment)
 {
     public ILogger Logger => logger;
 
+    public DistributedApplicationExecutionContext ExecutionContext => executionContext;
+
     public IAzureContainerAppEnvironment Environment => environment;
 
-    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
+    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceComparer());
 
-    public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public ContainerAppContext GetContainerAppContext(IResource resource)
     {
-        var context = await ProcessResourceAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
+        if (!_containerApps.TryGetValue(resource, out var context))
+        {
+            throw new InvalidOperationException($"Container app context not found for resource {resource.Name}.");
+        }
+
+        return context;
+    }
+
+    public async Task<AzureBicepResource> CreateContainerAppAsync(IResource resource, AzureProvisioningOptions provisioningOptions, CancellationToken cancellationToken)
+    {
+        if (!_containerApps.TryGetValue(resource, out var context))
+        {
+            _containerApps[resource] = context = new ContainerAppContext(resource, this);
+            await context.ProcessResourceAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildContainerApp)
         {
@@ -27,16 +44,5 @@ internal sealed class ContainerAppEnvironmentContext(
         };
 
         return provisioningResource;
-    }
-
-    public async Task<ContainerAppContext> ProcessResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-    {
-        if (!_containerApps.TryGetValue(resource, out var context))
-        {
-            _containerApps[resource] = context = new ContainerAppContext(resource, this);
-            await context.ProcessResourceAsync(executionContext, cancellationToken).ConfigureAwait(false);
-        }
-
-        return context;
     }
 }

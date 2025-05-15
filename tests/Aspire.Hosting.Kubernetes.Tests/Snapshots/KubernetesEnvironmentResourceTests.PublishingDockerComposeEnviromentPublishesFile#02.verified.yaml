@@ -1,0 +1,27 @@
+﻿---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "service-deployment"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "service"
+    spec:
+      containers:
+        - image: "nginx:latest"
+          name: "service"
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "service"
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: "RollingUpdate"

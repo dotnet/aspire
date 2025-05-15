@@ -1,35 +1,34 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREAZURE001
 #pragma warning disable ASPIREPUBLISHERS001
 
+using Microsoft.Extensions.Configuration;
+
 var builder = DistributedApplication.CreateBuilder(args);
+builder.Configuration.AddCommandLine(args, new Dictionary<string, string> { ["--target"] = "Deployment:Target" });
 
-if (builder.ExecutionContext.PublisherName == "azure" ||
-    builder.ExecutionContext.IsInspectMode)
-{
-    builder.AddAzureContainerAppEnvironment("env");
-}
+var target = builder.Configuration["Deployment:Target"];
+var publisher = builder.ExecutionContext.PublisherName;
 
-if (builder.ExecutionContext.PublisherName == "docker-compose" ||
-    builder.ExecutionContext.IsInspectMode)
+IResourceBuilder<IComputeEnvironmentResource>? environment = (publisher, target) switch
 {
-    builder.AddDockerComposeEnvironment("docker-env");
-}
-
-if (builder.ExecutionContext.PublisherName == "kubernetes" ||
-    builder.ExecutionContext.IsInspectMode)
-{
-    builder.AddKubernetesEnvironment("k8s-env");
-}
+    ("default", "kube") => builder.AddKubernetesEnvironment("env"),
+    ("default", "azure") => builder.AddAzureContainerAppEnvironment("env"),
+    ("default", _) => builder.AddDockerComposeEnvironment("env"),
+    _ => null
+};
 
 var param0 = builder.AddParameter("param0");
 var param1 = builder.AddParameter("param1", secret: true);
 var param2 = builder.AddParameter("param2", "default", publishValueAsDefault: true);
 var param3 = builder.AddParameter("param3", "default"); // Runtime only default value.
 
-var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg").RunAsContainer().AddDatabase("azdb");
+var azpgdb = builder.AddAzurePostgresFlexibleServer("azpg")
+                    .RunAsContainer()
+                    .AddDatabase("azdb");
 
 var db = builder.AddPostgres("pg").AddDatabase("db");
 

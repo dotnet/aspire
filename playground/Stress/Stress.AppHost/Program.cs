@@ -26,6 +26,8 @@ for (var i = 0; i < 5; i++)
     }
 }
 
+builder.AddParameter("testParameterResource", () => "value", secret: true);
+
 // TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
 // See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null)

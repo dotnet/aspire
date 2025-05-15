@@ -42,7 +42,8 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]
@@ -55,7 +56,8 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]
@@ -105,12 +107,12 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
           },
           {
             "condition": "",
-            "value": "9.2"
+            "value": "9.3"
           }
         ]
       }

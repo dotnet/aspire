@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -12,11 +14,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
+/// <remarks>
+/// You can run any executable command using its full path.
+/// As a security feature, Aspire doesn't run executable unless the command is located in a path listed in the PATH environment variable.
+/// <para/> 
+/// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
+/// </remarks>
 public class ExecutableResource(string name, string command, string workingDirectory)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     IComputeResource
-#pragma warning restore ASPIRECOMPUTE001
 {
     /// <summary>
     /// Gets the command associated with this executable resource.

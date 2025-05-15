@@ -23,8 +23,8 @@
         <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
-        <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="translated">La risorsa è in esecuzione ma non è in uno stato integro. Fare clic per i dettagli.</target>
+        <source>Resource is running but not in a healthy state.</source>
+        <target state="new">Resource is running but not in a healthy state.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -88,6 +88,16 @@ Per altre informazioni, vedere https://aka.ms/dotnet/aspire/container-runtime-un
         <source>{0} exited unexpectedly with exit code {1}</source>
         <target state="translated">La risorsa {0} è stata chiusa in modo imprevisto con codice di uscita {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="StateColumnResourceNotStarted">
+        <source>Resource has not started because it's configured to not automatically start.</source>
+        <target state="new">Resource has not started because it's configured to not automatically start.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceWaiting">
+        <source>Resource is waiting for other resources to be in a running and healthy state.</source>
+        <target state="new">Resource is waiting for other resources to be in a running and healthy state.</target>
+        <note />
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>

@@ -305,6 +305,53 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Equal(healthStates, healthSelect.Instance.Values.ToImmutableSortedDictionary() /* sort for equality comparison */);
     }
 
+    [Fact]
+    public void ResourcesShouldRemainUnchangedWhenFilterDoesNotMatchUpdatedResource()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type2", "Stopping", null),
+        };
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: () => channel);
+
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Open the resource filter and apply a filter
+        cut.Find("#resourceFilterButton").Click();
+        cut.FindComponents<SelectResourceOptions<string>>()
+            .First(f => f.Instance.Id == "resource-types")
+            .FindComponents<FluentCheckbox>()
+            .First(checkbox => checkbox.Instance.Label == "Type1")
+            .Find("fluent-checkbox")
+            .TriggerEvent("oncheckedchange", new CheckboxChangeEventArgs { Checked = false });
+
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 1);
+
+        // Act
+        channel.Writer.TryWrite(new[]
+        {
+            new ResourceViewModelChange(
+                ResourceViewModelChangeType.Upsert,
+                CreateResource("Resource3", "Type3", "Running", null))
+        });
+
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
+
+        // Assert
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Contains(filteredResources, r => r.Name == "Resource2");
+        Assert.Contains(filteredResources, r => r.Name == "Resource3");
+    }
+
     private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports)
     {
         return new ResourceViewModel
@@ -328,6 +375,7 @@ public partial class ResourcesTests : DashboardTestContext
             Relationships = default,
             Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             Commands = [],
+            IsHidden = false,
         };
     }
 }

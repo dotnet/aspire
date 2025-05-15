@@ -20,7 +20,7 @@ internal static class CommandLineArgsParser
     /// <param name="results">The list into which the component arguments should be stored.</param>
     /// <remarks>
     /// This follows the rules outlined in "Parsing C++ Command-Line Arguments" at
-    /// https://msdn.microsoft.com/en-us/library/17w5ykft.aspx.
+    /// https://msdn.microsoft.com/library/17w5ykft.aspx.
     /// </remarks>
     // copied from https://github.com/dotnet/runtime/blob/404b286b23093cd93a985791934756f64a33483e/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Unix.cs#L846-L945
     private static void ParseArgumentsIntoList(string arguments, List<string> results)

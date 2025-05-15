@@ -16,13 +16,14 @@ internal interface IAppHostBackchannel
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
-    Task<string[]> GetPublishersAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
 {
+    private const string BaselineCapability = "baseline.v1";
+
     private readonly ActivitySource _activitySource = new(nameof(AppHostBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
 
@@ -122,11 +123,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
                 Array.Empty<object>(),
                 cancellationToken);
 
-            if (!capabilities.Any(s => s == "baseline.v0"))
+            if (!capabilities.Any(s => s == BaselineCapability))
             {
                 throw new AppHostIncompatibleException(
-                    $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the baseline.v0 capability.",
-                    "baseline.v0"
+                    $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                    BaselineCapability
                     );
             }
 
@@ -134,28 +135,12 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
         catch (RemoteMethodNotFoundException ex)
         {
-            logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the baseline.v0 capability.");
+            logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the {BaselineCapability} capability.", BaselineCapability);
             throw new AppHostIncompatibleException(
-                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the baseline.v0 capability.",
-                "baseline.v0"
+                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                BaselineCapability
                 );
         }
-    }
-
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
-    {
-        using var activity = _activitySource.StartActivity();
-
-        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
-
-        logger.LogDebug("Requesting publishers");
-
-        var publishers = await rpc.InvokeWithCancellationAsync<string[]>(
-            "GetPublishersAsync",
-            Array.Empty<object>(),
-            cancellationToken).ConfigureAwait(false);
-
-        return publishers;
     }
 
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)

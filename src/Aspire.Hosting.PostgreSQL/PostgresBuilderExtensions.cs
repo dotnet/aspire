@@ -190,7 +190,7 @@ public static class PostgresBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-pgadmin";
+            containerName ??= "pgadmin";
 
             var pgAdminContainer = new PgAdminContainerResource(containerName);
             var pgAdminContainerBuilder = builder.ApplicationBuilder.AddResource(pgAdminContainer)
@@ -294,7 +294,8 @@ public static class PostgresBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-pgweb";
+            containerName ??= "pgweb";
+
             var pgwebContainer = new PgWebContainerResource(containerName);
             var pgwebContainerBuilder = builder.ApplicationBuilder.AddResource(pgwebContainer)
                                                .WithImage(PostgresContainerImageTags.PgWebImage, PostgresContainerImageTags.PgWebTag)

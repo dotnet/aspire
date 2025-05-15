@@ -329,7 +329,7 @@ public static class DistributedApplicationTestingBuilder
                     }
                 }
 
-                throw new InvalidOperationException("No application host assembly was found. Ensure that your project references 'Aspire.Hosting.AppHost'.");
+                throw new InvalidOperationException("No application host assembly was found. Ensure that you have a project that references the 'Aspire.Hosting.AppHost' package and imports the 'Aspire.AppHost.Sdk' SDK.");
             }
 
             static string? GetDcpCliPath(Assembly? assembly)

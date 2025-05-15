@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppContainers;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
@@ -114,7 +113,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenAppIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -129,7 +128,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenCustomDomainIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -144,7 +143,7 @@ public class AppContainersPublicApiTests
     }
 
     [Fact]
-    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public void ConfigureCustomDomainShouldThrowWhenCertificateNameIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

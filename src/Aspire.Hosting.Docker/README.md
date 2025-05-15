@@ -14,14 +14,14 @@ dotnet add package Aspire.Hosting.Docker
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, register the publisher:
+Then, in the _AppHost.cs_ file of `AppHost`, add the environment:
 
 ```csharp
-builder.AddPublisher<DockerComposePublisher>("docker-compose");
+builder.AddDockerComposeEnvironment("compose");
 ```
 
 ```shell
-aspire publish -t docker-compose -o artifacts
+aspire publish -o docker-compose-artifacts
 ```
 
 ## Feedback & contributing

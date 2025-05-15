@@ -7,9 +7,14 @@ on:
       - main
       - 'release/**'
 
+  push:
+    branches:
+      - main
+      - 'release/**'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
@@ -19,6 +24,22 @@ jobs:
     name: Setup for tests (Linux)
     if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
+    outputs:
+      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
+      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
+
+  setup_for_tests_macos:
+    name: Setup for tests (macOS)
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: macos-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
       templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
@@ -79,6 +100,19 @@ jobs:
       os: "ubuntu-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
+  integrations_test_macos:
+    uses: ./.github/workflows/run-tests.yml
+    name: Integrations macos
+    needs: setup_for_tests_macos
+    strategy:
+      fail-fast: false
+      matrix:
+        ${{ fromJson(needs.setup_for_tests_macos.outputs.integrations_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "macos-latest"
+      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Windows
@@ -109,6 +143,23 @@ jobs:
       requiresNugets: true
       requiresTestSdk: true
 
+  templates_test_macos:
+    name: Templates macos
+    uses: ./.github/workflows/run-tests.yml
+    needs: [setup_for_tests_macos, build_packages]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests_macos.outputs.templates_tests_matrix) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: "macos-latest"
+      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
+      testSessionTimeout: 20m
+      testHangTimeout: 12m
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      requiresNugets: true
+      requiresTestSdk: true
+
   templates_test_win:
     name: Templates Windows
     uses: ./.github/workflows/run-tests.yml
@@ -132,7 +183,7 @@ jobs:
     needs: build_packages
     with:
       testShortName: EndToEnd
-      # EndToEnd is not run on Windows due to missing Docker support
+      # EndToEnd is not run on Windows/macOS due to missing Docker support
       os: ubuntu-latest
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
@@ -141,8 +192,11 @@ jobs:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, templates_test_lin, templates_test_win, endtoend_tests ]
+    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests ]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       # get all the test-job-result* artifacts into a single directory
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
@@ -154,20 +208,38 @@ jobs:
         with:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
-          path: testresults/ubuntu-latest
+          path: ${{ github.workspace }}/testresults/ubuntu-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: logs-*-windows-latest
           merge-multiple: true
-          path: testresults/windows-latest
+          path: ${{ github.workspace }}/testresults/windows-latest
+
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: logs-*-macos-latest
+          merge-multiple: true
+          path: testresults/macos-latest
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: All-TestResults
-          path: testresults/**/*.trx
+          path: ${{ github.workspace }}/testresults/**/*.trx
+
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+          --combined
 
       # return success if zero result-failed-* files are found
       - name: Compute result
