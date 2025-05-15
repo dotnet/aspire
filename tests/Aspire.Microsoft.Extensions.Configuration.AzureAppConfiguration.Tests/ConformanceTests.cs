@@ -95,7 +95,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
 
     protected override void TriggerActivity(IConfigurationRefresherProvider service)
     {
-        Thread.Sleep(1000);
+        // wait for 1 seconds to ensure the refresh interval is exceeded
+        Task.Delay(1000).ConfigureAwait(false).GetAwaiter().GetResult();
         service.Refreshers.First().RefreshAsync().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
