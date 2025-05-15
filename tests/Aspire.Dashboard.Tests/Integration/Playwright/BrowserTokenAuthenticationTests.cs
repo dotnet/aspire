@@ -30,6 +30,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9345")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange
