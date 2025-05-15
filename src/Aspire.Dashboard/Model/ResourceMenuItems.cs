@@ -149,6 +149,7 @@ public static class ResourceMenuItems
                     Text = url.Text,
                     Tooltip = url.Url,
                     Icon = s_linkIcon,
+                    Class = "resource-actions-url-menuitem",
                     AdditionalAttributes = new Dictionary<string, object>
                     {
                         ["data-openbutton"] = "true",
