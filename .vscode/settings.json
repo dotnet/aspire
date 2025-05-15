@@ -1,6 +1,6 @@
 {
     "dotnet.previewSolution-freeWorkspaceMode": true,
-    "dotnet.testWindow.useTestingPlatformProtocol": true
+    "dotnet.testWindow.useTestingPlatformProtocol": true,
     "dotnet.defaultSolution": "./Aspire.slnx",
-    "dotnet.preview.enableSupportForSlnx": true,
+    "dotnet.preview.enableSupportForSlnx": true
 }
