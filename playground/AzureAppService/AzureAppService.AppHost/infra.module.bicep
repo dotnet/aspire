@@ -38,8 +38,8 @@ resource infra_asplan 'Microsoft.Web/serverfarms@2024-04-01' = {
   }
   kind: 'Linux'
   sku: {
-    name: 'B1'
-    tier: 'Basic'
+    name: 'P0V3'
+    tier: 'Premium'
   }
 }
 

@@ -26,6 +26,17 @@ param api_identity_outputs_id string
 
 param api_identity_outputs_clientid string
 
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
+  name: 'main'
+  properties: {
+    authType: 'UserAssigned'
+    image: api_containerimage
+    isMain: true
+    userManagedIdentityClientId: infra_outputs_azure_container_registry_managed_identity_client_id
+  }
+  parent: webapp
+}
+
 resource webapp 'Microsoft.Web/sites@2024-04-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
@@ -33,7 +44,7 @@ resource webapp 'Microsoft.Web/sites@2024-04-01' = {
     serverFarmId: infra_outputs_planid
     keyVaultReferenceIdentity: api_identity_outputs_id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${api_containerimage}'
+      linuxFxVersion: 'SITECONTAINERS'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: infra_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
