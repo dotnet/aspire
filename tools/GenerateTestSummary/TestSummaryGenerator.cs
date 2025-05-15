@@ -144,21 +144,17 @@ sealed partial class TestSummaryGenerator
 
                 """);
 
-                var errorMsgBuilder = new StringBuilder();
-                errorMsgBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
-                if (test.Output?.StdOut is not null)
-                {
-                    errorMsgBuilder.AppendLine();
-                    errorMsgBuilder.AppendLine("### StdOut");
-                    errorMsgBuilder.AppendLine(test.Output.StdOut);
-                }
-
-                // Truncate long error messages for readability
-                var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000);
-
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
-                reportBuilder.AppendLine(errorMsgTruncated);
+
+                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
+                if (test.Output?.StdOut is not null)
+                {
+                    reportBuilder.AppendLine();
+                    reportBuilder.AppendLine("### StdOut");
+                    reportBuilder.AppendLine(TruncateTheStart(test.Output.StdOut, 50_000));
+                }
+
                 reportBuilder.AppendLine("```");
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("</div>");
