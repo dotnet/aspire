@@ -1,6 +1,6 @@
 # Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
 
-Retrieves configuration settings from Azure App Configuration to use in your application. Registers Azure App Configuration service as a configuration source. Enables corresponding logging.
+Retrieves configuration settings from Azure App Configuration to use in your application. Registers Azure App Configuration service as a configuration source. Enables corresponding logging and telemetry.
 
 ## Getting started
 
