@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
@@ -35,7 +34,7 @@ internal struct DnsDataReader : IDisposable
         return true;
     }
 
-    internal bool TryReadQuestion([NotNullWhen(true)] out string? name, out QueryType type, out QueryClass @class)
+    internal bool TryReadQuestion(out EncodedDomainName name, out QueryType type, out QueryClass @class)
     {
         if (!TryReadDomainName(out name) ||
             !TryReadUInt16(out ushort typeAsInt) ||
@@ -79,7 +78,7 @@ internal struct DnsDataReader : IDisposable
 
     public bool TryReadResourceRecord(out DnsResourceRecord record)
     {
-        if (!TryReadDomainName(out string? name) ||
+        if (!TryReadDomainName(out EncodedDomainName name) ||
             !TryReadUInt16(out ushort type) ||
             !TryReadUInt16(out ushort @class) ||
             !TryReadUInt32(out uint ttl) ||
@@ -97,15 +96,28 @@ internal struct DnsDataReader : IDisposable
         return true;
     }
 
-    public bool TryReadDomainName([NotNullWhen(true)] out string? name)
+    public bool TryReadDomainName(out EncodedDomainName name)
     {
-        if (DnsPrimitives.TryReadQName(MessageBuffer.AsSpan(), _position, out name, out int bytesRead))
+        if (DnsPrimitives.TryReadQName(MessageBuffer, _position, out name, out int bytesRead))
         {
             _position += bytesRead;
             return true;
         }
 
         return false;
+    }
+
+    public bool TryReadSpan(int length, out ReadOnlySpan<byte> name)
+    {
+        if (MessageBuffer.Count - _position < length)
+        {
+            name = default;
+            return false;
+        }
+
+        name = MessageBuffer.AsSpan(_position, length);
+        _position += length;
+        return true;
     }
 
     public void Dispose()

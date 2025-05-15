@@ -51,17 +51,20 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
         Assert.Empty(results);
     }
 
-    [Fact]
-    public async Task ResolveIPv4_Simple_Success()
+    [Theory]
+    [InlineData("www.example.com")]
+    [InlineData("www.example.com.")]
+    [InlineData("www.ř.com")]
+    public async Task ResolveIPv4_Simple_Success(string name)
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
-            builder.Answers.AddAddress("www.example.com", 3600, address);
+            builder.Answers.AddAddress(name, 3600, address);
             return Task.CompletedTask;
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(name, AddressFamily.InterNetwork);
 
         AddressResult res = Assert.Single(results);
         Assert.Equal(address, res.Address);

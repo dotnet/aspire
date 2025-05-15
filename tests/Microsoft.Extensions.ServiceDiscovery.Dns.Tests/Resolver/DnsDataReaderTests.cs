@@ -29,7 +29,7 @@ public class DnsDataReaderTests
         DnsDataReader reader = new DnsDataReader(buffer);
         Assert.True(reader.TryReadResourceRecord(out DnsResourceRecord record));
 
-        Assert.Equal("www.example.com", record.Name);
+        Assert.Equal("www.example.com", record.Name.ToString());
         Assert.Equal(QueryType.A, record.Type);
         Assert.Equal(QueryClass.Internet, record.Class);
         Assert.Equal(3600, record.Ttl);

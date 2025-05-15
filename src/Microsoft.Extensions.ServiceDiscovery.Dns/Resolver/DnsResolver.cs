@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -66,11 +65,18 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        name = GetNormalizedHostName(name);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
+        try
+        {
+            EncodedDomainName dnsSafeName = GetNormalizedHostName(name, buffer);
+            return SendQueryWithTelemetry(name, dnsSafeName, QueryType.SRV, ProcessResponse, cancellationToken);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
 
-        return SendQueryWithTelemetry(name, QueryType.SRV, ProcessResponse, cancellationToken);
-
-        static (SendQueryError, ServiceResult[]) ProcessResponse(string name, QueryType queryType, DnsResponse response)
+        static (SendQueryError, ServiceResult[]) ProcessResponse(EncodedDomainName dnsSafeName, QueryType queryType, DnsResponse response)
         {
             var results = new List<ServiceResult>(response.Answers.Count);
 
@@ -78,7 +84,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             {
                 if (answer.Type == QueryType.SRV)
                 {
-                    if (!DnsPrimitives.TryReadService(answer.Data.Span, out ushort priority, out ushort weight, out ushort port, out string? target, out int bytesRead) || bytesRead != answer.Data.Length)
+                    if (!DnsPrimitives.TryReadService(answer.Data, out ushort priority, out ushort weight, out ushort port, out EncodedDomainName target, out int bytesRead) || bytesRead != answer.Data.Length)
                     {
                         return (SendQueryError.MalformedResponse, []);
                     }
@@ -98,13 +104,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                         //
                         //         A Target of "." means that the service is decidedly not
                         //         available at this domain.
-                        if (additional.Name == target && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
+                        if (additional.Name.Equals(target) && (additional.Type == QueryType.A || additional.Type == QueryType.AAAA))
                         {
                             addresses.Add(new AddressResult(response.CreatedAt.AddSeconds(additional.Ttl), new IPAddress(additional.Data.Span)));
                         }
                     }
 
-                    results.Add(new ServiceResult(response.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target!, addresses.ToArray()));
+                    results.Add(new ServiceResult(response.CreatedAt.AddSeconds(answer.Ttl), priority, weight, port, target.ToString(), addresses.ToArray()));
                 }
             }
 
@@ -171,11 +177,19 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             return ValueTask.FromResult<AddressResult[]>([]);
         }
 
-        name = GetNormalizedHostName(name);
-        var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-        return SendQueryWithTelemetry(name, queryType, ProcessResponse, cancellationToken);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
+        try
+        {
+            EncodedDomainName dnsSafeName = GetNormalizedHostName(name, buffer);
+            var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
+            return SendQueryWithTelemetry(name, dnsSafeName, queryType, ProcessResponse, cancellationToken);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
 
-        static (SendQueryError error, AddressResult[] result) ProcessResponse(string name, QueryType queryType, DnsResponse response)
+        static (SendQueryError error, AddressResult[] result) ProcessResponse(EncodedDomainName dnsSafeName, QueryType queryType, DnsResponse response)
         {
             List<AddressResult> results = new List<AddressResult>(response.Answers.Count);
 
@@ -192,19 +206,19 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             // scan first and fallback to a slower but more robust method if necessary.
 
             bool success = true;
-            string currentAlias = name;
+            EncodedDomainName currentAlias = dnsSafeName;
 
             foreach (var answer in response.Answers)
             {
                 switch (answer.Type)
                 {
                     case QueryType.CNAME:
-                        if (!TryReadTarget(answer, response.RawMessageBytes, out string? target))
+                        if (!TryReadTarget(answer, response.RawMessageBytes, out EncodedDomainName target))
                         {
                             return (SendQueryError.MalformedResponse, []);
                         }
 
-                        if (string.Equals(answer.Name, currentAlias, StringComparison.OrdinalIgnoreCase))
+                        if (answer.Name.Equals(currentAlias))
                         {
                             currentAlias = target;
                             continue;
@@ -218,7 +232,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                             return (SendQueryError.MalformedResponse, []);
                         }
 
-                        if (string.Equals(answer.Name, currentAlias, StringComparison.OrdinalIgnoreCase))
+                        if (answer.Name.Equals(currentAlias))
                         {
                             results.Add(new AddressResult(response.CreatedAt.AddSeconds(answer.Ttl), address));
                             continue;
@@ -240,14 +254,14 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
             // more expensive path for uncommon (but valid) cases where CNAME records are out of order. Use of Dictionary
             // allows us to stay within O(n) complexity for the number of answers, but we will use more memory.
-            Dictionary<string, string> aliasMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            Dictionary<string, List<AddressResult>> aRecordMap = new Dictionary<string, List<AddressResult>>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<EncodedDomainName, EncodedDomainName> aliasMap = new();
+            Dictionary<EncodedDomainName, List<AddressResult>> aRecordMap = new();
             foreach (var answer in response.Answers)
             {
                 if (answer.Type == QueryType.CNAME)
                 {
                     // map the alias to the target name
-                    if (!TryReadTarget(answer, response.RawMessageBytes, out string? target))
+                    if (!TryReadTarget(answer, response.RawMessageBytes, out EncodedDomainName target))
                     {
                         return (SendQueryError.MalformedResponse, []);
                     }
@@ -278,8 +292,8 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
             // follow the CNAME chain, limit the maximum number of iterations to avoid infinite loops.
             int i = 0;
-            currentAlias = name;
-            while (aliasMap.TryGetValue(currentAlias, out string? nextAlias))
+            currentAlias = dnsSafeName;
+            while (aliasMap.TryGetValue(currentAlias, out EncodedDomainName nextAlias))
             {
                 if (i >= aliasMap.Count)
                 {
@@ -302,11 +316,11 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             aRecordMap.TryGetValue(currentAlias, out List<AddressResult>? finalAddressList);
             return (SendQueryError.NoError, finalAddressList?.ToArray() ?? []);
 
-            static bool TryReadTarget(in DnsResourceRecord record, ArraySegment<byte> messageBytes, [NotNullWhen(true)] out string? target)
+            static bool TryReadTarget(in DnsResourceRecord record, ArraySegment<byte> messageBytes, out EncodedDomainName target)
             {
                 Debug.Assert(record.Type == QueryType.CNAME, "Only CNAME records should be processed here.");
 
-                target = null;
+                target = default;
 
                 // some servers use domain name compression even inside CNAME records. In order to decode those
                 // correctly, we need to pass the entire message to TryReadQName. The Data span inside the record
@@ -318,7 +332,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
                 int messageOffset = messageBytes.Offset;
 
-                bool result = DnsPrimitives.TryReadQName(segment.Array.AsSpan(messageOffset, segment.Offset + segment.Count - messageOffset), segment.Offset, out string? targetName, out int bytesRead) && bytesRead == record.Data.Length;
+                bool result = DnsPrimitives.TryReadQName(segment.Array.AsMemory(messageOffset, segment.Offset + segment.Count - messageOffset), segment.Offset, out EncodedDomainName targetName, out int bytesRead) && bytesRead == record.Data.Length;
                 if (result)
                 {
                     target = targetName;
@@ -344,10 +358,10 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    private async ValueTask<TResult[]> SendQueryWithTelemetry<TResult>(string name, QueryType queryType, Func<string, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
+    private async ValueTask<TResult[]> SendQueryWithTelemetry<TResult>(string name, EncodedDomainName dnsSafeName, QueryType queryType, Func<EncodedDomainName, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
     {
         NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
-        (SendQueryError error, TResult[] result) = await SendQueryWithRetriesAsync(name, queryType, processResponseFunc, cancellationToken).ConfigureAwait(false);
+        (SendQueryError error, TResult[] result) = await SendQueryWithRetriesAsync(name, dnsSafeName, queryType, processResponseFunc, cancellationToken).ConfigureAwait(false);
         Telemetry.StopNameResolution(name, queryType, activity, null, error, _timeProvider.GetTimestamp());
 
         return result;
@@ -359,7 +373,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         public SendQueryError Error;
     }
 
-    async ValueTask<(SendQueryError error, TResult[] result)> SendQueryWithRetriesAsync<TResult>(string name, QueryType queryType, Func<string, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
+    async ValueTask<(SendQueryError error, TResult[] result)> SendQueryWithRetriesAsync<TResult>(string name, EncodedDomainName dnsSafeName, QueryType queryType, Func<EncodedDomainName, QueryType, DnsResponse, (SendQueryError error, TResult[] result)> processResponseFunc, CancellationToken cancellationToken)
     {
         SendQueryError lastError = SendQueryError.InternalError; // will be overwritten by the first attempt
         for (int index = 0; index < _options.Servers.Count; index++)
@@ -375,7 +389,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
                     try
                     {
-                        SendQueryResult queryResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, queryType, attempt, cancellationToken).ConfigureAwait(false);
+                        SendQueryResult queryResult = await SendQueryToServerWithTimeoutAsync(serverEndPoint, name, dnsSafeName, queryType, attempt, cancellationToken).ConfigureAwait(false);
                         lastError = queryResult.Error;
                         response = queryResult.Response;
 
@@ -383,7 +397,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                         {
                             // Given that result.Error is NoError, there should be at least one answer.
                             Debug.Assert(response.Answers.Count > 0);
-                            (lastError, results) = processResponseFunc(name, queryType, queryResult.Response);
+                            (lastError, results) = processResponseFunc(dnsSafeName, queryType, queryResult.Response);
                         }
                     }
                     catch (SocketException ex)
@@ -463,13 +477,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return (lastError, []);
     }
 
-    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, int attempt, CancellationToken cancellationToken)
+    internal async ValueTask<SendQueryResult> SendQueryToServerWithTimeoutAsync(IPEndPoint serverEndPoint, string name, EncodedDomainName dnsSafeName, QueryType queryType, int attempt, CancellationToken cancellationToken)
     {
         (CancellationTokenSource cts, bool disposeTokenSource, CancellationTokenSource pendingRequestsCts) = PrepareCancellationTokenSource(cancellationToken);
 
         try
         {
-            return await SendQueryToServerAsync(serverEndPoint, name, queryType, attempt, cts.Token).ConfigureAwait(false);
+            return await SendQueryToServerAsync(serverEndPoint, name, dnsSafeName, queryType, attempt, cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (
             !cancellationToken.IsCancellationRequested && // not cancelled by the caller
@@ -495,13 +509,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    private async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, int attempt, CancellationToken cancellationToken)
+    private async ValueTask<SendQueryResult> SendQueryToServerAsync(IPEndPoint serverEndPoint, string name, EncodedDomainName dnsSafeName, QueryType queryType, int attempt, CancellationToken cancellationToken)
     {
         Log.Query(_logger, queryType, name, serverEndPoint, attempt);
 
         SendQueryError sendError = SendQueryError.NoError;
         DateTime queryStartedTime = _timeProvider.GetUtcNow().DateTime;
-        (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+        (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -510,7 +524,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 Log.ResultTruncated(_logger, queryType, name, serverEndPoint, 0);
                 responseReader.Dispose();
                 // TCP fallback
-                (responseReader, header, sendError) = await SendDnsQueryCoreTcpAsync(serverEndPoint, name, queryType, cancellationToken).ConfigureAwait(false);
+                (responseReader, header, sendError) = await SendDnsQueryCoreTcpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
             }
 
             if (sendError != SendQueryError.NoError)
@@ -532,7 +546,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             // Recheck that the server echoes back the DNS question
             if (header.QueryCount != 1 ||
                 !responseReader.TryReadQuestion(out var qName, out var qType, out var qClass) ||
-                qName != name || qType != queryType || qClass != QueryClass.Internet)
+                !dnsSafeName.Equals(qName) || qType != queryType || qClass != QueryClass.Internet)
             {
                 // DNS Question mismatch
                 return new SendQueryResult
@@ -611,7 +625,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         //
 
         DnsResourceRecord? soa = authorities.FirstOrDefault(r => r.Type == QueryType.SOA);
-        if (soa != null && DnsPrimitives.TryReadSoa(soa.Value.Data.Span, out string? mname, out string? rname, out uint serial, out uint refresh, out uint retry, out uint expire, out uint minimum, out _))
+        if (soa != null && DnsPrimitives.TryReadSoa(soa.Value.Data, out _, out _, out _, out _, out _, out _, out uint minimum, out _))
         {
             expiration = createdAt.AddSeconds(Math.Min(minimum, soa.Value.Ttl));
             return true;
@@ -674,13 +688,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return SendQueryError.ServerError;
     }
 
-    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreUdpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
+    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreUdpAsync(IPEndPoint serverEndPoint, EncodedDomainName dnsSafeName, QueryType queryType, CancellationToken cancellationToken)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(512);
         try
         {
             Memory<byte> memory = buffer;
-            (ushort transactionId, int length) = EncodeQuestion(memory, name, queryType);
+            (ushort transactionId, int length) = EncodeQuestion(memory, dnsSafeName, queryType);
 
             using var socket = new Socket(serverEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             await socket.SendToAsync(memory.Slice(0, length), SocketFlags.None, serverEndPoint, cancellationToken).ConfigureAwait(false);
@@ -723,13 +737,13 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header, SendQueryError error)> SendDnsQueryCoreTcpAsync(IPEndPoint serverEndPoint, string name, QueryType queryType, CancellationToken cancellationToken)
+    internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header, SendQueryError error)> SendDnsQueryCoreTcpAsync(IPEndPoint serverEndPoint, EncodedDomainName dnsSafeName, QueryType queryType, CancellationToken cancellationToken)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
         try
         {
             // When sending over TCP, the message is prefixed by 2B length
-            (ushort transactionId, int length) = EncodeQuestion(buffer.AsMemory(2), name, queryType);
+            (ushort transactionId, int length) = EncodeQuestion(buffer.AsMemory(2), dnsSafeName, queryType);
             BinaryPrimitives.WriteUInt16BigEndian(buffer, (ushort)length);
 
             using var socket = new Socket(serverEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -787,7 +801,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    private static (ushort id, int length) EncodeQuestion(Memory<byte> buffer, string name, QueryType queryType)
+    private static (ushort id, int length) EncodeQuestion(Memory<byte> buffer, EncodedDomainName dnsSafeName, QueryType queryType)
     {
         DnsMessageHeader header = new DnsMessageHeader
         {
@@ -798,7 +812,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
         DnsDataWriter writer = new DnsDataWriter(buffer);
         if (!writer.TryWriteHeader(header) ||
-            !writer.TryWriteQuestion(name, queryType, QueryClass.Internet))
+            !writer.TryWriteQuestion(dnsSafeName, queryType, QueryClass.Internet))
         {
             // should never happen since we validated the name length before
             throw new InvalidOperationException("Buffer too small");
@@ -850,11 +864,28 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return (pendingRequestsCts, DisposeTokenSource: false, pendingRequestsCts);
     }
 
-    private static readonly IdnMapping s_idnMapping = new IdnMapping();
-
-    private static string GetNormalizedHostName(string name)
+    private static EncodedDomainName GetNormalizedHostName(string name, Memory<byte> buffer)
     {
-        // TODO: better exception message
-        return s_idnMapping.GetAscii(name);
+        if (!DnsPrimitives.TryWriteQName(buffer.Span, name, out _))
+        {
+            throw new ArgumentException($"'{name}' is not a valid DNS name.", nameof(name));
+        }
+
+        List<ReadOnlyMemory<byte>> labels = new();
+        while (true)
+        {
+            int len = buffer.Span[0];
+
+            if (len == 0)
+            {
+                // root label, we are finished
+                break;
+            }
+
+            labels.Add(buffer.Slice(1, len));
+            buffer = buffer.Slice(len + 1);
+        }
+
+        return new EncodedDomainName(labels);
     }
 }

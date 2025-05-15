@@ -3,8 +3,10 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
@@ -46,7 +48,7 @@ internal sealed class LoopbackDnsServer : IDisposable
             return 0;
         }
 
-        LoopbackDnsResponseBuilder responseBuilder = new(name, type, @class);
+        LoopbackDnsResponseBuilder responseBuilder = new(name.ToString(), type, @class);
         responseBuilder.TransactionId = header.TransactionId;
         responseBuilder.Flags = header.QueryFlags | QueryFlags.HasResponse;
         responseBuilder.ResponseCode = QueryResponseCode.NoError;
@@ -155,13 +157,20 @@ internal sealed class LoopbackDnsResponseBuilder
             throw new InvalidOperationException("Failed to write header");
         }
 
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(512);
         foreach (var (questionName, questionType, questionClass) in Questions)
         {
-            if (!writer.TryWriteQuestion(questionName, questionType, questionClass))
+            if (!DnsPrimitives.TryWriteQName(buffer, questionName, out int length) ||
+                !DnsPrimitives.TryReadQName(buffer.AsMemory(0, length), 0, out EncodedDomainName encodedName, out _))
+            {
+                throw new InvalidOperationException("Failed to encode domain name");
+            }
+            if (!writer.TryWriteQuestion(encodedName, questionType, questionClass))
             {
                 throw new InvalidOperationException("Failed to write question");
             }
         }
+        ArrayPool<byte>.Shared.Return(buffer);
 
         foreach (var answer in Answers)
         {
@@ -207,10 +216,20 @@ internal sealed class LoopbackDnsResponseBuilder
 
 internal static class LoopbackDnsServerExtensions
 {
+    private static readonly IdnMapping s_idnMapping = new IdnMapping();
+
+    private static EncodedDomainName EncodeDomainName(string name)
+    {
+        var encodedLabels = name.Split('.', StringSplitOptions.RemoveEmptyEntries).Select(label => (ReadOnlyMemory<byte>)Encoding.UTF8.GetBytes(s_idnMapping.GetAscii(label)))
+            .ToList();
+
+        return new EncodedDomainName(encodedLabels);
+    }
+
     public static List<DnsResourceRecord> AddAddress(this List<DnsResourceRecord> records, string name, int ttl, IPAddress address)
     {
         QueryType type = address.AddressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-        records.Add(new DnsResourceRecord(name, type, QueryClass.Internet, ttl, address.GetAddressBytes()));
+        records.Add(new DnsResourceRecord(EncodeDomainName(name), type, QueryClass.Internet, ttl, address.GetAddressBytes()));
         return records;
     }
 
@@ -222,7 +241,7 @@ internal static class LoopbackDnsServerExtensions
             throw new InvalidOperationException("Failed to encode domain name");
         }
 
-        records.Add(new DnsResourceRecord(name, QueryType.CNAME, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
+        records.Add(new DnsResourceRecord(EncodeDomainName(name), QueryType.CNAME, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
         return records;
     }
 
@@ -241,7 +260,7 @@ internal static class LoopbackDnsServerExtensions
 
         length += 6;
 
-        records.Add(new DnsResourceRecord(name, QueryType.SRV, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
+        records.Add(new DnsResourceRecord(EncodeDomainName(name), QueryType.SRV, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
         return records;
     }
 
@@ -263,7 +282,45 @@ internal static class LoopbackDnsServerExtensions
 
         int length = w1 + w2 + 20;
 
-        records.Add(new DnsResourceRecord(name, QueryType.SOA, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
+        records.Add(new DnsResourceRecord(EncodeDomainName(name), QueryType.SOA, QueryClass.Internet, ttl, buff.AsMemory(0, length)));
         return records;
+    }
+}
+
+internal static class DnsDataWriterExtensions
+{
+    internal static bool TryWriteResourceRecord(this DnsDataWriter writer, DnsResourceRecord record)
+    {
+        if (!TryWriteDomainName(writer, record.Name) ||
+            !writer.TryWriteUInt16((ushort)record.Type) ||
+            !writer.TryWriteUInt16((ushort)record.Class) ||
+            !writer.TryWriteUInt32((uint)record.Ttl) ||
+            !writer.TryWriteUInt16((ushort)record.Data.Length) ||
+            !writer.TryWriteRawData(record.Data.Span))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    internal static bool TryWriteDomainName(this DnsDataWriter writer, EncodedDomainName name)
+    {
+        foreach (var label in name.Labels)
+        {
+            if (label.Length > 63)
+            {
+                throw new InvalidOperationException("Label length exceeds maximum of 63 bytes");
+            }
+
+            if (!writer.TryWriteByte((byte)label.Length) ||
+                !writer.TryWriteRawData(label.Span))
+            {
+                return false;
+            }
+        }
+
+        // root label
+        return writer.TryWriteByte(0);
     }
 }

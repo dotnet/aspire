@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
@@ -29,7 +30,7 @@ internal sealed class DnsDataWriter
         return true;
     }
 
-    internal bool TryWriteQuestion(string name, QueryType type, QueryClass @class)
+    internal bool TryWriteQuestion(EncodedDomainName name, QueryType type, QueryClass @class)
     {
         if (!TryWriteDomainName(name) ||
             !TryWriteUInt16((ushort)type) ||
@@ -41,28 +42,22 @@ internal sealed class DnsDataWriter
         return true;
     }
 
-    internal bool TryWriteResourceRecord(in DnsResourceRecord record)
+    private bool TryWriteDomainName(EncodedDomainName name)
     {
-        if (!TryWriteDomainName(record.Name) ||
-            !TryWriteUInt16((ushort)record.Type) ||
-            !TryWriteUInt16((ushort)record.Class) ||
-            !TryWriteUInt32((uint)record.Ttl))
+        foreach (var label in name.Labels)
         {
-            return false;
+            // this should be already validated by the caller
+            Debug.Assert(label.Length <= 63, "Label length must not exceed 63 bytes.");
+
+            if (!TryWriteByte((byte)label.Length) ||
+                !TryWriteRawData(label.Span))
+            {
+                return false;
+            }
         }
 
-        if (record.Data.Length + 2 > _buffer.Length - _position)
-        {
-            return false;
-        }
-
-        BinaryPrimitives.WriteUInt16BigEndian(_buffer.Span.Slice(_position), (ushort)record.Data.Length);
-        _position += 2;
-
-        record.Data.Span.CopyTo(_buffer.Span.Slice(_position));
-        _position += record.Data.Length;
-
-        return true;
+        // root label
+        return TryWriteByte(0);
     }
 
     internal bool TryWriteDomainName(string name)
@@ -74,6 +69,18 @@ internal sealed class DnsDataWriter
         }
 
         return false;
+    }
+
+    internal bool TryWriteByte(byte value)
+    {
+        if (_buffer.Length - _position < 1)
+        {
+            return false;
+        }
+
+        _buffer.Span[_position] = value;
+        _position += 1;
+        return true;
     }
 
     internal bool TryWriteUInt16(ushort value)
@@ -97,6 +104,18 @@ internal sealed class DnsDataWriter
 
         BinaryPrimitives.WriteUInt32BigEndian(_buffer.Span.Slice(_position), value);
         _position += 4;
+        return true;
+    }
+
+    internal bool TryWriteRawData(ReadOnlySpan<byte> value)
+    {
+        if (_buffer.Length - _position < value.Length)
+        {
+            return false;
+        }
+
+        value.CopyTo(_buffer.Span.Slice(_position));
+        _position += value.Length;
         return true;
     }
 }

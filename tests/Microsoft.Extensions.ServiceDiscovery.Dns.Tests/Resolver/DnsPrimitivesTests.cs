@@ -29,11 +29,11 @@ public class DnsPrimitivesTests
     }
 
     [Fact]
-    public void TryWriteQName_LabelTooLong_Throws()
+    public void TryWriteQName_LabelTooLong_False()
     {
         byte[] buffer = new byte[512];
 
-        Assert.Throws<ArgumentException>(() => DnsPrimitives.TryWriteQName(buffer, new string('a', 70), out int written));
+        Assert.False(DnsPrimitives.TryWriteQName(buffer, new string('a', 70), out _));
     }
 
     [Fact]
@@ -49,18 +49,48 @@ public class DnsPrimitivesTests
     }
 
     [Theory]
+    [InlineData("www.-0.com")]
+    [InlineData("www.-a.com")]
+    [InlineData("www.a-.com")]
+    [InlineData("www.a_a.com")]
+    [InlineData("www.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com")] // 64 occurrences of 'a' (too long)
+    [InlineData("www.a~a.com")] // 64 occurrences of 'a' (too long)
+    [InlineData("www..com")]
+    [InlineData("www..")]
+    public void TryWriteQName_InvalidName_ReturnsFalse(string name)
+    {
+        byte[] buffer = new byte[512];
+        Assert.False(DnsPrimitives.TryWriteQName(buffer, name, out _));
+    }
+
+    [Fact]
+    public void TryWriteQName_ExplicitRoot_Success()
+    {
+        string name1 = "www.example.com";
+        string name2 = "www.example.com.";
+
+        byte[] buffer1 = new byte[512];
+        byte[] buffer2 = new byte[512];
+
+        Assert.True(DnsPrimitives.TryWriteQName(buffer1, name1, out int written1));
+        Assert.True(DnsPrimitives.TryWriteQName(buffer2, name2, out int written2));
+        Assert.Equal(written1, written2);
+        Assert.Equal(buffer1.AsSpan().Slice(0, written1).ToArray(), buffer2.AsSpan().Slice(0, written2).ToArray());
+    }
+
+    [Theory]
     [MemberData(nameof(QNameData))]
     public void TryReadQName_Success(string expected, byte[] serialized)
     {
-        Assert.True(DnsPrimitives.TryReadQName(serialized, 0, out string? actual, out int bytesRead));
-        Assert.Equal(expected, actual);
+        Assert.True(DnsPrimitives.TryReadQName(serialized, 0, out EncodedDomainName actual, out int bytesRead));
+        Assert.Equal(expected, actual.ToString());
         Assert.Equal(serialized.Length, bytesRead);
     }
 
     [Fact]
     public void TryReadQName_TruncatedData_Fails()
     {
-        ReadOnlySpan<byte> data = "\x0003www\x0007example\x0003com\x0000"u8;
+        ReadOnlyMemory<byte> data = "\x0003www\x0007example\x0003com\x0000"u8.ToArray();
 
         for (int i = 0; i < data.Length; i++)
         {
@@ -72,11 +102,11 @@ public class DnsPrimitivesTests
     public void TryReadQName_Pointer_Success()
     {
         // [7B padding], example.com. www->[ptr to example.com.]
-        Span<byte> data = "padding\x0007example\x0003com\x0000\x0003www\x00\x07"u8.ToArray();
-        data[^2] = 0xc0;
+        Memory<byte> data = "padding\x0007example\x0003com\x0000\x0003www\x00\x07"u8.ToArray();
+        data.Span[^2] = 0xc0;
 
-        Assert.True(DnsPrimitives.TryReadQName(data, data.Length - 6, out string? actual, out int bytesRead));
-        Assert.Equal("www.example.com", actual);
+        Assert.True(DnsPrimitives.TryReadQName(data, data.Length - 6, out EncodedDomainName actual, out int bytesRead));
+        Assert.Equal("www.example.com", actual.ToString());
         Assert.Equal(6, bytesRead);
     }
 
@@ -84,8 +114,8 @@ public class DnsPrimitivesTests
     public void TryReadQName_PointerTruncated_Fails()
     {
         // [7B padding], example.com. www->[ptr to example.com.]
-        Span<byte> data = "padding\x0007example\x0003com\x0000\x0003www\x00\x07"u8.ToArray();
-        data[^2] = 0xc0;
+        Memory<byte> data = "padding\x0007example\x0003com\x0000\x0003www\x00\x07"u8.ToArray();
+        data.Span[^2] = 0xc0;
 
         for (int i = 0; i < data.Length; i++)
         {
@@ -97,8 +127,8 @@ public class DnsPrimitivesTests
     public void TryReadQName_ForwardPointer_Fails()
     {
         // www->[ptr to example.com], [7B padding], example.com.
-        Span<byte> data = "\x03www\x00\x000dpadding\x0007example\x0003com\x00"u8.ToArray();
-        data[4] = 0xc0;
+        Memory<byte> data = "\x03www\x00\x000dpadding\x0007example\x0003com\x00"u8.ToArray();
+        data.Span[4] = 0xc0;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
     }
@@ -107,8 +137,8 @@ public class DnsPrimitivesTests
     public void TryReadQName_PointerToSelf_Fails()
     {
         // www->[ptr to www->...]
-        Span<byte> data = "\x0003www\0\0"u8.ToArray();
-        data[4] = 0xc0;
+        Memory<byte> data = "\x0003www\0\0"u8.ToArray();
+        data.Span[4] = 0xc0;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
     }
@@ -117,11 +147,11 @@ public class DnsPrimitivesTests
     public void TryReadQName_PointerToPointer_Fails()
     {
         // com, example[->com], example2[->[->com]]
-        Span<byte> data = "\x0003com\0\x0007example\0\0\x0008example2\0\0"u8.ToArray();
-        data[13] = 0xc0;
-        data[14] = 0x00; // -> com
-        data[24] = 0xc0;
-        data[25] = 13; // -> -> com
+        Memory<byte> data = "\x0003com\0\x0007example\0\0\x0008example2\0\0"u8.ToArray();
+        data.Span[13] = 0xc0;
+        data.Span[14] = 0x00; // -> com
+        data.Span[24] = 0xc0;
+        data.Span[25] = 13; // -> -> com
 
         Assert.False(DnsPrimitives.TryReadQName(data, 15, out _, out _));
     }
@@ -129,8 +159,8 @@ public class DnsPrimitivesTests
     [Fact]
     public void TryReadQName_ReservedBits()
     {
-        Span<byte> data = "\x0003www\x00c0"u8.ToArray();
-        data[0] = 0x40;
+        Memory<byte> data = "\x0003www\x00c0"u8.ToArray();
+        data.Span[0] = 0x40;
 
         Assert.False(DnsPrimitives.TryReadQName(data, 0, out _, out _));
     }
