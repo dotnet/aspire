@@ -28,6 +28,14 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
     /// </summary>
     public bool Optional { get; set; }
 
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableTracing { get; set; }
+
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         if (!string.IsNullOrEmpty(connectionString) &&

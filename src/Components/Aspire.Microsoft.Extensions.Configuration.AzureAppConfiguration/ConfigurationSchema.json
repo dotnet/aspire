@@ -25,6 +25,11 @@
                     "AzureAppConfiguration": {
                       "type": "object",
                       "properties": {
+                        "DisableTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                          "default": false
+                        },
                         "Endpoint": {
                           "type": "string",
                           "format": "uri",
