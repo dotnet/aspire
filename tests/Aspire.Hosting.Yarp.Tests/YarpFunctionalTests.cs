@@ -11,6 +11,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));

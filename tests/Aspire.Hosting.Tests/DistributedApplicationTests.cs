@@ -367,6 +367,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9340")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
