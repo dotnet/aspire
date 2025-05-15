@@ -147,7 +147,7 @@ sealed partial class TestSummaryGenerator
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
 
-                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
+                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
                 if (test.Output?.StdOut is not null)
                 {
                     reportBuilder.AppendLine();
