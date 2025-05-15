@@ -61,5 +61,12 @@ public static class AspireAppConfigurationExtensions
             settings.Optional);
 
         builder.Services.AddAzureAppConfiguration(); // register IConfigurationRefresherProvider service
+
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(traceBuilder =>
+                    traceBuilder.AddSource(["Microsoft.Extensions.Configuration.AzureAppConfiguration"]));
+        }
     }
 }

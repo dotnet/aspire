@@ -33,7 +33,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
             "Azure": {
               "AppConfiguration": {
                 "Endpoint": "http://YOUR_URI",
-                "Optional": true
+                "Optional": true,
+                "DisableTracing": false
               }
             }
           }
@@ -78,7 +79,8 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "YOUR_URI"}}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "Optional": "true"}}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "Extensions": { "Configuration": { "AzureAppConfiguration": { "Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)
@@ -89,19 +91,17 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureAppConfigurationSettings options, bool enabled)
-        // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
-        // Will be supported in the next 8.2.0 release
-        => throw new NotImplementedException();
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(IConfigurationRefresherProvider service)
-        // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
-        // Will be supported in the next 8.2.0 release
-        => throw new NotImplementedException();
+    {
+        Thread.Sleep(1000);
+        service.Refreshers.First().RefreshAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+    }
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        // WIP: Waiting for App Configuration Provider 8.2.0 release 
-        => RemoteExecutor.Invoke(() => /*ActivitySourceTest(key: null)*/ null).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
 
     internal sealed class EmptyTokenCredential : TokenCredential
     {
