@@ -789,8 +789,8 @@ public static class ContainerResourceBuilderExtensions
     /// builder.AddContainer("mycontainer", "myimage")
     ///     .WithContainerFiles("/", (context, cancellationToken) =>
     ///     {
-    ///         var appModel = context.ServiceProvider.GetRequiredService{DistributedApplicationModel}();
-    ///         var postgresInstances = appModel.Resources.OfType{PostgresDatabaseResource}();
+    ///         var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+    ///         var postgresInstances = appModel.Resources.OfType<PostgresDatabaseResource>();
     ///
     ///         return [
     ///             new ContainerDirectory
