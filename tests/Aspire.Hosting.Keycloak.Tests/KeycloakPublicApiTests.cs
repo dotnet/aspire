@@ -40,6 +40,49 @@ public class KeycloakPublicApiTests
     }
 
     [Fact]
+    public void CtorKeycloakRealmResourceShouldThrowWhenNameIsNull()
+    {
+        string name = null!;
+        var realmName = "realm1";
+        var builder = TestDistributedApplicationBuilder.Create();
+        var adminPassword = builder.AddParameter("Password");
+        var parent = new KeycloakResource("keycloak", default(ParameterResource?), adminPassword.Resource);
+
+        var action = () => new KeycloakRealmResource(name, realmName, parent);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorMongoKeycloakRealmResourceShouldThrowWhenRealmNameIsNull()
+    {
+        var name = "keycloak";
+        string realmName = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var adminPassword = builder.AddParameter("Password");
+        var parent = new KeycloakResource("keycloak", default(ParameterResource?), adminPassword.Resource);
+
+        var action = () => new KeycloakRealmResource(name, realmName, parent);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(realmName), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorMongoKeycloakRealmResourceShouldThrowWhenDatabaseParentIsNull()
+    {
+        var name = "keycloak";
+        var realmName = "realm1";
+        KeycloakResource parent = null!;
+
+        var action = () => new KeycloakRealmResource(name, realmName, parent);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(parent), exception.ParamName);
+    }
+
+    [Fact]
     public void AddKeycloakShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
@@ -211,5 +254,30 @@ public class KeycloakPublicApiTests
         Assert.Equal($"/opt/keycloak/data/import/{file}", containerAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
+    }
+
+    [Fact]
+    public void AddRealmShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<KeycloakResource> builder = null!;
+        const string name = "realm1";
+
+        var action = () => builder.AddRealm(name);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddRealmShouldThrowWhenNameIsNull()
+    {
+        var builderResource = TestDistributedApplicationBuilder.Create();
+        var MongoDB = builderResource.AddKeycloak("realm1");
+        string name = null!;
+
+        var action = () => MongoDB.AddRealm(name);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 }
