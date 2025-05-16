@@ -659,7 +659,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
 
             var foundPackages = new List<NuGetPackage>();
-            var document = JsonDocument.Parse(stdout);
+            JsonDocument document;
+            try
+            {
+                document = JsonDocument.Parse(stdout);
+            }
+            catch(JsonException ex)
+            {
+                logger.LogError($"Failed to read JSON returned by the package search. {ex.Message}");
+                return (ExitCodeConstants.FailedToAddPackage, null);
+            }
 
             var searchResultsArray = document.RootElement.GetProperty("searchResult");
 
