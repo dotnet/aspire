@@ -19,6 +19,7 @@
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
 
+    <!-- MTP-based tests are enabled in the repo. Change this to true to use VSTest. -->
     <DisableTestingPlatformServerCapability>false</DisableTestingPlatformServerCapability>
     <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
 
