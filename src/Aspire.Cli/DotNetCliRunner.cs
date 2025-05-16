@@ -664,7 +664,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             {
                 document = JsonDocument.Parse(stdout);
             }
-            catch(JsonException ex)
+            catch (JsonException ex)
             {
                 logger.LogError($"Failed to read JSON returned by the package search. {ex.Message}");
                 return (ExitCodeConstants.FailedToAddPackage, null);
