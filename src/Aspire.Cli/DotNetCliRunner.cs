@@ -659,42 +659,41 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
 
             var foundPackages = new List<NuGetPackage>();
-            JsonDocument document;
             try
             {
-                document = JsonDocument.Parse(stdout);
+                using var document = JsonDocument.Parse(stdout);
+
+                var searchResultsArray = document.RootElement.GetProperty("searchResult");
+
+                foreach (var sourceResult in searchResultsArray.EnumerateArray())
+                {
+                    var source = sourceResult.GetProperty("sourceName").GetString();
+                    var sourcePackagesArray = sourceResult.GetProperty("packages");
+
+                    foreach (var packageResult in sourcePackagesArray.EnumerateArray())
+                    {
+                        var id = packageResult.GetProperty("id").GetString();
+
+                        // var version = prerelease switch {
+                        //     true => packageResult.GetProperty("version").GetString(),
+                        //     false => packageResult.GetProperty("latestVersion").GetString()
+                        // };
+
+                        var version = packageResult.GetProperty("latestVersion").GetString();
+
+                        foundPackages.Add(new NuGetPackage
+                        {
+                            Id = id!,
+                            Version = version!,
+                            Source = source!
+                        });
+                    }
+                }
             }
             catch (JsonException ex)
             {
                 logger.LogError($"Failed to read JSON returned by the package search. {ex.Message}");
                 return (ExitCodeConstants.FailedToAddPackage, null);
-            }
-
-            var searchResultsArray = document.RootElement.GetProperty("searchResult");
-
-            foreach (var sourceResult in searchResultsArray.EnumerateArray())
-            {
-                var source = sourceResult.GetProperty("sourceName").GetString();
-                var sourcePackagesArray = sourceResult.GetProperty("packages");
-
-                foreach (var packageResult in sourcePackagesArray.EnumerateArray())
-                {
-                    var id = packageResult.GetProperty("id").GetString();
-
-                    // var version = prerelease switch {
-                    //     true => packageResult.GetProperty("version").GetString(),
-                    //     false => packageResult.GetProperty("latestVersion").GetString()
-                    // };
-
-                    var version = packageResult.GetProperty("latestVersion").GetString();
-
-                    foundPackages.Add(new NuGetPackage
-                    {
-                        Id = id!,
-                        Version = version!,
-                        Source = source!
-                    });
-                }
             }
 
             return (result, foundPackages.ToArray());
