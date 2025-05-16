@@ -35,7 +35,7 @@ public sealed class ConfigReference
     /// Optional property that specifies the user ID for accessing the configuration target.
     /// </summary>
     [YamlMember(Alias = "uid")]
-    public int? Uid { get; set; }
+    public string? Uid { get; set; }
 
     /// <summary>
     /// Gets or sets the group ID (GID) used to identify the group of the referenced configuration.
@@ -45,7 +45,7 @@ public sealed class ConfigReference
     /// for the resource. If set, it defines the group to which the target resource belongs.
     /// </remarks>
     [YamlMember(Alias = "gid")]
-    public int? Gid { get; set; }
+    public string? Gid { get; set; }
 
     /// <summary>
     /// Represents the access mode for the configuration reference in the form of an integer value.

@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -188,8 +189,8 @@ internal sealed class DockerComposePublishingContext(
             {
                 Source = name,
                 Target = path + "/" + file.Name,
-                Uid = item.Owner ?? uid,
-                Gid = item.Group ?? gid,
+                Uid = (item.Owner ?? uid)?.ToString(CultureInfo.InvariantCulture),
+                Gid = (item.Group ?? gid)?.ToString(CultureInfo.InvariantCulture),
                 Mode = item.Mode != 0 ? item.Mode : MaxDefaultFilePermissions & ~umask,
             });
 

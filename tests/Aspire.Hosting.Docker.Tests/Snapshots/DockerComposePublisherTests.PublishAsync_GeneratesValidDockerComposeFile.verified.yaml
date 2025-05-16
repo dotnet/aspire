@@ -22,8 +22,8 @@
         mode: 0644
       - source: "cache__usr_local_share_folder_file.sh"
         target: "/usr/local/share/folder/file.sh"
-        uid: 1000
-        gid: 1000
+        uid: "1000"
+        gid: "1000"
         mode: 0700
   something:
     image: "dummy/migration:latest"
