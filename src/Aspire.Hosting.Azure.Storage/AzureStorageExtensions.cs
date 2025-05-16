@@ -144,7 +144,8 @@ public static class AzureStorageExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
         {
-            // This event is triggered when the health check is healthy.
+            // The ResourceReadyEvent of a resource is triggered after its health check is healthy.
+            // This means we can safely use this event to create the blob containers.
 
             if (blobServiceClient is null)
             {
@@ -153,7 +154,8 @@ public static class AzureStorageExtensions
 
             foreach (var container in builder.Resource.BlobContainers)
             {
-                await blobServiceClient.GetBlobContainerClient(container.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+                var blobContainerClient = blobServiceClient.GetBlobContainerClient(container.BlobContainerName);
+                await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
             }
         });
 
