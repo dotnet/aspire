@@ -52,7 +52,7 @@ public static class DashboardEndpointsBuilder
             }
 
             // The passed in language should be one of the localized cultures.
-            var newLanguage = GlobalizationHelpers.LocalizedCultures.SingleOrDefault(c => string.Equals(c.Name, language, StringComparisons.CultureName));
+            var newLanguage = GlobalizationHelpers.OrderedLocalizedCultures.SingleOrDefault(c => string.Equals(c.Name, language, StringComparisons.CultureName));
             if (newLanguage == null)
             {
                 return Results.BadRequest();

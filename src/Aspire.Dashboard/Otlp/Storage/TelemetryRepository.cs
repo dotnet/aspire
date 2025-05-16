@@ -778,16 +778,15 @@ public sealed class TelemetryRepository : IDisposable
     {
         Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceUnsynchronized)}.");
 
-        try
+        foreach (var trace in _traces)
         {
-            var results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
-            var trace = results.SingleOrDefault();
-            return trace is not null ? OtlpTrace.Clone(trace) : null;
+            if (OtlpHelpers.MatchTelemetryId(traceId, trace.TraceId))
+            {
+                return OtlpTrace.Clone(trace);
+            }
         }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Multiple traces found with trace id '{traceId}'.", ex);
-        }
+
+        return null;
     }
 
     private OtlpSpan? GetSpanUnsynchronized(string traceId, string spanId)

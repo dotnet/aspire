@@ -23,6 +23,7 @@ public class PublishingTests
                     Assert.True(context.CancellationToken.CanBeCanceled);
                     Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
                     Assert.Equal("default", context.ExecutionContext.PublisherName);
+                    Assert.True(Path.IsPathFullyQualified(context.OutputPath));
                     publishedCalled = true;
                     return Task.CompletedTask;
                 });

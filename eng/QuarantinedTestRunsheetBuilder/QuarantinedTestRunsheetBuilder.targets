@@ -131,6 +131,7 @@
 
       <_TestRunnerWindows>./eng/build.ps1</_TestRunnerWindows>
       <_TestRunnerLinux>./eng/build.sh</_TestRunnerLinux>
+      <_TestRunnerMacOS>./eng/build.sh</_TestRunnerMacOS>
       <_TestCommand>-restore -build -test -projects &quot;$(_RelativeTestProjectPath)&quot; /bl:&quot;$(_RelativeTestBinLog)&quot; -c $(Configuration) -ci /p:RunQuarantinedTests=true /p:CI=false</_TestCommand>
 
       <!--
@@ -144,6 +145,7 @@
 
       <_TestRunsheetWindows>{ "label": "w: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "windows-latest", "command": "./eng/build.ps1 $(_TestCommand)" }</_TestRunsheetWindows>
       <_TestRunsheetLinux>{ "label": "l: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "ubuntu-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetLinux>
+      <_TestRunsheetMacOS>{ "label": "m: $(_TestRunsheet)", "project": "$(_TestRunsheet)", "os": "macos-latest", "command": "./eng/build.sh $(_TestCommand)" }</_TestRunsheetMacOS>
     </PropertyGroup>
 
     <WriteLinesToFile
@@ -152,11 +154,16 @@
             Lines="$(_TestRunsheetWindows)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true" />
-
     <WriteLinesToFile
             Condition=" '$(RunOnGithubActionsLinux)' == 'true' and '$(_HasQuarantinedTests)' == 'true' "
             File="$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json"
             Lines="$(_TestRunsheetLinux)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile
+            Condition=" '$(RunOnGithubActionsMacOS)' == 'true' and '$(_HasQuarantinedTests)' == 'true' "
+            File="$(ArtifactsTmpDir)/$(_TestRunsheet).macos.runsheet.json"
+            Lines="$(_TestRunsheetMacOS)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true" />
 
@@ -168,6 +175,8 @@
           Condition=" '$(RunOnGithubActionsWindows)' == 'true' and '$(_HasQuarantinedTests)' == 'true' and '$(BuildOs)' != 'windows' " />
     <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).linux.runsheet.json'&quot; "
           Condition=" '$(RunOnGithubActionsLinux)' == 'true' and '$(_HasQuarantinedTests)' == 'true' and '$(BuildOs)' != 'windows' " />
+    <Exec Command="pwsh -Command &quot;(Get-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).macos.runsheet.json') -replace '/\&quot;', '\\\&quot;' | Set-Content -Path '$(ArtifactsTmpDir)/$(_TestRunsheet).macos.runsheet.json'&quot; "
+          Condition=" '$(RunOnGithubActionsMacOS)' == 'true' and '$(_HasQuarantinedTests)' == 'true' and '$(BuildOs)' != 'windows' " />
 
     <!--
       The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.

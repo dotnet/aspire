@@ -21,6 +21,8 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> PublishAsAzureSqlDatabase(this ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource> builder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureSqlServerResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzureSqlServerResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.SqlServerServerResource>>? configureContainer = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureSqlDatabaseResource> WithDefaultAzureSku(this ApplicationModel.IResourceBuilder<Azure.AzureSqlDatabaseResource> builder) { throw null; }
     }
 }
 
@@ -47,6 +49,8 @@ namespace Aspire.Hosting.Azure
         public AzureSqlServerResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
+
+        public System.Collections.Generic.IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 

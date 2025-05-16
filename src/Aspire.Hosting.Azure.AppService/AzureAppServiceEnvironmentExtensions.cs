@@ -84,8 +84,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 Sku = new AppServiceSkuDescription
                 {
-                    Name = "B1",
-                    Tier = "Basic"
+                    Name = "P0V3",
+                    Tier = "Premium"
                 },
                 Kind = "Linux",
                 IsReserved = true

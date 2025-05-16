@@ -22,9 +22,13 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, string? name = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithHostPort(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, int? port) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> WithHostPort(this ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithHostPort(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, int? port) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithPassword(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithPersistence(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, System.TimeSpan? interval = null, long keysChangedThreshold = 1) { throw null; }
 

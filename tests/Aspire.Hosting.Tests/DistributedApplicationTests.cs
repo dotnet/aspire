@@ -367,6 +367,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9340")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -650,15 +651,17 @@ public class DistributedApplicationTests
         }
     }
 
-    [Fact]
-    public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardFrontendBrowserToken)]
+    [InlineData(KnownConfigNames.Legacy.DashboardFrontendBrowserToken)]
+    public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess(string tokenEnvVarName)
     {
         const string testName = "dashboard-auth-config";
         var browserToken = "ThisIsATestToken";
         var args = new string[] {
             $"{KnownConfigNames.AspNetCoreUrls}=http://localhost:0",
             $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0",
-            $"{KnownConfigNames.DashboardFrontendBrowserToken}={browserToken}"
+            $"{tokenEnvVarName}={browserToken}"
         };
         using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
 

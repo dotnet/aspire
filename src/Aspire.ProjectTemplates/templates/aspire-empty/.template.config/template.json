@@ -42,7 +42,8 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]
@@ -55,7 +56,8 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]

@@ -11,6 +11,7 @@ public class ConfigurationTests
     public void EndpointUriIsNullByDefault()
         => Assert.Null(new AzureAppConfigurationSettings().Endpoint);
 
-    // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/645
-    // Tracing will be supported in the next 8.2.0 release
+    [Fact]
+    public void TracingIsEnabledByDefault()
+        => Assert.False(new AzureAppConfigurationSettings().DisableTracing);
 }
