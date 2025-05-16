@@ -320,7 +320,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
             var db = mysql.AddDatabase(mySqlDbName);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             mysql.WithInitBindMount(bindMountPath);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             using var app = builder.Build();
 
@@ -368,6 +370,91 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             try
             {
                 Directory.Delete(bindMountPath);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithInitFiles()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .Build();
+
+        var initFilesPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        Directory.CreateDirectory(initFilesPath);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(initFilesPath, "init.sql"), """
+                CREATE TABLE cars (brand VARCHAR(255));
+                INSERT INTO cars (brand) VALUES ('BatMobile');
+            """);
+
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+            var mySqlDbName = "db1";
+
+            var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+            var db = mysql.AddDatabase(mySqlDbName);
+
+            mysql.WithInitFiles(initFilesPath);
+
+            using var app = builder.Build();
+
+            await app.StartAsync(cts.Token);
+
+            await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(cts.Token)
+            });
+
+            hb.AddMySqlDataSource(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync(cts.Token);
+
+            // Wait until the database is available
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<MySqlConnection>();
+                await connection.OpenAsync(token);
+                Assert.Equal(ConnectionState.Open, connection.State);
+            }, cts.Token);
+
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<MySqlConnection>();
+                await connection.OpenAsync(token);
+
+                var command = connection.CreateCommand();
+                command.CommandText = $"SELECT * FROM cars;";
+
+                var results = await command.ExecuteReaderAsync(token);
+                Assert.True(await results.ReadAsync(token));
+                Assert.Equal("BatMobile", results.GetString("brand"));
+                Assert.False(await results.ReadAsync(token));
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(initFilesPath);
             }
             catch
             {

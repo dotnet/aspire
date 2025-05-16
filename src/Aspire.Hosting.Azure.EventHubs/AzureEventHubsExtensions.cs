@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
@@ -9,7 +10,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
-using Microsoft.Extensions.DependencyInjection;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting;
@@ -19,8 +19,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureEventHubsExtensions
 {
-    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-
     private const string EmulatorHealthEndpointName = "emulatorhealth";
 
     /// <summary>
@@ -31,7 +29,7 @@ public static class AzureEventHubsExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// By default references to the Azure AppEvent Hubs Namespace resource will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="EventHubsBuiltInRole.AzureEventHubsDataOwner"/>
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureEventHubsResource}, EventHubsBuiltInRole[])"/>.
@@ -240,11 +238,10 @@ public static class AzureEventHubsExtensions
         var lifetime = ContainerLifetime.Session;
 
         // Copy the lifetime from the main resource to the storage resource
-
+        var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
         if (configureContainer != null)
         {
-            var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
             configureContainer(surrogateBuilder);
 
             if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
@@ -269,77 +266,55 @@ public static class AzureEventHubsExtensions
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.
-
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
-        {
-            // Create JSON configuration file
-
-            var hasCustomConfigJson = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().Any(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
-
-            if (hasCustomConfigJson)
+        surrogateBuilder.WithContainerFiles(
+            AzureEventHubsEmulatorResource.EmulatorConfigFilesPath,
+            (_, _) =>
             {
-                return Task.CompletedTask;
-            }
+                var customConfigFile = builder.Resource.Annotations.OfType<ConfigFileAnnotation>().FirstOrDefault();
+                if (customConfigFile != null)
+                {
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerFile
+                        {
+                            Name = AzureEventHubsEmulatorResource.EmulatorConfigJsonFile,
+                            SourcePath = customConfigFile.SourcePath,
+                        },
+                    ]);
+                }
 
-            // Create Config.json file content and its alterations in a temporary file
-            var tempConfigFile = WriteEmulatorConfigJson(builder.Resource);
+                // Create default Config.json file content
+                var tempConfig = JsonNode.Parse(CreateEmulatorConfigJson(builder.Resource));
 
-            try
-            {
+                if (tempConfig == null)
+                {
+                    throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                }
+
                 // Apply ConfigJsonAnnotation modifications
                 var configJsonAnnotations = builder.Resource.Annotations.OfType<ConfigJsonAnnotation>();
 
                 if (configJsonAnnotations.Any())
                 {
-                    using var readStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Read);
-                    var jsonObject = JsonNode.Parse(readStream);
-                    readStream.Close();
-
-                    if (jsonObject == null)
-                    {
-                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
-                    }
-
                     foreach (var annotation in configJsonAnnotations)
                     {
-                        annotation.Configure(jsonObject);
+                        annotation.Configure(tempConfig);
                     }
-
-                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-                    jsonObject.WriteTo(writer);
                 }
 
-                var aspireStore = @event.Services.GetRequiredService<IAspireStore>();
+                using var writeStream = new MemoryStream();
+                using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+                tempConfig.WriteTo(writer);
 
-                // Deterministic file path for the configuration file based on its content
-                var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
+                writer.Flush();
 
-                // The docker container runs as a non-root user, so we need to grant other user's read/write permission
-                if (!OperatingSystem.IsWindows())
-                {
-                    File.SetUnixFileMode(configJsonPath, FileMode644);
-                }
-
-                builder.WithAnnotation(new ContainerMountAnnotation(
-                    configJsonPath,
-                    AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
-                    ContainerMountType.BindMount,
-                    isReadOnly: true));
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(tempConfigFile);
-                }
-                catch
-                {
-                }
-            }
-
-            return Task.CompletedTask;
-        });
+                return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                    new ContainerFile
+                    {
+                        Name = AzureEventHubsEmulatorResource.EmulatorConfigJsonFile,
+                        Contents = Encoding.UTF8.GetString(writeStream.ToArray()),
+                    },
+                ]);
+            });
 
         return builder;
     }
@@ -413,14 +388,7 @@ public static class AzureEventHubsExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        // Update the existing mount
-        var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureEventHubsEmulatorResource.EmulatorConfigJsonPath);
-        if (configFileMount != null)
-        {
-            builder.Resource.Annotations.Remove(configFileMount);
-        }
-
-        return builder.WithBindMount(path, AzureEventHubsEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+        return builder.WithAnnotation(new ConfigFileAnnotation(path), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -439,12 +407,9 @@ public static class AzureEventHubsExtensions
         return builder;
     }
 
-    private static string WriteEmulatorConfigJson(AzureEventHubsResource emulatorResource)
+    private static string CreateEmulatorConfigJson(AzureEventHubsResource emulatorResource)
     {
-        // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
-
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         writer.WriteStartObject();                      // {
@@ -474,7 +439,9 @@ public static class AzureEventHubsExtensions
         writer.WriteEndObject();                        //   } (/UserConfig)
         writer.WriteEndObject();                        // } (/Root)
 
-        return filePath;
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     /// <summary>
@@ -491,7 +458,7 @@ public static class AzureEventHubsExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var eventHubs = builder.AddAzureEventHubs("eventHubs");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(eventHubs, EventHubsBuiltInRole.AzureEventHubsDataSender)
     ///   .WithReference(eventHubs);

@@ -348,7 +348,13 @@ internal static class ContainerFileSystemItemExtensions
 
         if (item is ContainerFile file)
         {
+            entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+
+            if (file.Contents is not null && file.SourcePath is not null)
+            {
+                throw new ArgumentException("Both SourcePath and Contents are set for a file entry");
+            }
         }
         else if (item is ContainerDirectory directory)
         {
@@ -381,7 +387,11 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("mode")]
     public int Mode { get; set; }
 
-    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error.
+    // If the file system entry is a file, this is the optional path to a file on the host to use as the contents of that file.
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
+
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents and Source are mutually exclusive.
     [JsonPropertyName("contents")]
     public string? Contents { get; set; }
 
@@ -401,6 +411,7 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
             && Owner == other.Owner
             && Group == other.Group
             && Mode == other.Mode
+            && Source == other.Source
             && Contents == other.Contents
             && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
     }

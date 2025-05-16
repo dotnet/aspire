@@ -33,4 +33,7 @@ internal static partial class DockerComposePublisherLoggerExtensions
 
     [LoggerMessage(LogLevel.Warning, "Not in publishing mode. Skipping writing docker-compose.yaml output file.")]
     internal static partial void NotInPublishingMode(this ILogger logger);
+
+    [LoggerMessage(LogLevel.Error, "Failed to copy referenced file '{FilePath}' to '{OutputPath}'")]
+    internal static partial void FailedToCopyFile(this ILogger logger, string filePath, string outputPath);
 }

@@ -137,7 +137,9 @@ public class MySqlPublicApiTests
         IResourceBuilder<MySqlServerResource> builder = null!;
         const string source = "/MySql/init.sql";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -152,7 +154,38 @@ public class MySqlPublicApiTests
             .AddMySql("MySql");
         var source = isNull ? null! : string.Empty;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+           ? Assert.Throws<ArgumentNullException>(action)
+           : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithInitFilesShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MySqlServerResource> builder = null!;
+        const string source = "/MySql/init.sql";
+
+        var action = () => builder.WithInitFiles(source);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitFilesShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMySql("MySql");
+        var source = isNull ? null! : string.Empty;
+
+        var action = () => builder.WithInitFiles(source);
 
         var exception = isNull
            ? Assert.Throws<ArgumentNullException>(action)
