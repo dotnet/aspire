@@ -18,35 +18,18 @@ public class ProjectNameValidatorTests
     [InlineData("invalid-name", "invalid_name")]
     [InlineData("invalid+name", "invalid_name")]
     [InlineData("invalid name", "invalid_name")]
-    public void SanitizeProjectName_ConvertInvalidChars(string input, string expectedOutput)
+    [InlineData(".", "_")]
+    [InlineData(
+        "0123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790123456787901234567879", "0123456787901234567879012345678790123456787901234567879012345678790123456787901234567879012345678790")]
+    public void IsProjectNameValid_ReturnsExpectedResult(string projectName, string expectedSanitized)
     {
-        // Act
-        var result = ProjectNameValidator.SanitizeProjectName(input);
+        // Valid names are recognized as valid
+        Assert.Equal(projectName == expectedSanitized, ProjectNameValidator.IsProjectNameValid(projectName));
 
-        // Assert
-        Assert.Equal(expectedOutput, result);
-    }
+        // Sanitized names are recognized as valid
+        Assert.True(ProjectNameValidator.IsProjectNameValid(ProjectNameValidator.SanitizeProjectName(projectName)));
 
-    [Theory]
-    [InlineData("validName", true)]
-    [InlineData("valid_name", true)]
-    [InlineData("valid.name", true)]
-    [InlineData("valid_name_1", true)]
-    [InlineData("invalid@name", false)]
-    [InlineData("invalid$name", false)]
-    [InlineData("invalid-name", false)]
-    [InlineData("invalid+name", false)]
-    [InlineData("invalid name", false)]
-    [InlineData("-invalidName", false)]
-    [InlineData("invalidName-", false)]
-    [InlineData("@invalidName", false)]
-    [InlineData("invalidName@", false)]
-    public void IsProjectNameValid_ReturnsExpectedResult(string projectName, bool expectedResult)
-    {
-        // Act
-        var result = ProjectNameValidator.IsProjectNameValid(projectName);
-
-        // Assert
-        Assert.Equal(expectedResult, result);
+        // Sanitization should produce expected result
+        Assert.Equal(expectedSanitized, ProjectNameValidator.SanitizeProjectName(projectName));
     }
 }

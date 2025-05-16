@@ -253,25 +253,20 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         var name = await interactionService.PromptForStringAsync(
             "Enter the project name:",
             defaultValue: defaultName,
-            validator: (name) => {
-                if (ProjectNameValidator.IsProjectNameValid(name))
-                {
-                    return ValidationResult.Success();
-                }
-                else
+            validator: (name) =>
+            {
+                if (!ProjectNameValidator.IsProjectNameValid(name))
                 {
                     var sanitizedName = ProjectNameValidator.SanitizeProjectName(name);
-                    return ValidationResult.Warning($"Invalid project name. It will be modified to '{sanitizedName}'.");
+                    interactionService.DisplayWarning($"Invalid project name '{name}'. It will be modified to '{sanitizedName}'.");
                 }
+                return ValidationResult.Success();
             },
             cancellationToken: cancellationToken);
 
-        // Apply sanitization if needed
         if (!ProjectNameValidator.IsProjectNameValid(name))
         {
-            var sanitizedName = ProjectNameValidator.SanitizeProjectName(name);
-            interactionService.DisplayWarning($"Project name '{name}' contains invalid characters. Using '{sanitizedName}' instead.");
-            return sanitizedName;
+            name = ProjectNameValidator.SanitizeProjectName(name);
         }
 
         return name;
@@ -290,7 +285,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]?$", RegexOptions.Compiled)]
     internal static partial Regex GetAssemblyNameRegex();
 
     [GeneratedRegex(@"[^a-zA-Z0-9_.]", RegexOptions.Compiled)]
@@ -304,6 +299,13 @@ internal static partial class ProjectNameValidator
 
     public static string SanitizeProjectName(string projectName)
     {
-        return GetInvalidCharsRegex().Replace(projectName, "_");
+        var name = GetInvalidCharsRegex().Replace(projectName, "_");
+        name = name.Substring(0, Math.Min(name.Length, 100));
+        if (name[^1] == '.')
+        {
+            name = name[..^1] + "_";
+        }
+        Debug.Assert(IsProjectNameValid(name), $"Sanitized project name '{name}' is still invalid.");
+        return name;
     }
 }
