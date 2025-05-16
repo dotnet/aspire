@@ -2,10 +2,10 @@
 title: Create your first app
 description: Learn about essential tooling concepts for Aspire.
 lastUpdated: true
-next: true # change this to the next desired page.
+next: false # change this to the next desired page.
 ---
 
-import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
+import { Aside, Steps, Tabs, TabItem, Icon, FileTree } from '@astrojs/starlight/components';
 import { Kbd } from 'starlight-kbd/components'
 
 Aspire includes tooling to help you create and configure cloud-native apps. The tooling includes useful starter project templates and other features to streamline getting started with Aspire for Visual Studio, Visual Studio Code, and CLI workflows. Assuming you have the [prerequisites](./prerequisites) installed, you can install the Aspire CLI and create a new project.
@@ -15,7 +15,7 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 1. Create a new Aspire solution:
 
     ```console title="Create a new aspire solution"
-    aspire new aspire-starter -n first-app -o first-app
+    aspire new aspire-starter -n AspireApp -o AspireApp
     ```
 
     <Aside type='tip' title='Addition CLI option details'>
@@ -25,66 +25,70 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
       - `-o`: specifies the output directory.
     </Aside>
 
-    After running this command, your solution folder should ressemble the following:
+    When prompted to choose a template version, use the <Kbd windows="↑" mac="↑" /> and <Kbd windows="↓" mac="↓" /> keys to navigate the options. 
+    Press <Kbd windows="Enter" mac="Return" /> to confirm your selection.
+
+1. Verify the solution was created successfully. The Aspire CLI creates a new folder named _AspireApp_ in the current directory. This folder contains the solution file and several projects, including:
 
     <FileTree>
 
-    - first-app.sln
-    - first-app.ApiService
+    - AspireApp.sln
+    - AspireApp.ApiService
         - Properties/
         - appsettings.Development.json
         - appsettings.json
-        - first-app.ApiService.csproj
+        - AspireApp.ApiService.csproj
         - Program.cs
-    - **first-app.AppHost** this is your local **dev-time** orchestrator
+    - **AspireApp.AppHost** this is your local **dev-time** orchestrator
         - Properties/
         - appsettings.Development.json
         - appsettings.json
-        - first-app.AppHost.csproj
+        - AspireApp.AppHost.csproj
         - Program.cs
-    - first-app.ServiceDefaults
+    - AspireApp.ServiceDefaults
         - Extensions.cs
-        - first-app.ServiceDefaults.csproj
-    - first-app.Web
+        - AspireApp.ServiceDefaults.csproj
+    - AspireApp.Web
         - Properties/
         - wwwroot/
         - appsettings.Development.json
         - appsettings.json
-        - first-app.Web.csproj
+        - AspireApp.Web.csproj
         - Program.cs
         - WeatherApiClient.cs
     </FileTree>
 
     This relies on the Aspire templates. If they're not installed already, the CLI will install them for you.
 
-1. Change to the solution directory:
+1. Change to the _output_ directory:
 
-    ```console title="Change directories—stepping into the solution folder"
-    cd <solution-name>
+    ```console title="Change directories—stepping into the output directory"
+    cd ./AspireApp
     ```
 
 1. Run the Aspire app host project:
 
-    ```console title="Run the app host project"
-    aspire run --project ./first-app.AppHost/first-app.AppHost.csproj
+    ```console title="Run dev-time orchestration"
+    aspire run
     ```
 
-    The Aspire CLI builds the solution, and when the dashboard is ready—it's URL with login token are output to the console, finally the resources are represented with live states as well:
+    The Aspire CLI locates the app host project, builds the solution, runs dev-time orchestration, and when the dashboard is ready—it's URL with login token are output to the console, finally  he resources are represented with live states as well:
 
     ```console frame="none"
-    aspire run --project ./first-app.AppHost/first-app.AppHost.csproj
+    aspire run
 
     Dashboard:
-    📈  https://localhost:17286/login?t=<Your unique dev-time access token>
+    📈  https://localhost:17076/login?t=<Your session's access token>
 
     ╭─────────────┬─────────┬─────────┬────────────────────────╮
     │ Resource    │ Type    │ State   │ Endpoint(s)            │
     ├─────────────┼─────────┼─────────┼────────────────────────┤
-    │ apiservice  │ Project │ Running │ https://localhost:7438 │
-    │             │         │         │ http://localhost:5571  │
-    │ webfrontend │ Project │ Running │ https://localhost:7012 │
-    │             │         │         │ http://localhost:5170  │
+    │ apiservice  │ Project │ Running │ https://localhost:7393 │
+    │             │         │         │ http://localhost:5555  │
+    │ webfrontend │ Project │ Running │ https://localhost:7214 │
+    │             │         │         │ http://localhost:5124  │
     ╰─────────────┴─────────┴─────────┴────────────────────────╯
+    Press Ctrl+C to stop the app host and exit.
     ```
 
 1. Explore the running distributed application. From the dashboard, open the `HTTPS` endpoint from each resource.
@@ -92,8 +96,8 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
     ![The Aspire dashboard](../../../assets/get-started/aspire-dashboard.png)
 
 
-1. Stop the app host and close the dashboard. <Kbd windows="Ctrl+C" mac="⌘+C" />
+1. Stop the app host and close the dashboard by pressing <Kbd windows="Ctrl+C" mac="⌘+C" />.
+
+    **Congratulations! You've created your first Aspire app.**
 
 </Steps>
-
-##### Congratulations! 🥳 You've created your first Aspire app.
