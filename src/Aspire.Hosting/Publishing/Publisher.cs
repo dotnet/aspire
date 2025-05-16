@@ -22,7 +22,7 @@ internal class Publisher(
             );
         }
 
-        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath);
+        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, Path.GetFullPath(options.Value.OutputPath));
         return context.WriteModelAsync(model);
     }
 }
