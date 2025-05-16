@@ -59,8 +59,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -104,8 +104,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -134,8 +134,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -160,8 +160,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -214,8 +214,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]

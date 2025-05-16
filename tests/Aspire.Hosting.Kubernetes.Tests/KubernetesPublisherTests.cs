@@ -71,7 +71,7 @@ public class KubernetesPublisherTests()
             }
         }
 
-        await settingsTask.UseHelixAwareDirectory();
+        await settingsTask;
     }
 
     [Fact]
@@ -101,8 +101,7 @@ public class KubernetesPublisherTests()
 
         var content = await File.ReadAllTextAsync(deploymentPath);
 
-        await Verify(content, "yaml")
-        .UseHelixAwareDirectory();
+        await Verify(content, "yaml");
     }
 
     public sealed class TempDirectory : IDisposable

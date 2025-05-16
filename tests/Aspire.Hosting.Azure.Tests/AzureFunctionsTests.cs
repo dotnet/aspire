@@ -320,8 +320,8 @@ public class AzureFunctionsTests
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
         await Verify(rolesManifest.ToString(), "json")
-              .AppendContentAsFile(rolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(rolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -347,8 +347,8 @@ public class AzureFunctionsTests
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
         await Verify(rolesManifest.ToString(), "json")
-              .AppendContentAsFile(rolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(rolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -375,8 +375,8 @@ public class AzureFunctionsTests
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
         await Verify(rolesManifest.ToString(), "json")
-              .AppendContentAsFile(rolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(rolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -409,8 +409,8 @@ public class AzureFunctionsTests
         await Verify(rolesManifest.ToString(), "json")
               .AppendContentAsFile(rolesBicep, "bicep")
               .AppendContentAsFile(rolesManifest2.ToString(), "json")
-              .AppendContentAsFile(rolesBicep2, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(rolesBicep2, "bicep");
+              
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

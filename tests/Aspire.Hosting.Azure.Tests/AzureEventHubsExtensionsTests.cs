@@ -295,8 +295,8 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(ehRolesManifest.ToString(), "json")
-              .AppendContentAsFile(ehRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(ehRolesBicep, "bicep");
+              
     }
 
     [Fact]

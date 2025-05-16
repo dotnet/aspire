@@ -48,8 +48,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -70,8 +69,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -104,8 +102,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -140,8 +137,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
