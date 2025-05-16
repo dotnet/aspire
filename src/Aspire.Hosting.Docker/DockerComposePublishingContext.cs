@@ -169,7 +169,8 @@ internal sealed class DockerComposePublishingContext(
                     Directory.CreateDirectory(Path.Combine(OutputPath, composeService.Name));
                     File.Copy(file.SourcePath, sourcePath);
                     // Use a relative path for the compose file to make it portable
-                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath);
+                    // Use unix style path separators even on Windows
+                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath).Replace('\\', '/');
                 }
                 catch
                 {
