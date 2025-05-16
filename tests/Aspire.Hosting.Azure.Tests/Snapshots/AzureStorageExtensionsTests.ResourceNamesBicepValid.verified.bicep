@@ -26,9 +26,18 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   parent: storage
 }
 
+resource queues 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
+  parent: storage
+}
+
 resource myContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'my-blob-container'
   parent: blobs
+}
+
+resource myqueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = {
+  name: 'my-queue'
+  parent: queues
 }
 
 output blobEndpoint string = storage.properties.primaryEndpoints.blob

@@ -5,6 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -108,6 +109,50 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyWaitForOnAzureStorageEmulatorForQueueBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var storage = builder.AddAzureStorage("resource")
+                              .RunAsEmulator()
+                              .WithHealthCheck("blocking_check");
+
+        var queues = storage.AddQueues("queues");
+        var testQueue = queues.AddQueue("testqueue");
+
+        var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                                       .WaitFor(testQueue);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(storage.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(testQueue.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyAzureStorageEmulatorResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
@@ -169,5 +214,41 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
         Assert.Equal(blobNameAndContent, downloadResult.Content.ToString());
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyAzureStorageEmulator_queue_auto_created()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        var queues = storage.AddQueues("queues");
+        var queue = queues.AddQueue("testqueue");
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+        hb.Configuration["ConnectionStrings:QueueConnection"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureQueueClient("QueueConnection");
+
+        using var host = hb.Build();
+        await host.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(queue.Resource.Name, CancellationToken.None);
+
+        var serviceClient = host.Services.GetRequiredService<QueueServiceClient>();
+        var queueClient = serviceClient.GetQueueClient("testqueue");
+
+        var exists = await queueClient.ExistsAsync();
+        Assert.True(exists, "Queue should exist after starting the application.");
+
+        var blobNameAndContent = Guid.NewGuid().ToString();
+        var response = await queueClient.SendMessageAsync(blobNameAndContent);
+
+        var peekMessage = await queueClient.PeekMessageAsync();
+
+        Assert.Equal(blobNameAndContent, peekMessage.Value.Body.ToString());
     }
 }

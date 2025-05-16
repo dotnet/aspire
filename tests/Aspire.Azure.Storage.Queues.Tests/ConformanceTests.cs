@@ -24,6 +24,9 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
 
     protected override string ActivitySourceName => "Azure.Storage.Queues.QueueClient";
 
+    // AzureStorageQueuesSettings subclassed by AzureStorageQueueSettings
+    protected override bool CheckOptionClassSealed => false;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Azure.Core",

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -8,6 +9,7 @@ using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -76,6 +78,11 @@ public static class AzureStorageExtensions
                 Parent = storageAccount
             };
             infrastructure.Add(blobs);
+            var queues = new QueueService("queues")
+            {
+                Parent = storageAccount
+            };
+            infrastructure.Add(queues);
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
@@ -88,6 +95,13 @@ public static class AzureStorageExtensions
                 var cdkBlobContainer = blobContainer.ToProvisioningEntity();
                 cdkBlobContainer.Parent = blobs;
                 infrastructure.Add(cdkBlobContainer);
+            }
+
+            foreach (var queue in azureResource.Queues)
+            {
+                var cdkQueue = queue.ToProvisioningEntity();
+                cdkQueue.Parent = queues;
+                infrastructure.Add(cdkQueue);
             }
 
             // We need to output name to externalize role assignments.
@@ -131,34 +145,32 @@ public static class AzureStorageExtensions
                });
 
         BlobServiceClient? blobServiceClient = null;
+        QueueServiceClient? queueServiceClient = null;
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
             var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"BeforeResourceStartedEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
-
+            ThrowDistributedApplicationExceptionIfNull(connectionString, $"BeforeResourceStartedEvent was published for the '{builder.Resource.Name}' resource but the blobs connection string was null.");
             blobServiceClient = CreateBlobServiceClient(connectionString);
+
+            connectionString = await builder.Resource.GetQueueConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+            ThrowDistributedApplicationExceptionIfNull(connectionString, $"BeforeResourceStartedEvent was published for the '{builder.Resource.Name}' resource but the queues connection string was null.");
+            queueServiceClient = CreateQueueServiceClient(connectionString);
         });
 
         builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
         {
-            if (blobServiceClient is null)
-            {
-                throw new DistributedApplicationException($"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
-            }
-
-            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
+            ThrowDistributedApplicationExceptionIfNull(blobServiceClient, $"BlobServiceClient was not created for the '{builder.Resource.Name}' resource.");
+            ThrowDistributedApplicationExceptionIfNull(queueServiceClient, $"QueueServiceClient was not created for the '{builder.Resource.Name}' resource.");
 
             foreach (var blobContainer in builder.Resource.BlobContainers)
             {
                 await blobServiceClient.GetBlobContainerClient(blobContainer.BlobContainerName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+            }
+
+            foreach (var queue in builder.Resource.Queues)
+            {
+                await queueServiceClient.GetQueueClient(queue.QueueName).CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
             }
         });
 
@@ -192,6 +204,26 @@ public static class AzureStorageExtensions
             else
             {
                 return new BlobServiceClient(connectionString);
+            }
+        }
+
+        static QueueServiceClient CreateQueueServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new QueueServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new QueueServiceClient(connectionString);
+            }
+        }
+
+        static void ThrowDistributedApplicationExceptionIfNull([NotNull] object? argument, string message)
+        {
+            if (argument is null)
+            {
+                throw new DistributedApplicationException(message);
             }
         }
     }
@@ -299,7 +331,7 @@ public static class AzureStorageExtensions
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageResource"/> which can be referenced to get the Azure Storage blob endpoint for the storage account.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
@@ -314,7 +346,7 @@ public static class AzureStorageExtensions
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageContainerResource"/> which can be referenced to get the Azure Storage blob container endpoint for the storage account.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureBlobStorageResource"/>/</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureBlobStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="blobContainerName">The name of the blob container.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageContainerResource"/>.</returns>
@@ -335,7 +367,7 @@ public static class AzureStorageExtensions
     /// <summary>
     /// Creates a builder for the <see cref="AzureTableStorageResource"/> which can be referenced to get the Azure Storage tables endpoint for the storage account.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
@@ -350,7 +382,7 @@ public static class AzureStorageExtensions
     /// <summary>
     /// Creates a builder for the <see cref="AzureQueueStorageResource"/> which can be referenced to get the Azure Storage queues endpoint for the storage account.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
@@ -359,6 +391,27 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureQueueStorageQueueResource"/> which can be referenced to get the Azure Storage queue endpoint for the storage account.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureQueueStorageResource"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="queueName">The name of the queue.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageQueueResource"/>.</returns>
+    public static IResourceBuilder<AzureQueueStorageQueueResource> AddQueue(this IResourceBuilder<AzureQueueStorageResource> builder, [ResourceName] string name, string? queueName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        queueName ??= name;
+
+        AzureQueueStorageQueueResource resource = new(name, queueName, builder.Resource);
+
+        builder.Resource.Parent.Queues.Add(resource);
+
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
