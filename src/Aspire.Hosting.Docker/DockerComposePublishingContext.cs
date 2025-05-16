@@ -140,7 +140,7 @@ internal sealed class DockerComposePublishingContext(
         envFile.Save(envFilePath);
     }
 
-    private static void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
+    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
     {
         if (item is ContainerDirectory dir)
         {
@@ -155,10 +155,32 @@ internal sealed class DockerComposePublishingContext(
         if (item is ContainerFile file)
         {
             var name = composeService.Name + "_" + path.Replace('/', '_') + "_" + file.Name;
+
+            // If there is a source path, we should copy the file to the output path and use that instead.
+            string? sourcePath = null;
+            if (!string.IsNullOrEmpty(file.SourcePath))
+            {
+                try
+                {
+                    // Determine the path to copy the file to
+                    sourcePath = Path.Combine(OutputPath, composeService.Name, Path.GetFileName(file.SourcePath));
+                    // Files will be copied to a subdirectory named after the service
+                    Directory.CreateDirectory(Path.Combine(OutputPath, composeService.Name));
+                    File.Copy(file.SourcePath, sourcePath);
+                    // Use a relative path for the compose file to make it portable
+                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath);
+                }
+                catch
+                {
+                    logger.FailedToCopyFile(file.SourcePath, OutputPath);
+                    throw;
+                }
+            }
+
             composeFile.AddConfig(new()
             {
                 Name = name,
-                File = file.SourcePath,
+                File = sourcePath,
                 Content = file.Contents,
             });
 

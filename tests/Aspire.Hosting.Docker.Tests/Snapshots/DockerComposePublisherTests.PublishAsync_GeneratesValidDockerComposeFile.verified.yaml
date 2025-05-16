@@ -67,4 +67,4 @@ configs:
   cache__usr_local_share_redis.conf:
     content: "hello world"
   cache__usr_local_share_folder_file.sh:
-    file: "./somefile.sh"
+    file: "cache/hello.sh"

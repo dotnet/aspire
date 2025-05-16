@@ -50,7 +50,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                                 new ContainerFile
                                 {
                                     Name = "file.sh",
-                                    SourcePath = "./somefile.sh",
+                                    SourcePath = "./hello.sh",
                                     Owner = 1000,
                                     Group = 1000,
                                     Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
