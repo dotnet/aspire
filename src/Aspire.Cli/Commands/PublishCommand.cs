@@ -151,6 +151,9 @@ internal sealed class PublishCommand : BaseCommand
             }
 
             var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+
+            await backchannel.RequestParameterPromptsAsync(cancellationToken);
+
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
             var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;

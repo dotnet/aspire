@@ -18,6 +18,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
+    Task RequestParameterPromptsAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
@@ -77,7 +78,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return url;
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -143,7 +144,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -178,5 +179,19 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             cancellationToken).ConfigureAwait(false);
 
         return capabilities;
+    }
+
+    public async Task RequestParameterPromptsAsync(CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
+
+        logger.LogDebug("Requesting parameter prompts");
+
+        await rpc.InvokeWithCancellationAsync(
+            "RequestParameterPromptsAsync",
+            Array.Empty<object>(),
+            cancellationToken).ConfigureAwait(false);
     }
 }

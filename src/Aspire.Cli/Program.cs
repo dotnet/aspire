@@ -122,7 +122,7 @@ public class Program
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
-        builder.Services.AddSingleton<CliRpcTarget>();
+        builder.Services.AddSingleton<CliRpcTarget>(BuildCliRpcTarget);
         builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
 
         // Commands.
@@ -134,6 +134,24 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static CliRpcTarget BuildCliRpcTarget(IServiceProvider serviceProvider)
+    {
+        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+
+        return new CliRpcTarget()
+        {
+            GetParameterValueCallback = async (parameterName) =>
+            {
+                var textPrompt = new TextPrompt<string>($"Enter value for {parameterName}:")
+                    .AllowEmpty()
+                    .ShowDefaultValue()
+                    .PromptStyle("green");
+
+                return await ansiConsole.PromptAsync(textPrompt);
+            }
+        };
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)

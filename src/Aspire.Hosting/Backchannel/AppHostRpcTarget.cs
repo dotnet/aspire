@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using StreamJsonRpc;
 
 namespace Aspire.Hosting.Backchannel;
 
@@ -21,9 +22,9 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options
-    ) 
+    )
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
@@ -43,7 +44,7 @@ internal class AppHostRpcTarget(
                 publishingActivityStatus.IsError
             );
 
-            if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
+            if (publishingActivityStatus.Activity.IsPrimary && (publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
@@ -52,7 +53,7 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -69,7 +70,7 @@ internal class AppHostRpcTarget(
                 logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
-    
+
             var endpointUris = endpoints
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
@@ -129,7 +130,7 @@ internal class AppHostRpcTarget(
         if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
         {
             logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");            
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
         var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
@@ -173,4 +174,23 @@ internal class AppHostRpcTarget(
             });
     }
 #pragma warning restore CA1822
+
+    public async Task RequestParameterPromptsAsync(CancellationToken cancellationToken)
+    {
+        if (ClientRpc == null)
+        {
+            throw new DistributedApplicationException("ClientRpc is not set.");
+        }
+
+        var model = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+        var parameters = model.Resources.OfType<ParameterResource>().ToList();
+
+        foreach (var parameter in parameters)
+        {
+            var value = await ClientRpc.InvokeWithCancellationAsync<string>("GetParameterValue", [parameter.Name], cancellationToken).ConfigureAwait(false);
+            _ = value;
+        }
+    }
+
+    public JsonRpc? ClientRpc { get; set; }
 }
