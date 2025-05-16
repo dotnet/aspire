@@ -105,19 +105,6 @@ public class KubernetesPublisherTests()
         .UseHelixAwareDirectory();
     }
 
-    public sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = Directory.CreateTempSubdirectory(".aspire-kubernetes").FullName;
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Path))
-            {
-                Directory.Delete(Path, recursive: true);
-            }
-        }
-    }
-
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
