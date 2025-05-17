@@ -70,7 +70,7 @@ export default defineConfig({
 				}
 			],
 			customCss: [
-				'./src/styles/home.css'
+				'./src/styles/site.css'
 			],
 			components: {
 				ContentPanel: './src/components/ContentPanel.astro',

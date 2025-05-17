@@ -1,5 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap');
+
 /* Dark mode colors. */
 :root {
+
+	/* https://betterwebtype.com/5-monospaced-fonts-with-coding-ligatures/ */
+	--__sl-font-mono: 'Fira Code';
+
 	--sl-color-accent-low: #0F042C;
 	--sl-color-accent: #512BD4;
 	--sl-color-accent-high: #B9AAEE;
