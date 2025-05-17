@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.TestUtilities;
 using EmptyFiles;
 
 namespace Aspire.Hosting.Azure.Tests;
