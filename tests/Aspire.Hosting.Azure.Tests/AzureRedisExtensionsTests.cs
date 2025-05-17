@@ -42,8 +42,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(redisRolesManifest.ToString(), "json")
-              .AppendContentAsFile(redisRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(redisRolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]

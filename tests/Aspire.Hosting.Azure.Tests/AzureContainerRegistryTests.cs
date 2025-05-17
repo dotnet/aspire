@@ -65,8 +65,7 @@ public class AzureContainerRegistryTests
         var (manifest, bicep) = await GetManifestWithBicep(acr.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -91,8 +90,8 @@ public class AzureContainerRegistryTests
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(rolesResource);
 
         await Verify(rolesManifest.ToString(), "json")
-              .AppendContentAsFile(rolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(rolesBicep, "bicep");
+              
     }
 
     private sealed class Project : IProjectMetadata

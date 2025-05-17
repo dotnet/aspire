@@ -23,8 +23,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -83,8 +83,7 @@ public class ExistingAzureResourceTests
         await Verify(manifest.ToString(), "json")
                 .AppendContentAsFile(bicep, "bicep")
                 .AppendContentAsFile(rolesManifest.ToString(), "json")
-                .AppendContentAsFile(rolesBicep, "bicep")
-                .UseHelixAwareDirectory();
+                .AppendContentAsFile(rolesBicep, "bicep");
     }
 
     [Fact]
@@ -98,8 +97,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -115,8 +114,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(storageAccount.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -130,8 +129,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(storageAccount.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -147,8 +146,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appConfiguration.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -164,8 +163,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -181,8 +180,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(keyVault.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -198,8 +197,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(logAnalytics.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -215,8 +214,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgresSql.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -236,8 +235,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgresSql.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -253,8 +252,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -270,8 +269,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(signalR.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -287,8 +286,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(webPubSub.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -304,8 +303,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -320,8 +319,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(sqlServer.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -337,8 +336,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -353,8 +352,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -370,8 +369,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -393,8 +392,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(openAI.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -413,8 +412,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -434,8 +433,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -450,8 +449,8 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(acr.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 
     [Fact]
@@ -467,7 +466,7 @@ public class ExistingAzureResourceTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(acr.Resource);
 
         await Verify(manifest.ToString(), "json")
-            .AppendContentAsFile(bicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(bicep, "bicep");
+            
     }
 }

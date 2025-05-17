@@ -78,8 +78,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
     }
 
     [Fact]
@@ -102,8 +101,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
 
-        await Verify(File.ReadAllText(composePath), "yaml")
-            .UseHelixAwareDirectory();
+        await Verify(File.ReadAllText(composePath), "yaml");
     }
 
     [Theory]
@@ -188,8 +186,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
     }
 
     [Fact]
@@ -218,8 +215,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var secondContent = File.ReadAllText(envFilePath);
 
         await Verify(firstContent, "env")
-            .AppendContentAsFile(secondContent, "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(secondContent, "env");
     }
 
     [Fact]
@@ -258,8 +254,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var secondContent = File.ReadAllText(envFilePath);
 
         await Verify(firstContent, "env")
-            .AppendContentAsFile(secondContent, "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(secondContent, "env");
     }
 
     [Fact]
@@ -284,8 +279,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeFile = File.ReadAllText(composePath);
 
-        await Verify(composeFile)
-            .UseHelixAwareDirectory();
+        await Verify(composeFile);
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder

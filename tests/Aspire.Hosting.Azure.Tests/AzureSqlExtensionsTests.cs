@@ -54,8 +54,8 @@ public class AzureSqlExtensionsTests()
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString(), ignoreLineEndingDifferences: true);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory();
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Theory]

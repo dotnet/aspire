@@ -43,9 +43,9 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
             var sqlBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sql-server.module.bicep"));
 
-            await Verifier.Verify(sbBicep, extension: "bicep")
-                .AppendContentAsFile(sqlBicep, "bicep")
-                .UseHelixAwareDirectory();
+            await Verify(sbBicep, extension: "bicep")
+                .AppendContentAsFile(sqlBicep, "bicep");
+                
 
             await app.StopAsync();
         }
