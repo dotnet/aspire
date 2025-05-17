@@ -6,6 +6,21 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
+namespace <global namespace>
+{
+    public static partial class AzureEnvironmentResourceExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEnvironmentResource> AddAzureEnvironment(this Aspire.Hosting.IDistributedApplicationBuilder builder) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEnvironmentResource> WithLocation(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEnvironmentResource> builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource> location) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEnvironmentResource> WithResourceGroup(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEnvironmentResource> builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource> resourceGroup) { throw null; }
+    }
+}
+
 namespace Aspire.Hosting
 {
     public static partial class AzureBicepResourceExtensions
@@ -199,18 +214,6 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ParameterResource ResourceGroupName { get { throw null; } set { } }
     }
 
-    public static partial class AzureEnvironmentResourceExtensions
-    {
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> AddAzureEnvironment(this IDistributedApplicationBuilder builder) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> WithLocation(this ApplicationModel.IResourceBuilder<AzureEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> location) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> WithResourceGroup(this ApplicationModel.IResourceBuilder<AzureEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> resourceGroup) { throw null; }
-    }
-
     public sealed partial class AzureProvisioningOptions
     {
         public global::Azure.Provisioning.ProvisioningBuildOptions ProvisioningBuildOptions { get { throw null; } }
@@ -241,9 +244,8 @@ namespace Aspire.Hosting.Azure
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class AzurePublishingContext
     {
+        public global::Azure.Provisioning.Infrastructure MainInfrastructure;
         public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger) { }
-
-        public global::Azure.Provisioning.Infrastructure MainInfrastructure { get { throw null; } }
 
         public System.Collections.Generic.Dictionary<BicepOutputReference, global::Azure.Provisioning.ProvisioningOutput> OutputLookup { get { throw null; } }
 

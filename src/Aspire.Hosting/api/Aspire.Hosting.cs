@@ -402,6 +402,13 @@ namespace Aspire.Hosting
         public string? LaunchProfileName { get { throw null; } set { } }
     }
 
+    public static partial class PublisherDistributedApplicationBuilderExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, System.Action<TPublisherOptions>? configureOptions = null)
+            where TPublisher : class, Publishing.IDistributedApplicationPublisher where TPublisherOptions : class { throw null; }
+    }
+
     public static partial class ResourceBuilderExtensions
     {
         public static ApplicationModel.IResourceBuilder<T> AsHttp2Service<T>(this ApplicationModel.IResourceBuilder<T> builder)
@@ -527,7 +534,6 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithParentRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> parent)
             where T : ApplicationModel.IResource { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<T> WithPublishingCallback<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<ApplicationModel.PublishingContext, System.Threading.Tasks.Task> callback)
             where T : ApplicationModel.IResource { throw null; }
 
@@ -852,7 +858,6 @@ namespace Aspire.Hosting.ApplicationModel
         public string ValueExpression { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial class ContainerRegistryReferenceAnnotation : IResourceAnnotation
     {
         public ContainerRegistryReferenceAnnotation(IContainerRegistry registry) { }
@@ -1538,7 +1543,6 @@ namespace Aspire.Hosting.ApplicationModel
         public required bool ProxyEnabled { get { throw null; } set { } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingCallbackAnnotation : IResourceAnnotation
     {
         public PublishingCallbackAnnotation(System.Func<PublishingContext, System.Threading.Tasks.Task> callback) { }
@@ -1546,7 +1550,6 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Func<PublishingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class PublishingContext
     {
         public PublishingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string outputPath) { }

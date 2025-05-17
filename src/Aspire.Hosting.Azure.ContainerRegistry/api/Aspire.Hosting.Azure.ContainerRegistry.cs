@@ -10,17 +10,17 @@ namespace Aspire.Hosting
 {
     public static partial class AzureContainerRegistryExtensions
     {
-        public static ApplicationModel.IResourceBuilder<Azure.AzureContainerRegistryResource> AddAzureContainerRegistry(this IDistributedApplicationBuilder builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.ContainerRegistry.AzureContainerRegistryResource> AddAzureContainerRegistry(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<T> WithAzureContainerRegistry<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureContainerRegistryResource> registryBuilder)
+        public static ApplicationModel.IResourceBuilder<T> WithAzureContainerRegistry<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.ContainerRegistry.AzureContainerRegistryResource> registryBuilder)
             where T : ApplicationModel.IResource, ApplicationModel.IComputeEnvironmentResource { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureContainerRegistryResource> target, params global::Azure.Provisioning.ContainerRegistry.ContainerRegistryBuiltInRole[] roles)
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.ContainerRegistry.AzureContainerRegistryResource> target, params global::Azure.Provisioning.ContainerRegistry.ContainerRegistryBuiltInRole[] roles)
             where T : ApplicationModel.IResource { throw null; }
     }
 }
 
-namespace Aspire.Hosting.Azure
+namespace Aspire.Hosting.Azure.ContainerRegistry
 {
     public partial class AzureContainerRegistryResource : AzureProvisioningResource, ApplicationModel.IContainerRegistry
     {

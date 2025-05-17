@@ -16,11 +16,21 @@ namespace Aspire.Hosting
 
     public static partial class AzureAppServiceEnvironmentExtensions
     {
-        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AppService.AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Azure
+{
+    public sealed partial class AzureAppServiceWebsiteCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AzureAppServiceWebsiteCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure) { }
+
+        public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> Configure { get { throw null; } }
+    }
+}
+
+namespace Aspire.Hosting.Azure.AppService
 {
     public partial class AzureAppServiceEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
@@ -31,12 +41,5 @@ namespace Aspire.Hosting.Azure
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
-    }
-
-    public sealed partial class AzureAppServiceWebsiteCustomizationAnnotation : ApplicationModel.IResourceAnnotation
-    {
-        public AzureAppServiceWebsiteCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure) { }
-
-        public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> Configure { get { throw null; } }
     }
 }
