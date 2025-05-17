@@ -299,23 +299,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public TempDirectory()
-        {
-            Path = Directory.CreateTempSubdirectory(".aspire-compose").FullName;
-        }
-
-        public string Path { get; }
-        public void Dispose()
-        {
-            if (File.Exists(Path))
-            {
-                File.Delete(Path);
-            }
-        }
-    }
-
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";

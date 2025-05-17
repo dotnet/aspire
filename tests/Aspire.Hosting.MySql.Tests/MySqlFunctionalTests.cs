@@ -456,7 +456,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
 
         // Use the same path for both runs
-        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+        using var aspireStore = new TempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
@@ -465,19 +465,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.All(after, Assert.NotNull);
         Assert.Equal(before, after);
 
-        try
-        {
-            Directory.Delete(aspireStorePath, true);
-        }
-        catch
-        {
-            // Don't fail test if we can't clean the temporary folder
-        }
-
         async Task<string?[]> RunContainersAsync()
         {
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
-                .WithTempAspireStore(aspireStorePath)
+                .WithTempAspireStore(aspireStore.Path)
                 .WithResourceCleanUp(false);
 
             var passwordParameter = builder.AddParameter("pwd", "p@ssw0rd1", secret: true);

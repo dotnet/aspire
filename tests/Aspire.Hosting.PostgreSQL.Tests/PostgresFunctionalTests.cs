@@ -446,7 +446,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         // Use the same path for both runs
-        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+        using var aspireStore = new TempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
@@ -455,19 +455,10 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.All(after, Assert.NotNull);
         Assert.Equal(before, after);
 
-        try
-        {
-            Directory.Delete(aspireStorePath, true);
-        }
-        catch
-        {
-            // Don't fail test if we can't clean the temporary folder
-        }
-
         async Task<string?[]> RunContainersAsync()
         {
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
-                .WithTempAspireStore(aspireStorePath)
+                .WithTempAspireStore(aspireStore.Path)
                 .WithResourceCleanUp(false);
 
             var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);
