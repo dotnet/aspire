@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using static Aspire.ArgumentExceptionExtensions;
+
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
@@ -16,10 +16,16 @@ namespace Aspire.Hosting.Azure;
 public class AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent)
     : Resource(name), IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
+    private string _databaseName = ThrowIfNullOrEmpty(databaseName);
+
     /// <summary>
     /// Gets or sets the database name.
     /// </summary>
-    public string DatabaseName { get; set; } = ThrowIfNullOrEmpty(databaseName);
+    public string DatabaseName
+    {
+        get => _databaseName;
+        set => _databaseName = ThrowIfNullOrEmpty(value, nameof(databaseName));
+    }
 
     /// <summary>
     /// The containers for this database.
@@ -50,11 +56,5 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__DatabaseName"] = DatabaseName;
         }
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }

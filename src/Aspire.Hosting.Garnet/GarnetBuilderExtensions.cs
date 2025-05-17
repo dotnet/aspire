@@ -54,7 +54,7 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         int? port)
     {
-        return builder.AddGarnet(name, port, password: null);
+        return AddGarnet(builder, name, port, password: null);
     }
 
     /// <summary>

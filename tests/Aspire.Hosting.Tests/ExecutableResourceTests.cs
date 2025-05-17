@@ -96,10 +96,7 @@ public class ExecutableResourceTests
 
     [Fact]
     public void ExecutableResourceEmptyWorkingDirectory()
-    {
-        var er = new ExecutableResource("name", command: "cmd", workingDirectory: "");
-        Assert.Empty(er.WorkingDirectory);
-    }
+        => Assert.Throws<ArgumentException>("workingDirectory", () => new ExecutableResource("name", command: "cmd", workingDirectory: ""));
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
