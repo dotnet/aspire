@@ -3,6 +3,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+if (DateTime.Now < DateTime.Now.AddDays(1))
+{
+    throw new ArgumentException("Boom!");
+}
+
 var db = builder.AddAzurePostgresFlexibleServer("pg")
                 .WithPasswordAuthentication()
                 .RunAsContainer(c =>
