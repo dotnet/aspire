@@ -818,7 +818,7 @@ fluent-tooltip[anchor="dialog_close"] > div {
     margin-right: 3px;
 }
 
-.resource-actions-url-menuitem::part(content) {
+fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
