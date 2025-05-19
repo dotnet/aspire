@@ -180,11 +180,21 @@ internal sealed class AzureResourcePreparer(
 
                         if (resource != identityResource)
                         {
-                            // attach the identity resource to compute resource so it can be used by the compute environment
-                            resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
+                            // Only add the AppIdentityAnnotation if the resource doesn't already have one
+                            if (!resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var existingAppIdentityAnnotation) ||
+                                existingAppIdentityAnnotation.IdentityResource != identityResource)
+                            {
+                                resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
+                            }
+
                             // add the identity resource to the resource collection so it can be provisioned
-                            appModel.Resources.Add(identityResource);
+                            // but only if it's not already there
+                            if (!appModel.Resources.Contains(identityResource))
+                            {
+                                appModel.Resources.Add(identityResource);
+                            }
                         }
+
                         foreach (var roleAssignmentResource in roleAssignmentResources)
                         {
                             appModel.Resources.Add(roleAssignmentResource);
@@ -239,12 +249,27 @@ internal sealed class AzureResourcePreparer(
         Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> roleAssignments,
         DistributedApplicationExecutionContext executionContext)
     {
-        var identityResource = resource is AzureUserAssignedIdentityResource existingIdentityResource
-            ? existingIdentityResource
-            : new AzureUserAssignedIdentityResource($"{resource.Name}-identity")
+        AzureUserAssignedIdentityResource identityResource;
+
+        // If we're currently targeting an AzureUserAssignedIdentityResource, we can use it as the identity resource
+        // for the role assignments. If we are targeting a compute resource that has an AppIdentityAnnotation, we can
+        // use the identity resource from that annotation. Otherwise, create a new identity resource to use for role assignments.
+        if (resource is AzureUserAssignedIdentityResource existingIdentityResource)
+        {
+            identityResource = existingIdentityResource;
+        }
+        else if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation) &&
+                appIdentityAnnotation.IdentityResource is AzureUserAssignedIdentityResource existingAppIdentity)
+        {
+            identityResource = existingAppIdentity;
+        }
+        else
+        {
+            identityResource = new AzureUserAssignedIdentityResource($"{resource.Name}-identity")
             {
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
             };
+        }
 
         var roleAssignmentResources = CreateRoleAssignmentsResources(provisioningOptions, resource, roleAssignments, identityResource, executionContext);
         return (identityResource, roleAssignmentResources);
@@ -287,7 +312,7 @@ internal sealed class AzureResourcePreparer(
         IEnumerable<RoleDefinition> roles,
         AzureUserAssignedIdentityResource appIdentityResource)
     {
-        
+
         var context = new AddRoleAssignmentsContext(
             infra,
             executionContext,
