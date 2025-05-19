@@ -42,6 +42,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
                 StandardOutputCallback = ensureCertificateCollector.AppendOutput,
                 StandardErrorCallback = ensureCertificateCollector.AppendError,
             };
+
             var trustExitCode = await interactionService.ShowStatusAsync(
                 ":locked_with_key: Trusting certificates...",
                 () => runner.TrustHttpCertificateAsync(
@@ -51,10 +52,12 @@ internal sealed class CertificateService(IInteractionService interactionService)
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                throw new CertificateServiceException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+                interactionService.DisplayMessage("warning", $"Developer certificates may not be fully trusted (trust exit code was: {trustExitCode})");
             }
         }
     }
+
+    internal const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)
