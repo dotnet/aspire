@@ -19,7 +19,6 @@
     <PackageReference Include="Azure.Provisioning.KeyVault" />
     <PackageReference Include="Azure.Provisioning.Storage" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.AppService;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure App Service Environment resource.
