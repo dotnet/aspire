@@ -30,8 +30,8 @@ public static class ResourceMenuItems
         IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
         IStringLocalizer<Commands> commandsLoc,
-        Func<string?, Task> onViewDetails,
-        Func<CommandViewModel, Task> commandSelected,
+        EventCallback<string?> onViewDetails,
+        EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
         bool showConsoleLogsItem,
         bool showUrls)
@@ -40,7 +40,7 @@ public static class ResourceMenuItems
         {
             Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
-            OnClick = () => onViewDetails(openingMenuButtonId)
+            OnClick = () => onViewDetails.InvokeAsync(openingMenuButtonId)
         });
 
         if (showConsoleLogsItem)
@@ -123,7 +123,7 @@ public static class ResourceMenuItems
                     Text = command.GetDisplayName(commandsLoc),
                     Tooltip = command.GetDisplayDescription(commandsLoc),
                     Icon = icon,
-                    OnClick = () => commandSelected(command),
+                    OnClick = () => commandSelected.InvokeAsync(command),
                     IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
                 });
             }

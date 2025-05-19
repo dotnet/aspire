@@ -37,8 +37,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback<string?>.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);
@@ -89,8 +89,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback<string?>.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);
@@ -141,8 +141,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback<string?>.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);

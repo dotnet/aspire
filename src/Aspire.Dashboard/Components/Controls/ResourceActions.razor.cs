@@ -75,8 +75,8 @@ public partial class ResourceActions : ComponentBase
             ControlLoc,
             Loc,
             CommandsLoc,
-            OnViewDetails.InvokeAsync,
-            CommandSelected.InvokeAsync,
+            OnViewDetails,
+            CommandSelected,
             IsCommandExecuting,
             showConsoleLogsItem: true,
             showUrls: false);

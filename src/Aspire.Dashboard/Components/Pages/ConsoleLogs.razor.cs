@@ -360,12 +360,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 ControlsStringsLoc,
                 ResourcesLoc,
                 CommandsLoc,
-                buttonId =>
+                EventCallback.Factory.Create<string?>(this, buttonId =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
                     return Task.CompletedTask;
-                },
-                ExecuteResourceCommandAsync,
+                }),
+                EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: false,
                 showUrls: true);
@@ -384,8 +384,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName, StateHasChanged);
-        //StateHasChanged();
+        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);

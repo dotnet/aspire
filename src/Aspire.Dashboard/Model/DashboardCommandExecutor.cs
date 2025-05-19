@@ -32,7 +32,7 @@ public sealed class DashboardCommandExecutor(
         }
     }
 
-    public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName, Action updateState)
+    public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
     {
         var executingCommandKey = (resource.Name, command.Name);
         lock (_lock)
@@ -67,8 +67,6 @@ public sealed class DashboardCommandExecutor(
         }
         finally
         {
-            updateState();
-
             // There may be a delay between a command finishing and the arrival of a new resource state with updated commands sent to the client.
             // For example:
             // 1. Click the stop command on a resource. The command is disabled while running.
@@ -83,8 +81,6 @@ public sealed class DashboardCommandExecutor(
             {
                 _executingCommands.Remove(executingCommandKey);
             }
-
-            updateState();
         }
     }
 

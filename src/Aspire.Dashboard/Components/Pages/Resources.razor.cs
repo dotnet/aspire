@@ -541,8 +541,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 ControlsStringsLoc,
                 Loc,
                 CommandsLoc,
-                (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
-                (command) => ExecuteResourceCommandAsync(resource, command),
+                EventCallback.Factory.Create<string?>(this, (buttonId) => ShowResourceDetailsAsync(resource, buttonId)),
+                EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
                 showUrls: true);
@@ -646,7 +646,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName, StateHasChanged);
+        await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
     private static string GetUrlsTooltip(ResourceViewModel resource)
