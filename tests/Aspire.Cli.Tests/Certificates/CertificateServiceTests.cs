@@ -23,7 +23,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
                 runner.TrustHttpCertificateAsyncCallback = (options, _) =>
                 {
                     Assert.NotNull(options.StandardErrorCallback);
-                    options.StandardErrorCallback!.Invoke("There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.");
+                    options.StandardErrorCallback!.Invoke(CertificateService.DevCertsPartialTrustMessage);
                     return 4;
                 };
                 return runner;

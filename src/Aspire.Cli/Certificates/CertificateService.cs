@@ -70,7 +70,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
         }
     }
 
-    private const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
+    internal const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)
