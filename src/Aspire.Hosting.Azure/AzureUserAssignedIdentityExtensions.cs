@@ -45,7 +45,8 @@ public static class AzureUserAssignedIdentityExtensions
     }
 
     /// <summary>
-    /// Sets the <see cref="AzureUserAssignedIdentityResource"/> as the target resource for the builder.
+    /// Attaches an existing <see cref="AzureUserAssignedIdentityResource"/> to a compute resource, 
+    /// setting it as the target identity for the builder.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="IComputeResource"/> the identity will be associated with.</param>
     /// <param name="identityResourceBuilder">The builder for the <see cref="AzureUserAssignedIdentityResource"/>.</param>
