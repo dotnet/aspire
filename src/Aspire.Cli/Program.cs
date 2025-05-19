@@ -156,15 +156,6 @@ public class Program
         return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
     }
 
-    private static void LogCliVersion(ILogger<Program> logger)
-    {
-        var informationalVersion = VersionHelper.GetDefaultTemplateVersion();
-        
-        // Write version at info level so it's written to the console by default. Help us debug user issues.
-        // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
-        logger.LogInformation("Aspire version: {Version}", informationalVersion);
-    }
-
     public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
@@ -178,7 +169,11 @@ public class Program
         if (debugMode)
         {
             var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
-            LogCliVersion(logger);
+            var informationalVersion = VersionHelper.GetDefaultTemplateVersion();
+            
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
         }
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
