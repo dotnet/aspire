@@ -18,7 +18,8 @@ public static class KeycloakResourceBuilderExtensions
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
-    private const string RealmImportDirectory = "/opt/keycloak/data/import";
+
+    private const string KeycloakDataDirectory = "/opt/keycloak/data";
 
     /// <summary>
     /// Adds a Keycloak container to the application model.
@@ -142,7 +143,32 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// The realm import files are mounted at /opt/keycloak/data/import in the container.
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
+    /// <example>
+    /// Import the realms from a directory
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak")
+    ///                       .WithRealmImport("../realms");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Obsolete("Use WithRealmImport without isReadOnly instead.")]
+    public static IResourceBuilder<KeycloakResource> WithRealmImport(
+        this IResourceBuilder<KeycloakResource> builder,
+        string import,
+        bool isReadOnly)
+    {
+        return builder.WithRealmImport(import);
+    }
+
+    /// <summary>
+    /// Adds a realm import to a Keycloak container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
     /// <example>
     /// Import the realms from a directory
     /// <code lang="csharp">
@@ -153,26 +179,23 @@ public static class KeycloakResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string import,
-        bool isReadOnly = false)
+        string import)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(import);
 
         var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
-        if (Directory.Exists(importFullPath))
-        {
-            return builder.WithBindMount(importFullPath, RealmImportDirectory, isReadOnly);
-        }
-
-        if (File.Exists(importFullPath))
-        {
-            var fileName = Path.GetFileName(import);
-
-            return builder.WithBindMount(importFullPath, $"{RealmImportDirectory}/{fileName}", isReadOnly);
-        }
-
-        throw new InvalidOperationException($"The realm import file or directory '{importFullPath}' does not exist.");
+        return builder.WithContainerFiles(
+            KeycloakDataDirectory,
+            [
+                // The import directory may not exist by default, so we need to ensure it is created.
+                new ContainerDirectory
+                {
+                    Name = "import",
+                    // Import the file (or children if a directory) into the container.
+                    Entries = ContainerDirectory.GetFileSystemItemsFromPath(importFullPath),
+                },
+            ]);
     }
 }

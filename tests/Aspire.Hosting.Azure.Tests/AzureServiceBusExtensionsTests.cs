@@ -362,19 +362,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        if (!OperatingSystem.IsWindows())
-        {
-            // Ensure the configuration file has correct attributes
-            var fileInfo = new FileInfo(volumeAnnotation.Source!);
-
-            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-
-            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
-        }
-
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal(/*json*/"""
         {
@@ -445,7 +438,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
           }
         }
-        """, configJsonContent);
+        """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -468,9 +461,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal("""
             {
@@ -494,7 +490,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 }
               }
             }
-            """, configJsonContent);
+            """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -521,9 +517,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal("""
             {
@@ -541,7 +540,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               },
               "Custom": 42
             }
-            """, configJsonContent);
+            """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -577,28 +576,14 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
-        Assert.Equal("/ServiceBus_Emulator/ConfigFiles/Config.json", volumeAnnotation.Target);
-
-        Assert.Equal("""
-            {
-              "UserConfig": {
-                "Namespaces": [
-                  {
-                    "Name": "servicebusns",
-                    "Queues": [ { "Name": "queue456" } ],
-                    "Topics": []
-                  }
-                ],
-                "Logging": {
-                  "Type": "File"
-                }
-              }
-            }
-            """, configJsonContent);
+        Assert.Equal(configJsonPath, configFile.SourcePath);
 
         await app.StopAsync();
 

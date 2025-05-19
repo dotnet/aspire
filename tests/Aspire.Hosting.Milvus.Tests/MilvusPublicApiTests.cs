@@ -138,7 +138,9 @@ public class MilvusPublicApiTests
         IResourceBuilder<MilvusServerResource> builder = null!;
         const string configurationFilePath = "/milvus/configs/milvus.yaml";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithConfigurationBindMount(configurationFilePath);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -153,7 +155,38 @@ public class MilvusPublicApiTests
             .AddMilvus("Milvus");
         string configurationFilePath = isNull ? null! : string.Empty;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithConfigurationBindMount(configurationFilePath);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(configurationFilePath), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithConfigurationFileShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MilvusServerResource> builder = null!;
+        const string configurationFilePath = "/milvus/configs/milvus.yaml";
+
+        var action = () => builder.WithConfigurationFile(configurationFilePath);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithConfigurationFileShouldThrowWhenConfigurationFilePathIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMilvus("Milvus");
+        string configurationFilePath = isNull ? null! : string.Empty;
+
+        var action = () => builder.WithConfigurationFile(configurationFilePath);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
