@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -14,6 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="logger">The logger for publishing operations.</param>
 /// <param name="cancellationToken">The cancellation token for the publishing operation.</param>
 /// <param name="outputPath">The output path for publishing artifacts.</param>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PublishingContext(
     DistributedApplicationModel model,
     DistributedApplicationExecutionContext executionContext,

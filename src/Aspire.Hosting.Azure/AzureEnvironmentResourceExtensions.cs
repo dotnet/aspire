@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
+
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Provides extension methods for adding Azure environment resources to the application model.

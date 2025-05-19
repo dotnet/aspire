@@ -14,9 +14,7 @@ public class DistributedApplicationRunnerTests(ITestOutputHelper outputHelper)
     {
         var args = new[] { "--publisher", "explodingpublisher" };
         using var builder = TestDistributedApplicationBuilder.Create(outputHelper, args);
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.AddPublisher<ExplodingPublisher, ExplodingPublisherOptions>("explodingpublisher");
-#pragma warning restore ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         using var app = builder.Build();
 
         var ex = Assert.Throws<AggregateException>(app.Run);
