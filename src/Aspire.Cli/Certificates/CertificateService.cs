@@ -42,28 +42,17 @@ internal sealed class CertificateService(IInteractionService interactionService)
                 StandardOutputCallback = ensureCertificateCollector.AppendOutput,
                 StandardErrorCallback = ensureCertificateCollector.AppendError,
             };
+
             var trustExitCode = await interactionService.ShowStatusAsync(
                 ":locked_with_key: Trusting certificates...",
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));
 
-            var outputLines = ensureCertificateCollector.GetLines();
-
-            // Exitcode 4 means that the certs were not trusted, but there is a condition where they
-            // are partially trusted which we will treat as not fatal, but we will show a warning for
-            // diagnostic purposes just in case it is a problem for the user.
-            if (trustExitCode == 4 && outputLines.Any(line => line.Line == DevCertsPartialTrustMessage))
-            {
-                interactionService.DisplayMessage(
-                    "warning",
-                    "The HTTPS developer certificate is partially trusted. Some clients may not work correctly.");
-                return;
-            }
-            else if (trustExitCode != 0)
+            if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                throw new CertificateServiceException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
+                interactionService.DisplayMessage("warning", $"Developer certificates may not be fully trusted (trust exit code was: {trustExitCode})");
             }
         }
     }

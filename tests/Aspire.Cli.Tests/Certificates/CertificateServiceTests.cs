@@ -12,7 +12,7 @@ namespace Aspire.Cli.Tests.Certificates;
 public class CertificateServiceTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task EnsureCertificatesTrustedAsyncSucceedsOnExitCode4IfPartialTrustMessageDetected()
+    public async Task EnsureCertificatesTrustedAsyncSucceedsOnNonZeroExitCode()
     {
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
         {
@@ -36,32 +36,5 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
 
         // If this does not throw then the code is behaving correctly.
         await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
-    }
-
-    [Fact]
-    public async Task EnsureCertificatesTrustedAsyncFailsOnExitCode4IfPartialTrustMessageNotDetected()
-    {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
-        {
-            options.DotNetCliRunnerFactory = sp =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.CheckHttpCertificateAsyncCallback = (_, _) => 1;
-                runner.TrustHttpCertificateAsyncCallback = (options, _) => 4;
-                return runner;
-            };
-        });
-
-        var sp = services.BuildServiceProvider();
-        var cs = sp.GetRequiredService<ICertificateService>();
-        var runner = sp.GetRequiredService<IDotNetCliRunner>();
-
-        var ex = await Assert.ThrowsAsync<CertificateServiceException>(async () =>
-        {
-            await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
-
-        });
-
-        Assert.Equal("Failed to trust certificates, trust command failed with exit code: 4", ex.Message);
     }
 }
