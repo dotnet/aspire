@@ -355,6 +355,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .Build();
 
         var initFilesPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(initFilesPath);
 
         try
         {
