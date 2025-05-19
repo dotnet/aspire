@@ -48,22 +48,20 @@ internal sealed class CertificateService(IInteractionService interactionService)
                     options,
                     cancellationToken));
 
-            if (trustExitCode != 0)
+            var outputLines = ensureCertificateCollector.GetLines();
+
+            // Exitcode 4 means that the certs were not trusted, but there is a condition where they
+            // are partially trusted which we will treat as not fatal, but we will show a warning for
+            // diagnostic purposes just in case it is a problem for the user.
+            if (trustExitCode == 4 && outputLines.Any(line => line.Line == DevCertsPartialTrustMessage))
             {
-                var outputLines = ensureCertificateCollector.GetLines();
-
-                if (outputLines.Any(line => line.Line == DevCertsPartialTrustMessage))
-                {
-                    // On some platforms the trust command may return with a non-zero exit code by still
-                    // be functional enough to work for .NET Aspire. This is a workaround for that non-zero
-                    // exit code that allows the CLI to continue starting up the apphost. We want to warn
-                    // when this happens so we know we are hitting this corner case.
-                    interactionService.DisplayMessage(
-                        "warning",
-                        "The HTTPS developer certificate is partially trusted. Some clients may not work correctly.");
-                    return;
-                }
-
+                interactionService.DisplayMessage(
+                    "warning",
+                    "The HTTPS developer certificate is partially trusted. Some clients may not work correctly.");
+                return;
+            }
+            else if (trustExitCode != 0)
+            {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
                 throw new CertificateServiceException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
             }
