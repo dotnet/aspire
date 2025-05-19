@@ -52,7 +52,7 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -74,12 +74,17 @@ internal class AppHostRpcTarget(
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
                 .ToArray();
+
+            // Compute health status
+            var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
+            
             // TODO: Decide on whether we want to define a type and share it between codebases for this.
             yield return (
                 resourceEvent.Resource.Name,
                 resourceEvent.Snapshot.ResourceType,
                 resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                endpointUris
+                endpointUris,
+                healthStatus?.ToString()
                 );
         }
     }

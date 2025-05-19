@@ -174,11 +174,12 @@ internal sealed class RunCommand : BaseCommand
 
                 await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
-                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints)>();
+                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints, string? Health)>();
 
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
                     table.AddColumn("State");
+                    table.AddColumn("Health");
                     table.AddColumn("Endpoint(s)");
 
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
@@ -210,6 +211,15 @@ internal sealed class RunCommand : BaseCommand
                                     _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
                                 };
 
+                                var healthRenderable = knownResource.Value.Health switch
+                                {
+                                    "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
+                                    "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
+                                    "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
+                                    null => new Text("Unknown", new Style().Foreground(Color.Grey)),
+                                    _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
+                                };
+
                                 IRenderable endpointsRenderable = new Text("None");
                                 if (knownResource.Value.Endpoints?.Length > 0)
                                 {
@@ -218,7 +228,7 @@ internal sealed class RunCommand : BaseCommand
                                     );
                                 }
 
-                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
+                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
                             }
 
                             context.Refresh();

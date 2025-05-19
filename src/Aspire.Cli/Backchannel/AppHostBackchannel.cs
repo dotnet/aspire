@@ -14,7 +14,7 @@ internal interface IAppHostBackchannel
     Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task RequestStopAsync(CancellationToken cancellationToken);
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -77,7 +77,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return url;
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -85,7 +85,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         logger.LogDebug("Requesting resource states");
 
-        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)>>(
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)>>(
             "GetResourceStatesAsync",
             Array.Empty<object>(),
             cancellationToken);
