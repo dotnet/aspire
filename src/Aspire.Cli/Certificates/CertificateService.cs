@@ -50,11 +50,27 @@ internal sealed class CertificateService(IInteractionService interactionService)
 
             if (trustExitCode != 0)
             {
+                var outputLines = ensureCertificateCollector.GetLines();
+
+                if (outputLines.Any(line => line.Line == DevCertsPartialTrustMessage))
+                {
+                    // On some platforms the trust command may return with a non-zero exit code by still
+                    // be functional enough to work for .NET Aspire. This is a workaround for that non-zero
+                    // exit code that allows the CLI to continue starting up the apphost. We want to warn
+                    // when this happens so we know we are hitting this corner case.
+                    interactionService.DisplayMessage(
+                        "warning",
+                        "The HTTPS developer certificate is partially trusted. Some clients may not work correctly.");
+                    return;
+                }
+
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
                 throw new CertificateServiceException($"Failed to trust certificates, trust command failed with exit code: {trustExitCode}");
             }
         }
     }
+
+    private const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)
