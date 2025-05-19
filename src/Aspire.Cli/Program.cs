@@ -134,6 +134,18 @@ public class Program
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
+        
+        // Log version information in debug mode
+        if (debugMode)
+        {
+            var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
+            var informationalVersion = VersionHelper.GetDefaultTemplateVersion();
+            
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
+        
         return app;
     }
 
@@ -163,18 +175,6 @@ public class Program
         using var app = BuildApplication(args);
 
         await app.StartAsync().ConfigureAwait(false);
-
-        // Log version information in debug mode
-        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
-        if (debugMode)
-        {
-            var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
-            var informationalVersion = VersionHelper.GetDefaultTemplateVersion();
-            
-            // Write version at info level so it's written to the console by default. Help us debug user issues.
-            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
-            logger.LogInformation("Aspire version: {Version}", informationalVersion);
-        }
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var config = new CommandLineConfiguration(rootCommand);
