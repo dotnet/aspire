@@ -376,14 +376,17 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO "Cars" (brand) VALUES ('BatMobile');
                 """);
 
-            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder = TestDistributedApplicationBuilder
+                .CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
             var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
 
             var db = postgres.AddDatabase(postgresDbName);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             postgres.WithInitBindMount(bindMountPath);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             using var app = builder.Build();
 
@@ -441,12 +444,98 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyWithInitFiles()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 3, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var initFilesPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        Directory.CreateDirectory(initFilesPath);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(initFilesPath, "init.sql"), """
+                CREATE TABLE "Cars" (brand VARCHAR(255));
+                INSERT INTO "Cars" (brand) VALUES ('BatMobile');
+                """);
+
+            using var builder = TestDistributedApplicationBuilder
+                .CreateWithTestContainerRegistry(testOutputHelper);
+
+            var postgresDbName = "db1";
+            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+
+            var db = postgres.AddDatabase(postgresDbName);
+
+            postgres.WithInitFiles(initFilesPath);
+
+            using var app = builder.Build();
+
+            await app.StartAsync();
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+            });
+
+            hb.AddNpgsqlDataSource(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync();
+
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
+            // Wait until the database is available
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync(token);
+                Assert.Equal(ConnectionState.Open, connection.State);
+            }, cts.Token);
+
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync(token);
+
+                using var command = connection.CreateCommand();
+                command.CommandText = $"SELECT * FROM \"Cars\";";
+                using var results = await command.ExecuteReaderAsync(token);
+
+                Assert.True(await results.ReadAsync(token));
+                Assert.Equal("BatMobile", results.GetString("brand"));
+                Assert.False(await results.ReadAsync(token));
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(initFilesPath, true);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Postgres_WithPersistentLifetime_ReusesContainers()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         // Use the same path for both runs
-        var aspireStorePath = Directory.CreateTempSubdirectory().FullName;
+        using var aspireStore = new TempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
@@ -455,19 +544,10 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.All(after, Assert.NotNull);
         Assert.Equal(before, after);
 
-        try
-        {
-            Directory.Delete(aspireStorePath, true);
-        }
-        catch
-        {
-            // Don't fail test if we can't clean the temporary folder
-        }
-
         async Task<string?[]> RunContainersAsync()
         {
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper)
-                .WithTempAspireStore(aspireStorePath)
+                .WithTempAspireStore(aspireStore.Path)
                 .WithResourceCleanUp(false);
 
             var passwordParameter = builder.AddParameter("pwd", "p@ssword1", secret: true);

@@ -39,9 +39,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         Assert.True(File.Exists(envBicepPath));
         var envBicep = File.ReadAllText(envBicepPath);
 
-        await Verifier.Verify(mainBicep, "bicep")
-            .AppendContentAsFile(envBicep, "bicep")
-            .UseHelixAwareDirectory();
+        await Verify(mainBicep, "bicep")
+            .AppendContentAsFile(envBicep, "bicep");
 
         tempDir.Delete(recursive: true);
     }
@@ -73,8 +72,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         Assert.True(File.Exists(mainBicepPath));
         var mainBicep = File.ReadAllText(mainBicepPath);
 
-        await Verify(mainBicep, "bicep")
-            .UseHelixAwareDirectory();
+        await Verify(mainBicep, "bicep");            
 
         tempDir.Delete(recursive: true);
     }
@@ -126,7 +124,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         Assert.True(File.Exists(mainBicepPath));
         var content = File.ReadAllText(mainBicepPath);
 
-        await Verifier.Verify(content, extension: "bicep").UseHelixAwareDirectory();
+        await Verify(content, extension: "bicep");
     }
 
     [Fact]
@@ -175,8 +173,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var storageBicep = File.ReadAllText(Path.Combine(tempDir.FullName, "storage", "storage.bicep"));
 
         await Verify(mainBicep, "bicep")
-            .AppendContentAsFile(storageBicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(storageBicep, "bicep");
     }
 
     private sealed class TestProject : IProjectMetadata

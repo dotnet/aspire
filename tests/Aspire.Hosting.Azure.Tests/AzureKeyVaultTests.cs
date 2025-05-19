@@ -20,8 +20,8 @@ public class AzureKeyVaultTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class AzureKeyVaultTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(kvRolesBicep, "bicep")
-              .AppendContentAsFile(kvRolesManifest.ToString(), "json")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(kvRolesManifest.ToString(), "json");
+              
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class AzureKeyVaultTests
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
+              
     }
 }

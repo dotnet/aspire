@@ -282,7 +282,7 @@ public class AzureStorageExtensionsTests
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 }

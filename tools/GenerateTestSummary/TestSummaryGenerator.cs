@@ -144,21 +144,31 @@ sealed partial class TestSummaryGenerator
 
                 """);
 
-                var errorMsgBuilder = new StringBuilder();
-                errorMsgBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
-                if (test.Output?.StdOut is not null)
-                {
-                    errorMsgBuilder.AppendLine();
-                    errorMsgBuilder.AppendLine("### StdOut");
-                    errorMsgBuilder.AppendLine(test.Output.StdOut);
-                }
-
-                // Truncate long error messages for readability
-                var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000);
-
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
-                reportBuilder.AppendLine(errorMsgTruncated);
+
+                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
+                if (test.Output?.StdOut is not null)
+                {
+                    const int halfLength = 25_000;
+                    var stdOutSpan = test.Output.StdOut.AsSpan();
+
+                    reportBuilder.AppendLine();
+                    reportBuilder.AppendLine("### StdOut");
+
+                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+                    reportBuilder.AppendLine(startSpan.ToString());
+
+                    if (stdOutSpan.Length > halfLength)
+                    {
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                        var endSpan = stdOutSpan[^halfLength..];
+                        // `endSpan` might not begin at the true beginning of the original line
+                        reportBuilder.Append("... ");
+                        reportBuilder.Append(endSpan);
+                    }
+                }
+
                 reportBuilder.AppendLine("```");
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("</div>");
@@ -181,9 +191,4 @@ sealed partial class TestSummaryGenerator
 
     [GeneratedRegex(@"(?<testName>.*)_(?<tfm>net\d+\.0)_.*")]
     private static partial Regex TestNameFromTrxFileNameRegex();
-
-    private static string? TruncateTheStart(string? s, int maxLength)
-        => s is null || s.Length <= maxLength
-            ? s
-            : "... (truncated) " + s[^maxLength..];
 }

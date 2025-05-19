@@ -367,6 +367,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9340")]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -471,6 +472,12 @@ public class DistributedApplicationTests
                         Name = "test.txt",
                         Contents = "Hello World!",
                         Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    },
+                    new ContainerFile
+                    {
+                        Name = "test2.sh",
+                        SourcePath = "/tmp/test2.sh",
+                        Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
                     },
                 ],
             },

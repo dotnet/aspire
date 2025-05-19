@@ -28,8 +28,8 @@ public class AzureSignalRExtensionsTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(signalrRolesManifest.ToString(), "json")
-              .AppendContentAsFile(signalrRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(signalrRolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class AzureSignalRExtensionsTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(signalrRolesManifest.ToString(), "json")
-              .AppendContentAsFile(signalrRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(signalrRolesBicep, "bicep");
+              
     }
 }

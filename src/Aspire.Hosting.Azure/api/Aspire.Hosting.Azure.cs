@@ -24,6 +24,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, Azure.BicepSecretOutputReference bicepOutputReference)
             where T : ApplicationModel.IResourceWithEnvironment { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, Azure.IAzureKeyVaultSecretReference secretReference)
+            where T : ApplicationModel.IResourceWithEnvironment { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithParameter<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, ApplicationModel.EndpointReference value)
             where T : Azure.AzureBicepResource { throw null; }
 
@@ -67,7 +70,11 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureProvisioningResource> AddAzureInfrastructure(this IDistributedApplicationBuilder builder, string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) { throw null; }
 
+        public static global::Azure.Provisioning.KeyVault.KeyVaultSecret AsKeyVaultSecret(this Azure.IAzureKeyVaultSecretReference secretReference, Azure.AzureResourceInfrastructure infrastructure) { throw null; }
+
         public static global::Azure.Provisioning.ProvisioningParameter AsProvisioningParameter(this ApplicationModel.EndpointReference endpointReference, Azure.AzureResourceInfrastructure infrastructure, string parameterName) { throw null; }
+
+        public static global::Azure.Provisioning.ProvisioningParameter AsProvisioningParameter(this ApplicationModel.IManifestExpressionProvider manifestExpressionProvider, Azure.AzureResourceInfrastructure infrastructure, string? parameterName = null, bool? isSecure = null) { throw null; }
 
         public static global::Azure.Provisioning.ProvisioningParameter AsProvisioningParameter(this ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> parameterResourceBuilder, Azure.AzureResourceInfrastructure infrastructure, string? parameterName = null) { throw null; }
 
@@ -79,15 +86,6 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<T> ConfigureInfrastructure<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Azure.AzureResourceInfrastructure> configure)
             where T : Azure.AzureProvisioningResource { throw null; }
-    }
-
-    public static partial class AzurePublisherExtensions
-    {
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static IDistributedApplicationBuilder AddAzurePublisher(this IDistributedApplicationBuilder builder, System.Action<Azure.AzurePublisherOptions>? configureOptions = null) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static IDistributedApplicationBuilder AddAzurePublisher(this IDistributedApplicationBuilder builder, string name, System.Action<Azure.AzurePublisherOptions>? configureOptions = null) { throw null; }
     }
 
     public static partial class AzureResourceExtensions
@@ -141,9 +139,11 @@ namespace Aspire.Hosting.Azure
         public override global::Azure.Provisioning.BicepValue<string>? ResolveName(global::Azure.Provisioning.ProvisioningBuildOptions options, global::Azure.Provisioning.Primitives.ProvisionableResource resource, global::Azure.Provisioning.Primitives.ResourceNameRequirements requirements) { throw null; }
     }
 
-    public partial class AzureBicepResource : ApplicationModel.Resource, ApplicationModel.IAzureResource, ApplicationModel.IResource
+    public partial class AzureBicepResource : ApplicationModel.Resource, ApplicationModel.IAzureResource, ApplicationModel.IResource, ApplicationModel.IResourceWithParameters
     {
         public AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) : base(default!) { }
+
+        System.Collections.Generic.IDictionary<string, object?> ApplicationModel.IResourceWithParameters.Parameters { get { throw null; } }
 
         public System.Collections.Generic.Dictionary<string, object?> Outputs { get { throw null; } }
 
@@ -187,6 +187,30 @@ namespace Aspire.Hosting.Azure
         public object ResourceGroup { get { throw null; } }
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public sealed partial class AzureEnvironmentResource : ApplicationModel.Resource
+    {
+        public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!) { }
+
+        public ApplicationModel.ParameterResource Location { get { throw null; } set { } }
+
+        public ApplicationModel.ParameterResource PrincipalId { get { throw null; } set { } }
+
+        public ApplicationModel.ParameterResource ResourceGroupName { get { throw null; } set { } }
+    }
+
+    public static partial class AzureEnvironmentResourceExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> AddAzureEnvironment(this IDistributedApplicationBuilder builder) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> WithLocation(this ApplicationModel.IResourceBuilder<AzureEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> location) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> WithResourceGroup(this ApplicationModel.IResourceBuilder<AzureEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> resourceGroup) { throw null; }
+    }
+
     public sealed partial class AzureProvisioningOptions
     {
         public global::Azure.Provisioning.ProvisioningBuildOptions ProvisioningBuildOptions { get { throw null; } }
@@ -214,9 +238,18 @@ namespace Aspire.Hosting.Azure
         public override string GetBicepTemplateString() { throw null; }
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public sealed partial class AzurePublisherOptions : Publishing.PublishingOptions
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class AzurePublishingContext
     {
+        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger) { }
+
+        public global::Azure.Provisioning.Infrastructure MainInfrastructure { get { throw null; } }
+
+        public System.Collections.Generic.Dictionary<BicepOutputReference, global::Azure.Provisioning.ProvisioningOutput> OutputLookup { get { throw null; } }
+
+        public System.Collections.Generic.Dictionary<ApplicationModel.ParameterResource, global::Azure.Provisioning.ProvisioningParameter> ParameterLookup { get { throw null; } }
+
+        public System.Threading.Tasks.Task WriteModelAsync(ApplicationModel.DistributedApplicationModel model, AzureEnvironmentResource environment, System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 
     public sealed partial class AzureResourceInfrastructure : global::Azure.Provisioning.Infrastructure
@@ -226,7 +259,27 @@ namespace Aspire.Hosting.Azure
         public AzureProvisioningResource AspireResource { get { throw null; } }
     }
 
-    public sealed partial class BicepOutputReference : ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public static partial class AzureUserAssignedIdentityExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<AzureUserAssignedIdentityResource> AddAzureUserAssignedIdentity(this IDistributedApplicationBuilder builder, string name) { throw null; }
+    }
+
+    public sealed partial class AzureUserAssignedIdentityResource : AzureProvisioningResource, IAppIdentityResource
+    {
+        public AzureUserAssignedIdentityResource(string name) : base(default!, default!) { }
+
+        public BicepOutputReference ClientId { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
+
+        public BicepOutputReference PrincipalId { get { throw null; } }
+
+        public BicepOutputReference PrincipalName { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+    }
+
+    public sealed partial class BicepOutputReference : ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, System.IEquatable<BicepOutputReference>
     {
         public BicepOutputReference(string name, AzureBicepResource resource) { }
 
@@ -240,7 +293,11 @@ namespace Aspire.Hosting.Azure
 
         public string ValueExpression { get { throw null; } }
 
+        public override int GetHashCode() { throw null; }
+
         public System.Threading.Tasks.ValueTask<string?> GetValueAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
+
+        bool System.IEquatable<BicepOutputReference>.Equals(BicepOutputReference? other) { throw null; }
     }
 
     public sealed partial class BicepSecretOutputReference : ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
@@ -289,6 +346,8 @@ namespace Aspire.Hosting.Azure
 
     public partial interface IAddRoleAssignmentsContext
     {
+        DistributedApplicationExecutionContext ExecutionContext { get; }
+
         AzureResourceInfrastructure Infrastructure { get; }
 
         global::Azure.Provisioning.BicepValue<System.Guid> PrincipalId { get; }
@@ -311,6 +370,12 @@ namespace Aspire.Hosting.Azure
         BicepOutputReference PrincipalName { get; }
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial interface IAzureContainerRegistry : ApplicationModel.IContainerRegistry
+    {
+        ApplicationModel.ReferenceExpression ManagedIdentityId { get; }
+    }
+
     public partial interface IAzureKeyVaultResource : ApplicationModel.IResource, ApplicationModel.IAzureResource
     {
         BicepOutputReference NameOutputReference { get; }
@@ -322,8 +387,10 @@ namespace Aspire.Hosting.Azure
         IAzureKeyVaultSecretReference GetSecret(string secretName);
     }
 
-    public partial interface IAzureKeyVaultSecretReference : ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider
+    public partial interface IAzureKeyVaultSecretReference : ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueWithReferences
     {
+        System.Collections.Generic.IEnumerable<object> ApplicationModel.IValueWithReferences.References { get; }
+
         IAzureKeyVaultResource Resource { get; }
 
         string SecretName { get; }

@@ -455,8 +455,8 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var username = builder.AddParameter("pg-user", "myuser");
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
@@ -508,15 +508,6 @@ public class AddPostgresTests
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]
@@ -524,8 +515,8 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2").WithPgWeb(pga => pga.WithHostPort(8081));
@@ -574,15 +565,6 @@ public class AddPostgresTests
                 Assert.Equal(UnixFileMode.None, file.Mode);
                 Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), file.Contents);
             });
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]

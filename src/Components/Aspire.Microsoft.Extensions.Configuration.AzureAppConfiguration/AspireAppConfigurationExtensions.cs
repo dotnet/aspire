@@ -16,7 +16,8 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireAppConfigurationExtensions
 {
     internal const string DefaultConfigSectionName = "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration";
-
+    internal const string ActivitySourceName = "Microsoft.Extensions.Configuration.AzureAppConfiguration";
+    
     /// <summary>
     /// Adds the Azure App Configuration to be configuration in the <paramref name="builder"/>.
     /// </summary>
@@ -61,5 +62,12 @@ public static class AspireAppConfigurationExtensions
             settings.Optional);
 
         builder.Services.AddAzureAppConfiguration(); // register IConfigurationRefresherProvider service
+
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(traceBuilder =>
+                    traceBuilder.AddSource(ActivitySourceName));
+        }
     }
 }

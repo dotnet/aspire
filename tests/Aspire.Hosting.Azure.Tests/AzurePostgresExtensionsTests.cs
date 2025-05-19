@@ -44,8 +44,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
-              .AppendContentAsFile(postgresRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(postgresRolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -112,8 +112,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Theory]

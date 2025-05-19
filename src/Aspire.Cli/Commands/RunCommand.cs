@@ -165,7 +165,7 @@ internal sealed class RunCommand : BaseCommand
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
-                var message = new Markup("Press [bold]CTRL-C[/] to stop the app host and exit.");
+                var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
 
                 var rows = new Rows(new List<IRenderable> {
                     table,

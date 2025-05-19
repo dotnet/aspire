@@ -70,8 +70,8 @@ public class AzureResourcePreparerTests
             var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
-            await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+            await Verify(storageRolesManifest.BicepText, extension: "bicep");
+            
         }
         else
         {
@@ -114,8 +114,8 @@ public class AzureResourcePreparerTests
             var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
 
             var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
-            await Verifier.Verify(storageRolesManifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+            await Verify(storageRolesManifest.BicepText, extension: "bicep");
+            
         }
         else
         {

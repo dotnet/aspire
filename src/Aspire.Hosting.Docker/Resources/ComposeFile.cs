@@ -140,6 +140,17 @@ public sealed class ComposeFile
     }
 
     /// <summary>
+    /// Adds a new config entry to the Compose file.
+    /// </summary>
+    /// <param name="config">The config instance to add to the Compose file.</param>
+    /// <returns>The updated <see cref="ComposeFile"/> instance with the added config.</returns>
+    public ComposeFile AddConfig(Config config)
+    {
+        Configs[config.Name] = config;
+        return this;
+    }
+
+    /// <summary>
     /// Converts the current instance of <see cref="ComposeFile"/> to its YAML string representation.
     /// </summary>
     /// <param name="lineEndings">Specifies the line endings to be used in the serialized YAML output. Defaults to "\n".</param>
@@ -148,6 +159,7 @@ public sealed class ComposeFile
     {
         var serializer = new SerializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .WithTypeConverter(new UnixFileModeTypeConverter())
             .WithEventEmitter(nextEmitter => new StringSequencesFlowStyle(nextEmitter))
             .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
             .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
