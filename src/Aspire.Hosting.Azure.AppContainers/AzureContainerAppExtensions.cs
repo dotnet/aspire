@@ -8,7 +8,6 @@ using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.OperationalInsights;
@@ -160,15 +159,6 @@ public static class AzureContainerAppExtensions
             };
 
             infra.Add(dashboard);
-
-            var roleAssignment = containerAppEnvironment.CreateRoleAssignment(AppContainersBuiltInRole.Contributor,
-                RoleManagementPrincipalType.ServicePrincipal,
-                userPrincipalId);
-
-            // We need to set the principal type to null to let ARM infer the principal id
-            roleAssignment.PrincipalType.ClearValue();
-
-            infra.Add(roleAssignment);
 
             var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
 
