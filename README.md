@@ -17,7 +17,7 @@
 
 [Tooling](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#project-templates-and-tooling): .NET Aspire comes with project templates and tooling experiences for Visual Studio and the dotnet CLI which help you create and interact with .NET Aspire apps.
 
-To learn more, read the full [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/). Samples are available in the [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples). You can find the eShop sample [here](https://github.com/dotnet/eshop) and the Azure version [here](https://github.com/Azure-Samples/eShopOnAzure).
+To learn more, read the full [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/). Samples are available in the [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples). You can find the [eShop sample here](https://github.com/dotnet/eshop) and the [Azure version here](https://github.com/Azure-Samples/eShopOnAzure).
 
 ## What is in this repo?
 
