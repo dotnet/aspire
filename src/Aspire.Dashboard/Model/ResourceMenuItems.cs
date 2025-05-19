@@ -22,7 +22,6 @@ public static class ResourceMenuItems
 
     public static void AddMenuItems(
         List<MenuButtonItem> menuItems,
-        string? openingMenuButtonId,
         ResourceViewModel resource,
         NavigationManager navigationManager,
         TelemetryRepository telemetryRepository,
@@ -30,7 +29,7 @@ public static class ResourceMenuItems
         IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
         IStringLocalizer<Commands> commandsLoc,
-        EventCallback<string?> onViewDetails,
+        EventCallback onViewDetails,
         EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
         bool showConsoleLogsItem,
@@ -40,7 +39,7 @@ public static class ResourceMenuItems
         {
             Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
-            OnClick = () => onViewDetails.InvokeAsync(openingMenuButtonId)
+            OnClick = onViewDetails.InvokeAsync
         });
 
         if (showConsoleLogsItem)

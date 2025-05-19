@@ -352,7 +352,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
             ResourceMenuItems.AddMenuItems(
                 _resourceMenuItems,
-                openingMenuButtonId: null,
                 PageViewModel.SelectedResource,
                 NavigationManager,
                 TelemetryRepository,
@@ -360,7 +359,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 ControlsStringsLoc,
                 ResourcesLoc,
                 CommandsLoc,
-                EventCallback.Factory.Create<string?>(this, buttonId =>
+                EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
                     return Task.CompletedTask;

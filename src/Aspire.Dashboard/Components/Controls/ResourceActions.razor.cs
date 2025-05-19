@@ -67,7 +67,6 @@ public partial class ResourceActions : ComponentBase
 
         ResourceMenuItems.AddMenuItems(
             _menuItems,
-            _menuButton?.MenuButtonId,
             Resource,
             NavigationManager,
             TelemetryRepository,
@@ -75,7 +74,7 @@ public partial class ResourceActions : ComponentBase
             ControlLoc,
             Loc,
             CommandsLoc,
-            OnViewDetails,
+            EventCallback.Factory.Create(this, () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)),
             CommandSelected,
             IsCommandExecuting,
             showConsoleLogsItem: true,

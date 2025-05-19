@@ -533,7 +533,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _contextMenuItems.Clear();
             ResourceMenuItems.AddMenuItems(
                 _contextMenuItems,
-                openingMenuButtonId: null,
                 resource,
                 NavigationManager,
                 TelemetryRepository,
@@ -541,7 +540,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 ControlsStringsLoc,
                 Loc,
                 CommandsLoc,
-                EventCallback.Factory.Create<string?>(this, (buttonId) => ShowResourceDetailsAsync(resource, buttonId)),
+                EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
