@@ -14,9 +14,9 @@ Whether you want to contribute to Aspire, or just use the latest build of Aspire
 * [macOS](https://podman.io/docs/installation#macos)
 * [Linux](https://podman.io/docs/installation#installing-on-linux)
 
-Then you can either use VS Code or Visual Studio or Codespaces:
+Then you can use either VS Code, Visual Studio, or Codespaces:
 
-## With VS Code with DevContainers
+## Using VS Code with DevContainers
 
 On Windows, Linux, or Mac you can use VS Code with the DevContainers extension. Currently it's only tested with Docker Desktop.
 
@@ -29,15 +29,14 @@ On Windows, Linux, or Mac you can use VS Code with the DevContainers extension. 
 
 Then choose "Open Folder In Container", choose the root of your cloned repo, then choose ".NET Aspire - Contribute".
 
-## With Visual Studio
+## Using Visual Studio
 
 To use Visual Studio, ensure you have [Visual Studio 2022 version 17.14](https://visualstudio.microsoft.com/vs) or later.
 
-When you install, ensure that both:
-* `ASP.NET and web development` Workload is checked.
-* `.NET Aspire SDK` component in `Individual components` is checked.
+When you install, ensure that `ASP.NET and web development` workload is checked.
 
-## With Codespaces
+
+## Using Codespaces
 
 In your browser, start a Codespace in your fork. The initialization of the code space takes around 5 mins. After that you can open the solution.
 This will take on the free version of Codespace around 10 mins.
