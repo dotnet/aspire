@@ -49,6 +49,7 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
             var stream = new NetworkStream(clientSocket, true);
             var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
             _rpc = rpc;
+            appHostRpcTarget.ClientRpc = rpc;
 
             // NOTE: The DistributedApplicationRunner will await this TCS
             //       when a backchannel is expected, and will not stop
