@@ -311,11 +311,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
 
-        if (string.IsNullOrEmpty(browserToken))
-        {
-            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
-        }
-        else
+        distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
+
+        if (!string.IsNullOrEmpty(browserToken))
         {
             LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
         }
