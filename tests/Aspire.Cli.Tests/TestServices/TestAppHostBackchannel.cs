@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using Aspire.Hosting.Backchannel;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -18,7 +19,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public Func<CancellationToken, Task<(string, string?)>>? GetDashboardUrlsAsyncCallback { get; set; }
 
     public TaskCompletionSource? GetResourceStatesAsyncCalled { get; set; }
-    public Func<CancellationToken, IAsyncEnumerable<(string, string, string, string[], string?)>>? GetResourceStatesAsyncCallback { get; set; }
+    public Func<CancellationToken, IAsyncEnumerable<RpcResourceState>>? GetResourceStatesAsyncCallback { get; set; }
 
     public TaskCompletionSource? ConnectAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task>? ConnectAsyncCallback { get; set; }
@@ -58,7 +59,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             : Task.FromResult<(string, string?)>(("http://localhost:5000/login?t=abcd", "https://monalisa-hot-potato-vrpqrxxrx7x2rxx-5000.app.github.dev/login?t=abcd"));
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         GetResourceStatesAsyncCalled?.SetResult();
 
@@ -75,8 +76,22 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                yield return ("frontend", "Project", "Starting", new[] { "http://localhost:5000" }, "Healthy");
-                yield return ("backend", "Project", "Running", new[] { "http://localhost:5001" }, "Healthy");
+                yield return new RpcResourceState
+                {
+                    Resource = "frontend",
+                    Type = "Project",
+                    State = "Starting",
+                    Endpoints = new[] { "http://localhost:5000" },
+                    Health = "Healthy"
+                };
+                yield return new RpcResourceState
+                {
+                    Resource = "backend",
+                    Type = "Project",
+                    State = "Running",
+                    Endpoints = new[] { "http://localhost:5001" },
+                    Health = "Healthy"
+                };
             }
         }
     }
@@ -124,7 +139,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
-            return ["baseline.v1"];
+            return ["baseline.v2"];
         }
     }
 }

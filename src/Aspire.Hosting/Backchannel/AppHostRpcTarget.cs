@@ -52,7 +52,7 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints, string? Health)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -78,14 +78,14 @@ internal class AppHostRpcTarget(
             // Compute health status
             var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
             
-            // TODO: Decide on whether we want to define a type and share it between codebases for this.
-            yield return (
-                resourceEvent.Resource.Name,
-                resourceEvent.Snapshot.ResourceType,
-                resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                endpointUris,
-                healthStatus?.ToString()
-                );
+            yield return new RpcResourceState
+            {
+                Resource = resourceEvent.Resource.Name,
+                Type = resourceEvent.Snapshot.ResourceType,
+                State = resourceEvent.Snapshot.State?.Text ?? "Unknown",
+                Endpoints = endpointUris,
+                Health = healthStatus?.ToString()
+            };
         }
     }
 
@@ -174,7 +174,7 @@ internal class AppHostRpcTarget(
 
         _ = cancellationToken;
         return Task.FromResult(new string[] {
-            "baseline.v1"
+            "baseline.v2"
             });
     }
 #pragma warning restore CA1822

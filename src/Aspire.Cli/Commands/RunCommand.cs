@@ -9,6 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Hosting.Backchannel;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using StreamJsonRpc;
@@ -174,7 +175,7 @@ internal sealed class RunCommand : BaseCommand
 
                 await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
-                    var knownResources = new SortedDictionary<string, (string Resource, string Type, string State, string[] Endpoints, string? Health)>();
+                    var knownResources = new SortedDictionary<string, RpcResourceState>();
 
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
