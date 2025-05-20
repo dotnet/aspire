@@ -5,6 +5,7 @@
 
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
+* Never change global.json unless explicitly asked to.
 
 ## Formatting
 
