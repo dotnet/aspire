@@ -1,12 +1,10 @@
 # Instructions for GitHub and VisualStudio Copilot
 ### https://github.blog/changelog/2025-01-21-custom-repository-instructions-are-now-available-for-copilot-on-github-com-public-preview/
 
-
 ## General
 
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
-* Files must have CRLF line endings.
 
 ## Formatting
 
@@ -23,11 +21,15 @@
 * Always use `is null` or `is not null` instead of `== null` or `!= null`.
 * Trust the C# null annotations and don't add null checks when the type system says a value cannot be null.
 
-
 ### Testing
 
 * We use xUnit SDK v3 with Microsoft.Testing.Platform (https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro)
 * Do not emit "Act", "Arrange" or "Assert" comments.
-* We do not use any mocking framework at the moment. Use NSubstitute, if necessary. Never use Moq.
-* Use "snake_case" for test method names but keep the original method under test intact.
-  For example: when adding a test for methond "MethondToTest" instead of "MethondToTest_ShouldReturnSummarisedIssues" use "MethondToTest_should_return_summarised_issues".
+* We do not use any mocking framework at the moment.
+* Copy existing style in nearby files for test method names and capitalization.
+
+## Running tests
+
+(1) Build from the root with `build.sh`.
+(2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
+(3) To then run tests, use a command similar to this `dotnet test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
