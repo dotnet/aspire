@@ -4,7 +4,9 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// TODO document this type
+/// A builder for creating instances of resource groupings. It cannot be built directly, but applies annotations to
+/// its contained resources when <see cref="IDistributedApplicationBuilder.Build"/> is called. This type can be used to
+/// visually group resources in the Aspire Dashboard.
 /// </summary>
 public interface IDistributedApplicationGroupBuilder : IDistributedApplicationBuilder
 {
@@ -13,6 +15,9 @@ public interface IDistributedApplicationGroupBuilder : IDistributedApplicationBu
     /// </summary>
     public string Name { get; }
 
+    /// <summary>
+    /// Applies annotations to resources in the group.
+    /// </summary>
     internal void BuildGroup();
 
     [Obsolete("Use BuildGroup instead.")]
