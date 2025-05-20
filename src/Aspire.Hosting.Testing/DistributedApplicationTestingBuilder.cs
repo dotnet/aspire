@@ -216,6 +216,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IResourceCollection Resources => innerBuilder.Resources;
 
+            public ResourceGroupCollection Groups { get; } = [];
+
             public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
 
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
@@ -352,6 +354,8 @@ public static class DistributedApplicationTestingBuilder
         public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
 
         public IResourceCollection Resources => _innerBuilder.Resources;
+
+        public ResourceGroupCollection Groups { get; } = [];
 
         public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 

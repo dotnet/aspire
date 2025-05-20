@@ -75,10 +75,18 @@ public static class DistributedApplicationBuilderExtensions
         return builder.CreateResourceBuilder(typedResource);
     }
 
-    public static IResourceBuilder<IResource> CreateGroup(this IDistributedApplicationBuilder builder)
+    /// <summary>
+    /// Creates a new resource group builder based on a unique name. Resources created using this group builder will be added to the group.
+    /// </summary>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The unique name of the group.</param>
+    /// <returns></returns>
+    public static IDistributedApplicationGroupBuilder CreateGroup(this IDistributedApplicationBuilder builder, string name)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        var groupBuilder = new DistributedApplicationGroupBuilder(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        var groupBuilder = new DistributedApplicationGroupBuilder(builder, name);
+        builder.Groups.Add(groupBuilder);
         return groupBuilder;
     }
 }

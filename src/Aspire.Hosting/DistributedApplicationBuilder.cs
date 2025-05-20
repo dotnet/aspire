@@ -84,6 +84,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <inheritdoc />
+    public ResourceGroupCollection Groups { get; } = new();
+
+    /// <inheritdoc />
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
 
     /// <summary>
@@ -504,6 +507,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 .Select(g => g.Key))
             {
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
+            foreach (var group in Groups)
+            {
+                group.BuildGroup();
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());
