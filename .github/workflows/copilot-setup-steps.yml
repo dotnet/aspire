@@ -16,5 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+        # Include PrepareForHelix to maximise what is downloaded here
       - name: Build solution
-        run: ./build.sh
+        run: ./build.sh /p:PrepareForHelix=true
