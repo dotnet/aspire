@@ -74,5 +74,12 @@ public static class DistributedApplicationBuilderExtensions
 
         return builder.CreateResourceBuilder(typedResource);
     }
+
+    public static IResourceBuilder<IResource> CreateGroup(this IDistributedApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        var groupBuilder = new DistributedApplicationGroupBuilder(builder);
+        return groupBuilder;
+    }
 }
 
