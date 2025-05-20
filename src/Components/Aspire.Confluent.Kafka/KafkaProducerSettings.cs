@@ -49,7 +49,7 @@ public sealed class KafkaProducerSettings
     {
         Debug.Assert(Config is not null);
 
-        if (ConnectionString is not null)
+        if (!string.IsNullOrEmpty(ConnectionString))
         {
             Config.BootstrapServers = ConnectionString;
         }
