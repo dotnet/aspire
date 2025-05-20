@@ -137,7 +137,7 @@ public class AzureUserAssignedIdentityTests
 
         var env = builder.AddAzureContainerAppEnvironment("cae");
 
-        // Use Azure Storage instead of Container Registry
+        // Use Azure Storage instead of Container Registry to test role assignments on WithReference
         var storage = builder.AddAzureStorage("mystorage");
         var identity = builder.AddAzureUserAssignedIdentity("myidentity");
 
