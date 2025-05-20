@@ -47,7 +47,7 @@ public class DistributedApplicationBuilderExtensionsTests
     [Fact]
     public void GroupBuilderAddsGroupAnnotationToAllResources()
     {
-        var appBuilder = (DistributedApplicationBuilder)DistributedApplication.CreateBuilder();
+        var appBuilder = DistributedApplication.CreateBuilder();
 
         var group = appBuilder.CreateGroup("test-group");
         var redis1 = group.AddRedis("redis1");
@@ -64,12 +64,20 @@ public class DistributedApplicationBuilderExtensionsTests
     [Fact]
     public void GroupBuilderBuildThrowsException()
     {
-        var appBuilder = (DistributedApplicationBuilder)DistributedApplication.CreateBuilder();
+        var appBuilder = DistributedApplication.CreateBuilder();
         var group = appBuilder.CreateGroup("test-group");
         group.AddRedis("redis1");
         group.AddRedis("redis2");
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.Throws<InvalidOperationException>(group.Build);
 #pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public void GroupBuilderThrowsExceptionOnDuplicateGroupName()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.CreateGroup("test-group");
+        Assert.Throws<DistributedApplicationException>(() => appBuilder.CreateGroup("test-group"));
     }
 }

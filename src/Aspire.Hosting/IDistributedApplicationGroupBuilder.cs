@@ -8,6 +8,11 @@ namespace Aspire.Hosting;
 /// </summary>
 public interface IDistributedApplicationGroupBuilder : IDistributedApplicationBuilder
 {
+    /// <summary>
+    /// The unique name of the group. This name is used to identify the group in the Aspire Dashboard.
+    /// </summary>
+    public string Name { get; }
+
     internal void BuildGroup();
 
     [Obsolete("Use BuildGroup instead.")]

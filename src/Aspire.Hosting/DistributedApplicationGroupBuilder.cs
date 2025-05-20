@@ -28,8 +28,20 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
 
     public IDistributedApplicationGroupBuilder Resource => this;
 
+    public string Name { get; }
+
     public DistributedApplicationGroupBuilder(IDistributedApplicationBuilder applicationBuilder, string name)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Group name cannot be null or whitespace.", nameof(name));
+        }
+
+        if (applicationBuilder.Groups.FirstOrDefault(r => string.Equals(r.Name, name, StringComparisons.ResourceGroupName)) is { } existingGroup)
+        {
+            throw new DistributedApplicationException($"Cannot add group with name '{name}' because a group with that name already exists. Group names are case-insensitive.");
+        }
+
         _annotations.Add(new ResourceGroupAnnotation { Name = name });
 
         Configuration = applicationBuilder.Configuration;
@@ -40,8 +52,10 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
         Eventing = applicationBuilder.Eventing;
         ExecutionContext = applicationBuilder.ExecutionContext;
         Resources = applicationBuilder.Resources;
-        Groups = [this];
+        Groups = applicationBuilder.Groups;
         ApplicationBuilder = applicationBuilder;
+
+        Name = name;
     }
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource

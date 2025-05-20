@@ -7,6 +7,7 @@ namespace Aspire;
 
 internal static class StringComparers
 {
+    public static StringComparer ResourceGroupName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer ResourceName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer ResourceState => StringComparer.OrdinalIgnoreCase;
     public static StringComparer EndpointAnnotationName => StringComparer.OrdinalIgnoreCase;
@@ -34,6 +35,7 @@ internal static class StringComparers
 
 internal static class StringComparisons
 {
+    public static StringComparison ResourceGroupName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison ResourceName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison ResourceState => StringComparison.OrdinalIgnoreCase;
     public static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;

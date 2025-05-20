@@ -509,6 +509,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
             }
 
+            // CreateGroup validates that a name is unique but it's possible to add groups directly to the group collection.
+            // Validate names for duplicates while building the application.
+            foreach (var duplicateGroupName in Groups.GroupBy(g => g.Name, StringComparers.ResourceName)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key))
+            {
+                throw new DistributedApplicationException($"Multiple resource groups with the name '{duplicateGroupName}'. Resource group names are case-insensitive.");
+            }
+
             foreach (var group in Groups)
             {
                 group.BuildGroup();
