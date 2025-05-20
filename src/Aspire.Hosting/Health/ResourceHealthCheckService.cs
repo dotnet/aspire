@@ -119,7 +119,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         }
 
         var registrationKeysToCheck = annotations.DistinctBy(a => a.Key).Select(a => a.Key).ToFrozenSet();
-        logger.LogDebug("Resource '{ResourceName}' health checks to monitor: {HeathCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
+        logger.LogDebug("Resource '{ResourceName}' health checks to monitor: {HealthCheckKeys}", resource.Name, string.Join(", ", registrationKeysToCheck));
 
         var lastHealthCheckTimestamp = 0L;
         var lastDelayInterrupted = false;
