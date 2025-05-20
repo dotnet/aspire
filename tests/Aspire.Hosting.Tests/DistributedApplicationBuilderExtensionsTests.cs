@@ -80,4 +80,23 @@ public class DistributedApplicationBuilderExtensionsTests
         appBuilder.CreateGroup("test-group");
         Assert.Throws<DistributedApplicationException>(() => appBuilder.CreateGroup("test-group"));
     }
+
+    [Fact]
+    public void GroupBuilderAddsNestedGroupAnnotationsWithParent()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var parentGroup = appBuilder.CreateGroup("parent-group");
+        var parentResource = parentGroup.AddRedis("redis-in-parent");
+        var childGroup = parentGroup.CreateGroup("child-group", parent: parentGroup);
+        var childResource = childGroup.AddRedis("redis-in-child");
+
+        appBuilder.Build();
+
+        Assert.Equal("parent-group", Assert.Single(parentResource.Resource.Annotations.OfType<ResourceGroupAnnotation>()).Name);
+        Assert.Null(Assert.Single(parentResource.Resource.Annotations.OfType<ResourceGroupAnnotation>()).Parent);
+
+        Assert.Equal("child-group", Assert.Single(childResource.Resource.Annotations.OfType<ResourceGroupAnnotation>()).Name);
+        Assert.Equal("parent-group", Assert.Single(childResource.Resource.Annotations.OfType<ResourceGroupAnnotation>()).Parent);
+    }
 }

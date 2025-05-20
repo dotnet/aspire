@@ -15,4 +15,9 @@ public sealed class ResourceGroupAnnotation : IResourceAnnotation
     /// The group name. Must be unique.
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// The group parent's name, if one exists.
+    /// </summary>
+    public string? Parent { get; init; }
 }

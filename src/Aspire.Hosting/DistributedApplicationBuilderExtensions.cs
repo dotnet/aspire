@@ -80,12 +80,13 @@ public static class DistributedApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The unique name of the group.</param>
+    /// <param name="parent">The parent group.</param>
     /// <returns></returns>
-    public static IDistributedApplicationGroupBuilder CreateGroup(this IDistributedApplicationBuilder builder, string name)
+    public static IDistributedApplicationGroupBuilder CreateGroup(this IDistributedApplicationBuilder builder, string name, IDistributedApplicationGroupBuilder? parent = null)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-        var groupBuilder = new DistributedApplicationGroupBuilder(builder, name);
+        var groupBuilder = new DistributedApplicationGroupBuilder(builder, name, parent);
         builder.Groups.Add(groupBuilder);
         return groupBuilder;
     }

@@ -30,7 +30,7 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
 
     public string Name { get; }
 
-    public DistributedApplicationGroupBuilder(IDistributedApplicationBuilder applicationBuilder, string name)
+    public DistributedApplicationGroupBuilder(IDistributedApplicationBuilder applicationBuilder, string name, IDistributedApplicationGroupBuilder? parent)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -42,7 +42,7 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
             throw new DistributedApplicationException($"Cannot add group with name '{name}' because a group with that name already exists. Group names are case-insensitive.");
         }
 
-        _annotations.Add(new ResourceGroupAnnotation { Name = name });
+        _annotations.Add(new ResourceGroupAnnotation { Name = name, Parent = parent?.Name });
 
         Configuration = applicationBuilder.Configuration;
         AppHostDirectory = applicationBuilder.AppHostDirectory;
@@ -51,7 +51,7 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
         Services = applicationBuilder.Services;
         Eventing = applicationBuilder.Eventing;
         ExecutionContext = applicationBuilder.ExecutionContext;
-        Resources = applicationBuilder.Resources;
+        Resources = new ResourceCollection();
         Groups = applicationBuilder.Groups;
         ApplicationBuilder = applicationBuilder;
 
@@ -60,8 +60,18 @@ internal sealed class DistributedApplicationGroupBuilder : IDistributedApplicati
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
+        var existsInOtherGroup = Groups.Any(g => g.Resources.Contains(resource));
+        if (!existsInOtherGroup)
+        {
+            Resources.Add(resource);
+        }
+
         var builder = ApplicationBuilder.AddResource(resource);
-        _groupResourceBuilders.Add((IResourceBuilder<IResource>)builder);
+        if (!existsInOtherGroup)
+        {
+            _groupResourceBuilders.Add((IResourceBuilder<IResource>)builder);
+        }
+
         return builder;
     }
 
