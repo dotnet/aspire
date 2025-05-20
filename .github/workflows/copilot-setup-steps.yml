@@ -21,4 +21,4 @@ jobs:
         env:
           # prevent GitInfo errors
           CI: false
-        run: ./build.sh /p:PrepareForHelix=true
+        run: ./build.sh /p:PrepareForHelix=true /p:CI=false
