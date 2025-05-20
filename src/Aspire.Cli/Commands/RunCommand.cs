@@ -9,7 +9,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Aspire.Hosting.Backchannel;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using StreamJsonRpc;

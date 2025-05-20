@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
-using Aspire.Hosting.Backchannel;
 
 namespace Aspire.Cli.Tests.TestServices;
 

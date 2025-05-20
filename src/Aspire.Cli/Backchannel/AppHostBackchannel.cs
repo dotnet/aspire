@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using Aspire.Hosting.Backchannel;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
