@@ -35,7 +35,6 @@ To use Visual Studio, ensure you have [Visual Studio 2022 version 17.14](https:/
 
 When you install, ensure that `ASP.NET and web development` workload is checked.
 
-
 ## Using Codespaces
 
 In your browser, start a Codespace in your fork. The initialization of the code space takes around 5 mins. After that you can open the solution.

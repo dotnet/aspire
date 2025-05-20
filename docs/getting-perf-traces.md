@@ -10,6 +10,11 @@ You can use [dotnet trace](https://learn.microsoft.com/en-us/dotnet/core/diagnos
 dotnet trace collect --providers *Microsoft-Aspire-Hosting --process-id 1234
 ```
 
+or more elaborately
+```sh
+dotnet trace collect --providers Microsoft-DotNETCore-SampleProfiler:0x0000F00000000000:4,Microsoft-Windows-DotNETRuntime:0x00000014C14FCCBD:5,Microsoft-Aspire-Hosting --buffersize 8192
+```
+
 Then analyze using `dotnet trace report` or convert to a format such as Speedscope.
 
 ## Collection with PerfView (Windows only)
