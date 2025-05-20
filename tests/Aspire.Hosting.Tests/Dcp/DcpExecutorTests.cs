@@ -58,7 +58,7 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix", LogFileNameSuffix = "resource-started-project-has-replicas" };
 
         var startingEvents = new List<OnResourceStartingContext>();
         var events = new DcpExecutorEvents();
@@ -142,7 +142,7 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix", LogFileNameSuffix = $"create-executable-{executionType}-{addAppHostArgs}" };
 
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
@@ -185,7 +185,7 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix", LogFileNameSuffix = "resource-restarted-environment-callbacks" };
 
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
@@ -542,7 +542,7 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix", LogFileNameSuffix = $"endpoint-otel-service-name-{replicaCount}" };
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
         await appExecutor.RunApplicationAsync();
 
@@ -578,7 +578,7 @@ public class DcpExecutorTests
         });
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", LogFileNameSuffix = "resource-logging-multiple-streams" };
         var resourceLoggerService = new ResourceLoggerService();
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
         await appExecutor.RunApplicationAsync();
@@ -676,7 +676,7 @@ public class DcpExecutorTests
         });
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", LogFileNameSuffix = "resource-logging-replay-backlog" };
         var resourceLoggerService = new ResourceLoggerService();
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
         await appExecutor.RunApplicationAsync();
@@ -1262,7 +1262,10 @@ public class DcpExecutorTests
         }
 
         resourceLoggerService ??= new ResourceLoggerService();
-        dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
+        dcpOptions ??= new DcpOptions { 
+            DashboardPath = "./dashboard",
+            LogFileNameSuffix = distributedAppModel.Resources.FirstOrDefault()?.Name ?? "dcp-executor-test"
+        };
 
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,

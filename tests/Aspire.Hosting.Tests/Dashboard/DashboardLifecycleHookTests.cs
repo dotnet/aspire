@@ -203,7 +203,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
-            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
+            new DcpNameGenerator(configuration, Options.Create(new DcpOptions { LogFileNameSuffix = "dashboard-lifecycle-hook" })),
             new TestHostApplicationLifetime(),
             rewriter,
             codespacesOptions,

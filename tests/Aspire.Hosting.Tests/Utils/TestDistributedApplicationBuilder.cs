@@ -52,6 +52,14 @@ public static class TestDistributedApplicationBuilder
     {
         var builder = DistributedApplicationTestingBuilder.Create(args, (applicationOptions, hostBuilderOptions) => configureOptions?.Invoke(applicationOptions));
 
+        // Set a default log file name suffix based on test name for better correlation of logs to tests
+        var testName = testOutputHelper?.GetType()?.GetField("test")?.GetValue(testOutputHelper)?.ToString() ?? 
+                      System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        if (!string.IsNullOrEmpty(testName))
+        {
+            builder.Configuration["DcpPublisher:LogFileNameSuffix"] = testName;
+        }
+
         // TODO: consider centralizing this to DistributedApplicationFactory by default once consumers have a way to opt-out
         // E.g., once https://github.com/dotnet/extensions/pull/5801 is released.
         // Discussion: https://github.com/dotnet/aspire/pull/7335/files#r1936799460

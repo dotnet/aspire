@@ -41,6 +41,16 @@ public class DcpCliArgsTests
     }
 
     [Fact]
+    public void TestDcpLogFileNameSuffixPopulatesConfig()
+    {
+        var builder = DistributedApplication.CreateBuilder([
+            "--dcp-log-file-name-suffix", "test-suffix",
+            ]);
+
+        Assert.Equal("test-suffix", builder.Configuration["DcpPublisher:LogFileNameSuffix"]);
+    }
+
+    [Fact]
     public void TestDcpOptionsPopulated()
     {
         var builder = DistributedApplication.CreateBuilder(
@@ -48,7 +58,8 @@ public class DcpCliArgsTests
             "--dcp-cli-path", "/not/a/valid/path",
             "--dcp-container-runtime", "not-a-valid-container-runtime",
             "--dcp-dependency-check-timeout", "42",
-            "--dcp-dashboard-path", "/not/a/valid/path"
+            "--dcp-dashboard-path", "/not/a/valid/path",
+            "--dcp-log-file-name-suffix", "test-suffix"
             ]);
 
         using var app = builder.Build();
@@ -58,5 +69,6 @@ public class DcpCliArgsTests
         Assert.Equal(42, dcpOptions.DependencyCheckTimeout);
         Assert.Equal("/not/a/valid/path", dcpOptions.CliPath);
         Assert.Equal("/not/a/valid/path", dcpOptions.DashboardPath);
+        Assert.Equal("test-suffix", dcpOptions.LogFileNameSuffix);
     }
 }
