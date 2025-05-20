@@ -40,7 +40,10 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.

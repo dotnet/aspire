@@ -21,7 +21,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference VaultUri => new("vaultUri", this);
 
     /// <summary>
-    /// Gets the "name" output reference for the Azure Key Vault resource.
+    /// Gets the "name" output reference from the bicep template for the Azure Key Vault resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
 
