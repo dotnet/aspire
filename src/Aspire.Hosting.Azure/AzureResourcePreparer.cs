@@ -29,11 +29,11 @@ internal sealed class AzureResourcePreparer(
         }
 
         var options = provisioningOptions.Value;
-        if (!EnvironmentSupportsTargetedRoleAssignments(options))
+        if (!EnvironmentSupportsIdentitiesAndAssignments(options))
         {
-            // If the app infrastructure does not support targeted role assignments, then we need to ensure that
-            // there are no role assignment annotations in the app model because they won't be honored otherwise.
-            EnsureNoRoleAssignmentAnnotations(appModel);
+            // If the app infrastructure does not support targeted identities and role assignments, then we need to ensure that
+            // there are no identity or role assignment annotations in the app model because they won't be honored otherwise.
+            EnsureNoIdentityOrRoleAssignmentAnnotations(appModel);
         }
 
         await BuildRoleAssignmentAnnotations(appModel, azureResources, options, cancellationToken).ConfigureAwait(false);
@@ -78,20 +78,25 @@ internal sealed class AzureResourcePreparer(
         return azureResources;
     }
 
-    private bool EnvironmentSupportsTargetedRoleAssignments(AzureProvisioningOptions options)
+    private bool EnvironmentSupportsIdentitiesAndAssignments(AzureProvisioningOptions options)
     {
         // run mode always supports targeted role assignments
         // publish mode only supports targeted role assignments if the environment supports it
         return executionContext.IsRunMode || options.SupportsTargetedRoleAssignments;
     }
 
-    private static void EnsureNoRoleAssignmentAnnotations(DistributedApplicationModel appModel)
+    private static void EnsureNoIdentityOrRoleAssignmentAnnotations(DistributedApplicationModel appModel)
     {
         foreach (var resource in appModel.Resources)
         {
             if (resource.HasAnnotationOfType<RoleAssignmentAnnotation>())
             {
                 throw new InvalidOperationException("The application model does not support role assignments. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
+            }
+
+            if (resource.HasAnnotationOfType<AppIdentityAnnotation>())
+            {
+                throw new InvalidOperationException("The application model does not support using explicit managed identities. Ensure you are using an environment that supports managed identities, for example AddAzureContainerAppEnvironment.");
             }
         }
     }
@@ -100,7 +105,7 @@ internal sealed class AzureResourcePreparer(
     {
         var globalRoleAssignments = new Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>>();
 
-        if (!EnvironmentSupportsTargetedRoleAssignments(options))
+        if (!EnvironmentSupportsIdentitiesAndAssignments(options))
         {
             // when the app infrastructure doesn't support targeted role assignments, just copy all the default role assignments to applied role assignments
             foreach (var resource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
