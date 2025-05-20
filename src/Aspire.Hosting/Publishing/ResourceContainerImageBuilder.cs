@@ -35,7 +35,7 @@ internal sealed class ResourceContainerImageBuilder(
 {
     public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Building container image for resource {Resource}", resource.Name);
+        logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
         if (resource is ProjectResource)
         {
