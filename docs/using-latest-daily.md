@@ -1,6 +1,8 @@
 # Set up your machine to use the latest Aspire builds
 
-These instructions will get you set up with the latest build of Aspire. If you just want the last preview release of .NET Aspire, the packages are on nuget.org, and install [Visual Studio 2022 version 17.12](https://visualstudio.microsoft.com/vs/preview/) or later for the tooling.
+If you just want an official release of .NET Aspire, you don't need this document. [The Aspire documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) will get you started.
+
+If you want the latest, unsupported build of Aspire to try, read on.
 
 ## Prepare the machine
 
@@ -8,7 +10,7 @@ See [machine-requirements.md](machine-requirements.md).
 
 ## (Optional) Create a local nuget.config file
 
-Since dogfooding will require using daily build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
+Since this will require using daily build feeds, you may not want to add feeds globally which could alter how other code on your machine builds. To avoid this happening, you can create a local nuget.config file by running the following command in the root of your repository:
 
 ```bash
 dotnet new nugetconfig
@@ -42,11 +44,11 @@ dotnet new install Aspire.ProjectTemplates::*-* --force
 ```
 
 > [!TIP]
-> Release branches are a little different. For example, for the latest build from `release/X.X` branch change the above to be `Aspire.ProjectTemplates::X.X.*-*`. For example, if you want to use the latest build from the `release/9.2` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.2.*-* --force`
+> Release branches are a little different. For example, for the latest build from `release/X.X` branch change the above to be `Aspire.ProjectTemplates::X.X.*-*`. For example, if you want to use the latest build from the `release/9.3` branch, change the above to be `dotnet new install Aspire.ProjectTemplates::9.3.*-* --force`
 
 <!-- break between blocks -->
 
-> [!NOTE]  
+> [!NOTE]
 > The `--force` parameter is required if you also have the legacy .NET Aspire Workload installed. The new templates have the same name as the old ones, so this command would override those.
 
 ## Create a new Project
@@ -84,3 +86,5 @@ Alternatively, if you are using Visual Studio, you can instead create a new Blaz
 ```sh
 dotnet tool install --global aspire.cli --prerelease --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json
 ```
+
+now `aspire` will be available as a tool.
