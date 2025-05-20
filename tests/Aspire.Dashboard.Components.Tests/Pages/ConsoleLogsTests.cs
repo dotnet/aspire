@@ -559,6 +559,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<BrowserTimeProvider>(timeProvider ?? new TestTimeProvider());
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IToastService, ToastService>();
+        Services.AddSingleton<GlobalState>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<TelemetryRepository>();
