@@ -29,7 +29,6 @@ public sealed class ResourceMenuItemsTests
         var menuItems = new List<MenuButtonItem>();
         ResourceMenuItems.AddMenuItems(
             menuItems,
-            openingMenuButtonId: null,
             resource,
             new TestNavigationManager(),
             telemetryRespository,
@@ -37,8 +36,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);
@@ -81,7 +80,6 @@ public sealed class ResourceMenuItemsTests
         var menuItems = new List<MenuButtonItem>();
         ResourceMenuItems.AddMenuItems(
             menuItems,
-            openingMenuButtonId: null,
             resource,
             new TestNavigationManager(),
             repository,
@@ -89,8 +87,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);
@@ -133,7 +131,6 @@ public sealed class ResourceMenuItemsTests
         var menuItems = new List<MenuButtonItem>();
         ResourceMenuItems.AddMenuItems(
             menuItems,
-            openingMenuButtonId: null,
             resource,
             new TestNavigationManager(),
             repository,
@@ -141,8 +138,8 @@ public sealed class ResourceMenuItemsTests
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Commands>(),
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            EventCallback.Empty,
+            EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
             true);
