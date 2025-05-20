@@ -817,3 +817,8 @@ fluent-tooltip[anchor="dialog_close"] > div {
     vertical-align: text-bottom;
     margin-right: 3px;
 }
+
+fluent-menu-item::part(content) {
+    width: 100%;
+    text-overflow: ellipsis;
+}
