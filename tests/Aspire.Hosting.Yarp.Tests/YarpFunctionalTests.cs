@@ -39,7 +39,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
         var httpClient = new HttpClient() { BaseAddress = new Uri(endpoint.Url) };
 
         using var response200 = await httpClient.GetAsync("/aspnetapp");
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response200.StatusCode); // Intentionally failing the test
+        Assert.Equal(System.Net.HttpStatusCode.OK, response200.StatusCode);
 
         using var response404 = await httpClient.GetAsync("/another");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response404.StatusCode);
