@@ -8,6 +8,7 @@ using MongoDB.Driver;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddMongoDB("mongo")
+    .WithReplicaSet()
     .WithMongoExpress(c => c.WithHostPort(3022))
     .AddDatabase("db");
 
@@ -17,7 +18,7 @@ builder.Eventing.Subscribe<ResourceReadyEvent>(db.Resource, async (@event, ct) =
     await Task.Delay(TimeSpan.FromSeconds(10), ct);
 
     // Seed the database with some data
-    var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
+    var cs = await db.Resource.DirectConnectionStringExpression.GetValueAsync(ct);
     using var client = new MongoClient(cs);
 
     const string collectionName = "entries";
@@ -33,7 +34,7 @@ builder.Eventing.Subscribe<ResourceReadyEvent>(db.Resource, async (@event, ct) =
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db)
+       .WithReference(db.AsDirectConnection())
        .WaitFor(db);
 
 #if !SKIP_DASHBOARD_REFERENCE

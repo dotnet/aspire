@@ -1,17 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
-using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using Xunit;
-using Polly;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
+using Polly;
+using Xunit;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -96,6 +96,69 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
 
             await CreateTestDataAsync(mongoDatabase, token);
+        }, cts.Token);
+    }
+
+    [InlineData(null)]
+    [InlineData(10003)]
+    [Theory]
+    [RequiresDocker]
+    public async Task VerifyMongoDBResourceReplicaSet(int? customPort)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1) })
+            .Build();
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var mongodb = builder.AddMongoDB("mongodb", customPort)
+            .WithReplicaSet();
+        var db = mongodb.AddDatabase("testdb");
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.DirectConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddMongoDBClient(db.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
+            var collection = mongoDatabase.GetCollection<Movie>(CollectionName);
+            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<Movie>>()
+                .Match(x => x.OperationType == ChangeStreamOperationType.Insert);
+
+            var changeStreamOptions = new ChangeStreamOptions
+            {
+                FullDocument = ChangeStreamFullDocumentOption.UpdateLookup
+            };
+
+            // This API requires replica sets
+            using var cursor = await collection.WatchAsync(pipeline, changeStreamOptions, cts.Token);
+            var tcs = new TaskCompletionSource<Movie>();
+
+            var name = s_movies[0].Name + "Updated";
+            _ = cursor.ForEachAsync(cursor =>
+            {
+                Assert.Equal(ChangeStreamOperationType.Insert, cursor.OperationType);
+                Assert.NotNull(cursor.FullDocument);
+                tcs.SetResult(cursor.FullDocument);
+            }, cts.Token);
+
+            await collection.InsertOneAsync(new Movie { Name = name }, cancellationToken: token);
+
+            var updated = await tcs.Task;
+
+            Assert.Equal(name, updated.Name);
         }, cts.Token);
     }
 

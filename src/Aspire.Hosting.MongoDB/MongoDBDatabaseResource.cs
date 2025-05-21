@@ -13,12 +13,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The MongoDB server resource associated with this database.</param>
 public class MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent)
-    : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
+    : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString, IResourceWithDirectConnectionString
 {
     /// <summary>
     /// Gets the connection string expression for the MongoDB database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.BuildConnectionString(DatabaseName);
+
+    /// <summary>
+    /// Gets the direct connection string expression for the MongoDB database.
+    /// </summary>
+    /// <remarks>
+    /// This is useful to connect to the resource when replica sets are enabled. In those cases, the database will only
+    /// accept the registered name for the replica, which is only accessible from within the container network.
+    /// </remarks>
+    public ReferenceExpression DirectConnectionStringExpression => Parent.BuildConnectionString(DatabaseName, directConnection: true);
 
     /// <summary>
     /// Gets the parent MongoDB container resource.
