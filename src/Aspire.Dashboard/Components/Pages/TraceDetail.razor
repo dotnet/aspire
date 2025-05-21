@@ -32,7 +32,7 @@
                 </div>
             </PageTitleSection>
             <ToolbarSection>
-                <div slot class="trace-header">
+                <div slot="" class="trace-header">
                     <FluentOverflow Class="trace-header-details">
                         <ChildContent>
                             <FluentOverflowItem>
@@ -55,7 +55,7 @@
                             <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton" Class="trace-header-tooltip">
                                 @foreach (var item in overflow.ItemsOverflow)
                                 {
-                                    <div style="margin: 5px;">@item.Text</div>
+                                    <div style="margin: 5px;">@item.ChildContent</div>
                                 }
                             </FluentTooltip>
                         </OverflowTemplate>

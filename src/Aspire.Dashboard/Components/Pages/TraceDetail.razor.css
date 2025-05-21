@@ -176,6 +176,7 @@
 ::deep .trace-header-details .fluent-overflow-item {
     align-content: center;
     padding-right: 8px;
+    text-wrap-mode: nowrap;
 }
 
 ::deep .trace-header-details .fluent-overflow-more {
