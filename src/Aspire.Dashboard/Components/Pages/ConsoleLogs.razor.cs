@@ -477,7 +477,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             {
                 lock (_updateLogsLock)
                 {
-                    foreach (var priorPause in PauseManager.ConsoleLogPauseIntervals)
+                    var pauseIntervals = PauseManager.ConsoleLogPauseIntervals;
+                    Logger.LogDebug("Adding {PauseIntervalsCount} pause intervals on initial logs load.", pauseIntervals.Length);
+
+                    foreach (var priorPause in pauseIntervals)
                     {
                         _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
                     }
@@ -660,6 +663,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private void OnPausedChanged(bool isPaused)
     {
+        Logger.LogDebug("Console logs paused new value: {IsPausedNewValue}", isPaused);
+
         var timestamp = DateTime.UtcNow;
         PauseManager.SetConsoleLogsPaused(isPaused, timestamp);
 
@@ -669,12 +674,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             {
                 if (isPaused)
                 {
+                    Logger.LogDebug("Inserting new pause log entry starting at {StartTimestamp}.", timestamp);
                     _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
                 }
                 else
                 {
                     var pause = _logEntries.GetEntries().Last().Pause;
                     Debug.Assert(pause is not null);
+
+                    Logger.LogDebug("Updating pause log entry starting at {StartTimestamp} with end of {EndTimestamp}.", pause.StartTime, timestamp);
                     pause.EndTime = timestamp;
                 }
             }
