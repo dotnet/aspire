@@ -49,10 +49,6 @@ internal sealed class AddCommand : BaseCommand
         versionOption.Description = "The version of the integration to add.";
         Options.Add(versionOption);
 
-        var prereleaseOption = new Option<bool>("--prerelease");
-        prereleaseOption.Description = "Include pre-release versions of the integration when searching.";
-        Options.Add(prereleaseOption);
-
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = "The NuGet source to use for the integration.";
         Options.Add(sourceOption);
@@ -79,13 +75,11 @@ internal sealed class AddCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var prerelease = parseResult.GetValue<bool>("--prerelease");
-
             var source = parseResult.GetValue<string?>("--source");
 
             var packages = await _interactionService.ShowStatusAsync(
                 "Searching for Aspire packages...",
-                () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
+                () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, true, source, cancellationToken)
                 );
 
             var version = parseResult.GetValue<string?>("--version");

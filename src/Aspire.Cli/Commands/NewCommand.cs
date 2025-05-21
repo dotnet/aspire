@@ -55,10 +55,6 @@ internal sealed class NewCommand : BaseCommand
         var templateVersionOption = new Option<string?>("--version", "-v");
         templateVersionOption.Description = "The version of the project templates to use.";
         Options.Add(templateVersionOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        prereleaseOption.Description = "Include prerelease versions when searching for project templates.";
-        Options.Add(prereleaseOption);
     }
 
     private async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -111,7 +107,7 @@ internal sealed class NewCommand : BaseCommand
         return Path.GetFullPath(outputPath);
     }
 
-    private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, bool prerelease, string? source, CancellationToken cancellationToken)
+    private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, string? source, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--version") is { } version)
         {
@@ -123,7 +119,7 @@ internal sealed class NewCommand : BaseCommand
 
             var candidatePackages = await _interactionService.ShowStatusAsync(
                 "Searching for available project template versions...",
-                () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
+                () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, true, source, cancellationToken)
                 );
 
             var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
@@ -141,9 +137,8 @@ internal sealed class NewCommand : BaseCommand
             var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
-            var prerelease = parseResult.GetValue<bool>("--prerelease");
             var source = parseResult.GetValue<string?>("--source");
-            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
+            var version = await GetProjectTemplatesVersionAsync(parseResult, source, cancellationToken);
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
