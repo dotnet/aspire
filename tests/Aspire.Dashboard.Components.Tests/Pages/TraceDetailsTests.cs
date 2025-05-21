@@ -314,6 +314,10 @@ public partial class TraceDetailsTests : DashboardTestContext
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
+        var overflowModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
+        overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
+        overflowModule.SetupVoid("fluentOverflowDispose", _ => true);
+
         var dividerModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
         dividerModule.SetupVoid("setDividerAriaOrientation");
 
