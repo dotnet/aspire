@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Eventing;
@@ -32,6 +33,48 @@ public interface IDistributedApplicationEventing
     /// </summary>
     /// <param name="subscription">The specific subscription to unsubscribe.</param>
     void Unsubscribe(DistributedApplicationEventSubscription subscription);
+
+    /// <summary>
+    /// Attempts to subscribe a callback to a specific event type within the AppHost only if a subscription with the same key doesn't already exist.
+    /// </summary>
+    /// <typeparam name="T">The type of the event.</typeparam>
+    /// <param name="key">A unique key to identify this subscription.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
+    /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
+    bool TrySubscribeOnce<T>(object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Attempts to subscribe a callback to a specific event type within the AppHost only if a subscription with the same key doesn't already exist.
+    /// Uses the IDistributedApplicationEventing instance as the key.
+    /// </summary>
+    /// <typeparam name="T">The type of the event.</typeparam>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
+    /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
+    bool TrySubscribeOnce<T>(Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Attempts to subscribe a callback to a specific event type for a specific resource only if a subscription with the same key doesn't already exist.
+    /// </summary>
+    /// <typeparam name="T">The type of the event.</typeparam>
+    /// <param name="resource">The resource instance associated with the event.</param>
+    /// <param name="key">A unique key to identify this subscription.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
+    /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
+    bool TrySubscribeOnce<T>(IResource resource, object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent;
+
+    /// <summary>
+    /// Attempts to subscribe a callback to a specific event type for a specific resource only if a subscription with the same key doesn't already exist.
+    /// Uses the IDistributedApplicationEventing instance as the key.
+    /// </summary>
+    /// <typeparam name="T">The type of the event.</typeparam>
+    /// <param name="resource">The resource instance associated with the event.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
+    /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
+    bool TrySubscribeOnce<T>(IResource resource, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent;
 
     /// <summary>
     /// Publishes an event to all subscribes of the specific event type.
