@@ -23,7 +23,7 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
             return;
         }
 
-        // NOTE: if ever these contants are changed, the AzureBlobStorageResource in Aspire.Hosting.Azure.Storage class should be updated as well.
+        // NOTE: if ever these constants are changed, the AzureBlobStorageResource in Aspire.Hosting.Azure.Storage class should be updated as well.
         const string Endpoint = nameof(Endpoint);
         const string ContainerName = nameof(ContainerName);
 
@@ -43,9 +43,10 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
                 BlobContainerName = containerName?.ToString();
             }
         }
-        catch (ArgumentException)
+        catch (ArgumentException ex)
         {
-            throw;
+            // Rethrow with more context for easier troubleshooting
+            throw new ArgumentException($"Invalid connection string format. Ensure it has the format 'Endpoint=value;ContainerName=value'. See inner exception for details.", ex);
         }
     }
 }
