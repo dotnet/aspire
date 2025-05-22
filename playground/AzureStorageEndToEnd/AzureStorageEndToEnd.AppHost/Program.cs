@@ -3,11 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage");
-//.RunAsEmulator(container =>
-//{
-//    container.WithDataBindMount();
-//});
+var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
+{
+    container.WithDataBindMount();
+});
 
 var blobs = storage.AddBlobs("blobs");
 blobs.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
@@ -15,11 +14,10 @@ blobs.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
 var queues = storage.AddQueues("queues");
 
-var storage2 = builder.AddAzureStorage("storage2");
-//    .RunAsEmulator(container =>
-//{
-//    container.WithDataBindMount();
-//});
+var storage2 = builder.AddAzureStorage("storage2").RunAsEmulator(container =>
+{
+    container.WithDataBindMount();
+});
 var blobs2 = storage2.AddBlobs("blobs2");
 var blobContainer2 = blobs2.AddBlobContainer("foocontainer", blobContainerName: "foo-container");
 
