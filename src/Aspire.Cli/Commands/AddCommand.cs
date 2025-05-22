@@ -86,6 +86,11 @@ internal sealed class AddCommand : BaseCommand
                     cancellationToken: cancellationToken)
                 );
 
+            if (!packages.Any())
+            {
+                throw new EmptyChoicesException("No integration packages were found. Please check your internet connection or NuGet source configuration.");
+            }
+
             var version = parseResult.GetValue<string?>("--version");
 
             var packagesWithShortName = packages.Select(GenerateFriendlyName);
@@ -170,6 +175,11 @@ internal sealed class AddCommand : BaseCommand
         catch (OperationCanceledException)
         {
             _interactionService.DisplayCancellationMessage();
+            return ExitCodeConstants.FailedToAddPackage;
+        }
+        catch (EmptyChoicesException ex)
+        {
+            _interactionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)

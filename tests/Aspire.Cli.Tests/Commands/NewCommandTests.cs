@@ -590,6 +590,40 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommand_EmptyPackageList_DisplaysErrorMessage()
+    {
+        string? displayedErrorMessage = null;
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+            options.InteractionServiceFactory = (sp) => {
+                var testInteractionService = new TestInteractionService();
+                testInteractionService.DisplayErrorCallback = (message) => {
+                    displayedErrorMessage = message;
+                };
+                return testInteractionService;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) => {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) => {
+                    return (0, Array.Empty<NuGetPackage>());
+                };
+                return runner;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
+        Assert.Contains("No template versions were found", displayedErrorMessage);
+    }
+    
+    [Fact]
     public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
         var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>

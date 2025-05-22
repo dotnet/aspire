@@ -477,6 +477,42 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("9.2.0", addedPackageVersion);
     }
 
+    [Fact]
+    public async Task AddCommand_EmptyPackageList_DisplaysErrorMessage()
+    {
+        string? displayedErrorMessage = null;
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+            options.InteractionServiceFactory = (sp) => {
+                var testInteractionService = new TestInteractionService();
+                testInteractionService.DisplayErrorCallback = (message) => {
+                    displayedErrorMessage = message;
+                };
+                return testInteractionService;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    return (0, Array.Empty<NuGetPackage>());
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
+        Assert.Contains("No integration packages were found", displayedErrorMessage);
+    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)

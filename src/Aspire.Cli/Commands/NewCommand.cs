@@ -122,6 +122,11 @@ internal sealed class NewCommand : BaseCommand
                 () => _nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
+            if (!candidatePackages.Any())
+            {
+                throw new EmptyChoicesException("No template versions were found. Please check your internet connection or NuGet source configuration.");
+            }
+
             var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
             var selectedPackage = await _prompter.PromptForTemplatesVersionAsync(orderedCandidatePackages, cancellationToken);
             return selectedPackage.Version;
@@ -203,6 +208,11 @@ internal sealed class NewCommand : BaseCommand
         {
             _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
             return ExitCodeConstants.FailedToTrustCertificates;
+        }
+        catch (EmptyChoicesException ex)
+        {
+            _interactionService.DisplayError(ex.Message);
+            return ExitCodeConstants.FailedToCreateNewProject;
         }
     }
 }
