@@ -589,7 +589,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease = true, int take = 1000, int skip = 0, string? nugetSource = null, DotNetCliRunnerInvocationOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
         

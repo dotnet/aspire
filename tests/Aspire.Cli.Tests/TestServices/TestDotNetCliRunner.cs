@@ -78,7 +78,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : throw new NotImplementedException();
     }
 
-    public Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease = true, int take = 1000, int skip = 0, string? nugetSource = null, DotNetCliRunnerInvocationOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
     {
         return SearchPackagesAsyncCallback != null
             ? Task.FromResult(SearchPackagesAsyncCallback(workingDirectory, query, prerelease, take, skip, nugetSource, options ?? new DotNetCliRunnerInvocationOptions(), cancellationToken))
