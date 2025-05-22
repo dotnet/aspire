@@ -26,7 +26,7 @@ internal class ResourceSnapshotBuilder
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.Status?.State;
 
-        if (container.Spec.Start == false && (state == null || state == ContainerState.Pending))
+        if (container.Spec.Start is false && (state == null || state == ContainerState.Pending))
         {
             state = KnownResourceStates.NotStarted;
         }
