@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Backchannel;
 /// <summary>
 /// Represents the state of a resource reported via RPC.
 /// </summary>
-public class RpcResourceState
+internal class RpcResourceState
 {
     /// <summary>
     /// Gets the name of the resource.
