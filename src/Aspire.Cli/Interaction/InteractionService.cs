@@ -58,6 +58,12 @@ internal class InteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
+        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
         var prompt = new SelectionPrompt<T>()
             .Title(promptText)
             .UseConverter(choiceFormatter)
