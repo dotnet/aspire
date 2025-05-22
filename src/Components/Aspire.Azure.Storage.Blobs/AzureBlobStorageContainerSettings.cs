@@ -27,11 +27,25 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
         const string Endpoint = nameof(Endpoint);
         const string ContainerName = nameof(ContainerName);
 
-        DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
-        if (builder.TryGetValue(Endpoint, out var endpoint) && builder.TryGetValue(ContainerName, out var containerName))
+        try
         {
-            ConnectionString = endpoint.ToString();
-            BlobContainerName = containerName.ToString();
+            DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
+            if (builder.TryGetValue(Endpoint, out var endpoint) && builder.TryGetValue(ContainerName, out var containerName))
+            {
+                // Remove any quotes around the endpoint value
+                string endpointStr = endpoint?.ToString() ?? string.Empty;
+                if (endpointStr.StartsWith("\"") && endpointStr.EndsWith("\"") && endpointStr.Length >= 2)
+                {
+                    endpointStr = endpointStr.Substring(1, endpointStr.Length - 2);
+                }
+
+                ConnectionString = endpointStr;
+                BlobContainerName = containerName?.ToString();
+            }
+        }
+        catch (ArgumentException)
+        {
+            throw;
         }
     }
 }

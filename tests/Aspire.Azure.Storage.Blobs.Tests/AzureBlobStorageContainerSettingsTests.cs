@@ -49,4 +49,17 @@ public class AzureBlobStorageContainerSettingsTests
         Assert.Equal("https://example.blob.core.windows.net", settings.ConnectionString);
         Assert.Equal("my-container", settings.BlobContainerName);
     }
+    
+    [Fact]
+    public void ParseConnectionString_with_quoted_endpoint()
+    {
+        // This test reproduces the issue where the connection string has quotes around the endpoint value
+        var settings = new AzureBlobStorageContainerSettings();
+        string connectionString = "Endpoint=\"https://example.blob.core.windows.net\";ContainerName=my-container";
+
+        ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
+
+        Assert.Equal("https://example.blob.core.windows.net", settings.ConnectionString);
+        Assert.Equal("my-container", settings.BlobContainerName);
+    }
 }
