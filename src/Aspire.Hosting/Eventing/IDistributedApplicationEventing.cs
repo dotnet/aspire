@@ -17,7 +17,10 @@ public interface IDistributedApplicationEventing
     /// <typeparam name="T">The type of the event.</typeparam>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>A subscription instance which can be used to unsubscribe </returns>
-    DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent;
+    DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Subscribes a callback to a specific event type 
@@ -26,13 +29,19 @@ public interface IDistributedApplicationEventing
     /// <param name="resource">The resource instance associated with the event.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>A subscription instance which can be used to unsubscribe.</returns>
-    DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent;
+    DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Unsubscribe from an event.
     /// </summary>
     /// <param name="subscription">The specific subscription to unsubscribe.</param>
-    void Unsubscribe(DistributedApplicationEventSubscription subscription);
+    void Unsubscribe(DistributedApplicationEventSubscription subscription)
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Attempts to subscribe a callback to a specific event type within the AppHost only if a subscription with the same key doesn't already exist.
@@ -42,7 +51,10 @@ public interface IDistributedApplicationEventing
     /// <param name="callback">A callback to handle the event.</param>
     /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
     /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
-    bool TrySubscribeOnce<T>(object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent;
+    bool TrySubscribeOnce<T>(object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Attempts to subscribe a callback to a specific event type within the AppHost only if a subscription with the same key doesn't already exist.
@@ -52,7 +64,10 @@ public interface IDistributedApplicationEventing
     /// <param name="callback">A callback to handle the event.</param>
     /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
     /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
-    bool TrySubscribeOnce<T>(Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent;
+    bool TrySubscribeOnce<T>(Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Attempts to subscribe a callback to a specific event type for a specific resource only if a subscription with the same key doesn't already exist.
@@ -63,7 +78,10 @@ public interface IDistributedApplicationEventing
     /// <param name="callback">A callback to handle the event.</param>
     /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
     /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
-    bool TrySubscribeOnce<T>(IResource resource, object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent;
+    bool TrySubscribeOnce<T>(IResource resource, object key, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Attempts to subscribe a callback to a specific event type for a specific resource only if a subscription with the same key doesn't already exist.
@@ -74,7 +92,10 @@ public interface IDistributedApplicationEventing
     /// <param name="callback">A callback to handle the event.</param>
     /// <param name="subscription">When this method returns true, contains the subscription instance which can be used to unsubscribe; otherwise, null.</param>
     /// <returns>true if the subscription was added; false if a subscription with the same key already exists.</returns>
-    bool TrySubscribeOnce<T>(IResource resource, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent;
+    bool TrySubscribeOnce<T>(IResource resource, Func<T, CancellationToken, Task> callback, [NotNullWhen(true)] out DistributedApplicationEventSubscription? subscription) where T : IDistributedApplicationResourceEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Publishes an event to all subscribes of the specific event type.
@@ -84,7 +105,10 @@ public interface IDistributedApplicationEventing
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that can be awaited.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
-    Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
+    Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     /// Publishes an event to all subscribes of the specific event type.
@@ -95,5 +119,8 @@ public interface IDistributedApplicationEventing
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that can be awaited.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Cancellation token")]
-    Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
+    Task PublishAsync<T>(T @event, EventDispatchBehavior dispatchBehavior, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    {
+        throw new NotImplementedException();
+    }
 }
