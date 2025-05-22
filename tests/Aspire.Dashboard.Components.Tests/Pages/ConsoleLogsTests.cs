@@ -450,8 +450,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
 
         logger.LogInformation("Pause logs.");
-        var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>();
-        pauseResumeButton.Find("fluent-button").Click();
+        var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>().WaitForElement("fluent-button");
+        pauseResumeButton.Click();
+        cut.WaitForAssertion(() => Assert.True(pauseManager.ConsoleLogsPaused));
 
         logger.LogInformation("Wait for pause log.");
         var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
@@ -477,8 +478,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // - the pause line has been replaced with pause details
         // - the log viewer shows the new log
         // - the log viewer does not show the discarded log
-        pauseResumeButton.Find("fluent-button").Click();
-        cut.WaitForAssertion(() => Assert.False(Services.GetRequiredService<PauseManager>().ConsoleLogsPaused));
+        pauseResumeButton.Click();
+        cut.WaitForAssertion(() => Assert.False(pauseManager.ConsoleLogsPaused));
 
         logger.LogInformation("Write a new log.");
         var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
