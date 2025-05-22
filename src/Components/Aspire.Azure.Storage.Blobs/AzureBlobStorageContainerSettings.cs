@@ -28,9 +28,10 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
         const string ContainerName = nameof(ContainerName);
 
         DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
-        if (builder.TryGetValue(Endpoint, out var endpoint) && builder.TryGetValue(ContainerName, out var containerName))
+        if (builder.TryGetValue(Endpoint, out var endpoint) && endpoint is string endpointValue && builder.TryGetValue(ContainerName, out var containerName))
         {
-            ConnectionString = endpoint.ToString();
+            // endpoint can be a URI (azure deployment) or key/value pairs (emulator)
+            base.ParseConnectionStringInternal(endpointValue);
             BlobContainerName = containerName.ToString();
         }
     }
