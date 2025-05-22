@@ -27,6 +27,7 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
         const string Endpoint = nameof(Endpoint);
         const string ContainerName = nameof(ContainerName);
 
+        // First try to parse as a connection string in the format Endpoint=value;ContainerName=value
         try
         {
             DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
@@ -34,12 +35,27 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
             {
                 ConnectionString = endpoint?.ToString();
                 BlobContainerName = containerName?.ToString();
+                return; // Successfully parsed
             }
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            // Rethrow with more context for easier troubleshooting
-            throw new ArgumentException($"Invalid connection string format. Ensure it has the format 'Endpoint=value;ContainerName=value'. See inner exception for details.", ex);
+            // If this is not a valid connection string, it might be a direct URL endpoint
+            // from a deployed environment - we'll handle it in the next step
+        }
+
+        // Handle the case where connectionString is a direct URL endpoint (for deployed environments)
+        // In this case, we use it as the ConnectionString directly and expect the BlobContainerName
+        // to be set separately through configuration
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out _))
+        {
+            ConnectionString = connectionString;
+            // BlobContainerName should be set through configuration
+        }
+        else
+        {
+            // If we get here, the string is neither a valid connection string nor a valid URI
+            throw new ArgumentException($"Invalid connection string format. Expected either a connection string with format 'Endpoint=value;ContainerName=value' or a valid URI.");
         }
     }
 }

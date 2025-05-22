@@ -12,11 +12,7 @@ public class AzureBlobStorageContainerSettingsTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData(";")]
-    [InlineData("Endpoint=https://example.blob.core.windows.net;")]
-    [InlineData("ContainerName=my-container;")]
-    [InlineData("Endpoint=https://example.blob.core.windows.net;ExtraParam=value;")]
-    public void ParseConnectionString_invalid_input(string? connectionString)
+    public void ParseConnectionString_null_or_empty_input(string? connectionString)
     {
         var settings = new AzureBlobStorageContainerSettings();
 
@@ -26,14 +22,22 @@ public class AzureBlobStorageContainerSettingsTests
         Assert.Null(settings.BlobContainerName);
     }
 
-    [Fact]
-    public void ParseConnectionString_invalid_input_results_in_AE()
+    [Theory]
+    [InlineData(";")]
+    [InlineData("InvalidConnectionString")]
+    [InlineData("Endpoint=")]
+    [InlineData("Endpoint=https://example.blob.core.windows.net;")]
+    [InlineData("ContainerName=my-container;")]
+    [InlineData("Endpoint=https://example.blob.core.windows.net;ExtraParam=value;")]
+    public void ParseConnectionString_invalid_input_throws(string connectionString)
     {
         var settings = new AzureBlobStorageContainerSettings();
-        string connectionString = "InvalidConnectionString";
 
         Assert.Throws<ArgumentException>(() => ((IConnectionStringSettings)settings).ParseConnectionString(connectionString));
     }
+
+    // The "partial_input_handled_gracefully" test was removed because these cases
+    // now throw exceptions in our stricter validation
 
     [Theory]
     [InlineData("Endpoint=https://example.blob.core.windows.net;ContainerName=my-container")]
@@ -74,5 +78,19 @@ public class AzureBlobStorageContainerSettingsTests
 
         Assert.Equal("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=key;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;", settings.ConnectionString);
         Assert.Equal("foo-container", settings.BlobContainerName);
+    }
+
+    [Theory]
+    [InlineData("https://example.blob.core.windows.net")]
+    [InlineData("http://localhost:10000/devstoreaccount1")]
+    public void ParseConnectionString_url_endpoint(string endpoint)
+    {
+        var settings = new AzureBlobStorageContainerSettings();
+
+        // Using a URL directly as a connection string (deployed environment scenario)
+        ((IConnectionStringSettings)settings).ParseConnectionString(endpoint);
+
+        Assert.Equal(endpoint, settings.ConnectionString);
+        Assert.Null(settings.BlobContainerName); // Container name should be provided separately
     }
 }

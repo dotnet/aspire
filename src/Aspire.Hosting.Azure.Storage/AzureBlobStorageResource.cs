@@ -38,6 +38,14 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             return ConnectionStringExpression;
         }
 
+        // For non-emulator environments (deployed), return the connection string directly
+        // which will be used as a ServiceUri with the container name appended by the client
+        if (!Parent.IsEmulator)
+        {
+            return ConnectionStringExpression;
+        }
+
+        // For emulator environment, create a connection string with the emulator-specific format
         ReferenceExpressionBuilder builder = new();
         builder.Append($"{Endpoint}={ConnectionStringExpression};");
 
