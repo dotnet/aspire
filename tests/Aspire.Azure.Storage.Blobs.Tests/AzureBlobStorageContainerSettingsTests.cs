@@ -62,4 +62,17 @@ public class AzureBlobStorageContainerSettingsTests
         Assert.Equal("https://example.blob.core.windows.net", settings.ConnectionString);
         Assert.Equal("my-container", settings.BlobContainerName);
     }
+
+    [Fact]
+    public void ParseConnectionString_with_emulator_format()
+    {
+        // Test with emulator connection string format where Endpoint value is itself a connection string
+        var settings = new AzureBlobStorageContainerSettings();
+        string connectionString = "Endpoint=\"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=key;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;\";ContainerName=foo-container;";
+
+        ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
+
+        Assert.Equal("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=key;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;", settings.ConnectionString);
+        Assert.Equal("foo-container", settings.BlobContainerName);
+    }
 }
