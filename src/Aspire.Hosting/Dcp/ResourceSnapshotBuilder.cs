@@ -26,6 +26,11 @@ internal class ResourceSnapshotBuilder
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.Status?.State;
 
+        if (container.Spec.Start == false && (state == null || state == ContainerState.Pending))
+        {
+            state = KnownResourceStates.NotStarted;
+        }
+
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
 
         (ImmutableArray<string> Args, ImmutableArray<int>? ArgsAreSensitive, bool IsSensitive)? launchArguments = null;
