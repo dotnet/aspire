@@ -55,10 +55,6 @@ internal sealed class NewCommand : BaseCommand
         var templateVersionOption = new Option<string?>("--version", "-v");
         templateVersionOption.Description = "The version of the project templates to use.";
         Options.Add(templateVersionOption);
-
-        var prereleaseOption = new Option<bool>("--prerelease");
-        prereleaseOption.Description = "Include prerelease versions when searching for project templates.";
-        Options.Add(prereleaseOption);
     }
 
     private async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -141,9 +137,8 @@ internal sealed class NewCommand : BaseCommand
             var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
-            var prerelease = parseResult.GetValue<bool>("--prerelease");
             var source = parseResult.GetValue<string?>("--source");
-            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease, source, cancellationToken);
+            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease: true, source: source, cancellationToken: cancellationToken);
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
