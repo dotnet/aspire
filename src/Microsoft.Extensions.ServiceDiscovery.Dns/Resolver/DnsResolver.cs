@@ -332,7 +332,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
                 int messageOffset = messageBytes.Offset;
 
-                bool result = DnsPrimitives.TryReadQName(segment.Array.AsMemory(messageOffset, segment.Offset + segment.Count - messageOffset), segment.Offset, out EncodedDomainName targetName, out int bytesRead) && bytesRead == record.Data.Length;
+                bool result = DnsPrimitives.TryReadQName(segment.Array.AsMemory(messageOffset, segment.Offset + segment.Count - messageOffset), segment.Offset - messageOffset, out EncodedDomainName targetName, out int bytesRead) && bytesRead == record.Data.Length;
                 if (result)
                 {
                     target = targetName;
@@ -752,7 +752,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
             int responseLength = -1;
             int bytesRead = 0;
-            while (responseLength < 0 || bytesRead < length + 2)
+            while (responseLength < 0 || bytesRead < responseLength + 2)
             {
                 int read = await socket.ReceiveAsync(buffer.AsMemory(bytesRead), SocketFlags.None, cancellationToken).ConfigureAwait(false);
                 bytesRead += read;
@@ -767,11 +767,11 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                 {
                     responseLength = BinaryPrimitives.ReadUInt16BigEndian(buffer.AsSpan(0, 2));
 
-                    if (responseLength > buffer.Length)
+                    if (responseLength + 2 > buffer.Length)
                     {
                         // even though this is user-controlled pre-allocation, it is limited to
                         // 64 kB, so it should be fine.
-                        var largerBuffer = ArrayPool<byte>.Shared.Rent(responseLength);
+                        var largerBuffer = ArrayPool<byte>.Shared.Rent(responseLength + 2);
                         Array.Copy(buffer, largerBuffer, bytesRead);
                         ArrayPool<byte>.Shared.Return(buffer);
                         buffer = largerBuffer;
