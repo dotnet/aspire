@@ -10,7 +10,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
@@ -95,16 +94,16 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = ControlStringsLoc[nameof(Resources.ControlsStrings.ExpandAllSpansText)],
+            Text = "Expand All",
             Icon = new Icons.Regular.Size16.ArrowExpandAll(),
-            OnClick = async () => await ExpandAllSpansAsync()
+            OnClick = ExpandAllSpansAsync
         });
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = ControlStringsLoc[nameof(Resources.ControlsStrings.CollapseAllSpansText)],
+            Text = "Collapse All",
             Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
-            OnClick = async () => await CollapseAllSpansAsync()
+            OnClick = CollapseAllSpansAsync
         });
     }
 
@@ -356,7 +355,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private async Task CollapseAllSpansAsync()
+    // Internal for testing
+    internal async Task CollapseAllSpansAsync()
     {
         if (_spanWaterfallViewModels is null)
         {
@@ -377,7 +377,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    private async Task ExpandAllSpansAsync()
+    // Internal for testing
+    internal async Task ExpandAllSpansAsync()
     {
         if (_spanWaterfallViewModels is null)
         {
