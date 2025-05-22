@@ -79,7 +79,11 @@ internal sealed class AddCommand : BaseCommand
 
             var packages = await _interactionService.ShowStatusAsync(
                 "Searching for Aspire packages...",
-                () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, true, source, cancellationToken)
+                () => _nuGetPackageCache.GetIntegrationPackagesAsync(
+                    workingDirectory: effectiveAppHostProjectFile.Directory!, 
+                    prerelease: true, 
+                    source: source, 
+                    cancellationToken: cancellationToken)
                 );
 
             var version = parseResult.GetValue<string?>("--version");
