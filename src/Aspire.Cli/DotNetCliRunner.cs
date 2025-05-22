@@ -592,7 +592,6 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
-        
         List<string> cliArgs = [
             "package",
             "search",
