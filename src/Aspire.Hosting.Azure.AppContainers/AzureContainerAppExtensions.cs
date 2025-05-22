@@ -69,8 +69,9 @@ public static class AzureContainerAppExtensions
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
-            var userPrincipalId = new ProvisioningParameter("userPrincipalId", typeof(string));
 
+            // This tells azd to avoid creating infrastructure
+            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string));
             infra.Add(userPrincipalId);
 
             var tags = new ProvisioningParameter("tags", typeof(object))
