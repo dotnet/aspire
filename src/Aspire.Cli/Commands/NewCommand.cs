@@ -138,7 +138,7 @@ internal sealed class NewCommand : BaseCommand
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
             var source = parseResult.GetValue<string?>("--source");
-            var version = await GetProjectTemplatesVersionAsync(parseResult, true, source, cancellationToken);
+            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease: true, source: source, cancellationToken: cancellationToken);
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await _interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
