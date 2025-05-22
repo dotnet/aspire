@@ -72,37 +72,42 @@ public static class AzureStorageExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-            var blobs = new BlobService("blobs")
-            {
-                Parent = storageAccount
-            };
-            infrastructure.Add(blobs);
+            var azureResource = (AzureStorageResource)infrastructure.AspireResource;
 
-            var queues = new QueueService("queues")
+            if (azureResource.BlobContainers.Count > 0)
             {
-                Parent = storageAccount
-            };
-            infrastructure.Add(queues);
+                var blobs = new BlobService("blobs")
+                {
+                    Parent = storageAccount
+                };
+                infrastructure.Add(blobs);
+
+                foreach (var blobContainer in azureResource.BlobContainers)
+                {
+                    var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                    cdkBlobContainer.Parent = blobs;
+                    infrastructure.Add(cdkBlobContainer);
+                }
+            }
+
+            if (azureResource.Queues.Count > 0)
+            {
+                var queues = new QueueService("queues")
+                {
+                    Parent = storageAccount
+                };
+                infrastructure.Add(queues);
+                foreach (var queue in azureResource.Queues)
+                {
+                    var cdkQueue = queue.ToProvisioningEntity();
+                    cdkQueue.Parent = queues;
+                    infrastructure.Add(cdkQueue);
+                }
+            }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
-
-            var azureResource = (AzureStorageResource)infrastructure.AspireResource;
-
-            foreach (var blobContainer in azureResource.BlobContainers)
-            {
-                var cdkBlobContainer = blobContainer.ToProvisioningEntity();
-                cdkBlobContainer.Parent = blobs;
-                infrastructure.Add(cdkBlobContainer);
-            }
-
-            foreach (var queue in azureResource.Queues)
-            {
-                var cdkQueue = queue.ToProvisioningEntity();
-                cdkQueue.Parent = queues;
-                infrastructure.Add(cdkQueue);
-            }
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });

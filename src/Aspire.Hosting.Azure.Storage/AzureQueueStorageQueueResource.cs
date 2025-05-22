@@ -10,7 +10,7 @@ using Azure.Provisioning;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// A resource that represents an Azure Blob Storage queue.
+/// A resource that represents an Azure Storage queue.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="queueName">The name of the queue.</param>
@@ -25,7 +25,7 @@ public class AzureQueueStorageQueueResource(string name, string queueName, Azure
     public string QueueName { get; } = ThrowIfNullOrEmpty(queueName);
 
     /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Blob Storage container resource.
+    /// Gets the connection string template for the manifest for the Azure Storage queue resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(QueueName);
 

@@ -39,13 +39,7 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
         }
 
         ReferenceExpressionBuilder builder = new();
-        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";");
-
-        if (!string.IsNullOrEmpty(queueName))
-        {
-            builder.Append($"{QueueName}={queueName};");
-        }
-
+        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";{QueueName}={queueName};");
         return builder.Build();
     }
 
