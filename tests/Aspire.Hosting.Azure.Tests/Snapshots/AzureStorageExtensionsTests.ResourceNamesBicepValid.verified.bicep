@@ -32,6 +32,7 @@ resource myContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@
 }
 
 resource queues 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
+  name: 'default'
   parent: storage
 }
 
