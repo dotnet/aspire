@@ -28,6 +28,7 @@
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Flaky tests can be quarantined with the `QuarantinedTest` attribute, with a corresponding github issue. These tests are then skipped in the regular tests run. Instead they are run in the Outerloop tests workflow.
 
 ## Running tests
 
