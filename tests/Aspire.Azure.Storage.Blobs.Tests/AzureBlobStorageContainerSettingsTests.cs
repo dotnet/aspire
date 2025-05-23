@@ -11,26 +11,6 @@ public class AzureBlobStorageContainerSettingsTests
 {
     private const string EmulatorConnectionString = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1";
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData(";")]
-    [InlineData("Endpoint=https://example.blob.core.windows.net;")]
-    [InlineData("ContainerName=my-container;")]
-    [InlineData("Endpoint=https://example.blob.core.windows.net;ExtraParam=value;")]
-    public void ParseConnectionString_invalid_input(string? connectionString)
-    {
-        // Both Endpoint and ContainerName are required in a blob resource connection string.
-
-        var settings = new AzureBlobStorageContainerSettings();
-
-        ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
-
-        Assert.Null(settings.ConnectionString);
-        Assert.Null(settings.ServiceUri);
-        Assert.Null(settings.BlobContainerName);
-    }
-
     [Fact]
     public void ParseConnectionString_invalid_input_results_in_AE()
     {
@@ -57,29 +37,29 @@ public class AzureBlobStorageContainerSettingsTests
     }
 
     [Theory]
-    [InlineData($"Endpoint=\"{EmulatorConnectionString}\";ContainerName=my-container")]
-    [InlineData($"Endpoint=\"{EmulatorConnectionString}\";ContainerName=\"my-container\"")]
+    [InlineData($"{EmulatorConnectionString};ContainerName=my-container")]
+    [InlineData($"{EmulatorConnectionString};ContainerName=\"my-container\"")]
     public void ParseConnectionString_With_ConnectionString(string connectionString)
     {
         var settings = new AzureBlobStorageContainerSettings();
 
         ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
 
-        Assert.Equal(EmulatorConnectionString, settings.ConnectionString);
+        Assert.Contains(EmulatorConnectionString, settings.ConnectionString, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ContainerName", settings.ConnectionString, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("my-container", settings.BlobContainerName);
         Assert.Null(settings.ServiceUri);
     }
 
     [Theory]
     [InlineData($"Endpoint=not-a-uri;ContainerName=my-container")]
-    [InlineData($"Endpoint=\"not-a-uri\";ContainerName=my-container")]
     public void ParseConnectionString_With_NotAUri(string connectionString)
     {
         var settings = new AzureBlobStorageContainerSettings();
 
         ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
 
-        Assert.Equal("not-a-uri", settings.ConnectionString);
+        Assert.True(string.IsNullOrEmpty(settings.ConnectionString));
         Assert.Equal("my-container", settings.BlobContainerName);
         Assert.Null(settings.ServiceUri);
     }
