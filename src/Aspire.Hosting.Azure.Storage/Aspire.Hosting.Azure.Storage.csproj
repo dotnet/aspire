@@ -14,7 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" />
+    <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Queues" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Storage" />
   </ItemGroup>

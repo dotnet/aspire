@@ -39,13 +39,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         }
 
         ReferenceExpressionBuilder builder = new();
-        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";");
-
-        if (!string.IsNullOrEmpty(blobContainerName))
-        {
-            builder.Append($"{ContainerName}={blobContainerName};");
-        }
-
+        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";{ContainerName}={blobContainerName};");
         return builder.Build();
     }
 
