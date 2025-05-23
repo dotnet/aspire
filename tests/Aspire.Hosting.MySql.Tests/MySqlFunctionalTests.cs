@@ -575,18 +575,15 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
             var mySqlId = await GetContainerIdAsync(rns, "resource", cts.Token);
 
             var mySqlId2 = "";
 
             if (useMultipleInstances)
             {
-                resourceEvent = await rns.WaitForResourceHealthyAsync("resource2", cts.Token);
                 mySqlId2 = await GetContainerIdAsync(rns, "resource2", cts.Token);
             }
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("phpmyadmin", cts.Token);
             var phpMyAdminId = await GetContainerIdAsync(rns, "phpmyadmin", cts.Token);;
 
             await app.StopAsync(cts.Token).WaitAsync(cts.Token);
@@ -596,6 +593,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         static async Task<string?> GetContainerIdAsync(ResourceNotificationService rns, string resourceName, CancellationToken cancellationToken)
         {
+            await rns.WaitForResourceHealthyAsync(resourceName, cancellationToken);
             var resourceEvent = await rns.WaitForResourceAsync(resourceName, (evt) =>
             {
                 return evt.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value != null;

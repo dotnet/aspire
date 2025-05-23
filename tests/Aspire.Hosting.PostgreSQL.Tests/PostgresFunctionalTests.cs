@@ -562,22 +562,25 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-            var resourceEvent = await rns.WaitForResourceHealthyAsync("resource", cts.Token);
-            var postgresId = GetContainerId(resourceEvent);
+            var postgresId = await GetContainerIdAsync(rns, "resource", cts.Token);
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("pgweb", cts.Token);
-            var pgWebId = GetContainerId(resourceEvent);
+            var pgWebId = await GetContainerIdAsync(rns, "pgweb", cts.Token);
 
-            resourceEvent = await rns.WaitForResourceHealthyAsync("pgadmin", cts.Token);
-            var pgadminId = GetContainerId(resourceEvent);
+            var pgadminId = await GetContainerIdAsync(rns, "pgadmin", cts.Token);
 
             await app.StopAsync(cts.Token).WaitAsync(TimeSpan.FromMinutes(1), cts.Token);
 
             return [postgresId, pgWebId, pgadminId];
         }
 
-        static string? GetContainerId(ResourceEvent resourceEvent)
+        static async Task<string?> GetContainerIdAsync(ResourceNotificationService rns, string resourceName, CancellationToken cancellationToken)
         {
+            await rns.WaitForResourceHealthyAsync(resourceName, cancellationToken);
+            var resourceEvent = await rns.WaitForResourceAsync(resourceName, (evt) =>
+            {
+                return evt.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value != null;
+            }, cancellationToken);
+
             return resourceEvent.Snapshot.Properties.FirstOrDefault(x => x.Name == "container.id")?.Value?.ToString();
         }
     }
