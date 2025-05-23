@@ -4,6 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Tests;
@@ -16,6 +17,7 @@ public class DnsServiceEndpointResolverTests
         var timeProvider = new FakeTimeProvider();
         var services = new ServiceCollection()
             .AddSingleton<TimeProvider>(timeProvider)
+            .AddSingleton<IDnsResolver, DnsResolver>()
             .AddServiceDiscoveryCore()
             .AddDnsServiceEndpointProvider(o => o.DefaultRefreshPeriod = TimeSpan.FromSeconds(30))
             .BuildServiceProvider();

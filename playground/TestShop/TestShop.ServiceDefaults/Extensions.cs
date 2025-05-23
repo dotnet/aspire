@@ -24,6 +24,8 @@ public static class Extensions
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddServiceDiscovery();
+        // builder.Services.AddServiceDiscoveryCore();
+        // builder.Services.AddDnsSrvServiceEndpointProvider();
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {

@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using DnsClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Dns;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -46,7 +46,7 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         services.AddServiceDiscoveryCore();
-        services.TryAddSingleton<IDnsQuery, LookupClient>();
+        services.TryAddSingleton<IDnsResolver, DnsResolver>();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
