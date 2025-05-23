@@ -52,21 +52,18 @@ public class AzureStorageBlobsSettings : IConnectionStringSettings
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
-        ParseConnectionStringInternal(connectionString);
-    }
-
-    internal virtual void ParseConnectionStringInternal(string? connectionString)
-    {
-        if (!string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrEmpty(connectionString))
         {
-            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-            {
-                ServiceUri = uri;
-            }
-            else
-            {
-                ConnectionString = connectionString;
-            }
+            return;
+        }
+
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            ServiceUri = uri;
+        }
+        else
+        {
+            ConnectionString = connectionString;
         }
     }
 }
