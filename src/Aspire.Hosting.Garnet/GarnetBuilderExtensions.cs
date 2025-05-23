@@ -102,7 +102,7 @@ public static class GarnetBuilderExtensions
 
         // StackExchange.Redis doesn't support passwords with commas.
         // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
-        // https://github.com/Azure/azure-dev/issues/4848 
+        // https://github.com/Azure/azure-dev/issues/4848
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var garnet = new GarnetResource(name, passwordParameter);
@@ -140,7 +140,9 @@ public static class GarnetBuilderExtensions
             {
                 var garnetCommand = new List<string>
                 {
-                    "/app/GarnetServer"
+                    "/app/GarnetServer",
+                    "--protected-mode", // Disable protected mode so that garnet can be accessed from outside the container
+                    "no"
                 };
 
                 if (garnet.PasswordParameter is { } password)
