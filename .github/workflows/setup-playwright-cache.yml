@@ -1,0 +1,50 @@
+name: Setup Playwright Cache
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  setup-playwright-cache:
+    runs-on: ${{ inputs.os }}
+    name: Setup Playwright Cache (${{ inputs.os }})
+    outputs:
+      playwright-cache-hit: ${{ steps.playwright-cache.outputs.cache-hit }}
+    steps:
+      - name: Setup vars (Linux/macOS)
+        if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+          echo "PLAYWRIGHT_DEPS_PATH=${{ github.workspace }}/artifacts/bin/playwright-deps" >> $GITHUB_ENV
+
+      - name: Setup vars (Windows)
+        if: ${{ inputs.os == 'windows-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          echo "PLAYWRIGHT_DEPS_PATH=${{ github.workspace }}\artifacts\bin\playwright-deps" >> $env:GITHUB_ENV
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_DEPS_PATH }}
+          key: playwright-deps-${{ inputs.os }}-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-${{ inputs.os }}-
+
+      - name: Install Playwright dependencies if cache miss
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: ${{ env.DOTNET_SCRIPT }} build tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ env.PLAYWRIGHT_DEPS_PATH }}

@@ -40,15 +40,27 @@ on:
         required: false
         type: string
         default: "ubuntu-latest"
+      # Skip setting up Playwright cache (default is false)
+      skipPlaywrightCache:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
+  setup-playwright:
+    uses: ./.github/workflows/setup-playwright-cache.yml
+    if: ${{ !inputs.skipPlaywrightCache }}
+    with:
+      os: ${{ inputs.os }}
 
   test:
+    needs: setup-playwright
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }}
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/artifacts/bin/playwright-deps
     steps:
       - name: Validate arguments
         shell: pwsh
@@ -152,7 +164,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} /p:InstallBrowsersForPlaywright=false
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
@@ -161,6 +173,7 @@ jobs:
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
+          /p:InstallBrowsersForPlaywright=false
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.

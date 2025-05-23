@@ -1,0 +1,94 @@
+name: Cache Playwright Dependencies
+
+on:
+  # Run daily at 2:00 AM UTC to refresh the cache
+  schedule:
+    - cron: '0 2 * * *'
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  cache-ubuntu:
+    name: Cache Playwright Dependencies (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          key: playwright-deps-ubuntu-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-ubuntu-latest-
+
+      - name: Download and install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/artifacts/bin/playwright-deps
+        run: |
+          ./build.sh -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
+
+  cache-windows:
+    name: Cache Playwright Dependencies (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $env:GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\artifacts\bin\playwright-deps
+          key: playwright-deps-windows-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-windows-latest-
+
+      - name: Download and install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}\artifacts\bin\playwright-deps
+        run: |
+          .\build.cmd -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
+
+  cache-macos:
+    name: Cache Playwright Dependencies (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          key: playwright-deps-macos-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-macos-latest-
+
+      - name: Download and install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/artifacts/bin/playwright-deps
+        run: |
+          ./build.sh -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
