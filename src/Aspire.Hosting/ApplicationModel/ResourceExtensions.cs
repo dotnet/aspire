@@ -164,22 +164,22 @@ public static class ResourceExtensions
     /// a unit test to validate environment variable values.
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
-    /// var container = builder.AddContainer("nginx", "nginx", "latest")
-    ///  .WithEnvironment("NGINX_HOST", "localhost")
-    ///  .WithEnvironment("NGINX_PORT", "80");
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithEnvironment("discovery.type", "single-node")
+    ///  .WithEnvironment("xpack.security.enabled", "true");
     ///
     /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
     ///
     /// Assert.Collection(env,
     ///     env =>
     ///         {
-    ///             Assert.Equal("NGINX_HOST", env.Key);
-    ///             Assert.Equal("localhost", env.Value);
+    ///             Assert.Equal("discovery.type", env.Key);
+    ///             Assert.Equal("single-node", env.Value);
     ///         },
     ///         env =>
     ///         {
-    ///             Assert.Equal("NGINX_PORT", env.Key);
-    ///             Assert.Equal("80", env.Value);
+    ///             Assert.Equal("xpack.security.enabled", env.Key);
+    ///             Assert.Equal("true", env.Value);
     ///         });
     /// </code>
     /// </example>
@@ -218,16 +218,16 @@ public static class ResourceExtensions
     /// a unit test to validate argument values.
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
-    /// var container = builder.AddContainer("nginx", "nginx", "latest")
-    ///  .WithArgs("--help")
-    ///  .WithArgs("--version");
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithArgs("--discovery.type", "single-node")
+    ///  .WithArgs("--xpack.security.enabled", "true");
     ///
     /// var args = await container.Resource.GetArgumentsAsync();
     ///
     /// Assert.Collection(args,
     ///     arg =>
     ///         {
-    ///             Assert.Equal("--help", arg);
+    ///             Assert.Equal("--discovery.type", arg);
     ///         },
     ///         arg =>
     ///         {
