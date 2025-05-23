@@ -232,10 +232,15 @@ public class AzureStorageExtensionsTests
         var blobContainer = blobs.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobConnectionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
+        string? blobContainerConnectionString = await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync();
 
         Assert.NotNull(blobConnectionString);
         Assert.Contains(blobConnectionString, await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
         Assert.Contains($"ContainerName={blobContainerName}", await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
+
+        Assert.NotNull(blobContainerConnectionString);
+        Assert.DoesNotContain($"ContainerName", await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
+        Assert.DoesNotContain(blobContainerName, await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
     }
 
     [Fact]
