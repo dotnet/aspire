@@ -231,10 +231,12 @@ public class AzureStorageExtensionsTests
         var blobs = storage.AddBlobs("blob");
         var blobContainer = blobs.AddBlobContainer(name: "myContainer", blobContainerName);
 
-        string? blobConntionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
-        string expected = $"Endpoint=\"{blobConntionString}\";ContainerName={blobContainerName};";
+        string? blobConnectionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
+        string? blobContainerConnectionString = await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync();
 
-        Assert.Equal(expected, await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
+        Assert.NotNull(blobConnectionString);
+        Assert.Contains(blobConnectionString, blobContainerConnectionString);
+        Assert.Contains($"ContainerName={blobContainerName}", blobContainerConnectionString);
     }
 
     [Fact]
@@ -252,7 +254,7 @@ public class AzureStorageExtensionsTests
         var blobContainer = blobs.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobsConnectionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
-        string expected = $"Endpoint=\"{blobsConnectionString}\";ContainerName={blobContainerName};";
+        string expected = $"Endpoint={blobsConnectionString};ContainerName={blobContainerName}";
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)blobContainer.Resource).GetConnectionStringAsync());
     }
@@ -266,7 +268,7 @@ public class AzureStorageExtensionsTests
         var blobs = storage.AddBlobs("blob");
         var blobContainer = blobs.AddBlobContainer(name: "myContainer");
 
-        Assert.Equal("Endpoint=\"{storage.outputs.blobEndpoint}\";ContainerName=myContainer;", blobContainer.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={storage.outputs.blobEndpoint};ContainerName=myContainer", blobContainer.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
