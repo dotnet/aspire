@@ -7,27 +7,22 @@ internal sealed class EncodedDomainNameFuzzer : IFuzzer
 {
     public void FuzzTarget(ReadOnlySpan<byte> data)
     {
-        // first byte is the offset of the domain name, rest is the actual
-        // (simulated) DNS message payload
-
-        if (data.Length < 1)
-        {
-            return;
-        }
-
         byte[] buffer = ArrayPool<byte>.Shared.Rent(data.Length);
         try
         {
-            int offset = data[0];
-            data.Slice(1).CopyTo(buffer);
+            data.CopyTo(buffer);
 
-            if (!DnsPrimitives.TryReadQName(buffer.AsMemory(0, data.Length - 1), offset, out EncodedDomainName name, out _))
+            // attempt to read at any offset to really stress the parser
+            for (int i = 0; i < data.Length; i++)
             {
-                return;
-            }
+                if (!DnsPrimitives.TryReadQName(buffer.AsMemory(0, data.Length), i, out EncodedDomainName name, out _))
+                {
+                    continue;
+                }
 
-            // the domain name should be readable
-            _ = name.ToString();
+                // the domain name should be readable
+                _ = name.ToString();
+            }
         }
         finally
         {
