@@ -110,22 +110,29 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     [RequiresDocker]
     public async Task VerifyAzureStorageEmulatorResource()
     {
+        var blobsResourceName = "BlobConnection";
+        var blobContainerName = "my-container";
+
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs("BlobConnection");
+        var blobs = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs(blobsResourceName);
+        var container = blobs.AddBlobContainer(blobContainerName);
 
         using var app = builder.Build();
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration["ConnectionStrings:BlobConnection"] = await storage.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
-        hb.AddAzureBlobClient("BlobConnection");
+        hb.Configuration[$"ConnectionStrings:{blobsResourceName}"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.Configuration[$"ConnectionStrings:{blobContainerName}"] = await container.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.AddAzureBlobClient(blobsResourceName);
+        hb.AddAzureBlobContainerClient(blobContainerName);
 
         using var host = hb.Build();
         await host.StartAsync();
 
-        var serviceClient = host.Services.GetRequiredService<BlobServiceClient>();
-        var blobContainer = (await serviceClient.CreateBlobContainerAsync("container")).Value;
-        var blobClient = blobContainer.GetBlobClient("testKey");
+        var blobServiceClient = host.Services.GetRequiredService<BlobServiceClient>();
+        var blobContainerClient = host.Services.GetRequiredService<BlobContainerClient>();
+        await blobContainerClient.CreateIfNotExistsAsync(); // For Aspire 9.3 only
+        var blobClient = blobContainerClient.GetBlobClient("testKey");
 
         await blobClient.UploadAsync(BinaryData.FromString("testValue"));
 

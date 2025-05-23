@@ -16,10 +16,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     IResourceWithParent<AzureStorageResource>,
     IResourceWithAzureFunctionsConfig
 {
-    // NOTE: if ever these contants are changed, the AzureBlobStorageContainerSettings in Aspire.Azure.Storage.Blobs class should be updated as well.
-    private const string Endpoint = nameof(Endpoint);
-    private const string ContainerName = nameof(ContainerName);
-
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
     /// </summary>
@@ -39,12 +35,17 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         }
 
         ReferenceExpressionBuilder builder = new();
-        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";");
 
-        if (!string.IsNullOrEmpty(blobContainerName))
+        if (Parent.IsEmulator)
         {
-            builder.Append($"{ContainerName}={blobContainerName};");
+            builder.AppendFormatted(ConnectionStringExpression);
         }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        builder.Append($";ContainerName={blobContainerName}");
 
         return builder.Build();
     }
