@@ -17,6 +17,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9483")]
     public async Task VerifyWaitForOnGarnetBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -55,6 +56,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9484")]
     public async Task VerifyGarnetResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
