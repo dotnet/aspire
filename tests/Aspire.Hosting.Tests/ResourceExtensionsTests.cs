@@ -167,14 +167,14 @@ public class ResourceExtensionsTests
     public async Task GetEnvironmentVariableValuesAsyncReturnCorrectVariablesInRunMode()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-         .WithEnvironment("discovery.type", "single-node")
-         .WithEnvironment("xpack.security.enabled", "true")
+        var container = builder.AddContainer("nginx", "nginx", "latest")
+         .WithEnvironment("NGINX_HOST", "localhost")
+         .WithEnvironment("NGINX_PORT", "80")
          .WithEnvironment(context =>
          {
              Assert.NotNull(context.Resource);
 
-             context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
+             context.EnvironmentVariables["CUSTOM_VAR"] = "custom_value";
          });
 
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
@@ -182,18 +182,18 @@ public class ResourceExtensionsTests
         Assert.Collection(env,
             env =>
             {
-                Assert.Equal("discovery.type", env.Key);
-                Assert.Equal("single-node", env.Value);
+                Assert.Equal("NGINX_HOST", env.Key);
+                Assert.Equal("localhost", env.Value);
             },
             env =>
             {
-                Assert.Equal("xpack.security.enabled", env.Key);
-                Assert.Equal("true", env.Value);
+                Assert.Equal("NGINX_PORT", env.Key);
+                Assert.Equal("80", env.Value);
             },
             env =>
             {
-                Assert.Equal("ELASTIC_PASSWORD", env.Key);
-                Assert.Equal("p@ssw0rd1", env.Value);
+                Assert.Equal("CUSTOM_VAR", env.Key);
+                Assert.Equal("custom_value", env.Value);
             });
     }
 
@@ -201,31 +201,31 @@ public class ResourceExtensionsTests
     public async Task GetEnvironmentVariableValuesAsyncReturnCorrectVariablesUsingValueProviderInRunMode()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Configuration["Parameters:ElasticPassword"] = "p@ssw0rd1";
+        builder.Configuration["Parameters:CustomPassword"] = "p@ssw0rd1";
 
-        var passwordParameter = builder.AddParameter("ElasticPassword");
+        var passwordParameter = builder.AddParameter("CustomPassword");
 
-        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-         .WithEnvironment("discovery.type", "single-node")
-         .WithEnvironment("xpack.security.enabled", "true")
-         .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
+        var container = builder.AddContainer("nginx", "nginx", "latest")
+         .WithEnvironment("NGINX_HOST", "localhost")
+         .WithEnvironment("NGINX_PORT", "80")
+         .WithEnvironment("CUSTOM_PASSWORD", passwordParameter);
 
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
 
         Assert.Collection(env,
             env =>
             {
-                Assert.Equal("discovery.type", env.Key);
-                Assert.Equal("single-node", env.Value);
+                Assert.Equal("NGINX_HOST", env.Key);
+                Assert.Equal("localhost", env.Value);
             },
             env =>
             {
-                Assert.Equal("xpack.security.enabled", env.Key);
-                Assert.Equal("true", env.Value);
+                Assert.Equal("NGINX_PORT", env.Key);
+                Assert.Equal("80", env.Value);
             },
             env =>
             {
-                Assert.Equal("ELASTIC_PASSWORD", env.Key);
+                Assert.Equal("CUSTOM_PASSWORD", env.Key);
                 Assert.Equal("p@ssw0rd1", env.Value);
             });
     }
@@ -234,31 +234,31 @@ public class ResourceExtensionsTests
     public async Task GetEnvironmentVariableValuesAsyncReturnCorrectVariablesUsingManifestExpressionProviderInPublishMode()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Configuration["Parameters:ElasticPassword"] = "p@ssw0rd1";
+        builder.Configuration["Parameters:CustomPassword"] = "p@ssw0rd1";
 
-        var passwordParameter = builder.AddParameter("ElasticPassword");
+        var passwordParameter = builder.AddParameter("CustomPassword");
 
-        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
-         .WithEnvironment("discovery.type", "single-node")
-         .WithEnvironment("xpack.security.enabled", "true")
-         .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
+        var container = builder.AddContainer("nginx", "nginx", "latest")
+         .WithEnvironment("NGINX_HOST", "localhost")
+         .WithEnvironment("NGINX_PORT", "80")
+         .WithEnvironment("CUSTOM_PASSWORD", passwordParameter);
 
         var env = await container.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.Collection(env,
             env =>
             {
-                Assert.Equal("discovery.type", env.Key);
-                Assert.Equal("single-node", env.Value);
+                Assert.Equal("NGINX_HOST", env.Key);
+                Assert.Equal("localhost", env.Value);
             },
             env =>
             {
-                Assert.Equal("xpack.security.enabled", env.Key);
-                Assert.Equal("true", env.Value);
+                Assert.Equal("NGINX_PORT", env.Key);
+                Assert.Equal("80", env.Value);
             },
             env =>
             {
-                Assert.Equal("{ElasticPassword.value}", env.Value);
+                Assert.Equal("{CustomPassword.value}", env.Value);
                 Assert.False(string.IsNullOrEmpty(env.Value));
             });
     }
@@ -271,7 +271,7 @@ public class ResourceExtensionsTests
         var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
         var nonSecretParameter = builder.AddResource(new ParameterResource("NonSecretParameter", _ => "NonSecretParameter"));
 
-        var containerArgs = await builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+        var containerArgs = await builder.AddContainer("nginx", "nginx", "latest")
             .WithArgs(surrogate)
             .WithArgs(secretParameter)
             .WithArgs(nonSecretParameter)
