@@ -164,6 +164,8 @@
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
+    <!-- Fuzzing tests dependencies -->
+    <PackageVersion Include="SharpFuzz" Version="$(SharpFuzzPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.2.0" />

@@ -33,7 +33,11 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         _timeProvider = timeProvider;
     }
 
-    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() ? ResolvConf.GetOptions() : NetworkInfo.GetOptions())
+    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(timeProvider, logger, OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() ? ResolvConf.GetOptions() : NetworkInfo.GetOptions())
+    {
+    }
+
+    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger, ResolverOptions options) : this(options)
     {
         _timeProvider = timeProvider;
         _logger = logger;
@@ -407,8 +411,9 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
                     }
                     catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                     {
+                        // internal error, propagate
                         Log.QueryError(_logger, queryType, name, serverEndPoint, attempt, ex);
-                        lastError = SendQueryError.InternalError;
+                        throw;
                     }
 
                     switch (lastError)
@@ -515,16 +520,27 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
 
         SendQueryError sendError = SendQueryError.NoError;
         DateTime queryStartedTime = _timeProvider.GetUtcNow().DateTime;
-        (DnsDataReader responseReader, DnsMessageHeader header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
+        DnsDataReader responseReader = default;
+        DnsMessageHeader header;
 
         try
         {
-            if (header.IsResultTruncated)
+            // use transport override if provided
+            if (_options._transportOverride != null)
             {
-                Log.ResultTruncated(_logger, queryType, name, serverEndPoint, 0);
-                responseReader.Dispose();
-                // TCP fallback
-                (responseReader, header, sendError) = await SendDnsQueryCoreTcpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
+                (responseReader, header, sendError) = SendDnsQueryCustomTransport(_options._transportOverride, dnsSafeName, queryType);
+            }
+            else
+            {
+                (responseReader, header) = await SendDnsQueryCoreUdpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
+
+                if (header.IsResultTruncated)
+                {
+                    Log.ResultTruncated(_logger, queryType, name, serverEndPoint, 0);
+                    responseReader.Dispose();
+                    // TCP fallback
+                    (responseReader, header, sendError) = await SendDnsQueryCoreTcpAsync(serverEndPoint, dnsSafeName, queryType, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             if (sendError != SendQueryError.NoError)
@@ -686,6 +702,36 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
 
         return SendQueryError.ServerError;
+    }
+
+    internal static (DnsDataReader reader, DnsMessageHeader header, SendQueryError sendError) SendDnsQueryCustomTransport(Func<Memory<byte>, int, int> callback, EncodedDomainName dnsSafeName, QueryType queryType)
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(2048);
+        try
+        {
+            (ushort transactionId, int length) = EncodeQuestion(buffer, dnsSafeName, queryType);
+            length = callback(buffer, length);
+
+            DnsDataReader responseReader = new DnsDataReader(new ArraySegment<byte>(buffer, 0, length), true);
+
+            if (!responseReader.TryReadHeader(out DnsMessageHeader header) ||
+                header.TransactionId != transactionId ||
+                !header.IsResponse)
+            {
+                return (default, default, SendQueryError.MalformedResponse);
+            }
+
+            // transfer ownership of buffer to the caller
+            buffer = null!;
+            return (responseReader, header, SendQueryError.NoError);
+        }
+        finally
+        {
+            if (buffer != null)
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
     }
 
     internal static async ValueTask<(DnsDataReader reader, DnsMessageHeader header)> SendDnsQueryCoreUdpAsync(IPEndPoint serverEndPoint, EncodedDomainName dnsSafeName, QueryType queryType, CancellationToken cancellationToken)

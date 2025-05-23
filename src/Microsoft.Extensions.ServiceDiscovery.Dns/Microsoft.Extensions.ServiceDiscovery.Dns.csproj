@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests" />
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests.Fuzzing" />
     <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Yarp.Tests" />
   </ItemGroup>
 

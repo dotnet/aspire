@@ -11,6 +11,9 @@ internal sealed class ResolverOptions
     public int Attempts = 2;
     public TimeSpan Timeout = TimeSpan.FromSeconds(3);
 
+    // override for testing purposes
+    internal Func<Memory<byte>, int, int>? _transportOverride;
+
     public ResolverOptions(IReadOnlyList<IPEndPoint> servers)
     {
         if (servers.Count == 0)

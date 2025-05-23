@@ -67,6 +67,8 @@
     <!-- System dependencies -->
     <SystemFormatsAsn1PackageVersion>8.0.1</SystemFormatsAsn1PackageVersion>
     <SystemTextJsonPackageVersion>8.0.5</SystemTextJsonPackageVersion>
+    <!-- Fuzzing tests -->
+    <SharpFuzzPackageVersion>2.2.0</SharpFuzzPackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!-- Runtime -->
