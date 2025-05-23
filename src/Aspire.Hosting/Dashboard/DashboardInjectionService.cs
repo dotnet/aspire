@@ -13,7 +13,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DashboardLifecycleHook(IConfiguration configuration,
+internal sealed class DashboardInjectionService(IConfiguration configuration,
                                              IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
                                              IDashboardEndpointProvider dashboardEndpointProvider,
@@ -37,7 +36,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IOptions<CodespacesOptions> codespacesOptions,
                                              IOptions<DevcontainersOptions> devcontainersOptions,
                                              DevcontainerSettingsWriter settingsWriter
-                                             ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             )
 {
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -47,7 +46,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    public void InjectDashboard(DistributedApplicationModel appModel)
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
@@ -70,8 +69,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         _dashboardLogsCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
 
         _dashboardLogsTask = WatchDashboardLogsAsync(_dashboardLogsCts.Token);
-
-        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
