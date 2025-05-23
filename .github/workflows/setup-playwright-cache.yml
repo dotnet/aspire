@@ -42,9 +42,47 @@ jobs:
           restore-keys: |
             playwright-deps-${{ inputs.os }}-
 
-      - name: Install Playwright dependencies if cache miss
+      # Set retry count and delay for Playwright installation
+      - name: Install Playwright dependencies with retries
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: ${{ env.DOTNET_SCRIPT }} build tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
+        shell: bash
         env:
           CI: false
           PLAYWRIGHT_BROWSERS_PATH: ${{ env.PLAYWRIGHT_DEPS_PATH }}
+          BUILD_SCRIPT: ${{ env.BUILD_SCRIPT }}
+          # Set Nuget retry variables to be more resilient to download issues
+          NUGET_ENABLE_ENHANCED_HTTP_RETRY: true
+          NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: 6
+          NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: 1000
+          NUGET_RETRY_HTTP_429: true
+        run: |
+          retry_count=3
+          retry_delay=10
+          attempt=1
+          success=false
+
+          while [[ $attempt -le $retry_count && $success == false ]]; do
+            echo "Attempt $attempt of $retry_count to install Playwright browsers"
+            
+            if [[ "${{ inputs.os }}" == "windows-latest" ]]; then
+              $BUILD_SCRIPT -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true && success=true
+            else
+              $BUILD_SCRIPT -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true && success=true
+            fi
+            
+            if [[ $success == false ]]; then
+              if [[ $attempt -lt $retry_count ]]; then
+                echo "Installation failed. Waiting $retry_delay seconds before retry..."
+                sleep $retry_delay
+                # Exponential backoff
+                retry_delay=$((retry_delay * 2))
+              else
+                echo "All attempts failed."
+                exit 1
+              fi
+            fi
+            
+            ((attempt++))
+          done
+          
+          echo "Playwright browsers installed successfully!"
