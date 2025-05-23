@@ -17,7 +17,6 @@ using Microsoft.Extensions.Hosting;
 using MySqlConnector;
 using Polly;
 using Xunit;
-using System.Threading.Tasks;
 
 namespace Aspire.Hosting.MySql.Tests;
 
