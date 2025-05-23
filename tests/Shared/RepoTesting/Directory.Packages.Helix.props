@@ -13,8 +13,6 @@
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
-
-
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
@@ -36,7 +34,6 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
-
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="$(PackageVersion)" />
