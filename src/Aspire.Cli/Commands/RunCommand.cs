@@ -166,15 +166,19 @@ internal sealed class RunCommand : BaseCommand
 
                 var table = new Table().Border(TableBorder.Rounded);
                 var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
+                var noResourcesMessage = new Markup("No resources are present.");
 
-                var rows = new Rows(new List<IRenderable> {
-                    table,
+                // Start with noResourcesMessage as the default
+                var renderables = new List<IRenderable> {
+                    noResourcesMessage,
                     message
-                });
+                };
+                var rows = new Rows(renderables);
 
                 await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
                     var knownResources = new SortedDictionary<string, RpcResourceState>();
+                    var hasResources = false;
 
                     table.AddColumn("Resource");
                     table.AddColumn("Type");
@@ -188,6 +192,14 @@ internal sealed class RunCommand : BaseCommand
                     {
                         await foreach (var resourceState in resourceStates)
                         {
+                            if (!hasResources)
+                            {
+                                // First resource found, switch from message to table
+                                hasResources = true;
+                                renderables[0] = table;
+                                context.Refresh();
+                            }
+
                             knownResources[resourceState.Resource] = resourceState;
 
                             table.Rows.Clear();
