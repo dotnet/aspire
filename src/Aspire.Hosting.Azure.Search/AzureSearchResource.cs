@@ -23,7 +23,10 @@ public class AzureSearchResource(string name, Action<AzureResourceInfrastructure
     /// </remarks>
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference from the bicep template for the Azure Search resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
