@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state.</source>
-        <target state="new">Resource is running but not in a healthy state.</target>
+        <target state="translated">El recurso se está ejecutando, pero no en un estado correcto.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -91,12 +91,12 @@ Para obtener más información, consulte https://aka.ms/dotnet/aspire/container-
       </trans-unit>
       <trans-unit id="StateColumnResourceNotStarted">
         <source>Resource has not started because it's configured to not automatically start.</source>
-        <target state="new">Resource has not started because it's configured to not automatically start.</target>
+        <target state="translated">El recurso no se ha iniciado porque está configurado para no iniciarse automáticamente.</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceWaiting">
         <source>Resource is waiting for other resources to be in a running and healthy state.</source>
-        <target state="new">Resource is waiting for other resources to be in a running and healthy state.</target>
+        <target state="translated">El recurso está esperando a que otros recursos estén en ejecución y en buen estado.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
