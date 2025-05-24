@@ -130,6 +130,7 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
+        builder.Services.AddTransient<McpCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();

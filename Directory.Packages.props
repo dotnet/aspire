@@ -111,6 +111,8 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="StreamJsonRpc" Version="2.21.69" />
     <PackageVersion Include="Semver" Version="3.0.0" />
+    <!-- MCP -->
+    <PackageVersion Include="ModelContextProtocol" Version="0.2.0-preview.1" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="$(OpenTelemetryLTSVersion)" />
