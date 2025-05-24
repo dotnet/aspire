@@ -61,7 +61,7 @@ public static class MongoDBBuilderExtensions
 
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(mongoDBContainer, async (@event, ct) =>
         {
-            connectionString = await mongoDBContainer.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            connectionString = await mongoDBContainer.DirectConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
             {
@@ -227,6 +227,93 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
+    /// Creates a connection string to the MongoDB server resource with the 'directConnection=true' parameter.
+    /// </summary>
+    /// <remarks>
+    /// Direct connections are useful in environments with replica sets, ensuring the client connects directly to the specified server 
+    /// rather than attempting to discover and connect to all members of the replica set. This is particularly important for applications
+    /// running in containerized environments where MongoDB may only accept connections using the registered replica set name.
+    /// </remarks>
+    /// <param name="builder">The MongoDB server resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the direct connection resource.</returns>
+    public static IResourceBuilder<IResourceWithConnectionString> AsDirectConnection(this IResourceBuilder<MongoDBServerResource> builder)
+        => builder.CreateDirectConnection();
+
+    /// <summary>
+    /// Creates a connection string to the MongoDB database resource with the 'directConnection=true' parameter.
+    /// </summary>
+    /// <remarks>
+    /// Direct connections are useful in environments with replica sets, ensuring the client connects directly to the specified server 
+    /// rather than attempting to discover and connect to all members of the replica set. This is particularly important for applications
+    /// running in containerized environments where MongoDB may only accept connections using the registered replica set name.
+    /// </remarks>
+    /// <param name="builder">The MongoDB database resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the direct connection resource.</returns>
+    public static IResourceBuilder<IResourceWithConnectionString> AsDirectConnection(this IResourceBuilder<MongoDBDatabaseResource> builder)
+        => builder.CreateDirectConnection();
+
+    private static IResourceBuilder<IResourceWithConnectionString> CreateDirectConnection(this IResourceBuilder<IResourceWithDirectConnectionString> builder)
+        => builder.ApplicationBuilder.AddResource(new DirectConnectionString(builder.Resource.Name, builder.Resource.DirectConnectionStringExpression))
+            .WithReferenceRelationship(builder.Resource.DirectConnectionStringExpression)
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "ConnectionString",
+                IsHidden = true,
+                Properties = []
+            });
+
+    internal static IResourceBuilder<MongoDBServerResource> WithKeyFile(this IResourceBuilder<MongoDBServerResource> builder)
+    {
+        const string KeyFilePath = "/data/mongodb.key";
+
+        // NOTE: This currently works because it's only called from WithReplicaSet that sets up the custom Dockerfile
+        builder.WithArgs("--keyFile", KeyFilePath);
+        builder.WithEnvironment("MONGO_KEYFILE_PATH", KeyFilePath);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a replica set to the MongoDB server resource.
+    /// </summary>
+    /// <param name="builder">The MongoDB server resource.</param>
+    /// <param name="replicaSetName">The name of the replica set. If not provided, defaults to <c>rs0</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithReplicaSet(this IResourceBuilder<MongoDBServerResource> builder, string? replicaSetName = null)
+    {
+        if (builder.Resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out _))
+        {
+            throw new InvalidOperationException("A replica set has already been added to the MongoDB server resource.");
+        }
+
+        replicaSetName ??= "rs0";
+
+        if (builder.Resource.PrimaryEndpoint.TargetPort is not { } port)
+        {
+            throw new InvalidOperationException("MongoDB server must have a target port");
+        }
+
+        var replicasetContextDir = Path.Combine(Path.GetDirectoryName(typeof(MongoDBBuilderExtensions).Assembly.Location)!, "Mongo.Replicaset");
+
+        return builder
+            .WithDockerfile(replicasetContextDir)
+            .WithBuildArg("IMAGE_NAME", MongoDBContainerImageTags.Image)
+            .WithBuildArg("IMAGE_TAG", MongoDBContainerImageTags.Tag)
+            .WithAnnotation(new MongoDbReplicaSetAnnotation(replicaSetName))
+            .WithArgs("--port", port)
+            .WithArgs("--replSet", replicaSetName)
+            .WithArgs("--bind_ip_all")
+            .WithEnvironment(env =>
+            {
+                env.EnvironmentVariables["MONGO_HOSTANDPORT"] = builder.Resource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort);
+                env.EnvironmentVariables["MONGO_PORT"] = port;
+                env.EnvironmentVariables["MONGO_AUTH_DB"] = MongoDBServerResource.DefaultAuthenticationDatabase;
+                env.EnvironmentVariables["MONGO_REPLICASET_NAME"] = replicaSetName;
+            })
+            .WithKeyFile();
+    }
+
+    /// <summary>
     /// Copies init files into a MongoDB container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -262,5 +349,21 @@ public static class MongoDBBuilderExtensions
             context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINUSERNAME", resource.UserNameReference);
             context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINPASSWORD", resource.PasswordParameter);
         }
+    }
+
+    /// <summary>
+    /// Used to provide the direct connection string for <see cref="MongoDBServerResource.DirectConnectionStringExpression"/> or <see cref="MongoDBDatabaseResource.DirectConnectionStringExpression"/>.
+    /// </summary>
+    private sealed class DirectConnectionString(string name, ReferenceExpression other) : IResourceWithConnectionString
+    {
+        private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
+
+        public string? ConnectionStringEnvironmentVariable { get; } = $"{ConnectionStringEnvironmentName}{name}";
+
+        public ReferenceExpression ConnectionStringExpression => other;
+
+        public string Name { get; } = $"{name}_direct";
+
+        public ResourceAnnotationCollection Annotations { get; } = [];
     }
 }
