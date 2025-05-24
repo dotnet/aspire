@@ -88,10 +88,17 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
+        if (parseResult.GetValue<string>("--name") is not { } name)
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
             name = await _prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
+        }
+        else if (!ProjectNameValidator.IsProjectNameValid(name))
+        {
+            // Replace invalid characters with underscores
+            var sanitizedName = ProjectNameValidator.SanitizeProjectName(name);
+            _interactionService.DisplayWarning($"Project name '{name}' contains invalid characters. Using '{sanitizedName}' instead.");
+            name = sanitizedName;
         }
 
         return name;
@@ -248,15 +255,26 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForStringAsync(
+        var name = await interactionService.PromptForStringAsync(
             "Enter the project name:",
             defaultValue: defaultName,
-            validator: (name) => {
-                return ProjectNameValidator.IsProjectNameValid(name)
-                    ? ValidationResult.Success()
-                    : ValidationResult.Error("Invalid project name.");
+            validator: (name) =>
+            {
+                if (!ProjectNameValidator.IsProjectNameValid(name))
+                {
+                    var sanitizedName = ProjectNameValidator.SanitizeProjectName(name);
+                    interactionService.DisplayWarning($"Invalid project name '{name}'. It will be modified to '{sanitizedName}'.");
+                }
+                return ValidationResult.Success();
             },
             cancellationToken: cancellationToken);
+
+        if (!ProjectNameValidator.IsProjectNameValid(name))
+        {
+            name = ProjectNameValidator.SanitizeProjectName(name);
+        }
+
+        return name;
     }
 
     public virtual async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken)
@@ -272,12 +290,27 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,98}[a-zA-Z0-9_]?$", RegexOptions.Compiled)]
     internal static partial Regex GetAssemblyNameRegex();
+
+    [GeneratedRegex(@"[^a-zA-Z0-9_.]", RegexOptions.Compiled)]
+    internal static partial Regex GetInvalidCharsRegex();
 
     public static bool IsProjectNameValid(string projectName)
     {
         var regex = GetAssemblyNameRegex();
         return regex.IsMatch(projectName);
+    }
+
+    public static string SanitizeProjectName(string projectName)
+    {
+        var name = GetInvalidCharsRegex().Replace(projectName, "_");
+        name = name.Substring(0, Math.Min(name.Length, 100));
+        if (name[^1] == '.')
+        {
+            name = name[..^1] + "_";
+        }
+        Debug.Assert(IsProjectNameValid(name), $"Sanitized project name '{name}' is still invalid.");
+        return name;
     }
 }
