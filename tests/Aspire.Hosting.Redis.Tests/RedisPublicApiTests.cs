@@ -9,27 +9,45 @@ namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisPublicApiTests
 {
-    [Fact]
-    public void AddRedisShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void AddRedisShouldThrowWhenBuilderIsNull(int overrideIndex)
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Redis";
+        int? port = null;
+        IResourceBuilder<ParameterResource>? password = null;
 
-        var action = () => builder.AddRedis(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddRedis(name, port),
+            1 => () => builder.AddRedis(name, port, password),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddRedisShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    public void AddRedisShouldThrowWhenNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var name = isNull ? null! : string.Empty;
+        int? port = null;
+        IResourceBuilder<ParameterResource>? password = null;
 
-        var action = () => builder.AddRedis(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => builder.AddRedis(name, port),
+            1 => () => builder.AddRedis(name, port, password),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -111,7 +129,7 @@ public class RedisPublicApiTests
     [InlineData(false)]
     public void WithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("Redis");
         var source = isNull ? null! : string.Empty;
 
@@ -162,7 +180,7 @@ public class RedisPublicApiTests
     [InlineData(false)]
     public void RedisInsightWithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
         var redis = builder.AddRedis("Redis").WithRedisInsight(resource => { redisInsightBuilder = resource; });
         var source = isNull ? null! : string.Empty;
@@ -206,14 +224,34 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
+    [Fact]
+    public void CtorRedisResourceShouldThrowWhenPasswordIsNull()
+    {
+        const string name = "redis";
+        ParameterResource password = null!;
+
+        var action = () => new RedisResource(name, password);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(password), exception.ParamName);
+    }
+
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void CtorRedisResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    public void CtorRedisResourceShouldThrowWhenNameIsNullOrEmpty(int overrideIndex, bool isNull)
     {
         var name = isNull ? null! : string.Empty;
+        var password = new ParameterResource("password", (_) => "password");
 
-        var action = () => new RedisResource(name);
+        Action action = overrideIndex switch
+        {
+            0 => () => new RedisResource(name),
+            1 => () => new RedisResource(name, password),
+            _ => throw new InvalidOperationException()
+        };
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

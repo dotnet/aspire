@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -17,15 +16,27 @@ namespace Aspire.Hosting.Azure;
 public class AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent)
     : Resource(name), IResourceWithParent<AzureCosmosDBDatabaseResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
+    private string _containerName = ThrowIfNullOrEmpty(containerName);
+
     /// <summary>
     /// Gets or sets the container name.
     /// </summary>
-    public string ContainerName { get; set; } = ThrowIfNullOrEmpty(containerName);
+    public string ContainerName
+    {
+        get => _containerName;
+        set => _containerName = ThrowIfNullOrEmpty(value, nameof(containerName));
+    }
+
+    private string _partitionKeyPath = ThrowIfNullOrEmpty(partitionKeyPath);
 
     /// <summary>
     /// Gets or sets the partition key path.
     /// </summary>
-    public string PartitionKeyPath { get; set; } = ThrowIfNullOrEmpty(partitionKeyPath);
+    public string PartitionKeyPath
+    {
+        get => _partitionKeyPath;
+        set => _partitionKeyPath = ThrowIfNullOrEmpty(value, nameof(partitionKeyPath));
+    }
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB database resource.
@@ -53,11 +64,5 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ContainerName"] = ContainerName;
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ContainerName"] = ContainerName;
         }
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }
