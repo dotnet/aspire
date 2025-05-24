@@ -35,6 +35,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
     private string _filter = string.Empty;
+    private readonly List<MenuButtonItem> _traceActionsMenuItems = new();
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -82,7 +83,28 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }));
         }
 
+        UpdateTraceActionsMenu();
+
         TelemetryContextProvider.Initialize(TelemetryContext);
+    }
+    
+    private void UpdateTraceActionsMenu()
+    {
+        _traceActionsMenuItems.Clear();
+
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = "Expand All",
+            Icon = new Icons.Regular.Size16.ArrowExpandAll(),
+            OnClick = ExpandAllSpansAsync
+        });
+
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = "Collapse All",
+            Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
+            OnClick = CollapseAllSpansAsync
+        });
     }
 
     // Internal to be used in unit tests
@@ -331,6 +353,46 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         _elementIdBeforeDetailsViewOpened = null;
+    }
+
+    // Internal for testing
+    internal async Task CollapseAllSpansAsync()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return;
+        }
+
+        _collapsedSpanIds.Clear();
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (viewModel.Children.Count > 0)
+            {
+                viewModel.IsCollapsed = true;
+                _collapsedSpanIds.Add(viewModel.Span.SpanId);
+            }
+        }
+
+        UpdateDetailViewData();
+        await _dataGrid.SafeRefreshDataAsync();
+    }
+
+    // Internal for testing
+    internal async Task ExpandAllSpansAsync()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return;
+        }
+
+        _collapsedSpanIds.Clear();
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            viewModel.IsCollapsed = false;
+        }
+
+        UpdateDetailViewData();
+        await _dataGrid.SafeRefreshDataAsync();
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
