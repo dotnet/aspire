@@ -14,6 +14,9 @@ public static class KeycloakResourceBuilderExtensions
     private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
     private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+    private const string HttpEnabledEnvVarName = "KC_HTTP_ENABLED";
+    private const string ProxyHeadersEnvVarName = "KC_PROXY_HEADERS";
+    private const string HostNameStrictEnvVarName = "KC_HOSTNAME_STRICT";
 
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
@@ -70,6 +73,9 @@ public static class KeycloakResourceBuilderExtensions
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
                 context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
+                context.EnvironmentVariables[HttpEnabledEnvVarName] = "true";
+                context.EnvironmentVariables[ProxyHeadersEnvVarName] = "xforwarded";
+                context.EnvironmentVariables[HostNameStrictEnvVarName] = "false";
             })
             .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
