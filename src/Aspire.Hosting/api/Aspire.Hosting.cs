@@ -733,11 +733,15 @@ namespace Aspire.Hosting.ApplicationModel
     public sealed partial class ContainerDirectory : ContainerFileSystemItem
     {
         public System.Collections.Generic.IEnumerable<ContainerFileSystemItem> Entries { get { throw null; } set { } }
+
+        public static System.Collections.Generic.IEnumerable<ContainerFileSystemItem> GetFileSystemItemsFromPath(string path, string searchPattern = "*", System.IO.SearchOption searchOptions = System.IO.SearchOption.TopDirectoryOnly) { throw null; }
     }
 
     public sealed partial class ContainerFile : ContainerFileSystemItem
     {
         public string? Contents { get { throw null; } set { } }
+
+        public string? SourcePath { get { throw null; } set { } }
     }
 
     [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nw}, DestinationPath = {DestinationPath}")]
@@ -1705,7 +1709,7 @@ namespace Aspire.Hosting.ApplicationModel
         Hidden = 2
     }
 
-    public partial class ResourceEndpointsAllocatedEvent : Eventing.IDistributedApplicationEvent
+    public partial class ResourceEndpointsAllocatedEvent : Eventing.IDistributedApplicationResourceEvent, Eventing.IDistributedApplicationEvent
     {
         public ResourceEndpointsAllocatedEvent(IResource resource, System.IServiceProvider services) { }
 

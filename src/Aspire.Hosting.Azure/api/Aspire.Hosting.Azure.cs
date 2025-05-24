@@ -262,6 +262,9 @@ namespace Aspire.Hosting.Azure
     public static partial class AzureUserAssignedIdentityExtensions
     {
         public static ApplicationModel.IResourceBuilder<AzureUserAssignedIdentityResource> AddAzureUserAssignedIdentity(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithAzureUserAssignedIdentity<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<AzureUserAssignedIdentityResource> identityResourceBuilder)
+            where T : ApplicationModel.IComputeResource { throw null; }
     }
 
     public sealed partial class AzureUserAssignedIdentityResource : AzureProvisioningResource, IAppIdentityResource
