@@ -60,6 +60,7 @@ public sealed class AzureUserAssignedIdentityResource(string name)
         infrastructure.Add(new ProvisioningOutput("clientId", typeof(string)) { Value = userAssignedIdentity.ClientId });
         infrastructure.Add(new ProvisioningOutput("principalId", typeof(string)) { Value = userAssignedIdentity.PrincipalId });
         infrastructure.Add(new ProvisioningOutput("principalName", typeof(string)) { Value = userAssignedIdentity.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = userAssignedIdentity.Name });
     }
 
     /// <inheritdoc/>
