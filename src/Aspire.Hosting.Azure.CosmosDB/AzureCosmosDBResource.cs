@@ -27,6 +27,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the "connectionString" reference from the secret outputs of the Azure Cosmos DB resource.
     /// </summary>
+    [Obsolete]
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>

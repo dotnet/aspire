@@ -38,7 +38,12 @@ internal sealed class AzureContainerAppsInfrastructure(
             throw new NotSupportedException("Multiple container app environments are not supported.");
         }
 
-        var environment = caes.FirstOrDefault() as IAzureContainerAppEnvironment ?? new AzdAzureContainerAppEnvironment();
+        var environment = caes.FirstOrDefault();
+
+        if (environment is null)
+        {
+            return;
+        }
 
         var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
             logger,
@@ -79,12 +84,6 @@ internal sealed class AzureContainerAppsInfrastructure(
             }
         }
 
-        if (environment is AzdAzureContainerAppEnvironment)
-        {
-            // We avoid setting known values if azd is used, it will be resolved by azd at publish time.
-            return;
-        }
-
         // Resolve the known parameters for the container app environment
         foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
         {
@@ -93,7 +92,7 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             // This will throw an exception if there's no value specified, in this new mode, we don't no longer support
             // automagic secret key vault references.
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, environment.GetSecretOutputKeyVault);
+            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, _ => throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly."));
 
             // Set the known parameters for the container app environment
             SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.PrincipalId);

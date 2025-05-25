@@ -1,9 +1,9 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param outputs_azure_container_apps_environment_default_domain string
+param env_outputs_azure_container_apps_environment_default_domain string
 
-param outputs_azure_container_apps_environment_id string
+param env_outputs_azure_container_apps_environment_id string
 
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'api'
@@ -12,7 +12,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: env_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
