@@ -24,7 +24,10 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// </summary>
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
