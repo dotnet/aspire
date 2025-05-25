@@ -14,6 +14,11 @@ public sealed class AzureUserAssignedIdentityResource(string name)
     : AzureProvisioningResource(name, ConfigureAppIdentityInfrastructure), IAppIdentityResource
 {
     /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
     /// The identifier associated with the user assigned identity.
     /// </summary>
     public BicepOutputReference Id => new("id", this);
