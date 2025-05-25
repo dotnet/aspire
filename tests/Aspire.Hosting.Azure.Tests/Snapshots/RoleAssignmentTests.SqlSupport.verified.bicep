@@ -20,5 +20,3 @@ resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: principalName
 }
-
-output name string = mi.name
