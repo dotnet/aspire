@@ -157,10 +157,15 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     {
         var blobsResourceName = "BlobConnection";
         var blobContainerName = "my-container";
+        var queuesResourceName = "QueuesConnection";
+        var queueName = "my-queue";
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        var blobs = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs(blobsResourceName);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        var blobs = storage.AddBlobs(blobsResourceName);
         var container = blobs.AddBlobContainer(blobContainerName);
+        var queues = storage.AddQueues(queuesResourceName);
+        var queue = queues.AddQueue(queueName);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -168,8 +173,12 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration[$"ConnectionStrings:{blobsResourceName}"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.Configuration[$"ConnectionStrings:{blobContainerName}"] = await container.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.Configuration[$"ConnectionStrings:{queuesResourceName}"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        hb.Configuration[$"ConnectionStrings:{queueName}"] = await queue.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureBlobClient(blobsResourceName);
         hb.AddAzureBlobContainerClient(blobContainerName);
+        hb.AddAzureQueueClient(queuesResourceName);
+        hb.AddAzureQueue(queueName);
 
         using var host = hb.Build();
         await host.StartAsync();
@@ -182,6 +191,11 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await blobClient.UploadAsync(BinaryData.FromString("testValue"));
 
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
+
+        var queueServiceClient = host.Services.GetRequiredService<QueueServiceClient>();
+        var queueClient = host.Services.GetRequiredService<QueueClient>();
+        await queueClient.CreateIfNotExistsAsync(); // For Aspire 9.3 only
+
         Assert.Equal("testValue", downloadResult.Content.ToString());
     }
 

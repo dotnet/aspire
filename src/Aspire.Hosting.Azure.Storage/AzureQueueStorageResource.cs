@@ -16,10 +16,6 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     IResourceWithParent<AzureStorageResource>,
     IResourceWithAzureFunctionsConfig
 {
-    // NOTE: if ever these contants are changed, the AzureStorageQueueSettings in Aspire.Azure.Storage.Queues class should be updated as well.
-    private const string Endpoint = nameof(Endpoint);
-    private const string QueueName = nameof(QueueName);
-
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureQueueStorageResource.
     /// </summary>
@@ -39,7 +35,18 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
         }
 
         ReferenceExpressionBuilder builder = new();
-        builder.Append($"{Endpoint}=\"{ConnectionStringExpression}\";{QueueName}={queueName};");
+
+        if (Parent.IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        builder.Append($";QueueName={queueName}");
+
         return builder.Build();
     }
 
