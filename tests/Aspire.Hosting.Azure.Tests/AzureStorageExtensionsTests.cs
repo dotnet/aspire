@@ -338,8 +338,8 @@ public class AzureStorageExtensionsTests
         var queues = storage.AddQueues("queues");
         var queue = queues.AddQueue(name: "myqueue", queueName);
 
-        string? blobConntionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
-        string expected = $"Endpoint=\"{blobConntionString}\";QueueName={queueName};";
+        string? conntionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
+        string expected = $"{conntionString};QueueName={queueName}";
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
     }
@@ -353,13 +353,13 @@ public class AzureStorageExtensionsTests
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage");
-        storage.Resource.Outputs["queueEndpoint"] = "https://myblob";
+        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
 
         var queues = storage.AddQueues("queues");
         var queue = queues.AddQueue(name: "myqueue", queueName);
 
         string? connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
-        string expected = $"Endpoint=\"{connectionString}\";QueueName={queueName};";
+        string expected = $"Endpoint={connectionString};QueueName={queueName}";
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
     }
@@ -373,7 +373,7 @@ public class AzureStorageExtensionsTests
         var queues = storage.AddQueues("queues");
         var queue = queues.AddQueue(name: "myqueue");
 
-        Assert.Equal("Endpoint=\"{storage.outputs.queueEndpoint}\";QueueName=myqueue;", queue.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Endpoint={storage.outputs.queueEndpoint};QueueName=myqueue", queue.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
