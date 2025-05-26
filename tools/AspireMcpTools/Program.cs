@@ -23,7 +23,7 @@ builder.Services
 await builder.Build().RunAsync().ConfigureAwait(false);
 
 [McpServerToolType]
-public static class AspireProcessTools
+internal static class AspireProcessTools
 {
     [McpServerTool, Description("Kills instances of the 'aspire' CLI process.")]
     public static string KillAspireCliProcesses()
