@@ -70,7 +70,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -136,7 +136,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -214,7 +214,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -293,7 +293,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -374,7 +374,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -451,7 +451,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     addedPackageName = packageName;
                     addedPackageVersion = packageVersion;
@@ -475,6 +475,70 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
             );
         Assert.Equal("Aspire.Hosting.Redis", addedPackageName);
         Assert.Equal("9.2.0", addedPackageVersion);
+    }
+
+    [Fact]
+    public async Task AddCommandPreservesSourceArgumentInBothCommands()
+    {
+        // Arrange
+        string? searchUsedSource = null;
+        string? addUsedSource = null;
+        const string expectedSource = "https://custom-nuget-source.test/v3/index.json";
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestAddCommandPrompter(interactionService);
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    // Capture the source used for search
+                    searchUsedSource = nugetSource;
+
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { redisPackage } // 
+                        );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    // Capture the source used for add
+                    addUsedSource = nugetSource;
+                    
+                    // Simulate adding the package.
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse($"add redis --source {expectedSource}");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(expectedSource, searchUsedSource);
+        Assert.Equal(expectedSource, addUsedSource);
     }
 
     [Fact]
