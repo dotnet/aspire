@@ -30,6 +30,7 @@ internal static class AspireProcessTools
     {
         var processes = System.Diagnostics.Process.GetProcessesByName("aspire");
         var killedProcessIds = new List<int>();
+        var failedProcessKills = new List<(int ProcessId, string ErrorMessage)>();
 
         foreach (var process in processes)
         {
@@ -38,13 +39,11 @@ internal static class AspireProcessTools
                 process.Kill();
                 killedProcessIds.Add(process.Id);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex)
             {
-                failedProcesses.Add((process.Id, ex.Message));
-            }
-            catch (SystemException ex)
-            {
-                failedProcesses.Add((process.Id, ex.Message));
+                // This will probably never happen, but we catch it
+                // and report just in case.
+                failedProcessKills.Add((process.Id, ex.Message));
             }
         }
 
@@ -55,10 +54,10 @@ internal static class AspireProcessTools
             _ => $"Killed {killedProcessIds.Count} 'aspire' processes (PIDs: {string.Join(", ", killedProcessIds)})."
         };
 
-        if (failedProcesses.Count > 0)
+        if (failedProcessKills.Count > 0)
         {
-            var failedMessage = $"Failed to kill {failedProcesses.Count} process(es): " +
-                                $"{string.Join("; ", failedProcesses.Select(fp => $"PID {fp.ProcessId}: {fp.ErrorMessage}"))}.";
+            var failedMessage = $"Failed to kill {failedProcessKills.Count} process(es): " +
+                                $"{string.Join("; ", failedProcessKills.Select(fp => $"PID {fp.ProcessId}: {fp.ErrorMessage}"))}.";
             resultMessage += $" {failedMessage}";
         }
 
