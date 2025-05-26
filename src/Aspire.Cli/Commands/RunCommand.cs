@@ -166,9 +166,6 @@ internal sealed class RunCommand : BaseCommand
 
                 var table = new Table().Border(TableBorder.Rounded);
 
-                // Number of columns in the table - use this for both adding columns and creating placeholders
-                const int columnCount = 5;
-                
                 // Add columns
                 table.AddColumn("Resource");
                 table.AddColumn("Type");
@@ -183,9 +180,9 @@ internal sealed class RunCommand : BaseCommand
                 // app host which should be almost immediate
                 // if no resources are present.
                 
-                // Create placeholders based on columnCount
-                var placeholders = new Markup[columnCount];
-                for (int i = 0; i < columnCount; i++)
+                // Create placeholders based on number of columns defined.
+                var placeholders = new Markup[table.Columns.Count];
+                for (int i = 0; i < table.Columns.Count; i++)
                 {
                     placeholders[i] = new Markup("--");
                 }
