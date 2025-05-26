@@ -8,7 +8,7 @@ internal static class UnixSocketHelper
     public static string GetBackchannelSocketPath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var dotnetCliPath = Path.Combine(homeDirectory, ".dotnet", "aspire", "cli", "backchannels");
+        var dotnetCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
 
         if (!Directory.Exists(dotnetCliPath))
         {
