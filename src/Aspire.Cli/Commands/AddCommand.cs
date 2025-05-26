@@ -138,6 +138,7 @@ internal sealed class AddCommand : BaseCommand
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
                         selectedNuGetPackage.Package.Version,
+                        source,
                         addPackageOptions,
                         cancellationToken);
 
