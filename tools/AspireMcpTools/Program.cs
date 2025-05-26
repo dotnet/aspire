@@ -25,8 +25,8 @@ await builder.Build().RunAsync().ConfigureAwait(false);
 [McpServerToolType]
 internal static class AspireProcessTools
 {
-    [McpServerTool, Description("Kills instances of the 'aspire' CLI process.")]
-    public static string KillAspireCliProcesses()
+    [McpServerTool, Description("Kills all instances of the 'aspire' CLI process.")]
+    public static string KillAllAspireCliProcesses()
     {
         var processes = System.Diagnostics.Process.GetProcessesByName("aspire");
         var killedProcessIds = new List<int>();
