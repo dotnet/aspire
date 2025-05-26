@@ -33,10 +33,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64Version>0.15.2</MicrosoftDeveloperControlPlanewindowsamd64Version>
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.15.2</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25225.6</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25271.1</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25178.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
-    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25225.6</MicrosoftDotNetBuildTasksInstallersVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25225.6</MicrosoftDotNetBuildTasksWorkloadsVersion>
+    <MicrosoftDotNetBuildTasksInstallersVersion>9.0.0-beta.25271.1</MicrosoftDotNetBuildTasksInstallersVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsVersion>9.0.0-beta.25271.1</MicrosoftDotNetBuildTasksWorkloadsVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
