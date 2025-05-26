@@ -166,6 +166,10 @@ internal sealed class RunCommand : BaseCommand
 
                 var table = new Table().Border(TableBorder.Rounded);
 
+                // Number of columns in the table - use this for both adding columns and creating placeholders
+                const int columnCount = 5;
+                
+                // Add columns
                 table.AddColumn("Resource");
                 table.AddColumn("Type");
                 table.AddColumn("State");
@@ -178,13 +182,14 @@ internal sealed class RunCommand : BaseCommand
                 // resource is streamed back from the
                 // app host which should be almost immediate
                 // if no resources are present.
-                table.Rows.Add([
-                    new Markup("--"),
-                    new Markup("--"),
-                    new Markup("--"),
-                    new Markup("--"),
-                    new Markup("--"),
-                    ]);
+                
+                // Create placeholders based on columnCount
+                var placeholders = new Markup[columnCount];
+                for (int i = 0; i < columnCount; i++)
+                {
+                    placeholders[i] = new Markup("--");
+                }
+                table.Rows.Add(placeholders);
 
                 var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
 
