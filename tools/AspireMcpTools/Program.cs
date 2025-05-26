@@ -38,17 +38,30 @@ internal static class AspireProcessTools
                 process.Kill();
                 killedProcessIds.Add(process.Id);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                return $"Failed to kill process {process.Id}: {ex.Message}";
+                failedProcesses.Add((process.Id, ex.Message));
+            }
+            catch (SystemException ex)
+            {
+                failedProcesses.Add((process.Id, ex.Message));
             }
         }
 
-        return killedProcessIds.Count switch
+        var resultMessage = killedProcessIds.Count switch
         {
             0 => "No 'aspire' processes found.",
             1 => $"Killed 1 'aspire' process (PID: {killedProcessIds[0]}).",
             _ => $"Killed {killedProcessIds.Count} 'aspire' processes (PIDs: {string.Join(", ", killedProcessIds)})."
         };
+
+        if (failedProcesses.Count > 0)
+        {
+            var failedMessage = $"Failed to kill {failedProcesses.Count} process(es): " +
+                                $"{string.Join("; ", failedProcesses.Select(fp => $"PID {fp.ProcessId}: {fp.ErrorMessage}"))}.";
+            resultMessage += $" {failedMessage}";
+        }
+
+        return resultMessage;
     }
 }
