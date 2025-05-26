@@ -165,26 +165,44 @@ internal sealed class RunCommand : BaseCommand
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
-                var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
-                var noResourcesMessage = new Markup("No resources are present.");
 
-                // Start with noResourcesMessage as the default
+                table.AddColumn("Resource");
+                table.AddColumn("Type");
+                table.AddColumn("State");
+                table.AddColumn("Health");
+                table.AddColumn("Endpoint(s)");
+
+                // We add a default row here to say that
+                // there are no resources in the app host.
+                // This will be replaced once the first
+                // resource is streamed back from the
+                // app host which should be almost immediate
+                // if no resources are present.
+                table.Rows.Add([
+                    new Markup("--"),
+                    new Markup("--"),
+                    new Markup("--"),
+                    new Markup("--"),
+                    new Markup("--"),
+                    ]);
+
+                var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
+
                 var renderables = new List<IRenderable> {
-                    noResourcesMessage,
+                    table,
                     message
                 };
                 var rows = new Rows(renderables);
 
                 await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
-                    var knownResources = new SortedDictionary<string, RpcResourceState>();
-                    var hasResources = false;
+                    // If we are running an apphost that has no
+                    // resources in it then we want to display
+                    // the message that there are no resources.
+                    // That is why we immediately do a refresh.
+                    context.Refresh();
 
-                    table.AddColumn("Resource");
-                    table.AddColumn("Type");
-                    table.AddColumn("State");
-                    table.AddColumn("Health");
-                    table.AddColumn("Endpoint(s)");
+                    var knownResources = new SortedDictionary<string, RpcResourceState>();
 
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
 
@@ -192,14 +210,6 @@ internal sealed class RunCommand : BaseCommand
                     {
                         await foreach (var resourceState in resourceStates)
                         {
-                            if (!hasResources)
-                            {
-                                // First resource found, switch from message to table
-                                hasResources = true;
-                                renderables[0] = table;
-                                context.Refresh();
-                            }
-
                             knownResources[resourceState.Resource] = resourceState;
 
                             table.Rows.Clear();
