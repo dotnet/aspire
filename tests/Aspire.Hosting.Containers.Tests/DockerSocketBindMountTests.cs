@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Containers.Tests;
 
-public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
+public class DockerSocketBindMountTests
 {
     [Fact]
     public void WithDockerSocketBindMountCreatesCorrectAnnotation()
