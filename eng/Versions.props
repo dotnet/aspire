@@ -45,7 +45,7 @@
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.4.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.4.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- for templates -->
-    <MicrosoftAspNetCorePackageVersionForNet9>9.0.2</MicrosoftAspNetCorePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet9>9.0.5</MicrosoftAspNetCorePackageVersionForNet9>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">
