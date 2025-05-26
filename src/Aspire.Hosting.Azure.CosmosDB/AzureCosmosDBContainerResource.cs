@@ -27,6 +27,30 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     /// </summary>
     public string PartitionKeyPath { get; set; } = ThrowIfNullOrEmpty(partitionKeyPath);
 
+    private IReadOnlyList<string>? _partitionKeyPaths;
+
+    /// <summary>
+    /// Gets or sets the hierarchical partition keys.
+    /// </summary>
+    public IReadOnlyList<string>? PartitionKeyPaths
+    {
+        get => _partitionKeyPaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Count == 0)
+            {
+                throw new ArgumentException("At least one partition key path should be provided.", nameof(value));
+            }
+            if (value.Any(string.IsNullOrEmpty))
+            {
+                throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(value));
+            }
+
+            _partitionKeyPaths = value;
+        }
+    }
+
     /// <summary>
     /// Gets the parent Azure Cosmos DB database resource.
     /// </summary>

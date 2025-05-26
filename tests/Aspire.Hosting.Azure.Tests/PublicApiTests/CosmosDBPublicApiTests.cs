@@ -83,6 +83,68 @@ public class CosmosDBPublicApiTests
         Assert.Equal(nameof(parent), exception.ParamName);
     }
 
+    [Fact]
+    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        const string partitionKeyPath = "data";
+        IReadOnlyList<string> partitionKeyPaths = null!;
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        {
+            PartitionKeyPaths = partitionKeyPaths
+        };
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal("value", exception.ParamName);
+    }
+
+    [Fact]
+    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsIsEmpty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        const string partitionKeyPath = "data";
+        IReadOnlyList<string> partitionKeyPaths = [];
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        {
+            PartitionKeyPaths = partitionKeyPaths
+        };
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("value", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsContainsNullOrEmpty(bool isNull)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        const string partitionKeyPath = "data";
+        IReadOnlyList<string> partitionKeyPaths = [isNull ? null! : string.Empty];
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        {
+            PartitionKeyPaths = partitionKeyPaths
+        };
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("value", exception.ParamName);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -368,6 +430,44 @@ public class CosmosDBPublicApiTests
             ? Assert.Throws<ArgumentNullException>(action)
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(partitionKeyPath), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddContainerShouldThrowWhenHierarchicalPartitionKeyIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
+        const string name = "cosmos";
+        IEnumerable<string>? partitionKeyPaths = null;
+        var action = () => cosmos.AddContainer(name, partitionKeyPaths!);
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddContainerShouldThrowWhenHierarchicalPartitionKeyIsEmpty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
+        const string name = "cosmos";
+        string[] partitionKeyPaths = [];
+        var action = () => cosmos.AddContainer(name, partitionKeyPaths);
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AddContainerShouldThrowWhenHierarchicalPartitionKeyContainsEmptyOrNull(bool isNull)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos").AddCosmosDatabase("cosmos-db");
+        const string name = "cosmos";
+        string[] partitionKeyPaths = [isNull ? null! : string.Empty];
+        var action = () => cosmos.AddContainer(name, partitionKeyPaths);
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
     }
 
     [Fact]
