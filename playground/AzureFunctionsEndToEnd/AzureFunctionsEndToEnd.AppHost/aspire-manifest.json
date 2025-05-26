@@ -13,6 +13,10 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "myblobcontainer": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=myblobcontainer"
+    },
     "eventhubs": {
       "type": "azure.bicep.v0",
       "connectionString": "{eventhubs.outputs.eventHubsEndpoint}",
@@ -76,6 +80,7 @@
         "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__EventHubName": "myhub",
         "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__EventHubName": "myhub",
         "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__EventHubName": "myhub",
+        "ConnectionStrings__myblobcontainer": "{myblobcontainer.connectionString}",
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",

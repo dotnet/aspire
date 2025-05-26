@@ -3,17 +3,10 @@
   "resources": {
     "keycloak": {
       "type": "container.v0",
-      "image": "quay.io/keycloak/keycloak:26.1",
+      "image": "quay.io/keycloak/keycloak:26.2",
       "args": [
         "start",
         "--import-realm"
-      ],
-      "bindMounts": [
-        {
-          "source": "../realms",
-          "target": "/opt/keycloak/data/import",
-          "readOnly": false
-        }
       ],
       "volumes": [
         {

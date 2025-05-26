@@ -70,15 +70,6 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   parent: infra
 }
 
-resource infra_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(infra.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
-  properties: {
-    principalId: userPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-  }
-  scope: infra
-}
-
 resource infra_storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   name: take('infrastoragevolume${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'

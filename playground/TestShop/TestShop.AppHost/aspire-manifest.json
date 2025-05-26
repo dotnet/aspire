@@ -4,7 +4,7 @@
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:17.2",
+      "image": "docker.io/library/postgres:17.4",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-postgres-data",
@@ -69,7 +69,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogdbapp.bindings.http.targetPort}",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
-        "DatabaseResetKey": "9a5cbab2-b477-4a2f-9d2f-91080d988d75"
+        "DatabaseResetKey": "f5d39b41-8fb0-434c-9549-62e310a9ae4d"
       },
       "bindings": {
         "http": {
@@ -111,7 +111,7 @@
     "messaging": {
       "type": "container.v0",
       "connectionString": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "docker.io/library/rabbitmq:4.0-management",
+      "image": "docker.io/library/rabbitmq:4.1-management",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-messaging-data",
@@ -203,14 +203,10 @@
       }
     },
     "apigateway": {
-      "type": "project.v0",
-      "path": "../ApiGateway/ApiGateway.csproj",
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:latest",
       "env": {
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "HTTP_PORTS": "{apigateway.bindings.http.targetPort}",
+        "ASPNETCORE_ENVIRONMENT": "Development",
         "services__basketservice__http__0": "{basketservice.bindings.http.url}",
         "services__basketservice__https__0": "{basketservice.bindings.https.url}",
         "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
@@ -220,12 +216,8 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "targetPort": 5000
         }
       }
     },
