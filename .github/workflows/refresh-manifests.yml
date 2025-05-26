@@ -36,4 +36,4 @@ jobs:
             area-app-model
             area-engineering-systems
           title: "[Automated] Update Manifests"
-          body: "Auto-generated update to refresh the manifests. This PR will be updated automatically if new changes are detected. Fixes #9502."
+          body: "Auto-generated update to refresh the manifests. This PR will be updated automatically if new changes are detected."
