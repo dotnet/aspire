@@ -163,7 +163,9 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 continue;
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
+#pragma warning restore CS0618 // Type or member is obsolete
             var parameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
             infrastructure.Add(parameter);
         }

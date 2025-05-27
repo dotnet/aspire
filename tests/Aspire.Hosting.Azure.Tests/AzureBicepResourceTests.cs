@@ -149,7 +149,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         bicepResource.Resource.SecretOutputs["connectionString"] = "https://myendpoint;Key=43";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal("https://myendpoint;Key=43", bicepResource.GetSecretOutput("connectionString").Value);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -169,7 +171,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Throws<InvalidOperationException>(() => bicepResource.GetSecretOutput("connectionString").Value);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
