@@ -69,7 +69,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             // associated with each compute resource that needs an image
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
-                ContainerRegistry = caes.FirstOrDefault(),
+                ContainerRegistry = environment,
                 ComputeEnvironment = environment
             });
         }
