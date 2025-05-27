@@ -70,7 +70,7 @@ internal sealed class AzureContainerAppsInfrastructure(
             r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
             {
                 ContainerRegistry = caes.FirstOrDefault(),
-                ComputeEnvironment = environment as IComputeEnvironmentResource // will be null if azd
+                ComputeEnvironment = environment
             });
         }
 
