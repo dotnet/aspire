@@ -25,7 +25,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>());
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
 
         // Assert
         var referencedName = Assert.Single(dto.ReferencedNames);
@@ -47,7 +47,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>());
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
 
         // Assert
         Assert.Collection(dto.ReferencedNames,
@@ -66,9 +66,28 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource, resources, new TestStringLocalizer<Columns>());
+        var dto = ResourceGraphMapper.MapResource(resource, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
 
         // Assert
         Assert.Empty(dto.ReferencedNames);
+    }
+
+    [Fact]
+    public void MapResource_ShowHiddenResources_IncludesHiddenResources()
+    {
+        // Arrange
+        var resource1 = ModelTestHelpers.CreateResource("app1-abcxyc", displayName: "app1", relationships: [new RelationshipViewModel("hidden-app", "Reference")]);
+        var hiddenResource = ModelTestHelpers.CreateResource("hidden-app", displayName: "hidden-app", relationships: ImmutableArray<RelationshipViewModel>.Empty, hidden: true);
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            [resource1.Name] = resource1,
+            [hiddenResource.Name] = hiddenResource,
+        };
+
+        // Act
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: true);
+
+        // Assert
+        Assert.Contains("hidden-app", dto.ReferencedNames);
     }
 }
