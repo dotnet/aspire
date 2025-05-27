@@ -11,13 +11,18 @@ namespace Aspire.Hosting.Devcontainers;
 
 internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions)
 {
-    private const string CodespaceSettingsPath = "/home/vscode/.vscode-remote/data/Machine/settings.json";
-    private const string VSCodeServerPath = "/home/vscode/.vscode-server";
-    private const string VSCodeInsidersServerPath = "/home/vscode/.vscode-server-insiders";
+    // Define path segments that will be combined with the user's home directory
+    private const string VscodeRemotePathSegment = ".vscode-remote/data/Machine/settings.json";
+    private const string VscodeServerPathSegment = ".vscode-server";
+    private const string VscodeInsidersServerPathSegment = ".vscode-server-insiders";
     private const string LocalDevcontainerSettingsPath = "data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
+    
+    // Get the user's home directory
+    private static string GetUserHomeDirectory() => 
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
     private readonly List<(string Url, string Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
 
@@ -131,22 +136,27 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
         IEnumerable<string> GetSettingsPaths()
         {
+            var userHomeDir = GetUserHomeDirectory();
+            
             // For some reason the machine settings path is different between Codespaces and local Devcontainers
             // so we decide which one to use here based on the options.
             if (codespaceOptions.Value.IsCodespace)
             {
-                yield return CodespaceSettingsPath;
+                yield return Path.Combine(userHomeDir, VscodeRemotePathSegment);
             }
             else if (devcontainerOptions.Value.IsDevcontainer)
             {
-                if (Directory.Exists(VSCodeServerPath))
+                var vscodeServerPath = Path.Combine(userHomeDir, VscodeServerPathSegment);
+                var vscodeInsidersServerPath = Path.Combine(userHomeDir, VscodeInsidersServerPathSegment);
+                
+                if (Directory.Exists(vscodeServerPath))
                 {
-                    yield return Path.Combine(VSCodeServerPath, LocalDevcontainerSettingsPath);
+                    yield return Path.Combine(vscodeServerPath, LocalDevcontainerSettingsPath);
                 }
 
-                if (Directory.Exists(VSCodeInsidersServerPath))
+                if (Directory.Exists(vscodeInsidersServerPath))
                 {
-                    yield return Path.Combine(VSCodeInsidersServerPath, LocalDevcontainerSettingsPath);
+                    yield return Path.Combine(vscodeInsidersServerPath, LocalDevcontainerSettingsPath);
                 }
             }
             else
