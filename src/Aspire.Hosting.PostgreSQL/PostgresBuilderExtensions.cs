@@ -420,9 +420,16 @@ public static class PostgresBuilderExtensions
 
         var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
 
-        return builder.WithContainerFiles(
-            initPath,
-            ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder.WithContainerFiles(
+                initPath,
+                ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
+        }
+        else
+        {
+            return builder.WithBindMount(importFullPath, initPath, true);
+        }
     }
 
     /// <summary>

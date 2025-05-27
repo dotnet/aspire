@@ -404,10 +404,11 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var mySqlDbName = "db1";
 
-            var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
-            var db = mysql.AddDatabase(mySqlDbName);
+            var mysql = builder.AddMySql("mysql")
+                               .WithEnvironment("MYSQL_DATABASE", mySqlDbName)
+                               .WithInitFiles(initFilesPath);
 
-            mysql.WithInitFiles(initFilesPath);
+            var db = mysql.AddDatabase(mySqlDbName);
 
             using var app = builder.Build();
 
