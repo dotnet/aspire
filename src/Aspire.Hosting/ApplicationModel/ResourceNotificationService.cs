@@ -689,7 +689,7 @@ public class ResourceNotificationService : IDisposable
 
             previousState = previousState with
             {
-                SupportsDetailedTelemetry = resource.HasAnnotationOfType<AllowTelemetryOptInAnnotation>()
+                SupportsDetailedTelemetry = IsMicrosoftOpenType(resource.GetType())
             };
         }
 
@@ -713,6 +713,19 @@ public class ResourceNotificationService : IDisposable
         private long _lastVersion = 1;
         public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
+    }
+
+    private static bool IsMicrosoftOpenType(Type type)
+    {
+        const string microsoftOpenPublicKey =
+            "00-24-00-00-04-80-00-00-94-00-00-00-06-02-00-00-00-24-00-00-52-53-41-31-00-04-00-00-01-00-01-00-4B-86-C4-CB-78-54-9B-34-BA-B6-1A-3B-18-00-E2-3B-FE-B5-B3-EC-39-00-74-04-15-36-A7-E3-CB-D9-7F-5F-04-CF-0F-85-71-55-A8-92-8E-AA-29-EB-FD-11-CF-BB-AD-3B-A7-0E-FE-A7-BD-A3-22-6C-6A-8D-37-0A-4C-D3-03-F7-14-48-6B-6E-BC-22-59-85-A6-38-47-1E-6E-F5-71-CC-92-A4-61-3C-00-B8-FA-65-D6-1C-CE-E0-CB-E5-F3-63-30-C9-A0-1F-41-83-55-9F-1B-EF-24-CC-29-17-C6-D9-13-E3-A5-41-33-3A-1D-05-D9-BE-D2-2B-38-CB";
+        var publicKey = type.Assembly.GetName().GetPublicKey();
+        if (publicKey is null)
+        {
+            return false;
+        }
+
+        return string.Equals(BitConverter.ToString(publicKey), microsoftOpenPublicKey);
     }
 }
 
