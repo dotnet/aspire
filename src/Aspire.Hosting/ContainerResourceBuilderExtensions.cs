@@ -857,6 +857,11 @@ public static class ContainerResourceBuilderExtensions
 
         var sourceFullPath = Path.GetFullPath(sourcePath, builder.ApplicationBuilder.AppHostDirectory);
 
+        if (!Directory.Exists(sourceFullPath) && !File.Exists(sourceFullPath))
+        {
+            throw new InvalidOperationException($"The source path '{sourceFullPath}' does not exist. Ensure the path is correct and accessible.");
+        }
+
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
             // In run mode, use copied files as they allow us to configure permissions and ownership and support
