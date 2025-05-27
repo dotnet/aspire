@@ -27,8 +27,7 @@ public static class ContainerResourceBuilderExtensions
 
         var container = new ContainerResource(name);
         return builder.AddResource(container)
-                      .WithImage(image)
-                      .WithAnnotation(new AllowTelemetryOptInAnnotation());
+                      .WithImage(image);
     }
 
     /// <summary>

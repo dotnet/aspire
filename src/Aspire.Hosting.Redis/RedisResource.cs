@@ -6,8 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a Redis resource independent of the hosting model.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class RedisResource : ContainerResource, IResourceWithConnectionString
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="RedisResource"/> class.
@@ -22,6 +21,15 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// A resource that represents a Redis resource independent of the hosting model.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    public RedisResource(string name) : base(name)
+    {
+        Annotations.Add(new AllowTelemetryOptInAnnotation());
+    }
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
