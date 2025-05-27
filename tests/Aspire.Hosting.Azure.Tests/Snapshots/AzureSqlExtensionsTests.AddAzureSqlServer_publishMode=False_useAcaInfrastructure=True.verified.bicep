@@ -44,7 +44,7 @@ resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-1
   parent: sql
 }
 
-resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db1 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db1'
   location: location
   properties: {
@@ -57,7 +57,7 @@ resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
   parent: sql
 }
 
-resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db2 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db2Name'
   location: location
   properties: {
@@ -70,7 +70,7 @@ resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
   parent: sql
 }
 
-resource db3 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db3 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db3Name'
   location: location
   parent: sql

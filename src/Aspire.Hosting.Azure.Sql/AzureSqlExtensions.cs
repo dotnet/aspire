@@ -252,7 +252,11 @@ public static class AzureSqlExtensions
     private static SqlDatabase CreateAzureSQLDatabase(SqlServer sqlServer, string databaseKey, string databaseName)
     {
         var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseKey);
-        var sqlDatabase = new SqlDatabase(bicepIdentifier)
+
+        // Force the api version to the one supporting the free SKU
+        // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50281
+
+        var sqlDatabase = new SqlDatabase(bicepIdentifier, "2023-08-01")
         {
             Parent = sqlServer,
             Name = databaseName,
