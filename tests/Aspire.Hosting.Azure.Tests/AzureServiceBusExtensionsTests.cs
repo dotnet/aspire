@@ -10,6 +10,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -683,6 +684,87 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__QueueOrTopicName", k),
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__SubscriptionName", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
+    }
+    
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureServiceBus(bool useObsoleteMethods)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("sb");
+
+        if (useObsoleteMethods)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            serviceBus
+                .AddQueue("queue1")
+                .AddQueue("queue2")
+                .AddTopic("t1")
+                .AddTopic("t2")
+                .AddSubscription("t1", "s3");
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            serviceBus.AddServiceBusQueue("queue1");
+            serviceBus.AddServiceBusQueue("queue2");
+            serviceBus.AddServiceBusTopic("t1")
+                .AddServiceBusSubscription("s3");
+            serviceBus.AddServiceBusTopic("t2");
+        }
+
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+
+        var connectionStringResource = (IResourceWithConnectionString)serviceBus.Resource;
+
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("mynamespaceEndpoint", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, serviceBus.Resource);
+
+        var expected = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{sb.outputs.serviceBusEndpoint}",
+              "path": "sb.module.bicep"
+            }
+            """;
+        Assert.Equal(expected, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "sb-roles");
+        var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sb_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
+              name: sb_outputs_name
+            }
+
+            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
+            }
+            """;
+        output.WriteLine(sbRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, sbRolesManifest.BicepText);
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
