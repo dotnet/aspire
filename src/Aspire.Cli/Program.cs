@@ -14,6 +14,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Microsoft.Extensions.Configuration;
+using Microsoft.TemplateEngine.Abstractions;
+using Microsoft.TemplateEngine.Edge;
+using Microsoft.TemplateEngine.Edge.Settings;
 
 #if DEBUG
 using OpenTelemetry;
@@ -115,6 +118,9 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(BuildAnsiConsole);
         builder.Services.AddSingleton(BuildProjectLocator);
+        builder.Services.AddSingleton(BuildTemplateEngineHost);
+        builder.Services.AddSingleton(BuildEngineEnvironmentSettings);
+        builder.Services.AddSingleton(BuildTemplatePackageManager);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
@@ -153,6 +159,40 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
+    }
+
+    private static ITemplateEngineHost BuildTemplateEngineHost(IServiceProvider serviceProvider)
+    {
+        var assembly = typeof(Program).Assembly;
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        return new DefaultTemplateEngineHost("aspire-cli", assembly.GetName().Version?.ToString() ?? "Unknown", loggerFactory: loggerFactory);
+    }
+
+    private static EngineEnvironmentSettings BuildEngineEnvironmentSettings(IServiceProvider serviceProvider)
+    {
+        var host = serviceProvider.GetRequiredService<ITemplateEngineHost>();
+        var environment = new DefaultEnvironment();
+        var engineEnvironmentSettings = new EngineEnvironmentSettings(host, virtualizeSettings: false, environment: environment);
+
+        // These components populate the TemplateInfo in the template cache which allows templates to be queried.
+        foreach (var (interfaceType, component) in Microsoft.TemplateEngine.Orchestrator.RunnableProjects.Components.AllComponents)
+        {
+            engineEnvironmentSettings.Components.AddComponent(interfaceType, component);
+        }
+
+        // These components add the various default template package provider and mount point factories.
+        foreach (var (interfaceType, component) in Components.AllComponents)
+        {
+            engineEnvironmentSettings.Components.AddComponent(interfaceType, component);
+        }
+
+        return engineEnvironmentSettings;
+    }
+
+    private static TemplatePackageManager BuildTemplatePackageManager(IServiceProvider serviceProvider)
+    {
+        var engineEnvironmentSettings = serviceProvider.GetRequiredService<EngineEnvironmentSettings>();
+        return new TemplatePackageManager(engineEnvironmentSettings);
     }
 
     public static async Task<int> Main(string[] args)

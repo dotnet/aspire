@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
+using Microsoft.TemplateEngine.Edge.Settings;
+using Microsoft.TemplateEngine.Utils;
 using Semver;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
@@ -19,8 +21,9 @@ internal sealed class NewCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
+    private readonly TemplatePackageManager _templatePackageManager;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, TemplatePackageManager templatePackageManager)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -28,12 +31,14 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(templatePackageManager);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
         _interactionService = interactionService;
+        _templatePackageManager = templatePackageManager;
 
         var templateArgument = new Argument<string>("template");
         templateArgument.Description = "The name of the project template to use (e.g. aspire-starter, aspire).";
@@ -59,22 +64,27 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // TODO: We need to integrate with the template engine to interrogate
-        //       the list of available templates. For now we will just hard-code
-        //       the acceptable options.
-        //
-        //       Once we integrate with template engine we will also be able to
-        //       interrogate the various options and add them. For now we will 
-        //       keep it simple.
-        Dictionary<string, (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> validTemplates = new(StringComparer.OrdinalIgnoreCase) {
-            { "aspire-starter", ("aspire-starter", "Aspire Starter App", projectName => $"./{projectName}")},
-            { "aspire", ("aspire", "Aspire Empty App", projectName => $"./{projectName}") },
-            { "aspire-apphost", ("aspire-apphost", "Aspire App Host",projectName => $"./{projectName}") },
-            { "aspire-servicedefaults", ("aspire-servicedefaults", "Aspire Service Defaults", projectName => $"./{projectName}") },
-            { "aspire-mstest", ("aspire-mstest", "Aspire Test Project (MSTest)", projectName => $"./{projectName}") },
-            { "aspire-nunit", ("aspire-nunit", "Aspire Test Project (NUnit)", projectName => $"./{projectName}") },
-            { "aspire-xunit", ("aspire-xunit", "Aspire Test Project (xUnit)", projectName => $"./{projectName}")}
-        };
+        using var activity = _activitySource.StartActivity();
+
+        Dictionary<string, (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> validTemplates = new(StringComparer.OrdinalIgnoreCase);
+        var templateMatches = await _templatePackageManager.GetTemplatesAsync(
+            WellKnownSearchFilters.MatchesAllCriteria,
+            [
+                WellKnownSearchFilters.ClassificationFilter(".NET Aspire"),
+                WellKnownSearchFilters.AuthorFilter("Microsoft")
+            ],
+            cancellationToken: cancellationToken);
+        foreach (var templateMatch in templateMatches)
+        {
+            var templateInfo = templateMatch.Info;
+            if (templateInfo.ShortNameList.Count == 0)
+            {
+                continue;
+            }
+            var shortName = templateInfo.ShortNameList[0];
+            var description = templateInfo.Name.TrimStart(".NET ").ToString();
+            validTemplates.Add(shortName, (shortName, description, projectName => $"./{projectName}"));
+        }
 
         if (parseResult.GetValue<string?>("template") is { } templateName && validTemplates.TryGetValue(templateName, out var template))
         {
@@ -82,7 +92,17 @@ internal sealed class NewCommand : BaseCommand
         }
         else
         {
-            return await _prompter.PromptForTemplateAsync(validTemplates.Values.ToArray(),  cancellationToken);
+            // TODO: We could use a custom host file to determine the display order of the templates.
+            var values = validTemplates
+                .Values
+                .OrderBy(validTemplate => validTemplate switch
+                {
+                    var starter when starter.TemplateName.Contains("starter") => 0,
+                    var test when test.TemplateDescription.Contains("Test Project") => 2,
+                    _ => 1
+                })
+                .ThenBy(validTemplate => validTemplate.TemplateName);
+            return await _prompter.PromptForTemplateAsync(values.ToArray(),  cancellationToken);
         }
     }
 
