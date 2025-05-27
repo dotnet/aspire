@@ -40,7 +40,7 @@ partial class Resource
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
                 IsHidden = IsHidden,
-                SupportsDetailedTelemetry = IsBuiltIn,
+                SupportsDetailedTelemetry = SupportsDetailedTelemetry
             };
         }
         catch (Exception ex)

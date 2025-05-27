@@ -242,7 +242,7 @@ message Resource {
     bool is_hidden = 21;
 
     // Whether the resource is built into Aspire and supports more detailed telemetry.
-    bool is_built_in = 22;
+    bool supports_detailed_telemetry = 22;
 }
 
 ////////////////////////////////////////////
