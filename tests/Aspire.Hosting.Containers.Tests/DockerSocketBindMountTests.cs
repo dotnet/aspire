@@ -15,7 +15,7 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
     public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {
         var dockerfile = """
-            FROM docker:latest
+            FROM netaspireci.azurecr.io/library/docker:28.1.1
             CMD sh -c "docker info > /out/docker-info.txt"
             """;
 
