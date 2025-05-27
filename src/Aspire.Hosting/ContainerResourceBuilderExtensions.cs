@@ -419,34 +419,6 @@ public static class ContainerResourceBuilderExtensions
 
         return builder.WithAnnotation(new ContainerImagePullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
-
-    /// <summary>
-    /// Adds a bind mount for the Docker socket to a container resource, allowing the container to communicate with the Docker daemon.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// This method mounts the Docker socket located at "/var/run/docker.sock" into the container at the same path.
-    /// This allows the container to communicate with the Docker daemon on the host, enabling Docker-in-Docker scenarios.
-    /// <example>
-    /// <code language="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerSocketBindMount();
-    ///
-    /// builder.Build().Run();
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> WithDockerSocketBindMount<T>(this IResourceBuilder<T> builder) where T : ContainerResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        
-        return builder.WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
-    }
-
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");

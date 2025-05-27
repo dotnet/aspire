@@ -2,30 +2,43 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Hosting.Containers.Tests;
 
-public class DockerSocketBindMountTests
+public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public void WithDockerSocketBindMountCreatesCorrectAnnotation()
+    [RequiresDocker]
+    public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        // TODO: Change this to the acr
+        var dockerfile = """
+            FROM docker:latest
+            CMD ["docker", "info"]
+            """;
 
-        appBuilder.AddContainer("container", "none")
-            .WithDockerSocketBindMount();
+        using var dir = new TempDirectory();
+        var dockerFilePath = Path.Combine(dir.Path, "Dockerfile");
+        await File.WriteAllTextAsync(dockerFilePath, dockerfile);
+
+        var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        appBuilder.AddDockerfile("docker-client", contextPath: dir.Path)
+                  .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
 
         using var app = appBuilder.Build();
 
-        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+        await app.StartAsync();
 
-        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+        var rns = app.ResourceNotifications;
 
-        Assert.Equal("/var/run/docker.sock", mountAnnotation.Source);
-        Assert.Equal("/var/run/docker.sock", mountAnnotation.Target);
-        Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
-        Assert.False(mountAnnotation.IsReadOnly);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        var state = await rns.WaitForResourceAsync("docker-client", e => KnownResourceStates.TerminalStates.Contains(e.Snapshot.State?.Text), cts.Token);
+
+        Assert.Equal(KnownResourceStates.Exited, state.Snapshot.State);
     }
 }
