@@ -686,6 +686,11 @@ public class ResourceNotificationService : IDisposable
                 Properties = [],
                 Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
+
+            previousState = previousState with
+            {
+                SupportsDetailedTelemetry = resource.HasAnnotationOfType<AllowTelemetryOptInAnnotation>()
+            };
         }
 
         return previousState;
