@@ -22,17 +22,21 @@ public class AzureCosmosDBContainerResource(string name, string containerName, s
     /// </summary>
     public string ContainerName { get; set; } = ThrowIfNullOrEmpty(containerName);
 
+    private IReadOnlyList<string> _partitionKeyPaths = [ThrowIfNullOrEmpty(partitionKeyPath)];
+
     /// <summary>
     /// Gets or sets the partition key path.
     /// </summary>
-    public string PartitionKeyPath { get; set; } = ThrowIfNullOrEmpty(partitionKeyPath);
-
-    private IReadOnlyList<string>? _partitionKeyPaths;
+    public string PartitionKeyPath
+    {
+        get => _partitionKeyPaths[0];
+        set => _partitionKeyPaths = [ThrowIfNullOrEmpty(value)];
+    }
 
     /// <summary>
     /// Gets or sets the hierarchical partition keys.
     /// </summary>
-    public IReadOnlyList<string>? PartitionKeyPaths
+    public IReadOnlyList<string> PartitionKeyPaths
     {
         get => _partitionKeyPaths;
         set

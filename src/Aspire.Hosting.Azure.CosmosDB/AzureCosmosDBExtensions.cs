@@ -116,24 +116,13 @@ public static class AzureCosmosExtensions
 
                 foreach (var container in database.Containers)
                 {
-                    if (container.PartitionKeyPaths is null)
+                    var containerProperties = new ContainerProperties
                     {
-                        await db.CreateContainerIfNotExistsAsync(
-                                container.ContainerName,
-                                container.PartitionKeyPath,
-                                cancellationToken: ct)
-                            .ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        var containerProperties = new ContainerProperties
-                        {
-                            Id = container.ContainerName,
-                            PartitionKeyPaths = container.PartitionKeyPaths
-                        };
+                        Id = container.ContainerName,
+                        PartitionKeyPaths = container.PartitionKeyPaths
+                    };
 
-                        await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
-                    }
+                    await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                 }
             }
         });
@@ -496,9 +485,7 @@ public static class AzureCosmosExtensions
                     Resource = new CosmosDBSqlContainerResourceInfo()
                     {
                         ContainerName = container.ContainerName,
-                        PartitionKey = container.PartitionKeyPaths is null
-                        ? new CosmosDBContainerPartitionKey { Paths = [container.PartitionKeyPath] }
-                        : new CosmosDBContainerPartitionKey { Paths = [.. container.PartitionKeyPaths] }
+                        PartitionKey = new CosmosDBContainerPartitionKey { Paths = [.. container.PartitionKeyPaths] }
                     }
                 };
                 infrastructure.Add(cosmosContainer);
