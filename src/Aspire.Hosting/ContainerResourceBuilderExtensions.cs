@@ -178,7 +178,9 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        var annotation = new ContainerMountAnnotation(Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory), target, ContainerMountType.BindMount, isReadOnly);
+        // If the source is a rooted path, use it directly without resolution
+        var sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 
@@ -417,7 +419,6 @@ public static class ContainerResourceBuilderExtensions
 
         return builder.WithAnnotation(new ContainerImagePullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
-
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
