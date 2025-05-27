@@ -241,16 +241,7 @@ public static class MongoDBBuilderExtensions
 
         var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
 
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            return builder.WithContainerFiles(
-                initPath,
-                ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
-        }
-        else
-        {
-            return builder.WithBindMount(importFullPath, initPath, true);
-        }
+        return builder.WithContainerFiles(initPath, importFullPath);
     }
 
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)

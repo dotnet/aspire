@@ -837,6 +837,51 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container by copying them from a source path on the host.
+    /// In run mode, this will copy the files from the host to the container at runtime, allowing for overriding ownership and permissions
+    /// in the container. In publish mode, this will create a bind mount to the source path on the host.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="sourcePath">The source path on the host to copy files from.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, string sourcePath, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        var sourceFullPath = Path.GetFullPath(sourcePath, builder.ApplicationBuilder.AppHostDirectory);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // In run mode, use copied files as they allow us to configure permissions and ownership and support
+            // remote execution scenarios where the source path may not be accessible from the container runtime.
+            var annotation = new ContainerFileSystemCallbackAnnotation
+            {
+                DestinationPath = destinationPath,
+                Callback = (_, _) => Task.FromResult(ContainerDirectory.GetFileSystemItemsFromPath(sourceFullPath, searchOptions: SearchOption.AllDirectories)),
+                DefaultOwner = defaultOwner,
+                DefaultGroup = defaultGroup,
+                Umask = umask,
+            };
+
+            builder.Resource.Annotations.Add(annotation);
+        }
+        else
+        {
+            // In publish mode, use a bind mount as it is better supported by publish targets
+            builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Set whether a container resource can use proxied endpoints or whether they should be disabled for all endpoints belonging to the container.
     /// If set to <c>false</c>, endpoints belonging to the container resource will ignore the configured proxy settings and run proxy-less.
     /// </summary>
