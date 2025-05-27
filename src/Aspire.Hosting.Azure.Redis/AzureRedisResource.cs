@@ -17,11 +17,6 @@ public class AzureRedisResource(RedisResource innerResource, Action<AzureResourc
     private readonly RedisResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 
     /// <summary>
-    /// Gets the "name" output reference for the resource.
-    /// </summary>
-    public BicepOutputReference NameOutputReference => new("name", this);
-
-    /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for the Azure Redis resource.
     /// </summary>
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);

@@ -17,11 +17,6 @@ public class AzurePostgresResource(PostgresServerResource innerResource, Action<
     private readonly PostgresServerResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 
     /// <summary>
-    /// Gets the "name" output reference for the resource.
-    /// </summary>
-    public BicepOutputReference NameOutputReference => new("name", this);
-
-    /// <summary>
     /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
     /// </summary>
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
