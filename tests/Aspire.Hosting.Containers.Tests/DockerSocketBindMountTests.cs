@@ -14,20 +14,21 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {
-        // TODO: Change this to the acr
         var dockerfile = """
             FROM docker:latest
-            CMD ["docker", "info"]
+            CMD sh -c "docker info > /out/docker-info.txt"
             """;
 
         using var dir = new TempDirectory();
+        using var outDir = new TempDirectory();
         var dockerFilePath = Path.Combine(dir.Path, "Dockerfile");
         await File.WriteAllTextAsync(dockerFilePath, dockerfile);
 
         var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         appBuilder.AddDockerfile("docker-client", contextPath: dir.Path)
-                  .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+                  .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock")
+                  .WithBindMount(outDir.Path, "/out");
 
         using var app = appBuilder.Build();
 
@@ -37,8 +38,17 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-        var state = await rns.WaitForResourceAsync("docker-client", e => KnownResourceStates.TerminalStates.Contains(e.Snapshot.State?.Text), cts.Token);
+        var state = await rns.WaitForResourceAsync(
+            "docker-client",
+            e => KnownResourceStates.TerminalStates.Contains(e.Snapshot.State?.Text),
+            cts.Token);
 
         Assert.Equal(KnownResourceStates.Exited, state.Snapshot.State);
+
+        var infoFile = Path.Combine(outDir.Path, "docker-info.txt");
+        Assert.True(File.Exists(infoFile));
+
+        var infoContent = await File.ReadAllTextAsync(infoFile);
+        Assert.Contains("Server Version:", infoContent, StringComparison.OrdinalIgnoreCase);
     }
 }
