@@ -21,7 +21,10 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// </summary>
     public BicepOutputReference Endpoint => new("appConfigEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.

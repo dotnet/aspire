@@ -27,7 +27,10 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
