@@ -178,8 +178,8 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        // If the source starts with '/', it's a Linux-style rooted path, so we use it directly without resolution
-        var sourcePath = source.StartsWith('/') ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+        // If the source is a rooted path, use it directly without resolution
+        var sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
         var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
