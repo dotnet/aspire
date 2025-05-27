@@ -33,6 +33,11 @@ public sealed class AzureUserAssignedIdentityResource(string name)
     /// </summary>
     public BicepOutputReference PrincipalName => new("principalName", this);
 
+    /// <summary>
+    /// The name of the user assigned identity.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
     private static void ConfigureAppIdentityInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var userAssignedIdentity = CreateExistingOrNewProvisionableResource(infrastructure,
