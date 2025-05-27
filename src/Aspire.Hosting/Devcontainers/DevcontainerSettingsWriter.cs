@@ -12,6 +12,8 @@ namespace Aspire.Hosting.Devcontainers;
 internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions)
 {
     // Define path segments that will be combined with the user's home directory
+    // These path segments are relative to the user's home directory
+    // instead of hardcoding to a specific user (e.g., "vscode")
     private const string VscodeRemotePathSegment = ".vscode-remote/data/Machine/settings.json";
     private const string VscodeServerPathSegment = ".vscode-server";
     private const string VscodeInsidersServerPathSegment = ".vscode-server-insiders";
@@ -20,7 +22,8 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const int WriteLockTimeoutMs = 2000;
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
     
-    // Get the user's home directory
+    // Get the user's home directory using the Environment API
+    // This ensures we work with any username in devcontainers/codespaces
     private static string GetUserHomeDirectory() => 
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
@@ -136,6 +139,8 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
 
         IEnumerable<string> GetSettingsPaths()
         {
+            // Get the current user's home directory
+            // This ensures we work with any username in the container, not just "vscode"
             var userHomeDir = GetUserHomeDirectory();
             
             // For some reason the machine settings path is different between Codespaces and local Devcontainers
