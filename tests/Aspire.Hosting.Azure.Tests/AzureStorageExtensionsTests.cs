@@ -1,14 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable IDE0005 // Using directive is unnecessary
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.IO;
+using System.Linq;
+using System;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureStorageExtensionsTests
+public class AzureStorageExtensionsTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData(null)]
@@ -293,26 +302,37 @@ public class AzureStorageExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var azuriteEndpoint = builder.AddAzureStorage("storage").RunAsEmulator(configure =>
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
-            configure.WithEndpoint("blob", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 10020));
-            configure.WithEndpoint("queue", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 10021));
-            configure.WithEndpoint("table", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 10022));
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
         });
 
-        Assert.Equal("storage", azuriteEndpoint.Resource.Name);
-        Assert.True(azuriteEndpoint.Resource.IsContainer(), "The resource should be a container resource.");
+        Assert.True(storage.Resource.IsContainer());
 
-        var blob = azuriteEndpoint.AddBlobs("blob");
-        blob.AddBlobContainer("container");
+        var blob = storage.AddBlobs("blob");
+        var queue = storage.AddQueues("queue");
+        var table = storage.AddTables("table");
 
-        Assert.Equal("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10020/devstoreaccount1;", await blob.Resource.ConnectionStringExpression.GetValueAsync(default));
+        EndpointReference GetEndpointReference(string name, int port)
+            => new(storage.Resource, new EndpointAnnotation(ProtocolType.Tcp, name: name, targetPort: port));
 
-        var queue = azuriteEndpoint.AddQueues("queue");
-        Assert.Equal("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://127.0.0.1:10021/devstoreaccount1;", await queue.Resource.ConnectionStringExpression.GetValueAsync(default));
+        var blobqs = AzureStorageEmulatorConnectionString.Create(blobEndpoint: GetEndpointReference("blob", 10000)).ValueExpression;
+        var queueqs = AzureStorageEmulatorConnectionString.Create(queueEndpoint: GetEndpointReference("queue", 10001)).ValueExpression;
+        var tableqs = AzureStorageEmulatorConnectionString.Create(tableEndpoint: GetEndpointReference("table", 10002)).ValueExpression;
 
-        var table = azuriteEndpoint.AddTables("table");
-        Assert.Equal("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://127.0.0.1:10022/devstoreaccount1;", await table.Resource.ConnectionStringExpression.GetValueAsync(default));
+        Assert.Equal(blobqs, blob.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(queueqs, queue.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(tableqs, table.Resource.ConnectionStringExpression.ValueExpression);
+
+        string Resolve(string? qs, string name, int port) =>
+            qs!.Replace("{storage.bindings." + name + ".host}", "127.0.0.1")
+               .Replace("{storage.bindings." + name + ".port}", port.ToString());
+
+        Assert.Equal(Resolve(blobqs, "blob", 10000), await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(queueqs, "queue", 10001), await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+        Assert.Equal(Resolve(tableqs, "table", 10002), await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
     }
 
     [Fact]
@@ -320,36 +340,83 @@ public class AzureStorageExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
-                Assert.NotNull(storageAccount);
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
+                };
             });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
         storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
 
-        var blob = storage.AddBlobs("blob");
-        var queue = storage.AddQueues("queue");
-        var table = storage.AddTables("table");
+        // Check storage resource.
+        Assert.Equal("storage", storage.Resource.Name);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
-        var expectedManifest = """
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "storage.module.bicep"
+              "path": "storage.module.bicep",
+              "params": {
+                "storagesku": "{storagesku.value}"
+              }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("https://myblob", await blob.Resource.ConnectionStringExpression.GetValueAsync(default));
-        Assert.Equal("https://myqueue", await queue.Resource.ConnectionStringExpression.GetValueAsync(default));
-        Assert.Equal("https://mytable", await table.Resource.ConnectionStringExpression.GetValueAsync(default));
+        await Verify(storageManifest.BicepText, extension: "bicep");
 
-        await Verify(manifest.BicepText, extension: "bicep");
+        // Check blob resource.
+        var blob = storage.AddBlobs("blob");
+
+        var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
+
+        Assert.Equal("https://myblob", await connectionStringBlobResource.GetConnectionStringAsync());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var queue = storage.AddQueues("queue");
+
+        var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
+
+        Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var table = storage.AddTables("table");
+
+        var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
+
+        Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
     }
 
     [Fact]
@@ -357,31 +424,84 @@ public class AzureStorageExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
-                Assert.NotNull(storageAccount);
-                storageAccount.AllowSharedKeyAccess = true;
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
+                };
+                sa.AllowSharedKeyAccess = true;
             });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
+        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
+        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
 
-        var blob = storage.AddBlobs("blob");
+        // Check storage resource.
+        Assert.Equal("storage", storage.Resource.Name);
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
-        var expectedManifest = """
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "storage.module.bicep"
+              "path": "storage.module.bicep",
+              "params": {
+                "storagesku": "{storagesku.value}"
+              }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("https://myblob", await blob.Resource.ConnectionStringExpression.GetValueAsync(default));
+        await Verify(storageManifest.BicepText, extension: "bicep");
 
-        await Verify(manifest.BicepText, extension: "bicep");
+        // Check blob resource.
+        var blob = storage.AddBlobs("blob");
+
+        var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
+
+        Assert.Equal("https://myblob", await connectionStringBlobResource.GetConnectionStringAsync());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var queue = storage.AddQueues("queue");
+
+        var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
+
+        Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var table = storage.AddTables("table");
+
+        var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
+
+        Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
     }
 
     [Fact]
@@ -389,36 +509,133 @@ public class AzureStorageExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
-                Assert.NotNull(storageAccount);
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
+                };
             });
-
-        storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
-        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
-        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
 
         var blob = storage.AddBlobs("blob");
         var queue = storage.AddQueues("queue");
         var table = storage.AddTables("table");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
-        var expectedManifest = """
+        storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
+        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
+        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
+
+        // Check storage resource.
+        Assert.Equal("storage", storage.Resource.Name);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var storageManifest = await GetManifestWithBicep(model, storage.Resource);
+
+        var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "storage.module.bicep"
+              "path": "storage.module.bicep",
+              "params": {
+                "storagesku": "{storagesku.value}"
+              }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("https://myblob", await blob.Resource.ConnectionStringExpression.GetValueAsync(default));
-        Assert.Equal("https://myqueue", await queue.Resource.ConnectionStringExpression.GetValueAsync(default));
-        Assert.Equal("https://mytable", await table.Resource.ConnectionStringExpression.GetValueAsync(default));
+        await Verify(storageManifest.BicepText, extension: "bicep");
 
-        await Verify(manifest.BicepText, extension: "bicep");
+        var storageRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "storage-roles");
+        var storageRolesManifest = await GetManifestWithBicep(storageRoles, skipPreparer: true);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param storage_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+              name: storage_outputs_name
+            }
+
+            resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalType: principalType
+              }
+              scope: storage
+            }
+
+            resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalType: principalType
+              }
+              scope: storage
+            }
+
+            resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalType: principalType
+              }
+              scope: storage
+            }
+            """;
+        output.WriteLine(storageRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, storageRolesManifest.BicepText);
+
+        // Check blob resource.
+
+        var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
+
+        Assert.Equal("https://myblob", await connectionStringBlobResource.GetConnectionStringAsync());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
+
+        Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
+
+        Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
     }
 
     [Fact]
@@ -426,29 +643,84 @@ public class AzureStorageExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage")
             .ConfigureInfrastructure(infrastructure =>
             {
-                var storageAccount = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
-                Assert.NotNull(storageAccount);
-                storageAccount.AllowSharedKeyAccess = true;
+                var sa = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
+                sa.Sku = new StorageSku()
+                {
+                    Name = storagesku.AsProvisioningParameter(infrastructure)
+                };
+                sa.AllowSharedKeyAccess = true;
             });
 
-        var blob = storage.AddBlobs("blob");
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
+        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
+        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
-        var expectedManifest = """
+        // Check storage resource.
+        Assert.Equal("storage", storage.Resource.Name);
+
+        var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "storage.module.bicep"
+              "path": "storage.module.bicep",
+              "params": {
+                "storagesku": "{storagesku.value}"
+              }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("https://myblob", await blob.Resource.ConnectionStringExpression.GetValueAsync(default));
+        Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(storageManifest.BicepText, extension: "bicep");
+
+        // Check blob resource.
+        var blob = storage.AddBlobs("blob");
+
+        var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
+
+        Assert.Equal("https://myblob", await connectionStringBlobResource.GetConnectionStringAsync());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var queue = storage.AddQueues("queue");
+
+        var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
+
+        Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var table = storage.AddTables("table");
+
+        var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
+
+        Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
     }
 }
