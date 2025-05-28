@@ -48,7 +48,7 @@ internal class InteractionService : IInteractionService
         {
             prompt.Validate(validator);
         }
-            
+
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
@@ -78,7 +78,7 @@ internal class InteractionService : IInteractionService
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
-        
+
         DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
         Console.WriteLine();
         _ansiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
@@ -139,5 +139,15 @@ internal class InteractionService : IInteractionService
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
         DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+    }
+
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
+    {
+        return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
+    }
+
+    public void DisplaySubtleMessage(string message)
+    {
+        _ansiConsole.MarkupLine($"[dim]{message}[/]");
     }
 }
