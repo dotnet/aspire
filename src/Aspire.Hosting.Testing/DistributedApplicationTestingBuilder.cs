@@ -8,6 +8,7 @@ using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Testing;
 
@@ -133,23 +134,6 @@ public static class DistributedApplicationTestingBuilder
         ArgumentNullException.ThrowIfNull(configureBuilder);
 
         return new TestingBuilder(args, configureBuilder);
-    }
-
-    private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-        foreach (var arg in args)
-        {
-            if (string.IsNullOrEmpty(arg))
-            {
-                var values = string.Join(", ", args);
-                if (arg is null)
-                {
-                    throw new ArgumentNullException(nameof(args), $"Array params contains null item: [{values}]");
-                }
-                throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(args));
-            }
-        }
     }
 
     private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)

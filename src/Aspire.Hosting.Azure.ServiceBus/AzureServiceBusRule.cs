@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Azure.Provisioning;
+using static Aspire.ArgumentExceptionExtensions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -180,11 +179,5 @@ public class AzureServiceBusRule(string name)
         writer.WriteEndObject(); // CorrelationFilter
 
         writer.WriteEndObject(); // Properties
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }
