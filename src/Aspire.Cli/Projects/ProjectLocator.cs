@@ -60,6 +60,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
             });
 
+            // This sort is done here to make results deterministic since we get all the app
+            // host information in parallel and the order may vary.
+            appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
+
             return appHostProjects;
         });
     }
