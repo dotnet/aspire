@@ -267,7 +267,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
         {
-            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localost", 10001));
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
         });
 
         Assert.True(cosmos.Resource.IsContainer());
