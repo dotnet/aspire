@@ -119,8 +119,16 @@ public static class AzureCosmosExtensions
                     var containerProperties = new ContainerProperties
                     {
                         Id = container.ContainerName,
-                        PartitionKeyPaths = container.PartitionKeyPaths
                     };
+
+                    if (container.PartitionKeyPaths.Count == 1)
+                    {
+                        containerProperties.PartitionKeyPath = container.PartitionKeyPath;
+                    }
+                    else
+                    {
+                        containerProperties.PartitionKeyPaths = container.PartitionKeyPaths;
+                    }
 
                     await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                 }
