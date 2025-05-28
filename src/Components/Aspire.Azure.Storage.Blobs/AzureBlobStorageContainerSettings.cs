@@ -40,7 +40,7 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
             // when the connection string is built and BlobServiceClient doesn't support escape sequences. 
         }
 
-        // Connection string built from a URI? e.g., Endpoint=https://{account_name}.blob.core.windows.net;ContainerName=...;
+        // Connection string built from a URI? E.g., Endpoint=https://{account_name}.blob.core.windows.net;ContainerName=...;
         if (builder.TryGetValue("Endpoint", out var endpoint) && endpoint is string)
         {
             if (Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var uri))
