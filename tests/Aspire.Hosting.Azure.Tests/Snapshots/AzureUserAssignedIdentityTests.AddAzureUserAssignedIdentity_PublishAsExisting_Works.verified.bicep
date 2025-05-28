@@ -12,3 +12,5 @@ output clientId string = myidentity.properties.clientId
 output principalId string = myidentity.properties.principalId
 
 output principalName string = myidentity.name
+
+output name string = myidentity.name

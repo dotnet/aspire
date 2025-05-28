@@ -12,6 +12,11 @@ public class AzureLogAnalyticsWorkspaceResource(string name, Action<AzureResourc
     : AzureProvisioningResource(name, configureInfrastructure)
 {
     /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
     /// Gets the "logAnalyticsWorkspaceId" output reference for the Azure Log Analytics Workspace resource.
     /// </summary>
     public BicepOutputReference WorkspaceId => new("logAnalyticsWorkspaceId", this);

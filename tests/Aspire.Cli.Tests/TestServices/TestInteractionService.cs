@@ -65,4 +65,13 @@ internal sealed class TestInteractionService : IInteractionService
     public void DisplayCancellationMessage()
     {
     }
+
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(true);
+    }
+
+    public void DisplaySubtleMessage(string message)
+    {
+    }
 }
