@@ -32,6 +32,10 @@
 	--gradient-flamingo-purple: linear-gradient(90deg, var(--color-flamingo), var(--color-purple));
 	--gradient-purple-blue: linear-gradient(90deg, var(--color-purple), var(--color-blue));
 	--gradient-blue-purple: linear-gradient(90deg, var(--color-blue), var(--color-purple));
+
+	pre[data-language="console"] > code {
+		line-height: initial;
+	}
 }
 
 :root[data-theme='light'] {
