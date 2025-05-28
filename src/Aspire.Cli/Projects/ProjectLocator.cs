@@ -166,7 +166,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             defaultSettingsFilePath,
             (path) =>
             {
-                if (!path.EndsWith($"{Path.PathSeparator}.aspire{Path.PathSeparator}settings.json"))
+                if (!path.EndsWith($"{Path.DirectorySeparatorChar}.aspire{Path.DirectorySeparatorChar}settings.json"))
                 {
                     return ValidationResult.Error("Settings file must end with '/.aspire/settings.json'");
                 }
@@ -174,6 +174,11 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 return ValidationResult.Success();
             },
             cancellationToken);
+
+        if (!Path.IsPathRooted(settingsFilePath))
+        {
+            settingsFilePath = Path.Combine(currentDirectory.FullName, settingsFilePath);
+        }
 
         var settingsFile = new FileInfo(settingsFilePath);
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
@@ -183,12 +188,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             settingsFile.Directory.Create();
         }
 
-        var relativePathToSettingsFile = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+        var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
 
         // Get the relative path and normalize it to use '/' as the separator
         var settings = new CliSettings
         {
-            AppHostPath = relativePathToSettingsFile
+            AppHostPath = relativePathToProjectFile
         };
 
         using var stream = settingsFile.OpenWrite();
@@ -196,7 +201,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         var relativeProjectFilePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage("file_cabinet", $"Created settings file at '{relativeSettingsFilePath}' for project '{relativeProjectFilePath}'.");
+        interactionService.DisplayMessage("file_cabinet", $"Created settings file at [bold]'{settingsFile.FullName}'[/] for project [bold]'{relativeProjectFilePath}'[/].");
     }
 }
 
