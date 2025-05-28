@@ -145,4 +145,9 @@ internal class InteractionService : IInteractionService
     {
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
+
+    public void DisplaySubtleMessage(string message)
+    {
+        _ansiConsole.MarkupLine($"[dim]{message}[/]");
+    }
 }

@@ -39,7 +39,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             var parallelOptions = new ParallelOptions
             {
                 CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = 1
+                MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
             await Parallel.ForEachAsync(projectFiles, async (projectFile, ct) =>
@@ -51,7 +51,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 {
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName);
-                    interactionService.DisplayMessage("check_mark_button", $"Found app host: {relativePath}");
+                    interactionService.DisplaySubtleMessage(relativePath);
                     appHostProjects.Add(projectFile);
                 }
                 else
@@ -129,14 +129,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             return projectFile;
         }
 
-        var searchConfirmed = await interactionService.ConfirmAsync("Search for app host?", true, cancellationToken);
-
-        if (!searchConfirmed)
-        {
-            logger.LogDebug("User chose not to search for project files.");
-            return null;
-        }
-
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", currentDirectory);
         var appHostProjects = await FindAppHostProjectFilesAsync(currentDirectory, cancellationToken);
 
@@ -157,7 +149,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             selectedAppHost = await interactionService.PromptForSelectionAsync(
                 "Select app host to run",
                 appHostProjects,
-                projectFile => Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName),
+                projectFile => $"{projectFile.Name} ({Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
                 );
         }
@@ -201,6 +193,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         using var stream = settingsFile.OpenWrite();
         await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
+        
+        var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+        var relativeProjectFilePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+        interactionService.DisplayMessage("file_cabinet", $"Created settings file at '{relativeSettingsFilePath}' for project '{relativeProjectFilePath}'.");
     }
 }
 
