@@ -192,7 +192,6 @@ public static class KeycloakResourceBuilderExtensions
         return builder.WithContainerFiles(
             KeycloakImportDirectory,
             importFullPath,
-            defaultOwner: KeycloakContainerImageTags.ContainerUser,
-            defaultGroup: KeycloakContainerImageTags.ContainerGroup);
+            defaultOwner: KeycloakContainerImageTags.ContainerUser);
     }
 }
