@@ -3,7 +3,9 @@
 
 using System.Diagnostics;
 using System.Text.Json;
+using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -12,7 +14,7 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService) : IProjectLocator
 {
     private readonly ActivitySource _activitySource = new(nameof(ProjectLocator));
 
@@ -20,34 +22,46 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
     {
         using var activity = _activitySource.StartActivity();
 
-        var appHostProjects = new List<FileInfo>();
-
-        logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
-        var enumerationOptions = new EnumerationOptions
+        return await interactionService.ShowStatusAsync("Search for app host project files", async () =>
         {
-            RecurseSubdirectories = true,
-            IgnoreInaccessible = true
-        };
-        var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
-        logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
-
-        foreach (var projectFile in projectFiles)
-        {
-            logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-            var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), cancellationToken);
-
-            if (information.ExitCode == 0 && information.IsAspireHost)
+            var appHostProjects = new List<FileInfo>();
+            logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
+            var enumerationOptions = new EnumerationOptions
             {
-                logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
-                appHostProjects.Add(projectFile);
-            }
-            else
-            {
-                logger.LogTrace("Project file {ProjectFile} in {SearchDirectory} is not an Aspire host", projectFile.FullName, searchDirectory.FullName);
-            }
-        }
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true
+            };
 
-        return appHostProjects;
+            interactionService.DisplayMessage("magnifying_glass_tilted_left", "Searching for project files...");
+            var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
+            logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
+
+            var parallelOptions = new ParallelOptions
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = 1
+            };
+
+            await Parallel.ForEachAsync(projectFiles, async (projectFile, ct) =>
+            {
+                logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
+                var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
+
+                if (information.ExitCode == 0 && information.IsAspireHost)
+                {
+                    logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
+                    var relativePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName);
+                    interactionService.DisplayMessage("check_mark_button", $"Found app host: {relativePath}");
+                    appHostProjects.Add(projectFile);
+                }
+                else
+                {
+                    logger.LogTrace("Project file {ProjectFile} in {SearchDirectory} is not an Aspire host", projectFile.FullName, searchDirectory.FullName);
+                }
+            });
+
+            return appHostProjects;
+        });
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
@@ -63,9 +77,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 using var stream = settingsFile.OpenRead();
                 var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
 
-                if (json.RootElement.TryGetProperty("appHostPath", out var appHostPathProperty) && appHostPathProperty.GetString() is { } appHostPath )
+                if (json.RootElement.TryGetProperty("appHostPath", out var appHostPathProperty) && appHostPathProperty.GetString() is { } appHostPath)
                 {
-                    
+
                     var qualifiedAppHostPath = Path.IsPathRooted(appHostPath) ? appHostPath : Path.Combine(settingsFile.Directory!.FullName, appHostPath);
                     var appHostFile = new FileInfo(qualifiedAppHostPath);
 
@@ -115,44 +129,78 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             return projectFile;
         }
 
+        var searchConfirmed = await interactionService.ConfirmAsync("Search for app host?", true, cancellationToken);
+
+        if (!searchConfirmed)
+        {
+            logger.LogDebug("User chose not to search for project files.");
+            return null;
+        }
+
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", currentDirectory);
         var appHostProjects = await FindAppHostProjectFilesAsync(currentDirectory, cancellationToken);
 
         logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
 
-        var selectedAppHost = appHostProjects.Count switch {
-            0 => throw new ProjectLocatorException("No project file found."),
-            > 1 => throw new ProjectLocatorException("Multiple project files found."),
-            1 => appHostProjects[0],
-            _ => throw new ProjectLocatorException("Unexpected number of project files found.")
-        };
+        FileInfo? selectedAppHost = null;
 
-        await CreateSettingsFileIfNotExistsAsync(selectedAppHost, cancellationToken);
+        if (appHostProjects.Count == 0)
+        {
+            throw new ProjectLocatorException("No project file found.");
+        }
+        else if (appHostProjects.Count == 1)
+        {
+            selectedAppHost = appHostProjects[0];
+        }
+        else if (appHostProjects.Count > 1)
+        {
+            selectedAppHost = await interactionService.PromptForSelectionAsync(
+                "Select app host to run",
+                appHostProjects,
+                projectFile => Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName),
+                cancellationToken
+                );
+        }
+
+        await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
         return selectedAppHost;
     }
 
-    private async Task CreateSettingsFileIfNotExistsAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFile = new FileInfo(Path.Combine(currentDirectory.FullName, ".aspire", "settings.json"));
+        var defaultSettingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+        var settingsFilePath = await interactionService.PromptForStringAsync(
+            "Creating settings file",
+            defaultSettingsFilePath,
+            (path) =>
+            {
+                if (!path.EndsWith($"{Path.PathSeparator}.aspire{Path.PathSeparator}settings.json"))
+                {
+                    return ValidationResult.Error("Settings file must end with '/.aspire/settings.json'");
+                }
 
-        if (!settingsFile.Exists)
+                return ValidationResult.Success();
+            },
+            cancellationToken);
+
+        var settingsFile = new FileInfo(settingsFilePath);
+        logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
+
+        if (!settingsFile.Directory!.Exists)
         {
-            if (!settingsFile.Directory!.Exists)
-            {
-                settingsFile.Directory.Create();
-            }
-
-            // Get the relative path and normalize it to use '/' as the separator
-            var relativePath = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-
-            var settings = new CliSettings
-            {
-                AppHostPath = relativePath
-            };
-
-            using var stream = settingsFile.OpenWrite();
-            await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
+            settingsFile.Directory.Create();
         }
+
+        var relativePathToSettingsFile = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+
+        // Get the relative path and normalize it to use '/' as the separator
+        var settings = new CliSettings
+        {
+            AppHostPath = relativePathToSettingsFile
+        };
+
+        using var stream = settingsFile.OpenWrite();
+        await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
     }
 }
 
