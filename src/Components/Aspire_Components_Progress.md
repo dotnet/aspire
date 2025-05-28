@@ -50,7 +50,7 @@ Nomenclature used in the table above:
 
 ### Contains README
 
-Each .NET Aspire integration must contain a README.md file which is included in the package. This README should contain the integration's main description, usage examples, and basic getting started documentation. The goal of this file is to contain everything a developer will need in the first 5 minutes. Finally, README should have a link pointed back to the full documentation of the integration, which will include a list of logging categories used, tracing activity names, and Metric names. For a concrete example of a README file, please look [here](./Aspire.StackExchange.Redis/README.md).
+Each .NET Aspire integration must contain a README.md file which is included in the package. This README should contain the integration's main description, usage examples, and basic getting started documentation. The goal of this file is to contain everything a developer will need in the first 5 minutes. Finally, README should have a link pointed back to the full documentation of the integration, which will include a list of logging categories used, tracing activity names, and Metric names. [Here's a concrete example of a README file](./Aspire.StackExchange.Redis/README.md).
 
 ### Public API
 
@@ -62,7 +62,7 @@ Each integration should provide a `sealed` `Settings` type as well as named conf
 
 ### DI Services
 
-Integrations must have extension methods which will "glue" the services with the DI container. For an example of this, please check out the `AspireRedisExtensions` class [here](./Aspire.StackExchange.Redis/AspireRedisExtensions.cs). The extension methods that are registering the main integration's service to the container should be listed in the README file. The full list of registered services by the integration should be included in the main integration's documentation page.
+Integrations must have extension methods which will "glue" the services with the DI container. For an example of this, please check out the `AspireRedisExtensions` [class here](./Aspire.StackExchange.Redis/AspireRedisExtensions.cs). The extension methods that are registering the main integration's service to the container should be listed in the README file. The full list of registered services by the integration should be included in the main integration's documentation page.
 
 ### Health Checks
 
