@@ -150,4 +150,9 @@ internal class InteractionService : IInteractionService
     {
         _ansiConsole.MarkupLine($"[dim]{message}[/]");
     }
+
+    public void DisplayEmptyLine()
+    {
+        _ansiConsole.WriteLine();
+    }
 }

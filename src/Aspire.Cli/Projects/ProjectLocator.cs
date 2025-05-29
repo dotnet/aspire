@@ -22,7 +22,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
     {
         using var activity = _activitySource.StartActivity();
 
-        return await interactionService.ShowStatusAsync("Search for app host project files", async () =>
+        return await interactionService.ShowStatusAsync("Searching", async () =>
         {
             var appHostProjects = new List<FileInfo>();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
@@ -32,7 +32,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 IgnoreInaccessible = true
             };
 
-            interactionService.DisplayMessage("magnifying_glass_tilted_left", "Searching for project files...");
+            interactionService.DisplayMessage("magnifying_glass_tilted_left", "Finding app hosts...");
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
@@ -135,6 +135,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", currentDirectory);
         var appHostProjects = await FindAppHostProjectFilesAsync(currentDirectory, cancellationToken);
+        interactionService.DisplayEmptyLine();
 
         logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
 
@@ -158,6 +159,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 );
         }
 
+        interactionService.DisplayEmptyLine();
         await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
         return selectedAppHost;
     }

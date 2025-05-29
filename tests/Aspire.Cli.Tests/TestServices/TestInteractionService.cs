@@ -74,4 +74,8 @@ internal sealed class TestInteractionService : IInteractionService
     public void DisplaySubtleMessage(string message)
     {
     }
+
+    public void DisplayEmptyLine()
+    {
+    }
 }
