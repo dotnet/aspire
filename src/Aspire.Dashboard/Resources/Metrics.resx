@@ -160,9 +160,6 @@
   <data name="MetricsLastTwelveHours" xml:space="preserve">
     <value>Last 12 hours</value>
   </data>
-  <data name="MetricsLastTwentyFourHours" xml:space="preserve">
-    <value>Last 24 hours</value>
-  </data>
   <data name="MetricsInsturementDescriptionGridNameColumnHeader" xml:space="preserve">
     <value>Description</value>
   </data>

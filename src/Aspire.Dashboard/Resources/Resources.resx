@@ -139,10 +139,6 @@
   <data name="ResourceFilterOptionEmpty" xml:space="preserve">
     <value>(Unset)</value>
   </data>
-  <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
-    <value>Environment variables for {0}</value>
-    <comment>{0} is a resource</comment>
-  </data>
   <data name="ResourcesStateColumnHeader" xml:space="preserve">
     <value>State</value>
   </data>
@@ -161,20 +157,8 @@
   <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
     <value>URLs</value>
   </data>
-  <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
-    <value>Environment</value>
-  </data>
-  <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
-    <value>No environment variables</value>
-  </data>
   <data name="ResourcesNoResources" xml:space="preserve">
     <value>No resources found</value>
-  </data>
-  <data name="ResourceDetailsEndpointUrl" xml:space="preserve">
-    <value>Endpoint URL</value>
-  </data>
-  <data name="ResourceDetailsProxyUrl" xml:space="preserve">
-    <value>Proxy URL</value>
   </data>
   <data name="ResourcesDetailsContainerArgumentsProperty" xml:space="preserve">
     <value>Container arguments</value>
@@ -264,9 +248,6 @@
   <data name="WaitingHealthDataStatusMessage" xml:space="preserve">
     <value>Waiting...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
-  </data>
-  <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
-    <value>No telemetry found for this resource.</value>
   </data>
   <data name="ResourceCollapseAllChildren" xml:space="preserve">
     <value>Collapse child resources</value>
