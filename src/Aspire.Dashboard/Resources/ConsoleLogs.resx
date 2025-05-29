@@ -127,17 +127,11 @@
     <value>{0} console logs</value>
     <comment>{0} is an application name</comment>
   </data>
-  <data name="ConsoleLogsInitializingLogViewer" xml:space="preserve">
-    <value>Initializing log viewer...</value>
-  </data>
   <data name="ConsoleLogsLogsNotYetAvailable" xml:space="preserve">
     <value>Logs not yet available</value>
   </data>
   <data name="ConsoleLogsWatchingLogs" xml:space="preserve">
     <value>Watching logs...</value>
-  </data>
-  <data name="ConsoleLogsFailedToInitialize" xml:space="preserve">
-    <value>Failed to initialize</value>
   </data>
   <data name="ConsoleLogsFinishedWatchingLogs" xml:space="preserve">
     <value>Finished watching logs</value>
