@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-sealed class DurableTaskSchedulerDashboardAnnotation(ReferenceExpression? subscriptionId, ReferenceExpression? dashboardEndpoint)
+internal sealed class DurableTaskSchedulerDashboardAnnotation(ReferenceExpression? subscriptionId, ReferenceExpression? dashboardEndpoint)
     : IResourceAnnotation
 {
     public ReferenceExpression? DashboardEndpoint => dashboardEndpoint;

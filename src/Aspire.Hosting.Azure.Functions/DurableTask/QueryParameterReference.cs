@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// TODO: Drop this when https://github.com/dotnet/aspire/issues/3117 is resolved.
 /// </remarks>
-sealed class QueryParameterReference : IValueProvider, IValueWithReferences, IManifestExpressionProvider
+internal sealed class QueryParameterReference : IValueProvider, IValueWithReferences, IManifestExpressionProvider
 {
     public static QueryParameterReference Create(ReferenceExpression reference) => new(reference);
 

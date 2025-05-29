@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-interface IResourceWithDashboard : IResource
+internal interface IResourceWithDashboard : IResource
 {
     ReferenceExpression DashboardEndpointExpression { get; }
 

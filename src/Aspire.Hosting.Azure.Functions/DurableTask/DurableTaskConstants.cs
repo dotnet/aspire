@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Azure;
 
-static class DurableTaskConstants
+internal static class DurableTaskConstants
 {
     public static class Scheduler
     {
