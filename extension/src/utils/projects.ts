@@ -25,7 +25,6 @@ export async function getAppHostProject(): Promise<string | undefined> {
         return;
     }
 
-
     // Extract project names from the file paths
     const projectNames = projectFiles.map(file => vscode.workspace.asRelativePath(file));
 
