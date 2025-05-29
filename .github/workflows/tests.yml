@@ -199,6 +199,8 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Navigate to extension directory
+        run: cd extension
       - name: Install dependencies
         run: yarn install
       - name: Build the extension
