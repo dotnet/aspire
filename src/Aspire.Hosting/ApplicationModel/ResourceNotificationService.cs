@@ -715,7 +715,7 @@ public class ResourceNotificationService : IDisposable
         public CustomResourceSnapshot? LastSnapshot { get; set; }
     }
 
-    private static bool IsMicrosoftOpenType(Type type)
+    internal static bool IsMicrosoftOpenType(Type type)
     {
         var microsoftOpenPublicKey = new byte[]
         {
