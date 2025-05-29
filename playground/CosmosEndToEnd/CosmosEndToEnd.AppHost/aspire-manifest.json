@@ -32,7 +32,9 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__db": "{db.connectionString}",
-        "ConnectionStrings__entries": "{entries.connectionString}"
+        "ConnectionStrings__users": "{users.connectionString}",
+        "ConnectionStrings__entries": "{entries.connectionString}",
+        "ConnectionStrings__user-todo": "{user-todo.connectionString}"
       },
       "bindings": {
         "http": {
