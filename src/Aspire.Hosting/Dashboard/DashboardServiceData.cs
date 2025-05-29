@@ -51,6 +51,7 @@ internal sealed class DashboardServiceData : IDisposable
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands,
                     IsHidden = snapshot.IsHidden,
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
                 };
             }
 

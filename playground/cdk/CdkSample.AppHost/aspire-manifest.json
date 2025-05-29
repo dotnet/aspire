@@ -43,11 +43,7 @@
     "sql": {
       "type": "azure.bicep.v0",
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-      "path": "sql.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalName": ""
-      }
+      "path": "sql.module.bicep"
     },
     "sqldb": {
       "type": "value.v0",
@@ -246,8 +242,10 @@
       "path": "sql-roles.module.bicep",
       "params": {
         "sql_outputs_name": "{sql.outputs.name}",
+        "sql_outputs_sqlserveradminname": "{sql.outputs.sqlServerAdminName}",
         "principalId": "",
-        "principalName": ""
+        "principalName": "",
+        "principalType": ""
       }
     },
     "mykv-roles": {

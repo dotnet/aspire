@@ -60,11 +60,8 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _activitySource.StartActivity();
 
-            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
-            {
-                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
-            });
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
             
             if (effectiveAppHostProjectFile is null)
             {
@@ -165,22 +162,46 @@ internal sealed class RunCommand : BaseCommand
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
 
                 var table = new Table().Border(TableBorder.Rounded);
+
+                // Add columns
+                table.AddColumn("Resource");
+                table.AddColumn("Type");
+                table.AddColumn("State");
+                table.AddColumn("Health");
+                table.AddColumn("Endpoint(s)");
+
+                // We add a default row here to say that
+                // there are no resources in the app host.
+                // This will be replaced once the first
+                // resource is streamed back from the
+                // app host which should be almost immediate
+                // if no resources are present.
+                
+                // Create placeholders based on number of columns defined.
+                var placeholders = new Markup[table.Columns.Count];
+                for (int i = 0; i < table.Columns.Count; i++)
+                {
+                    placeholders[i] = new Markup("--");
+                }
+                table.Rows.Add(placeholders);
+
                 var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
 
-                var rows = new Rows(new List<IRenderable> {
+                var renderables = new List<IRenderable> {
                     table,
                     message
-                });
+                };
+                var rows = new Rows(renderables);
 
                 await _ansiConsole.Live(rows).StartAsync(async context =>
                 {
-                    var knownResources = new SortedDictionary<string, RpcResourceState>();
+                    // If we are running an apphost that has no
+                    // resources in it then we want to display
+                    // the message that there are no resources.
+                    // That is why we immediately do a refresh.
+                    context.Refresh();
 
-                    table.AddColumn("Resource");
-                    table.AddColumn("Type");
-                    table.AddColumn("State");
-                    table.AddColumn("Health");
-                    table.AddColumn("Endpoint(s)");
+                    var knownResources = new SortedDictionary<string, RpcResourceState>();
 
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
 

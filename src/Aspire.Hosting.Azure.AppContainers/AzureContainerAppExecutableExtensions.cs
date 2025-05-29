@@ -42,8 +42,6 @@ public static class AzureContainerAppExecutableExtensions
             return executable;
         }
 
-        executable.ApplicationBuilder.AddAzureContainerAppsInfrastructureCore();
-
         return executable.WithAnnotation(new AzureContainerAppCustomizationAnnotation(configure));
     }
 }

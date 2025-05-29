@@ -25,9 +25,7 @@ public class AzureContainerAppsTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-#pragma warning disable CS0618 // Type or member is obsolete
-        builder.AddAzureContainerAppsInfrastructure();
-#pragma warning restore CS0618 // Type or member is obsolete
+        builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddContainer("api", "myimage");
 
@@ -690,36 +688,17 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task SecretOutputHandling()
+    public async Task KeyVaultReferenceHandling()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-#pragma warning disable CS0618 // Type or member is obsolete
-        builder.AddAzureContainerAppsInfrastructure();
-#pragma warning restore CS0618 // Type or member is obsolete
+        builder.AddAzureContainerAppEnvironment("env");
 
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
 
         builder.AddContainer("api", "image")
-            .WithReference(db)
-            .WithEnvironment(context =>
-            {
-                // Any value that resolves to the secret output can be a direct keyvault reference.
-                // This includes nested expressions.
-                var connectionString = db.GetSecretOutput("connectionString");
-                var secret0 = ReferenceExpression.Create($"{connectionString}");
-                var secret1 = ReferenceExpression.Create($"{secret0}");
-
-                context.EnvironmentVariables["connectionString"] = connectionString;
-                context.EnvironmentVariables["secret0"] = secret0;
-                context.EnvironmentVariables["secret1"] = secret1;
-
-                var connectionString1 = db.GetSecretOutput("connectionString1");
-                // Complex expressions that contain a secret output
-                var complex = ReferenceExpression.Create($"a/{connectionString}/{secret0}/{connectionString1}");
-                context.EnvironmentVariables["complex"] = complex;
-            });
+            .WithReference(db);
 
         using var app = builder.Build();
 
@@ -773,7 +752,9 @@ public class AzureContainerAppsTests
         builder.AddContainer("api", "image")
             .WithEnvironment(context =>
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 context.EnvironmentVariables["secret0"] = resource.GetSecretOutput("myconnection");
+#pragma warning restore CS0618 // Type or member is obsolete
             });
 
         using var app = builder.Build();

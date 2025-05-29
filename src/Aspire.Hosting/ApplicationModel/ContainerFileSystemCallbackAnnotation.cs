@@ -100,13 +100,14 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
     /// Enumerates files from a specified directory and converts them to <see cref="ContainerFile"/> objects.
     /// </summary>
     /// <param name="path">The directory path to enumerate files from.</param>
-    /// <param name="searchPattern"></param>
-    /// <param name="searchOptions"></param>
+    /// <param name="searchPattern">The search pattern to control the items matched. Defaults to *.</param>
+    /// <param name="searchOptions">The search options to control the items matched. Defaults to SearchOption.TopDirectoryOnly.</param>
+    /// <param name="updateItem">An optional function to update each <see cref="ContainerFileSystemItem"/> before returning it. This can be used to set additional properties like Owner, Group, or Mode.</param>
     /// <returns>
     /// An enumerable collection of <see cref="ContainerFileSystemItem"/> objects.
     /// </returns>
     /// <exception cref="DirectoryNotFoundException">Thrown when the specified path does not exist.</exception>
-    public static IEnumerable<ContainerFileSystemItem> GetFileSystemItemsFromPath(string path, string searchPattern = "*", SearchOption searchOptions = SearchOption.TopDirectoryOnly)
+    public static IEnumerable<ContainerFileSystemItem> GetFileSystemItemsFromPath(string path, string searchPattern = "*", SearchOption searchOptions = SearchOption.TopDirectoryOnly, Action<ContainerFileSystemItem>? updateItem = null)
     {
         var fullPath = Path.GetFullPath(path);
 
@@ -135,25 +136,39 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
                     }
                     else
                     {
+                        var newDirectory = new ContainerDirectory
+                        {
+                            Name = part,
+                        };
+
+                        if (updateItem is not null)
+                        {
+                            updateItem(newDirectory);
+                        }
                         var newNode = new FileTree
                         {
-                            Value = new ContainerDirectory
-                            {
-                                Name = part,
-                            }
+                            Value = newDirectory,
                         };
+
                         node.Add(part, newNode);
                         node = newNode;
                     }
                 }
 
+                var newFile = new ContainerFile
+                {
+                    Name = fileName,
+                    SourcePath = file,
+                };
+
+                if (updateItem is not null)
+                {
+                    updateItem(newFile);
+                }
+
                 node.Add(fileName, new FileTree
                 {
-                    Value = new ContainerFile
-                    {
-                        Name = fileName,
-                        SourcePath = file,
-                    }
+                    Value = newFile,
                 });
             }
 
@@ -167,13 +182,18 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
                 throw new ArgumentException($"A search pattern was specified, but the given path '{fullPath}' is a file. Search patterns are only valid for directories.", nameof(searchPattern));
             }
 
-            return [
-                new ContainerFile
-                {
-                    Name = Path.GetFileName(fullPath),
-                    SourcePath = fullPath,
-                }
-            ];
+            var file = new ContainerFile
+            {
+                Name = Path.GetFileName(fullPath),
+                SourcePath = fullPath,
+            };
+
+            if (updateItem is not null)
+            {
+                updateItem(file);
+            }
+
+            return [file];
         }
 
         throw new InvalidOperationException($"The specified path '{fullPath}' does not exist.");
