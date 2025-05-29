@@ -38,5 +38,5 @@ jobs:
           labels: |
             area-app-model
             area-engineering-systems
-          title: "[Automated] Update Manifests"
+          title: "[Automated] Update Playground Manifests"
           body: "Auto-generated update to refresh the manifests."
