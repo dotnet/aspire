@@ -319,12 +319,31 @@ public static class MySqlBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use WithInitFiles instead.")]
     public static IResourceBuilder<MySqlServerResource> WithInitBindMount(this IResourceBuilder<MySqlServerResource> builder, string source, bool isReadOnly = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+    }
+
+    /// <summary>
+    /// Copies init files into a MySql container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source file or directory on the host to copy into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithInitFiles(this IResourceBuilder<MySqlServerResource> builder, string source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        const string initPath = "/docker-entrypoint-initdb.d";
+
+        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(initPath, importFullPath);
     }
 
     private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)

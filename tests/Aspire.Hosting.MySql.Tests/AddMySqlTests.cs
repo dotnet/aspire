@@ -258,8 +258,8 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(c => c.WithHostPort(8081));
@@ -286,15 +286,6 @@ public class AddMySqlTests
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);
         Assert.True(match2.Success);
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]

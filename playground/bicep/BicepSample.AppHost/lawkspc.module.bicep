@@ -15,3 +15,5 @@ resource lawkspc 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 }
 
 output logAnalyticsWorkspaceId string = lawkspc.id
+
+output name string = lawkspc.name

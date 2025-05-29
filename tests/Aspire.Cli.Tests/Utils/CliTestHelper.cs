@@ -85,7 +85,8 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()));
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()), interactionService);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {

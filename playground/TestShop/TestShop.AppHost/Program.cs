@@ -30,7 +30,7 @@ basketCache.WithRedisCommander(c =>
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
                           .WithReference(catalogDb);
 
-if (builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
 {
     var resetDbKey = Guid.NewGuid().ToString();
     catalogDbApp.WithEnvironment("DatabaseResetKey", resetDbKey)

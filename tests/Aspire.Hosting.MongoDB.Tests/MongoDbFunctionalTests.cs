@@ -289,8 +289,10 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var mongodb = builder.AddMongoDB("mongodb")
                 .WithInitBindMount(bindMountPath);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var db = mongodb.AddDatabase(dbName);
             using var app = builder.Build();
@@ -330,6 +332,97 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             try
             {
                 Directory.Delete(bindMountPath);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithInitFiles()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        var dbName = "testdb";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(6));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var initFilesPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(initFilesPath);
+
+        try
+        {
+            var initFilePath = Path.Combine(initFilesPath, "mongo-init.js");
+            await File.WriteAllTextAsync(initFilePath, $$"""
+                db = db.getSiblingDB('{{dbName}}');
+
+                db.createCollection('{{CollectionName}}');
+
+                db.{{CollectionName}}.insertMany([
+                    {
+                        name: 'The Shawshank Redemption'
+                    },
+                    {
+                        name: 'The Godfather'
+                    },
+                    {
+                        name: 'The Dark Knight'
+                    },
+                    {
+                        name: 'Schindler\'s List'
+                    }
+                ]);
+            """);
+
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+            var mongodb = builder.AddMongoDB("mongodb")
+                .WithInitFiles(initFilesPath);
+
+            var db = mongodb.AddDatabase(dbName);
+            using var app = builder.Build();
+
+            await app.StartAsync();
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+            hb.AddMongoDBClient(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync();
+
+            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
+            await pipeline.ExecuteAsync(async token =>
+            {
+                var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
+                var collection = mongoDatabase.GetCollection<Movie>(CollectionName);
+
+                var results = await collection.Find(new BsonDocument()).ToListAsync(token);
+
+                Assert.Collection(results,
+                                item => Assert.Contains("The Shawshank Redemption", item.Name),
+                                item => Assert.Contains("The Godfather", item.Name),
+                                item => Assert.Contains("The Dark Knight", item.Name),
+                                item => Assert.Contains("Schindler's List", item.Name)
+                                );
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(initFilesPath);
             }
             catch
             {

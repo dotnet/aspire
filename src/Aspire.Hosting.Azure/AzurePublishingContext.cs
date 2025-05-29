@@ -30,7 +30,7 @@ public sealed class AzurePublishingContext(
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
     /// </summary>
-    public Infrastructure MainInfrastructure = new()
+    public Infrastructure MainInfrastructure { get; } = new()
     {
         TargetScope = DeploymentScope.Subscription
     };

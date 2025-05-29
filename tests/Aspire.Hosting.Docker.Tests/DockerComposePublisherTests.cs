@@ -37,6 +37,27 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                     .WithHttpEndpoint(env: "REDIS_PORT")
                     .WithArgs("-c", "hello $MSG")
                     .WithEnvironment("MSG", "world")
+                    .WithContainerFiles("/usr/local/share", [
+                        new ContainerFile
+                        {
+                            Name = "redis.conf",
+                            Contents = "hello world",
+                        },
+                        new ContainerDirectory
+                        {
+                            Name = "folder",
+                            Entries = [
+                                new ContainerFile
+                                {
+                                    Name = "file.sh",
+                                    SourcePath = "./hello.sh",
+                                    Owner = 1000,
+                                    Group = 1000,
+                                    Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
+                                },
+                            ],
+                        },
+                    ])
                     .WithEnvironment(context =>
                     {
                         var resource = (IResourceWithEndpoints)context.Resource;
@@ -78,8 +99,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
     }
 
     [Fact]
@@ -102,8 +122,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
 
-        await Verify(File.ReadAllText(composePath), "yaml")
-            .UseHelixAwareDirectory();
+        await Verify(File.ReadAllText(composePath), "yaml");
     }
 
     [Theory]
@@ -188,8 +207,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
     }
 
     [Fact]
@@ -218,8 +236,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var secondContent = File.ReadAllText(envFilePath);
 
         await Verify(firstContent, "env")
-            .AppendContentAsFile(secondContent, "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(secondContent, "env");
     }
 
     [Fact]
@@ -258,8 +275,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var secondContent = File.ReadAllText(envFilePath);
 
         await Verify(firstContent, "env")
-            .AppendContentAsFile(secondContent, "env")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(secondContent, "env");
     }
 
     [Fact]
@@ -284,8 +300,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeFile = File.ReadAllText(composePath);
 
-        await Verify(composeFile)
-            .UseHelixAwareDirectory();
+        await Verify(composeFile);
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
@@ -296,23 +311,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
-        }
-    }
-
-    private sealed class TempDirectory : IDisposable
-    {
-        public TempDirectory()
-        {
-            Path = Directory.CreateTempSubdirectory(".aspire-compose").FullName;
-        }
-
-        public string Path { get; }
-        public void Dispose()
-        {
-            if (File.Exists(Path))
-            {
-                File.Delete(Path);
-            }
         }
     }
 

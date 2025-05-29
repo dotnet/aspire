@@ -147,11 +147,8 @@ public class KeycloakPublicApiTests
         Assert.Throws<InvalidOperationException>(action);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void WithRealmImportDirectoryAddsBindMountAnnotation(bool? isReadOnly)
+    [Fact]
+    public async Task WithRealmImportDirectoryAddsContainerFilesAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -161,28 +158,20 @@ public class KeycloakPublicApiTests
         var resourceName = "keycloak";
         var keycloak = builder.AddKeycloak(resourceName);
 
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithRealmImport(tempDirectory, isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithRealmImport(tempDirectory);
-        }
+        keycloak.WithRealmImport(tempDirectory);
 
-        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        using var app = builder.Build();
+        var keycloakResource = builder.Resources.Single(r => r.Name.Equals(resourceName, StringComparison.Ordinal));
 
-        Assert.Equal(tempDirectory, containerAnnotation.Source);
-        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.Target);
-        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
+        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
+
+        var entries = await containerAnnotation.Callback(new() { Model = keycloakResource, ServiceProvider = app.Services }, CancellationToken.None);
+
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.DestinationPath);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void WithRealmImportFileAddsBindMountAnnotation(bool? isReadOnly)
+    [Fact]
+    public async Task WithRealmImportFileAddsContainerFilesAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -196,20 +185,18 @@ public class KeycloakPublicApiTests
         var resourceName = "keycloak";
         var keycloak = builder.AddKeycloak(resourceName);
 
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithRealmImport(filePath, isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithRealmImport(filePath);
-        }
+        keycloak.WithRealmImport(filePath);
 
-        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        using var app = builder.Build();
+        var keycloakResource = builder.Resources.Single(r => r.Name.Equals(resourceName, StringComparison.Ordinal));
 
-        Assert.Equal(filePath, containerAnnotation.Source);
-        Assert.Equal($"/opt/keycloak/data/import/{file}", containerAnnotation.Target);
-        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
+        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
+
+        var entries = await containerAnnotation.Callback(new() { Model = keycloakResource, ServiceProvider = app.Services }, CancellationToken.None);
+
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.DestinationPath);
+        var realmFile = Assert.IsType<ContainerFile>(Assert.Single(entries));
+        Assert.Equal(file, realmFile.Name);
+        Assert.Equal(filePath, realmFile.SourcePath);
     }
 }

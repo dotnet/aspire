@@ -27,8 +27,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
 
         await Verify(File.ReadAllText(chartYaml), "yaml")
             .AppendContentAsFile(File.ReadAllText(valuesYaml), "yaml")
-            .AppendContentAsFile(File.ReadAllText(deploymentYaml), "yaml")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(File.ReadAllText(deploymentYaml), "yaml");
 
         tempDir.Delete(recursive: true);
     }

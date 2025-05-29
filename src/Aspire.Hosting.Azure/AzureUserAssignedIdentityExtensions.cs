@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -40,5 +42,32 @@ public static class AzureUserAssignedIdentityExtensions
         }
 
         return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Attaches an existing <see cref="AzureUserAssignedIdentityResource"/> to a compute resource, 
+    /// setting it as the target identity for the builder.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="IComputeResource"/> the identity will be associated with.</param>
+    /// <param name="identityResourceBuilder">The builder for the <see cref="AzureUserAssignedIdentityResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{IComputeResource}"/> builder.</returns>
+    /// <example>
+    /// <code>
+    /// var identity = builder.AddAzureUserAssignedIdentity("myIdentity");
+    /// var app = builder.AddProject("myApp")
+    ///     .WithAzureUserAssignedIdentity(identity);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithAzureUserAssignedIdentity<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureUserAssignedIdentityResource> identityResourceBuilder)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(identityResourceBuilder);
+
+        builder.WithAnnotation(new AppIdentityAnnotation(identityResourceBuilder.Resource));
+
+        return builder;
     }
 }

@@ -7,23 +7,25 @@ These instructions will get you ready to contribute to this project. If you just
 See [machine-requirements.md](machine-requirements.md).
 
 ## Build the repo
-`.\build.cmd` (Windows) or `.\build.sh` (macOS and Linux)
+
+`.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
 
 ## Run TestShop
 
 This will confirm that you're all set up.
 
-If you are using Visual Studio:
+In your shell or in VS Code:
 
-1. Open `Aspire.slnx`
-1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
-1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
-
-Otherwise:
 ```shell
 dotnet restore playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 dotnet run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 ```
+
+Or, if you are using Visual Studio:
+
+1. Open `Aspire.slnx`
+1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
+1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
 
 ## View Dashboard
 
@@ -56,7 +58,7 @@ If you want to try local changes on a separate Aspire based project or solution 
 in a local folder and use it as a package source.
 
 To do so simply execute:
-`.\build.cmd -pack` (Windows) or `.\build.sh -pack` (macOS and Linux)
+`.\build.sh -pack` (macOS and Linux) or `.\build.cmd -pack` (Windows)
 
 This will generate all the packages in the folder `./artifacts/packages/Debug/Shipping`. At this point from your solution folder run:
 

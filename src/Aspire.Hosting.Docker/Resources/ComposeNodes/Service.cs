@@ -478,4 +478,17 @@ public sealed class Service : NamedComposeMember
 
         return this;
     }
+
+    /// <summary>
+    /// Adds a configuration reference to the service's list of configurations.
+    /// This method allows you to include external configuration resources
+    /// that the service can utilize at runtime.
+    /// </summary>
+    /// <param name="config">The config reference to add</param>
+    /// <returns>The updated <see cref="Service"/> instance with the added environmental variable.</returns>
+    public Service AddConfig(ConfigReference config)
+    {
+        Configs.Add(config);
+        return this;
+    }
 }

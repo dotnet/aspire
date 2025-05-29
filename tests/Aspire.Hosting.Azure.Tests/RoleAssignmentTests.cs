@@ -196,8 +196,8 @@ public class RoleAssignmentTests()
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 
         await Verify(rolesManifest.ToString(), "json")
-            .AppendContentAsFile(rolesBicep, "bicep")
-            .UseHelixAwareDirectory();
+            .AppendContentAsFile(rolesBicep, "bicep");
+            
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

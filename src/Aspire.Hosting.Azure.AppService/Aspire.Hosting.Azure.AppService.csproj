@@ -17,7 +17,6 @@
     <PackageReference Include="Azure.Provisioning.AppService" />
     <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj" />
   </ItemGroup>
 
 </Project>

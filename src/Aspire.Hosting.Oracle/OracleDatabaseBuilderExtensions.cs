@@ -121,12 +121,31 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use WithInitFiles instead.")]
     public static IResourceBuilder<OracleDatabaseServerResource> WithInitBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/opt/oracle/scripts/startup", false);
+    }
+
+    /// <summary>
+    /// Copies init files into a Oracle Database server container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source file or directory on the host to copy into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithInitFiles(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        const string initPath = "/docker-entrypoint-initdb.d";
+
+        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(initPath, importFullPath);
     }
 
     /// <summary>

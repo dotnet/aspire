@@ -44,7 +44,7 @@ resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-1
   parent: sql
 }
 
-resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'dbName'
   location: location
   parent: sql

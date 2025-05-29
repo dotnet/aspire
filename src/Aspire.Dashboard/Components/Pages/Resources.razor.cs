@@ -533,7 +533,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _contextMenuItems.Clear();
             ResourceMenuItems.AddMenuItems(
                 _contextMenuItems,
-                openingMenuButtonId: null,
                 resource,
                 NavigationManager,
                 TelemetryRepository,
@@ -541,8 +540,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 ControlsStringsLoc,
                 Loc,
                 CommandsLoc,
-                (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
-                (command) => ExecuteResourceCommandAsync(resource, command),
+                EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
+                EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
                 showUrls: true);
@@ -865,7 +864,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         var properties = new List<ComponentTelemetryProperty>
         {
             new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting)),
-            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
+            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType, r.SupportsDetailedTelemetry)).OrderBy(t => t).ToList()))
         };
 
         TelemetryContext.UpdateTelemetryProperties(properties.ToArray());

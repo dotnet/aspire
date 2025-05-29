@@ -3,10 +3,10 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -71,7 +71,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task<string> BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         var publishingActivity = await activityReporter.CreateActivityAsync(
             $"{resource.Name}-build-image",
@@ -86,67 +86,50 @@ internal sealed class ResourceContainerImageBuilder(
             throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
         }
 
-        var startInfo = new ProcessStartInfo
+        var spec = new ProcessSpec("dotnet")
         {
-            FileName = "dotnet",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
+            Arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}",
+            OnOutputData = output =>
+            {
+                logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
+            }
         };
-
-        startInfo.ArgumentList.Add("publish");
-        startInfo.ArgumentList.Add(projectMetadata.ProjectPath);
-        startInfo.ArgumentList.Add("--configuration");
-        startInfo.ArgumentList.Add("Release");
-        startInfo.ArgumentList.Add("/t:PublishContainer");
-        startInfo.ArgumentList.Add($"/p:ContainerRepository={resource.Name}");
 
         logger.LogInformation(
             "Starting .NET CLI with arguments: {Arguments}",
-            string.Join(" ", startInfo.ArgumentList.ToArray())
+            string.Join(" ", spec.Arguments)
             );
 
-        using var process = Process.Start(startInfo);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        if (process is null)
+        await using (processDisposable)
         {
-            throw new DistributedApplicationException("Failed to start .NET CLI.");
-        }
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-        logger.LogInformation(
-            "Started .NET CLI with PID: {PID}",
-            process.Id
-            );
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
+                await activityReporter.UpdateActivityStatusAsync(
+                    publishingActivity, (status) => status with { IsError = true },
+                    cancellationToken).ConfigureAwait(false);
+                throw new DistributedApplicationException($"Failed to build container image.");
+            }
+            else
+            {
+                await activityReporter.UpdateActivityStatusAsync(
+                    publishingActivity, (status) => status with { IsComplete = true },
+                    cancellationToken).ConfigureAwait(false);
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
-        {
-            var stderr = process.StandardError.ReadToEnd();
-            var stdout = process.StandardOutput.ReadToEnd();
-
-            logger.LogError(
-                ".NET CLI failed with exit code {ExitCode}. Output: {Stdout}, Error: {Stderr}",
-                process.ExitCode,
-                stdout,
-                stderr);
-
-            await activityReporter.UpdateActivityStatusAsync(
-                publishingActivity, (status) => status with { IsError = true },
-                cancellationToken).ConfigureAwait(false);
-
-            throw new DistributedApplicationException($"Failed to build container image, stdout: {stdout}, stderr: {stderr}");
-        }
-        else
-        {
-            await activityReporter.UpdateActivityStatusAsync(
-                publishingActivity, (status) => status with { IsComplete = true },
-                cancellationToken).ConfigureAwait(false);
-
-            logger.LogDebug(
-                ".NET CLI completed with exit code: {ExitCode}",
-                process.ExitCode);
-
-            return $"{resource.Name}:latest";
+                logger.LogDebug(
+                    ".NET CLI completed with exit code: {ExitCode}",
+                    processResult.ExitCode);
+            }
         }
     }
 

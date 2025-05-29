@@ -44,8 +44,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
-              .AppendContentAsFile(postgresRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(postgresRolesBicep, "bicep");
+              
     }
 
     [Fact]
@@ -112,8 +112,8 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Theory]
@@ -311,5 +311,194 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
+    }
+
+    [Fact]
+    public async Task AsAzurePostgresFlexibleServerViaRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AsAzurePostgresFlexibleServerViaPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).PublishAsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Verify that when PublishAs variant is used, connection string acquisition
+        // still uses the local endpoint.
+        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password=password";
+        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync());
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServerNoUserPassParams()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres1")
+            .PublishAsAzurePostgresFlexibleServer(); // Because of InternalsVisibleTo
+
+        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres1.secretOutputs.connectionString}",
+              "path": "postgres1.module.bicep",
+              "params": {
+                "administratorLogin": "{postgres1-username.value}",
+                "administratorLoginPassword": "{postgres1-password.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var param = builder.AddParameter("param");
+
+        postgres = builder.AddPostgres("postgres2", userName: param)
+            .PublishAsAzurePostgresFlexibleServer();
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres2.secretOutputs.connectionString}",
+              "path": "postgres2.module.bicep",
+              "params": {
+                "administratorLogin": "{param.value}",
+                "administratorLoginPassword": "{postgres2-password.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        postgres = builder.AddPostgres("postgres3", password: param)
+            .PublishAsAzurePostgresFlexibleServer();
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres3.secretOutputs.connectionString}",
+              "path": "postgres3.module.bicep",
+              "params": {
+                "administratorLogin": "{postgres3-username.value}",
+                "administratorLoginPassword": "{param.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 }

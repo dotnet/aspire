@@ -79,7 +79,19 @@ serviceBuilder.WithHttpCommand("/nested-trace-spans", "Out of order nested spans
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
-       .WithUrl("https://someotherplace.com/some-path", "Some other place");
+       .WithUrl("https://someotherplace.com/some-path", "Some other place")
+       .WithUrl("https://extremely-long-url.com/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz//abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmno")
+       .WithCommand(
+           name: "long-command",
+           displayName: "This is a custom command with a very long command display name",
+           executeCommand: (c) =>
+           {
+               return Task.FromResult(CommandResults.Success());
+           },
+           commandOptions: new CommandOptions
+           {
+               IconName = "CloudDatabase"
+           });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

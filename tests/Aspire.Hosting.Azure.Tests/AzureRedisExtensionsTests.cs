@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,8 +43,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(redisRolesManifest.ToString(), "json")
-              .AppendContentAsFile(redisRolesBicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(redisRolesBicep, "bicep");
+
     }
 
     [Fact]
@@ -96,8 +97,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
         output.WriteLine(m);
         Assert.Equal(expectedManifest, m);
 
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+
     }
 
     [Fact]
@@ -194,4 +195,40 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
     }
+
+    [Fact]
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisInfrastructure()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var redis = builder.AddRedis("cache")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+            .PublishAsAzureRedis();
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        Assert.True(redis.Resource.IsContainer());
+        Assert.NotNull(redis.Resource.PasswordParameter);
+
+        Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{cache.secretOutputs.connectionString}",
+              "path": "cache.module.bicep",
+              "params": {
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

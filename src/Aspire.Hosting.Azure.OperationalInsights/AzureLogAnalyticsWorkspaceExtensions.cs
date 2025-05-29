@@ -48,6 +48,12 @@ public static class AzureLogAnalyticsWorkspaceExtensions
             {
                 Value = workspace.Id
             });
+            
+            // Add name output for the resource to externalize role assignments
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string))
+            {
+                Value = workspace.Name
+            });
         };
 
         var resource = new AzureLogAnalyticsWorkspaceResource(name, configureInfrastructure);

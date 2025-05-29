@@ -4,7 +4,6 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
@@ -48,8 +47,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -70,8 +68,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -104,8 +101,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -140,8 +136,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseHelixAwareDirectory();
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]

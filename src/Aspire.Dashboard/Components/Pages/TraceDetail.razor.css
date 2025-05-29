@@ -161,3 +161,34 @@
     display: inline-flex;
     align-items: center;
 }
+
+::deep .trace-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "details filters";
+    width: 100%;
+}
+
+::deep .trace-header-details {
+    grid-area: details;
+}
+
+::deep .trace-header-details .fluent-overflow-item {
+    align-content: center;
+    padding-right: 8px;
+    text-wrap-mode: nowrap;
+}
+
+::deep .trace-header-details .fluent-overflow-more {
+    align-content: center;
+}
+
+::deep .trace-header-tooltip {
+    min-width: 300px;
+}
+
+::deep .trace-header-filters {
+    grid-area: filters;
+    display: flex;
+    column-gap: 8px;
+}

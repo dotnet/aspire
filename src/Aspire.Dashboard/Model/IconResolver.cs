@@ -44,21 +44,13 @@ public static class IconResolver
 
     private static bool TryGetIcon(IconKey key, IconSize size, [NotNullWhen(true)] out CustomIcon? icon)
     {
-        try
+        var iconInfo = new IconInfo
         {
-            icon = (new IconInfo
-            {
-                Name = key.IconName,
-                Variant = key.IconVariant,
-                Size = size
-            }).GetInstance();
-            return true;
-        }
-        catch
-        {
-            // Icon name or size couldn't be found.
-            icon = null;
-            return false;
-        }
+            Name = key.IconName,
+            Variant = key.IconVariant,
+            Size = size
+        };
+
+        return iconInfo.TryGetInstance(out icon);
     }
 }

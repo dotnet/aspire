@@ -410,6 +410,7 @@
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
     <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
+    <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />

@@ -1,4 +1,4 @@
-﻿#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Primitives;
 
-namespace Aspire.Hosting.Azure.ContainerRegistry;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Container Registry resource.
