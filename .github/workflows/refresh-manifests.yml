@@ -34,6 +34,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-manifests
           base: main
+          commit-message: "[Automated] Update Manifests"
           labels: |
             area-app-model
             area-engineering-systems
