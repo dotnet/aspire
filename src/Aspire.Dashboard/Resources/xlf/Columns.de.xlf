@@ -7,69 +7,14 @@
         <target state="translated">Dieser Container ist persistent und wird beim Herunterfahren des App-Hosts nicht beendet.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceNameDisplayContainerIdText">
-        <source>Container ID: {0}</source>
-        <target state="translated">Container-ID: {0}</target>
-        <note>{0} is an alphanumeric id</note>
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayCopyContainerIdText">
-        <source>Copy container ID to clipboard</source>
-        <target state="translated">Container-ID in Zwischenablage kopieren</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayProcessIdText">
-        <source>Process ID: {0}</source>
-        <target state="translated">Prozess-ID: {0}</target>
-        <note>{0} is a numeric id</note>
-      </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state.</source>
         <target state="translated">Die Ressource wird ausgeführt, befindet sich jedoch nicht in einem fehlerfreien Zustand.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerArgsTitle">
-        <source>Container args</source>
-        <target state="translated">Containerargumente</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommand">
-        <source>Command: {0}</source>
-        <target state="translated">Befehl: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommandTitle">
-        <source>Container command</source>
-        <target state="translated">Containerbefehl</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
         <target state="translated">Vollständigen Befehl in Zwischenablage kopieren</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPort">
-        <source>Port: {0}</source>
-        <target state="translated">Port: {0}</target>
-        <note>{0} is a port number</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPorts">
-        <source>Ports: {0}</source>
-        <target state="translated">Ports: {0}</target>
-        <note>{0} is a list of ports</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayWorkingDirectory">
-        <source>Working directory: {0}</source>
-        <target state="translated">Arbeitsverzeichnis: {0}</target>
-        <note>{0} is a path</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
-        <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Bildnamen und -tag in Zwischenablage kopieren</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
-        <source>Copy file path to clipboard</source>
-        <target state="translated">Vollständigen Dateipfad in Zwischenablage kopieren</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
@@ -117,11 +62,6 @@ Weitere Informationen finden Sie unter https://aka.ms/dotnet/aspire/container-ru
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
         <target state="translated">URLs</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UrlsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Wird gestartet…</target>
         <note />
       </trans-unit>
     </body>

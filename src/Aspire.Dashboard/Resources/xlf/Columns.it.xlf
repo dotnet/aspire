@@ -7,69 +7,14 @@
         <target state="translated">Questo contenitore è persistente e non verrà arrestato quando l'host dell'app viene arrestato.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceNameDisplayContainerIdText">
-        <source>Container ID: {0}</source>
-        <target state="translated">ID contenitore: {0}</target>
-        <note>{0} is an alphanumeric id</note>
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayCopyContainerIdText">
-        <source>Copy container ID to clipboard</source>
-        <target state="translated">Copia ID contenitore negli Appunti</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayProcessIdText">
-        <source>Process ID: {0}</source>
-        <target state="translated">ID processo: {0}</target>
-        <note>{0} is a numeric id</note>
-      </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state.</source>
         <target state="translated">La risorsa è in esecuzione ma non è in uno stato integro.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
       </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerArgsTitle">
-        <source>Container args</source>
-        <target state="translated">Argomenti contenitore</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommand">
-        <source>Command: {0}</source>
-        <target state="translated">Comando: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommandTitle">
-        <source>Container command</source>
-        <target state="translated">Comando contenitore</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
         <target state="translated">Copia intero comando negli Appunti</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPort">
-        <source>Port: {0}</source>
-        <target state="translated">Porta: {0}</target>
-        <note>{0} is a port number</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPorts">
-        <source>Ports: {0}</source>
-        <target state="translated">Porte: {0}</target>
-        <note>{0} is a list of ports</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayWorkingDirectory">
-        <source>Working directory: {0}</source>
-        <target state="translated">Directory di lavoro: {0}</target>
-        <note>{0} is a path</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
-        <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Copia nome e tag dell'immagine negli Appunti</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
-        <source>Copy file path to clipboard</source>
-        <target state="translated">Copia percorso file negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
@@ -117,11 +62,6 @@ Per altre informazioni, vedere https://aka.ms/dotnet/aspire/container-runtime-un
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
         <target state="translated">URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UrlsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Avvio in corso...</target>
         <note />
       </trans-unit>
     </body>

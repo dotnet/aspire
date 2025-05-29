@@ -17,11 +17,6 @@
         <target state="translated">结构化日志</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">找不到此资源的遥测数据。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">跟踪</target>
@@ -50,16 +45,6 @@
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
         <target state="translated">查看控制台日志</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">终结点 URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">代理 URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -172,11 +157,6 @@
         <target state="translated">停止时间</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">环境</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">具有筛选器</target>
@@ -232,19 +212,9 @@
         <target state="translated">状态</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">{0} 的环境变量</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">资源</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">无环境变量</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

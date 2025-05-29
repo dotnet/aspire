@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../ConsoleLogs.resx">
     <body>
-      <trans-unit id="ConsoleLogsFailedToInitialize">
-        <source>Failed to initialize</source>
-        <target state="translated">Fehler beim Initialisieren.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
         <target state="translated">Die Protokollwiedergabe ist abgeschlossen.</target>
@@ -15,11 +10,6 @@
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
         <target state="translated">Konsolenprotokolle</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ConsoleLogsInitializingLogViewer">
-        <source>Initializing log viewer...</source>
-        <target state="translated">Protokollanzeige wird initialisiert...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">

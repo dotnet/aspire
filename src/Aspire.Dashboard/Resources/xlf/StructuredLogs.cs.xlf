@@ -22,24 +22,9 @@
         <target state="translated">Zachytávání strukturovaných protokolů bylo pozastaveno v {0}.</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Přidat filtr</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Upravit filtr</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Podrobnosti položky protokolu</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -70,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">Filtr minimální úrovně protokolování</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Žádné filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
