@@ -360,7 +360,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         
         // Act - Find the dropdown menu and click Collapse All
         var menuButton = cut.FindComponent<AspireMenuButton>();
-        var collapseAllMenuItem = menuButton.Instance.Items.ElementAtOrDefault(1); // Collapse All is second item
+        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Id == "collapse-all"); // Locate by unique identifier
         Assert.NotNull(collapseAllMenuItem);
         cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
 
