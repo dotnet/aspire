@@ -490,4 +490,10 @@
   <data name="ToggleNesting" xml:space="preserve">
     <value>Toggle nesting</value>
   </data>
+  <data name="CollapseAllSpansText" xml:space="preserve">
+    <value>Collapse All</value>
+  </data>
+  <data name="ExpandAllSpansText" xml:space="preserve">
+    <value>Expand All</value>
+  </data>
 </root>
