@@ -17,11 +17,6 @@
         <target state="translated">構造化ログ</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">このリソースのテレメトリが見つかりません。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">トレース</target>
@@ -50,16 +45,6 @@
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
         <target state="translated">コンソール ログの表示</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">エンドポイント URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">プロキシ URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -172,11 +157,6 @@
         <target state="translated">停止時刻</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">環境</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">フィルターあり</target>
@@ -232,19 +212,9 @@
         <target state="translated">状態</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">{0} の環境変数</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">リソース</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">環境変数はありません</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

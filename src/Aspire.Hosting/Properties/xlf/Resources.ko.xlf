@@ -17,23 +17,6 @@
         <target state="translated">바인딩 탑재는 원본 경로를 지정해야 합니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">'{0}' 컨테이너 런타임을 찾을 수 없습니다. 컨테이너 런타임 검사의 오류는 {1}이었습니다.
-지원되는 컨테이너 런타임에 관한 자세한 내용은 https://aka.ms/dotnet/aspire/containers를 참조하세요.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">컨테이너 런타임 '{0}'(을)를 찾았지만 비정상인 것 같습니다. 컨테이너 런타임 검사의 오류는 {1}이었습니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">컨테이너 런타임 '{0}'(을)를 찾았지만 응답하지 않는 것 같습니다. '{0}' 명령이 {1}초 후에 반환되지 않았습니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">애플리케이션 오케스트레이터 종속성 검사에서 오류를 반환했습니다. {0}</target>

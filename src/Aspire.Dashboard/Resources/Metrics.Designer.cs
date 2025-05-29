@@ -128,12 +128,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastTwelveHours", resourceCulture);
             }
         }
-        
-        public static string MetricsLastTwentyFourHours {
-            get {
-                return ResourceManager.GetString("MetricsLastTwentyFourHours", resourceCulture);
-            }
-        }
+
         
         public static string MetricsInsturementDescriptionGridNameColumnHeader {
             get {

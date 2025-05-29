@@ -129,9 +129,6 @@
   <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
     <value>Apply filter</value>
   </data>
-  <data name="FilterDialogEnableFilterButtonText" xml:space="preserve">
-    <value>Enable filter</value>
-  </data>
   <data name="FilterDialogDisableFilterButtonText" xml:space="preserve">
     <value>Disable filter</value>
   </data>
@@ -288,9 +285,6 @@
   </data>
   <data name="FilterDialogEnableAll" xml:space="preserve">
     <value>Enable all</value>
-  </data>
-  <data name="SettingsDialogEnableTelemetry" xml:space="preserve">
-    <value>Enable dashboard telemetry</value>
   </data>
   <data name="SettingsDialogTelemetryEnabledInfo" xml:space="preserve">
     <value>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</value>

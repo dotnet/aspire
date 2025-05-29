@@ -67,11 +67,6 @@
         <target state="translated">메트릭</target>
         <note />
       </trans-unit>
-      <trans-unit id="NavMenuMonitoringTab">
-        <source>Monitoring</source>
-        <target state="translated">모니터링</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
         <target state="translated">리소스</target>
