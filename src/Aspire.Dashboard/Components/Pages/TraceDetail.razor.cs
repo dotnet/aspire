@@ -99,18 +99,18 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Id = "expand-all",
             Text = ControlsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowExpandAll(),
-            OnClick = ExpandAllSpansAsync
+            OnClick = ExpandAllSpansAsync,
+            IsDisabled = !HasCollapsedSpans()
         });
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Id = "collapse-all",
             Text = ControlsLoc[nameof(ControlsStrings.CollapseAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
-            OnClick = CollapseAllSpansAsync
+            OnClick = CollapseAllSpansAsync,
+            IsDisabled = !HasExpandedSpans()
         });
     }
 
@@ -221,6 +221,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
             _resourceCount = 0;
+            UpdateTraceActionsMenu(); // Update menu when no trace
             return;
         }
 
@@ -238,6 +239,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         }
         _resourceCount = apps.Count;
+        
+        UpdateTraceActionsMenu(); // Update menu whenever view data changes
     }
 
     private async Task HandleAfterFilterBindAsync()
@@ -297,6 +300,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         UpdateDetailViewData();
+        UpdateTraceActionsMenu(); // Update menu state when individual spans are toggled
         await _dataGrid.SafeRefreshDataAsync();
     }
 
@@ -362,18 +366,36 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    // Internal for testing
-    internal async Task CollapseAllSpansAsync()
+    private bool HasCollapsedSpans()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return false;
+        }
+
+        return _spanWaterfallViewModels.Any(vm => vm.IsCollapsed);
+    }
+
+    private bool HasExpandedSpans()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return false;
+        }
+
+        return _spanWaterfallViewModels.Any(vm => !vm.IsCollapsed && vm.Children.Count > 0);
+    }
+
+    private async Task CollapseAllSpansAsync()
     {
         if (_spanWaterfallViewModels is null)
         {
             return;
         }
 
-        _collapsedSpanIds.Clear();
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            if (viewModel.Children.Count > 0)
+            if (viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
             {
                 viewModel.IsCollapsed = true;
                 _collapsedSpanIds.Add(viewModel.Span.SpanId);
@@ -381,24 +403,28 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         UpdateDetailViewData();
+        UpdateTraceActionsMenu(); // Update menu state after collapsing all
         await _dataGrid.SafeRefreshDataAsync();
     }
 
-    // Internal for testing
-    internal async Task ExpandAllSpansAsync()
+    private async Task ExpandAllSpansAsync()
     {
         if (_spanWaterfallViewModels is null)
         {
             return;
         }
 
-        _collapsedSpanIds.Clear();
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            viewModel.IsCollapsed = false;
+            if (viewModel.IsCollapsed)
+            {
+                viewModel.IsCollapsed = false;
+                _collapsedSpanIds.Remove(viewModel.Span.SpanId);
+            }
         }
 
         UpdateDetailViewData();
+        UpdateTraceActionsMenu(); // Update menu state after expanding all
         await _dataGrid.SafeRefreshDataAsync();
     }
 
