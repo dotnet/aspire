@@ -60,6 +60,7 @@
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>9.0.4</MicrosoftAspNetCoreAuthenticationOpenIdConnectVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>9.0.4</MicrosoftAspNetCoreOutputCachingStackExchangeRedisVersion>
     <MicrosoftAspNetCoreTestHostVersion>9.0.4</MicrosoftAspNetCoreTestHostVersion>
+    <MicrosoftExtensionsCachingMemoryVersion>9.0.4</MicrosoftExtensionsCachingMemoryVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisVersion>9.0.4</MicrosoftExtensionsCachingStackExchangeRedisVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>9.0.4</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksVersion>9.0.4</MicrosoftExtensionsDiagnosticsHealthChecksVersion>
@@ -97,6 +98,7 @@
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectLTSVersion>8.0.15</MicrosoftAspNetCoreAuthenticationOpenIdConnectLTSVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisLTSVersion>8.0.15</MicrosoftAspNetCoreOutputCachingStackExchangeRedisLTSVersion>
     <MicrosoftAspNetCoreTestHostLTSVersion>8.0.15</MicrosoftAspNetCoreTestHostLTSVersion>
+    <MicrosoftExtensionsCachingMemoryLTSVersion>8.0.1</MicrosoftExtensionsCachingMemoryLTSVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisLTSVersion>8.0.15</MicrosoftExtensionsCachingStackExchangeRedisLTSVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>8.0.15</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>8.0.15</MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>

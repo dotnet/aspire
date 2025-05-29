@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Microsoft.Extensions.Configuration;
+using Aspire.Cli.NuGet;
 
 #if DEBUG
 using OpenTelemetry;
@@ -123,7 +124,9 @@ public class Program
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
-        builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
+        builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
+        builder.Services.AddHostedService<NuGetPackagePrefetcher>();
+        builder.Services.AddMemoryCache();
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
