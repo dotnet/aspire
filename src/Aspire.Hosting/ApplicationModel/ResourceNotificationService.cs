@@ -717,15 +717,19 @@ public class ResourceNotificationService : IDisposable
 
     private static bool IsMicrosoftOpenType(Type type)
     {
-        const string microsoftOpenPublicKey =
-            "00-24-00-00-04-80-00-00-94-00-00-00-06-02-00-00-00-24-00-00-52-53-41-31-00-04-00-00-01-00-01-00-4B-86-C4-CB-78-54-9B-34-BA-B6-1A-3B-18-00-E2-3B-FE-B5-B3-EC-39-00-74-04-15-36-A7-E3-CB-D9-7F-5F-04-CF-0F-85-71-55-A8-92-8E-AA-29-EB-FD-11-CF-BB-AD-3B-A7-0E-FE-A7-BD-A3-22-6C-6A-8D-37-0A-4C-D3-03-F7-14-48-6B-6E-BC-22-59-85-A6-38-47-1E-6E-F5-71-CC-92-A4-61-3C-00-B8-FA-65-D6-1C-CE-E0-CB-E5-F3-63-30-C9-A0-1F-41-83-55-9F-1B-EF-24-CC-29-17-C6-D9-13-E3-A5-41-33-3A-1D-05-D9-BE-D2-2B-38-CB";
-        var publicKey = type.Assembly.GetName().GetPublicKey();
-        if (publicKey is null)
+        var microsoftOpenPublicKey = new byte[]
         {
-            return false;
-        }
+            0, 36, 0, 0, 4, 128, 0, 0, 148, 0, 0, 0, 6, 2, 0, 0, 0, 36, 0, 0, 82, 83, 65, 49, 0, 4, 0, 0, 1, 0, 1,
+            0, 75, 134, 196, 203, 120, 84, 155, 52, 186, 182, 26, 59, 24, 0, 226, 59, 254, 181, 179, 236, 57, 0,
+            116, 4, 21, 54, 167, 227, 203, 217, 127, 95, 4, 207, 15, 133, 113, 85, 168, 146, 142, 170, 41, 235, 253,
+            17, 207, 187, 173, 59, 167, 14, 254, 167, 189, 163, 34, 108, 106, 141, 55, 10, 76, 211, 3, 247, 20, 72,
+            107, 110, 188, 34, 89, 133, 166, 56, 71, 30, 110, 245, 113, 204, 146, 164, 97, 60, 0, 184, 250, 101,
+            214, 28, 206, 224, 203, 229, 243, 99, 48, 201, 160, 31, 65, 131, 85, 159, 27, 239, 36, 204, 41, 23, 198,
+            217, 19, 227, 165, 65, 51, 58, 29, 5, 217, 190, 210, 43, 56, 203
+        };
 
-        return string.Equals(BitConverter.ToString(publicKey), microsoftOpenPublicKey);
+        var publicKey = type.Assembly.GetName().GetPublicKey();
+        return publicKey is not null && microsoftOpenPublicKey.SequenceEqual(publicKey);
     }
 }
 
