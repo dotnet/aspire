@@ -277,7 +277,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     {
                         Id = "Aspire.ProjectTemplates",
                         Source = "nuget",
-                        Version = "9.3.0"
+                        Version = "9.3.1"
                     };
 
                     return (
@@ -299,7 +299,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
-            package => Assert.Equal("9.3.0", package.Version),
+            package => Assert.Equal("9.3.1", package.Version),
             package => Assert.Equal("9.2.0", package.Version)
         );
     }
@@ -349,7 +349,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     {
                         Id = "Aspire.ProjectTemplates",
                         Source = "nuget",
-                        Version = "9.3.0"
+                        Version = "9.3.1"
                     };
 
                     return (
@@ -372,7 +372,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Collection(
             promptedPackages,
             package => Assert.Equal("9.4.0-preview.1234", package.Version),
-            package => Assert.Equal("9.3.0", package.Version),
+            package => Assert.Equal("9.3.1", package.Version),
             package => Assert.Equal("9.2.0", package.Version)
         );
     }
