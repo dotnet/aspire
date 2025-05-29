@@ -86,15 +86,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourceActionStructuredLogsText", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No telemetry found for this resource..
-        /// </summary>
-        public static string ResourceActionTelemetryTooltip {
-            get {
-                return ResourceManager.GetString("ResourceActionTelemetryTooltip", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to Traces.
@@ -149,24 +141,8 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourceCommandToastViewLogs", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Endpoint URL.
-        /// </summary>
-        public static string ResourceDetailsEndpointUrl {
-            get {
-                return ResourceManager.GetString("ResourceDetailsEndpointUrl", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Proxy URL.
-        /// </summary>
-        public static string ResourceDetailsProxyUrl {
-            get {
-                return ResourceManager.GetString("ResourceDetailsProxyUrl", resourceCulture);
-            }
-        }
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to View console logs.
@@ -365,24 +341,8 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourcesDetailsStopTimeProperty", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Environment.
-        /// </summary>
-        public static string ResourcesEnvironmentColumnHeader {
-            get {
-                return ResourceManager.GetString("ResourcesEnvironmentColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Environment variables for {0}.
-        /// </summary>
-        public static string ResourcesEnvironmentVariablesHeader {
-            get {
-                return ResourceManager.GetString("ResourcesEnvironmentVariablesHeader", resourceCulture);
-            }
-        }
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to Has filters.
@@ -437,15 +397,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourcesHideTypes", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No environment variables.
-        /// </summary>
-        public static string ResourcesNoEnvironmentVariables {
-            get {
-                return ResourceManager.GetString("ResourcesNoEnvironmentVariables", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to No resources found.
