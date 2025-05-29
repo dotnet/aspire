@@ -114,6 +114,56 @@ public class CosmosDBPublicApiTests
     }
 
     [Fact]
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        IEnumerable<string> partitionKeyPaths = null!;
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPaths, parent);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
+    }
+
+    [Fact]
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsIsEmpty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        IEnumerable<string> partitionKeyPaths = [];
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPaths, parent);
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenPartitionKeyPathsContainEmptyOrNull(bool isNull)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        const string containerName = "db";
+        IEnumerable<string> partitionKeyPaths = [isNull ? null! : string.Empty];
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPaths, parent);
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(partitionKeyPaths), exception.ParamName);
+    }
+
+    [Fact]
     public void CtorAzureCosmosDBContainerResourceShouldThrowWhenParentIsNull()
     {
         const string name = "cosmos";
