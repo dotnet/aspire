@@ -143,68 +143,6 @@ public class CosmosDBPublicApiTests
         Assert.Equal(nameof(parent), exception.ParamName);
     }
 
-    [Fact]
-    public void AzureCosmosDBContainerResourcePartitionKeyPathsInitializerShouldThrowWhenPathsIsNull()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var resource = builder.AddAzureCosmosDB("cosmos");
-        const string name = "cosmos";
-        const string containerName = "db";
-        const string partitionKeyPath = "data";
-        IReadOnlyList<string> partitionKeyPaths = null!;
-        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
-
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent)
-        {
-            PartitionKeyPaths = partitionKeyPaths
-        };
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal("value", exception.ParamName);
-    }
-
-    [Fact]
-    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsIsEmpty()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var resource = builder.AddAzureCosmosDB("cosmos");
-        const string name = "cosmos";
-        const string containerName = "db";
-        const string partitionKeyPath = "data";
-        IReadOnlyList<string> partitionKeyPaths = [];
-        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
-
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent)
-        {
-            PartitionKeyPaths = partitionKeyPaths
-        };
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("value", exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void AzureCosmosDBContainerResourcePartitionKeyPathsInitializerShouldThrowWhenPathsContainsNullOrEmpty(bool isNull)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var resource = builder.AddAzureCosmosDB("cosmos");
-        const string name = "cosmos";
-        const string containerName = "db";
-        string[] validPartitionKeyPaths = ["/test"];
-        string[] partitionKeyPaths = [isNull ? null! : string.Empty];
-        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
-
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, validPartitionKeyPaths, parent)
-        {
-            PartitionKeyPaths = partitionKeyPaths
-        };
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("value", exception.ParamName);
-    }
-
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

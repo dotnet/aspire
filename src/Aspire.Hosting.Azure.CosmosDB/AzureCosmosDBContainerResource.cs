@@ -36,7 +36,7 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
             throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(partitionKeyPaths));
         }
 
-        _partitionKeyPaths = partitionKeyPathsArray;
+        PartitionKeyPaths = partitionKeyPathsArray;
         Parent = parent ?? throw new ArgumentNullException(nameof(parent));
     }
 
@@ -56,39 +56,20 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// </summary>
     public string ContainerName { get; set; }
 
-    private IReadOnlyList<string> _partitionKeyPaths;
-
     /// <summary>
     /// Gets or sets the partition key path.
     /// </summary>
     [Obsolete($"Use {nameof(PartitionKeyPaths)} instead.")]
     public string PartitionKeyPath
     {
-        get => _partitionKeyPaths[0];
-        set => _partitionKeyPaths = [ThrowIfNullOrEmpty(value)];
+        get => PartitionKeyPaths[0];
+        set => PartitionKeyPaths = [ThrowIfNullOrEmpty(value)];
     }
 
     /// <summary>
     /// Gets or sets the hierarchical partition keys.
     /// </summary>
-    public IReadOnlyList<string> PartitionKeyPaths
-    {
-        get => _partitionKeyPaths;
-        init
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            if (value.Count == 0)
-            {
-                throw new ArgumentException("At least one partition key path should be provided.", nameof(value));
-            }
-            if (value.Any(string.IsNullOrEmpty))
-            {
-                throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(value));
-            }
-
-            _partitionKeyPaths = value;
-        }
-    }
+    public IReadOnlyList<string> PartitionKeyPaths { get; private set; }
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB database resource.
