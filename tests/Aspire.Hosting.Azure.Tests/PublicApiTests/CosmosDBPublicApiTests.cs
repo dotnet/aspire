@@ -21,7 +21,29 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        var name = isNull ? null! : string.Empty;
+        const string containerName = "db";
+        const string partitionKeyPath = "data";
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -41,7 +63,29 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(containerName), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenContainerNameIsNullOrEmpty(bool isNull)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddAzureCosmosDB("cosmos");
+        const string name = "cosmos";
+        var containerName = isNull ? null! : string.Empty;
+        const string partitionKeyPath = "data";
+        var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -61,12 +105,12 @@ public class CosmosDBPublicApiTests
         var partitionKeyPath = isNull ? null! : string.Empty;
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
+#pragma warning restore CS0618 // Type or member is obsolete
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(partitionKeyPath), exception.ParamName);
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("partitionKeyPaths", exception.ParamName);
     }
 
     [Fact]
@@ -77,14 +121,30 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         AzureCosmosDBDatabaseResource parent = null!;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(parent), exception.ParamName);
     }
 
     [Fact]
-    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsIsNull()
+    public void HierarchicalPartitionCtorAzureCosmosDBContainerResourceShouldThrowWhenParentIsNull()
+    {
+        const string name = "cosmos";
+        const string containerName = "db";
+        const string partitionKeyPath = "data";
+        AzureCosmosDBDatabaseResource parent = null!;
+
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(parent), exception.ParamName);
+    }
+
+    [Fact]
+    public void AzureCosmosDBContainerResourcePartitionKeyPathsInitializerShouldThrowWhenPathsIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddAzureCosmosDB("cosmos");
@@ -94,7 +154,7 @@ public class CosmosDBPublicApiTests
         IReadOnlyList<string> partitionKeyPaths = null!;
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent)
         {
             PartitionKeyPaths = partitionKeyPaths
         };
@@ -114,7 +174,7 @@ public class CosmosDBPublicApiTests
         IReadOnlyList<string> partitionKeyPaths = [];
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], parent)
         {
             PartitionKeyPaths = partitionKeyPaths
         };
@@ -126,17 +186,17 @@ public class CosmosDBPublicApiTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void AzureCosmosDBContainerResourcePartitionKeyPathsSetterShouldThrowWhenPathsContainsNullOrEmpty(bool isNull)
+    public void AzureCosmosDBContainerResourcePartitionKeyPathsInitializerShouldThrowWhenPathsContainsNullOrEmpty(bool isNull)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddAzureCosmosDB("cosmos");
         const string name = "cosmos";
         const string containerName = "db";
-        const string partitionKeyPath = "data";
-        IReadOnlyList<string> partitionKeyPaths = [isNull ? null! : string.Empty];
+        string[] validPartitionKeyPaths = ["/test"];
+        string[] partitionKeyPaths = [isNull ? null! : string.Empty];
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-        var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent)
+        var action = () => new AzureCosmosDBContainerResource(name, containerName, validPartitionKeyPaths, parent)
         {
             PartitionKeyPaths = partitionKeyPaths
         };

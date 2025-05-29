@@ -279,7 +279,7 @@ public static class AzureCosmosExtensions
         // Use the resource name as the container name if it's not provided
         containerName ??= name;
 
-        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, builder.Resource);
+        var container = new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], builder.Resource);
         builder.Resource.Containers.Add(container);
 
         return builder.ApplicationBuilder.AddResource(container);
@@ -312,10 +312,7 @@ public static class AzureCosmosExtensions
         // Use the resource name as the container name if it's not provided
         containerName ??= name;
 
-        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPathsArray[0], builder.Resource)
-        {
-            PartitionKeyPaths = partitionKeyPathsArray
-        };
+        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPaths, builder.Resource);
 
         builder.Resource.Containers.Add(container);
 
