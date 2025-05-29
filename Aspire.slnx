@@ -154,10 +154,10 @@
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/DurableTask/">
-    <Project Path="/playground/DurableTask/DurableTask.Scheduler.AppHost/DurableTask.Scheduler.AppHost.csproj" />
-    <Project Path="/playground/DurableTask/DurableTask.Scheduler.ExternalAppHost/DurableTask.Scheduler.ExternalAppHost.csproj" />
-    <Project Path="/playground/DurableTask/DurableTask.Scheduler.WebApi/DurableTask.Scheduler.WebApi.csproj" />
-    <Project Path="/playground/DurableTask/DurableTask.Scheduler.Worker/DurableTask.Scheduler.Worker.csproj" />
+    <Project Path="playground/DurableTask/DurableTask.Scheduler.AppHost/DurableTask.Scheduler.AppHost.csproj" />
+    <Project Path="playground/DurableTask/DurableTask.Scheduler.ExternalAppHost/DurableTask.Scheduler.ExternalAppHost.csproj" />
+    <Project Path="playground/DurableTask/DurableTask.Scheduler.WebApi/DurableTask.Scheduler.WebApi.csproj" />
+    <Project Path="playground/DurableTask/DurableTask.Scheduler.Worker/DurableTask.Scheduler.Worker.csproj" />
   </Folder>
   <Folder Name="/playground/EventHubs/">
     <Project Path="playground/AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
