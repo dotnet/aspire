@@ -46,7 +46,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// </summary>
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     private BicepOutputReference AdminName => new("sqlServerAdminName", this);
 

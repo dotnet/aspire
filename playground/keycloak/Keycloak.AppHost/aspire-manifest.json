@@ -8,6 +8,13 @@
         "start",
         "--import-realm"
       ],
+      "bindMounts": [
+        {
+          "source": "../realms",
+          "target": "/opt/keycloak/data/import",
+          "readOnly": true
+        }
+      ],
       "volumes": [
         {
           "name": "keycloak.apphost-28dd42043c-keycloak-data",

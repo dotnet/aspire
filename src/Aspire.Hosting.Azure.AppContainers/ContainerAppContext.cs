@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -29,13 +28,12 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     // bicep compatible values
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
-    public Dictionary<string, (ContainerMountAnnotation, IManifestExpressionProvider)> Volumes { get; } = [];
+    public Dictionary<string, (ContainerMountAnnotation, BicepOutputReference)> Volumes { get; } = [];
 
     // Bicep build state
     private ProvisioningParameter? _containerRegistryUrlParameter;
     private ProvisioningParameter? _containerRegistryManagedIdentityIdParameter;
-    public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
-    public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
+
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
@@ -112,17 +110,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerAppIdentityId);
         AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer);
         AddVolumes(template, containerAppContainer);
-
-        // Keyvault
-        foreach (var (_, v) in KeyVaultRefs)
-        {
-            infra.Add(v);
-        }
-
-        foreach (var (_, v) in KeyVaultSecretRefs)
-        {
-            infra.Add(v);
-        }
 
         infra.Add(containerAppResource);
 
@@ -535,15 +522,12 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             return (AllocateParameter(output, secretType: secretType), secretType);
         }
 
-        if (value is BicepSecretOutputReference secretOutputReference)
+#pragma warning disable CS0618 // Type or member is obsolete
+        if (value is BicepSecretOutputReference)
         {
-            if (parent is null)
-            {
-                return (AllocateKeyVaultSecretUriReference(secretOutputReference), SecretType.KeyVault);
-            }
-
-            return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
+            throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         if (value is IAzureKeyVaultSecretReference vaultSecretReference)
         {
@@ -597,32 +581,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         throw new NotSupportedException("Unsupported value type " + value.GetType());
-    }
-
-    private BicepValue<string> AllocateKeyVaultSecretUriReference(BicepSecretOutputReference secretOutputReference)
-    {
-        if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
-        {
-            // We resolve the keyvault that represents the storage for secret outputs
-            var parameter = AllocateParameter(_containerAppEnvironmentContext.Environment.GetSecretOutputKeyVault(secretOutputReference.Resource));
-            kv = KeyVaultService.FromExisting($"{parameter.BicepIdentifier}_kv");
-            kv.Name = parameter;
-
-            KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
-        }
-
-        if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
-        {
-            // Now we resolve the secret
-            var secretBicepIdentifier = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretOutputReference.Name}");
-            secret = KeyVaultSecret.FromExisting(secretBicepIdentifier);
-            secret.Name = secretOutputReference.Name;
-            secret.Parent = kv;
-
-            KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
-        }
-
-        return secret.Properties.SecretUri;
     }
 
     private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)

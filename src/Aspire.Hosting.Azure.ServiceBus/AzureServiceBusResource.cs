@@ -23,7 +23,10 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 

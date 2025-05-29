@@ -18,6 +18,10 @@
       "type": "value.v0",
       "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=users"
     },
+    "user-todo": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=UserTodo"
+    },
     "api": {
       "type": "project.v0",
       "path": "../CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj",

@@ -64,11 +64,8 @@ internal sealed class AddCommand : BaseCommand
         {
             var integrationName = parseResult.GetValue<string>("integration");
 
-            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
-            {
-                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
-            });
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
             {

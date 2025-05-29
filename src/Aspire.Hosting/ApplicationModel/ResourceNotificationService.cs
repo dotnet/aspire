@@ -686,6 +686,11 @@ public class ResourceNotificationService : IDisposable
                 Properties = [],
                 Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
+
+            previousState = previousState with
+            {
+                SupportsDetailedTelemetry = IsMicrosoftOpenType(resource.GetType())
+            };
         }
 
         return previousState;
@@ -708,6 +713,23 @@ public class ResourceNotificationService : IDisposable
         private long _lastVersion = 1;
         public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
+    }
+
+    internal static bool IsMicrosoftOpenType(Type type)
+    {
+        var microsoftOpenPublicKey = new byte[]
+        {
+            0, 36, 0, 0, 4, 128, 0, 0, 148, 0, 0, 0, 6, 2, 0, 0, 0, 36, 0, 0, 82, 83, 65, 49, 0, 4, 0, 0, 1, 0, 1,
+            0, 75, 134, 196, 203, 120, 84, 155, 52, 186, 182, 26, 59, 24, 0, 226, 59, 254, 181, 179, 236, 57, 0,
+            116, 4, 21, 54, 167, 227, 203, 217, 127, 95, 4, 207, 15, 133, 113, 85, 168, 146, 142, 170, 41, 235, 253,
+            17, 207, 187, 173, 59, 167, 14, 254, 167, 189, 163, 34, 108, 106, 141, 55, 10, 76, 211, 3, 247, 20, 72,
+            107, 110, 188, 34, 89, 133, 166, 56, 71, 30, 110, 245, 113, 204, 146, 164, 97, 60, 0, 184, 250, 101,
+            214, 28, 206, 224, 203, 229, 243, 99, 48, 201, 160, 31, 65, 131, 85, 159, 27, 239, 36, 204, 41, 23, 198,
+            217, 19, 227, 165, 65, 51, 58, 29, 5, 217, 190, 210, 43, 56, 203
+        };
+
+        var publicKey = type.Assembly.GetName().GetPublicKey();
+        return publicKey is not null && microsoftOpenPublicKey.SequenceEqual(publicKey);
     }
 }
 

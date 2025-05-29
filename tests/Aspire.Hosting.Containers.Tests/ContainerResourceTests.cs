@@ -319,6 +319,26 @@ public class ContainerResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public void WithBindMountHandlesDockerSocketPath()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal("/var/run/docker.sock", mountAnnotation.Source);
+        Assert.Equal("/var/run/docker.sock", mountAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
+        Assert.False(mountAnnotation.IsReadOnly);
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>

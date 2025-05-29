@@ -128,6 +128,11 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>
+    /// Whether this resource is a built-in resource and supports usage telemetry.
+    /// </summary>
+    internal bool SupportsDetailedTelemetry { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)

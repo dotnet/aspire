@@ -343,9 +343,7 @@ public static class MySqlBuilderExtensions
 
         var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
 
-        return builder.WithContainerFiles(
-            initPath,
-            ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
+        return builder.WithContainerFiles(initPath, importFullPath);
     }
 
     private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)

@@ -425,11 +425,13 @@ internal sealed class AzureResourcePreparer(
             return;
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         if (value is BicepSecretOutputReference secretOutputReference)
         {
             azureReferences.Add(secretOutputReference.Resource);
             return;
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         if (value is IAzureKeyVaultSecretReference keyVaultSecretReference)
         {

@@ -35,7 +35,7 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
   parent: sql1
 }
 
-resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db1 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db1'
   location: location
   properties: {
