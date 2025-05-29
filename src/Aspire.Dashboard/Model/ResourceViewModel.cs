@@ -41,6 +41,7 @@ public sealed class ResourceViewModel
     /// <summary>The health status of the resource. <see langword="null"/> indicates that health status is expected but not yet available.</summary>
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
+    public bool SupportsDetailedTelemetry { get; init; }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
