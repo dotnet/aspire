@@ -286,21 +286,29 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
+        SetSpanCollapsedState(viewModel, !viewModel.IsCollapsed);
+        await RefreshSpanViewAsync();
+    }
+
+    private void SetSpanCollapsedState(SpanWaterfallViewModel viewModel, bool isCollapsed)
+    {
         // View model data is recreated if the trace updates.
         // Persist the collapsed state in a separate list.
-        if (viewModel.IsCollapsed)
+        viewModel.IsCollapsed = isCollapsed;
+        if (isCollapsed)
         {
-            viewModel.IsCollapsed = false;
-            _collapsedSpanIds.Remove(viewModel.Span.SpanId);
+            _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
         else
         {
-            viewModel.IsCollapsed = true;
-            _collapsedSpanIds.Add(viewModel.Span.SpanId);
+            _collapsedSpanIds.Remove(viewModel.Span.SpanId);
         }
+    }
 
+    private async Task RefreshSpanViewAsync()
+    {
         UpdateDetailViewData();
-        UpdateTraceActionsMenu(); // Update menu state when individual spans are toggled
+        UpdateTraceActionsMenu();
         await _dataGrid.SafeRefreshDataAsync();
     }
 
@@ -397,14 +405,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         {
             if (viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
             {
-                viewModel.IsCollapsed = true;
-                _collapsedSpanIds.Add(viewModel.Span.SpanId);
+                SetSpanCollapsedState(viewModel, true);
             }
         }
 
-        UpdateDetailViewData();
-        UpdateTraceActionsMenu(); // Update menu state after collapsing all
-        await _dataGrid.SafeRefreshDataAsync();
+        await RefreshSpanViewAsync();
     }
 
     private async Task ExpandAllSpansAsync()
@@ -418,14 +423,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         {
             if (viewModel.IsCollapsed)
             {
-                viewModel.IsCollapsed = false;
-                _collapsedSpanIds.Remove(viewModel.Span.SpanId);
+                SetSpanCollapsedState(viewModel, false);
             }
         }
 
-        UpdateDetailViewData();
-        UpdateTraceActionsMenu(); // Update menu state after expanding all
-        await _dataGrid.SafeRefreshDataAsync();
+        await RefreshSpanViewAsync();
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
