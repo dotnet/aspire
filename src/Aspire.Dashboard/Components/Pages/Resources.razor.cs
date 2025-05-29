@@ -56,6 +56,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+    [Inject]
+    public required ILogger<Resources> Logger { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -867,6 +869,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
         };
 
-        TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
+        TelemetryContext.UpdateTelemetryProperties(properties.ToArray(), Logger);
     }
 }

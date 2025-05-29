@@ -9,6 +9,9 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Error : IComponentWithTelemetry, IDisposable
 {
+    [Inject]
+    public required ILogger<Error> Logger { get; init; }
+
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
@@ -36,7 +39,7 @@ public partial class Error : IComponentWithTelemetry, IDisposable
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ErrorRequestId, new AspireTelemetryProperty(RequestId ?? string.Empty)),
-        ]);
+        ], Logger);
     }
 
     public void Dispose()

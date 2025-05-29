@@ -61,7 +61,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             });
     }
 
-    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties)
+    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
     {
         // Only send updated properties if they are different from the existing ones.
         var anyChange = false;
@@ -82,17 +82,18 @@ public sealed class ComponentTelemetryContext : IDisposable
 
         if (anyChange)
         {
-            PostProperties();
+            PostProperties(logger);
         }
 
         return anyChange;
     }
 
-    private void PostProperties()
+    private void PostProperties(ILogger logger)
     {
         if (_telemetryService == null)
         {
-            throw new InvalidOperationException("InitializeAsync has not been called.");
+            logger.LogWarning("Telemetry service is not initialized. Cannot post properties.");
+            return;
         }
 
         _telemetryService.PostOperation(

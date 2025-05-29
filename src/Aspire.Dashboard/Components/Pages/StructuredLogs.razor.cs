@@ -496,6 +496,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsFilterCount, new AspireTelemetryProperty(ViewModel.Filters.Count.ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric))
-        ]);
+        ], Logger);
     }
 }

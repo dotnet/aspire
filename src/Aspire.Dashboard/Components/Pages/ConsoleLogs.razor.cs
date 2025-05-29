@@ -749,6 +749,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
-        ]);
+        ], Logger);
     }
 }

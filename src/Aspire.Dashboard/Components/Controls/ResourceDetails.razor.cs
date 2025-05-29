@@ -37,6 +37,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required ILogger<ResourceDetails> Logger { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
     // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
@@ -279,7 +282,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(Resource.ResourceType)))
-        ]);
+        ], Logger);
     }
 
     public void Dispose()
