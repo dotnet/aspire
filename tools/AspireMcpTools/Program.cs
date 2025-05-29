@@ -107,7 +107,7 @@ internal static class AspireProcessTools
 
             await UpdateNuGetConfigAsync(targetNuGetConfig, packagesDir).ConfigureAwait(false);
 
-            return $"Sandbox created successfully at: {sandboxDir}\nPackages source: {packagesDir}\nTo use this sandbox, navigate to the directory and run Aspire CLI commands.";
+            return $"Sandbox created successfully at: {sandboxDir}\nPackages source: {packagesDir}\nIsolated global packages folder: {Path.Combine(sandboxDir, "packages")}\nNuGet.config configured to use locally built Aspire packages.\n\nTo use this sandbox:\n1. cd {sandboxDir}\n2. Use the locally built aspire CLI from: {Path.Combine(workspaceRoot, "src", "Aspire.Cli")}\n3. Any Aspire projects created here will use the locally built packages";
         }
         catch (Exception ex)
         {
@@ -157,6 +157,22 @@ internal static class AspireProcessTools
     private static async Task UpdateNuGetConfigAsync(string nugetConfigPath, string packagesPath)
     {
         var content = await File.ReadAllTextAsync(nugetConfigPath).ConfigureAwait(false);
+        
+        // Create global packages folder path relative to the sandbox directory
+        var sandboxDir = Path.GetDirectoryName(nugetConfigPath)!;
+        var globalPackagesPath = Path.Combine(sandboxDir, "packages");
+        Directory.CreateDirectory(globalPackagesPath);
+        
+        // Add global packages folder configuration after <configuration> tag
+        var configurationStartTag = "<configuration>";
+        var globalPackagesConfig = 
+$"""
+  <config>
+    <add key="globalPackagesFolder" value="{globalPackagesPath}" />
+  </config>
+""";
+        
+        content = content.Replace(configurationStartTag, $"{configurationStartTag}\n{globalPackagesConfig}");
         
         // Add local-packages source after the existing sources
         var packageSourcesEndTag = "</packageSources>";
