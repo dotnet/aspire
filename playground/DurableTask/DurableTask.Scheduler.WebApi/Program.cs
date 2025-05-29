@@ -20,7 +20,7 @@ builder.Services.AddDurableTaskClient(
 
 var app = builder.Build();
 
-app.MapPost("/create", async ([FromBody] EchoValue value, [FromServices] DurableTaskClient durableTaskClient) =>
+app.MapPost("/create", async (EchoValue value, DurableTaskClient durableTaskClient) =>
     {
         string instanceId = await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
             "Echo",

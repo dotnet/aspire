@@ -20,7 +20,7 @@ builder.Services.AddDurableTaskWorker(
         workerBuilder.AddTasks(r =>
         {
             r.AddActivity<EchoActivity>("EchoActivity");
-            r.AddOrchestrator<EchoOrchestrator>("EchoOrchestrator");
+            r.AddOrchestrator<EchoOrchestrator>("Echo");
         });
         workerBuilder.UseDurableTaskScheduler(
             builder.Configuration.GetConnectionString("taskhub") ?? throw new InvalidOperationException("Scheduler connection string not configured."),

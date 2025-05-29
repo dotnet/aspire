@@ -62,11 +62,30 @@ public static class DurableTaskSchedulerExtensions
         }
 
         builder
+            .WithDashboard();
+
+        //
+        // Add dashboards for existing task hubs (not already marked to have a dashboard annotation).
+        //
+
+        var existingTaskHubs =
+            builder
+                .ApplicationBuilder
+                .Resources
+                .OfType<DurableTaskHubResource>()
+                .Where(taskHub => taskHub.Parent == builder.Resource)
+                .Where(taskHub => !taskHub.HasAnnotationOfType<DurableTaskSchedulerDashboardAnnotation>());
+
+        foreach (var taskHub in existingTaskHubs)
+        {
+            builder.ApplicationBuilder.CreateResourceBuilder(taskHub).WithDashboard();
+        }
+
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(new DurableTaskSchedulerEmulatorResource(builder.Resource))
             .WithEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Worker, scheme: "http", targetPort: 8080)
             .WithEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Dashboard, scheme: "http", targetPort: 8082)
-            .WithAnnotation(
-                new EnvironmentCallbackAnnotation(
-                    async (EnvironmentCallbackContext context) =>
+            .WithEnvironment(
+                async (EnvironmentCallbackContext context) =>
                     {
                         var nameTasks =
                             builder
@@ -91,51 +110,23 @@ public static class DurableTaskSchedulerExtensions
                             context.EnvironmentVariables.Add("DTS_TASK_HUB_NAMES", String.Join(",", taskHubNames));
                         }
                     })
-            )
             .WithAnnotation(
                 new ContainerImageAnnotation
                 {
                     Registry = DurableTaskConstants.Scheduler.Emulator.Container.Registry,
                     Image = DurableTaskConstants.Scheduler.Emulator.Container.Image,
                     Tag = DurableTaskConstants.Scheduler.Emulator.Container.Tag
-                })
-            .WithDashboard();
+                });
 
-        //
-        // Add dashboards for existing task hubs (not already marked to have a dashboard annotation).
-        //
+        configureContainer?.Invoke(surrogateBuilder);
 
-        var existingTaskHubs =
-            builder
-                .ApplicationBuilder
-                .Resources
-                .OfType<DurableTaskHubResource>()
-                .Where(taskHub => taskHub.Parent == builder.Resource)
-                .Where(taskHub => !taskHub.HasAnnotationOfType<DurableTaskSchedulerDashboardAnnotation>());
-
-        foreach (var taskHub in existingTaskHubs)
+        if (surrogateBuilder.Resource.UseDynamicTaskHubs)
         {
-            builder.ApplicationBuilder.CreateResourceBuilder(taskHub).WithDashboard();
-        }
-
-        if (configureContainer is not null)
-        {
-            var surrogate = new DurableTaskSchedulerEmulatorResource(builder.Resource);
-
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-
-            configureContainer(surrogateBuilder);
-
-            if (surrogate.UseDynamicTaskHubs)
-            {
-                builder.WithAnnotation(
-                    new EnvironmentCallbackAnnotation(
-                        (EnvironmentCallbackContext context) =>
-                        {
-                            context.EnvironmentVariables.Add("DTS_USE_DYNAMIC_TASK_HUBS", "true");
-                        })
-                );
-            }
+            surrogateBuilder.WithEnvironment(
+                (EnvironmentCallbackContext context) =>
+                {
+                    context.EnvironmentVariables.Add("DTS_USE_DYNAMIC_TASK_HUBS", "true");
+                });
         }
 
         builder.Resource.Authentication ??= DurableTaskSchedulerAuthentication.None;
@@ -277,7 +268,7 @@ public static class DurableTaskSchedulerExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a command to the resource that opens the Durable Task Scheduler Dashboard in a web browser.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="dashboardEndpoint"></param>
@@ -288,7 +279,7 @@ public static class DurableTaskSchedulerExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a command to the resource that opens the Durable Task Scheduler Dashboard in a web browser.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="dashboardEndpoint"></param>
@@ -361,8 +352,8 @@ public static class DurableTaskSchedulerExtensions
         return builder;
     }
 
-        /// <summary>
-    ///
+    /// <summary>
+    /// Adds a command to the resource that opens the Durable Task Scheduler Dashboard for the task hub in a web browser.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="dashboardEndpoint"></param>
@@ -376,7 +367,7 @@ public static class DurableTaskSchedulerExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a command to the resource that opens the Durable Task Scheduler Dashboard for the task hub in a web browser.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="dashboardEndpoint"></param>

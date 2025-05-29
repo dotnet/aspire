@@ -6,7 +6,7 @@ sealed class EchoOrchestrator : TaskOrchestrator<EchoInput, string>
 {
     public override async Task<string> RunAsync(TaskOrchestrationContext context, EchoInput input)
     {
-        string output = await context.CallActivityAsync<string>("EchoActivity", input);
+        string output = await context.CallActivityAsync<string>("EchoActivity", input.Text);
 
         output = await context.CallActivityAsync<string>("EchoActivity", output);
 
