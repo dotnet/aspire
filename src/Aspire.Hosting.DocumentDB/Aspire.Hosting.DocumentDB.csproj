@@ -4,9 +4,10 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting DocumentDB</PackageTags>
-    <!--<PackageIconFullPath>$(SharedDir)<DOCUMENTDB_LOGO.PNG></PackageIconFullPath>-->
+    <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
     <Description>DocumentDB support for .NET Aspire.</Description>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +18,7 @@
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
-  <!-- <ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.MongoDb" />
-  </ItemGroup> -->
+  </ItemGroup>
 </Project>

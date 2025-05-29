@@ -22,10 +22,14 @@ public class DocumentDBServerResource(string name) : ContainerResource(name), IR
     /// <param name="name">The name of the resource.</param>
     /// <param name="userNameParameter">A parameter that contains the DocumentDB server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="passwordParameter">A parameter that contains the DocumentDB server password.</param>
-    public DocumentDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : this(name)
+    /// <param name="tls">A value indicating whether to use TLS.</param>
+    /// <param name="allowInsecureTls">A value indicating whether to allow invalid certificates.</param>
+    public DocumentDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter, bool tls = false, bool allowInsecureTls = false) : this(name)
     {
         UserNameParameter = userNameParameter;
         PasswordParameter = passwordParameter;
+        TLS = tls;
+        AllowInsecureTls = allowInsecureTls;
     }
 
     /// <summary>
@@ -42,6 +46,16 @@ public class DocumentDBServerResource(string name) : ContainerResource(name), IR
     /// Gets the parameter that contains the DocumentDB server username.
     /// </summary>
     public ParameterResource? UserNameParameter { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether to use TLS.
+    /// </summary>
+    public bool TLS { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether to allow invalid certificates.
+    /// </summary>
+    public bool AllowInsecureTls { get; }
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
@@ -70,9 +84,23 @@ public class DocumentDBServerResource(string name) : ContainerResource(name), IR
             builder.Append($"/{databaseName}");
         }
 
+        var hasQuery = false;
         if (PasswordParameter is not null)
         {
             builder.Append($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
+            hasQuery = true;
+        }
+
+        // Conditionally add TLS and AllowInsecureTls
+        if (TLS)
+        {
+            builder.Append($"{(hasQuery ? "&" : "?")}tls=true");
+            hasQuery = true;
+        }
+
+        if (AllowInsecureTls)
+        {
+            builder.Append($"{(hasQuery ? "&" : "?")}tlsInsecure=true");
         }
 
         return builder.Build();

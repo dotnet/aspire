@@ -5,5 +5,5 @@ namespace Aspire.Components.Common.Tests;
 
 public static class ComponentTestConstants
 {
-    public const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+    public const string AspireTestContainerRegistry = "ghcr.io/microsoft";
 }

@@ -13,11 +13,11 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class DocumentDBBuilderExtensions
 {
-    // Internal port is always 27017.
+    // default internal port is 10260.
     private const int DefaultContainerPort = 10260;
 
-    private const string UserEnvVarName = "DOCUMENTDB_INITDB_ROOT_USERNAME";
-    private const string PasswordEnvVarName = "DOCUMENTDB_INITDB_ROOT_PASSWORD";
+    private const string UserEnvVarName = "USERNAME";
+    private const string PasswordEnvVarName = "PASSWORD";
 
     /// <summary>
     /// Adds a DocumentDB resource to the application model. A container is used for local development.
@@ -42,19 +42,24 @@ public static class DocumentDBBuilderExtensions
     /// <param name="port">The host port for DocumentDB.</param>
     /// <param name="userName">A parameter that contains the DocumentDB server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="password">A parameter that contains the DocumentDB server password, or <see langword="null"/> to use a generated password.</param>
+    /// <param name="tls">A flag that indicates if TLS should be used for the connection.</param>
+    /// <param name="allowInsecureTls">A flag that indicates if invalid TLS certificates should be accepted.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<DocumentDBServerResource> AddDocumentDB(this IDistributedApplicationBuilder builder,
         string name,
         int? port = null,
         IResourceBuilder<ParameterResource>? userName = null,
-        IResourceBuilder<ParameterResource>? password = null)
+        IResourceBuilder<ParameterResource>? password = null,
+        bool tls = false,
+        bool allowInsecureTls = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
-        var DocumentDBContainer = new DocumentDBServerResource(name, userName?.Resource, passwordParameter);
+        var DocumentDBContainer = new DocumentDBServerResource(name, userName?.Resource, passwordParameter, tls, allowInsecureTls);
+        Console.WriteLine($"Adding DocumentDB resource '{DocumentDBContainer.Name}' with user '{DocumentDBContainer.UserNameReference}' and password parameter '{DocumentDBContainer.PasswordParameter?.Name}'.");
 
         string? connectionString = null;
 
@@ -67,14 +72,6 @@ public static class DocumentDBBuilderExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{DocumentDBContainer.Name}' resource but the connection string was null.");
             }
         });
-
-        // var healthCheckKey = $"{name}_check";
-        // // cache the client so it is reused on subsequent calls to the health check
-        // IMongoClient? client = null;
-        // builder.Services.AddHealthChecks()
-        //     .AddDocumentDB(
-        //         sp => client ??= new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable")),
-        //         name: healthCheckKey);
 
         return builder
             .AddResource(DocumentDBContainer)
@@ -139,12 +136,24 @@ public static class DocumentDBBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <param name="targetPath">The target path inside the container. Defaults to /home/documentdb/postgresql/data.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DocumentDBServerResource> WithDataVolume(this IResourceBuilder<DocumentDBServerResource> builder, string? name = null, bool isReadOnly = false)
+    public static IResourceBuilder<DocumentDBServerResource> WithDataVolume(
+        this IResourceBuilder<DocumentDBServerResource> builder,
+        string? name = null,
+        bool isReadOnly = false,
+        string? targetPath = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data/db", isReadOnly);
+        targetPath ??= "/home/documentdb/postgresql/data";
+
+        return builder
+            .WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), targetPath, isReadOnly)
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["DATA_PATH"] = targetPath;
+            });
     }
 
     /// <summary>
