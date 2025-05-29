@@ -131,7 +131,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// Whether this resource is a built-in resource and supports usage telemetry.
     /// </summary>
-    public bool SupportsDetailedTelemetry { get; internal init; }
+    internal bool SupportsDetailedTelemetry { get; init; }
 
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
