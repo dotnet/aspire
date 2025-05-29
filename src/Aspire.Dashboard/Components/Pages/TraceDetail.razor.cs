@@ -8,8 +8,10 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
@@ -65,6 +67,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> ControlsLoc { get; init; }
+
     protected override void OnInitialized()
     {
         _gridColumns = [
@@ -94,14 +99,16 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = "Expand All",
+            Id = "expand-all",
+            Text = ControlsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowExpandAll(),
             OnClick = ExpandAllSpansAsync
         });
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = "Collapse All",
+            Id = "collapse-all",
+            Text = ControlsLoc[nameof(ControlsStrings.CollapseAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
             OnClick = CollapseAllSpansAsync
         });
