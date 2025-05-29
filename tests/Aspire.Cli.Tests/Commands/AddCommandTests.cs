@@ -127,7 +127,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     {
                         Id = "Aspire.Hosting.Redis",
                         Source = "nuget",
-                        Version = "9.3.0"
+                        Version = "9.3.1"
                     };
 
                     return (
@@ -154,7 +154,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.Collection(
             promptedPackages!,
-            p => Assert.Equal("9.3.0", p.Package.Version),
+            p => Assert.Equal("9.3.1", p.Package.Version),
             p => Assert.Equal("9.2.0", p.Package.Version)
             );
     }
@@ -205,7 +205,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     {
                         Id = "Aspire.Hosting.Redis",
                         Source = "nuget",
-                        Version = "9.3.0"
+                        Version = "9.3.1"
                     };
 
                     return (
@@ -233,7 +233,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Collection(
             promptedPackages!,
             p => Assert.Equal("9.4.0-preview1.1234", p.Package.Version),
-            p => Assert.Equal("9.3.0", p.Package.Version),
+            p => Assert.Equal("9.3.1", p.Package.Version),
             p => Assert.Equal("9.2.0", p.Package.Version)
             );
     }
