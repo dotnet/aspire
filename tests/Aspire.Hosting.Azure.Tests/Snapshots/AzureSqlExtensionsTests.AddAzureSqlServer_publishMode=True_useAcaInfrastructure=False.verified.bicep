@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -35,7 +35,7 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
   parent: sql
 }
 
-resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db1 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db1'
   location: location
   properties: {
@@ -48,7 +48,7 @@ resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
   parent: sql
 }
 
-resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db2 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db2Name'
   location: location
   properties: {
@@ -61,7 +61,7 @@ resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
   parent: sql
 }
 
-resource db3 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource db3 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'db3Name'
   location: location
   parent: sql
