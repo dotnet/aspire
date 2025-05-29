@@ -310,7 +310,6 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
     }
     
-    /*
     [Fact]
     public void CollapseAllSpans_CollapsesAllSpans()
     {
@@ -363,7 +362,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         var menuButton = cut.FindComponent<AspireMenuButton>();
         var collapseAllMenuItem = menuButton.Instance.Items.ElementAtOrDefault(1); // Collapse All is second item
         Assert.NotNull(collapseAllMenuItem);
-        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke());
+        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
 
         // Assert
         cut.WaitForAssertion(() =>
@@ -429,7 +428,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         var menuButton = cut.FindComponent<AspireMenuButton>();
         var collapseAllMenuItem = menuButton.Instance.Items.ElementAtOrDefault(1); // Collapse All is second item
         Assert.NotNull(collapseAllMenuItem);
-        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke());
+        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
         
         // Wait for spans to collapse
         cut.WaitForAssertion(() =>
@@ -442,7 +441,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         // Act - Click "Expand All"
         var expandAllMenuItem = menuButton.Instance.Items.ElementAtOrDefault(0); // Expand All is first item
         Assert.NotNull(expandAllMenuItem);
-        cut.InvokeAsync(() => expandAllMenuItem!.OnClick?.Invoke());
+        cut.InvokeAsync(() => expandAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
 
         // Assert
         cut.WaitForAssertion(() =>
@@ -455,7 +454,6 @@ public partial class TraceDetailsTests : DashboardTestContext
             }
         });
     }
-    */
 
     private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
