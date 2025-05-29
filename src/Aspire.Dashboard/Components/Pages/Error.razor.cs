@@ -17,8 +17,8 @@ public partial class Error : IComponentWithTelemetry, IDisposable
 
     protected override void OnInitialized()
     {
-        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
         TelemetryContextProvider.Initialize(TelemetryContext);
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
     }
 
     [Inject]

@@ -159,8 +159,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     protected override void OnInitialized()
     {
-        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
         TelemetryContextProvider.Initialize(TelemetryContext);
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()

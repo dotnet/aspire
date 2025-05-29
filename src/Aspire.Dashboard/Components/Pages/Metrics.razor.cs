@@ -78,6 +78,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         _durations = new List<SelectViewModel<TimeSpan>>
         {
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
@@ -109,8 +111,6 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             UpdateApplications();
             StateHasChanged();
         }));
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()

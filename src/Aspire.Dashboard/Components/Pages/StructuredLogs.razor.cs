@@ -148,6 +148,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -203,8 +204,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             UpdateApplications();
             StateHasChanged();
         }));
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()

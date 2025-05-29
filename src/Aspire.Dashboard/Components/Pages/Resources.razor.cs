@@ -160,6 +160,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -214,7 +215,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
-        TelemetryContextProvider.Initialize(TelemetryContext);
         _isLoading = false;
 
         async Task SubscribeResourcesAsync()

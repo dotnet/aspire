@@ -126,6 +126,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
@@ -171,8 +172,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
 
         async Task TrackResourceSnapshotsAsync()
         {

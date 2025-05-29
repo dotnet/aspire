@@ -149,6 +149,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -168,8 +169,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             UpdateApplications();
             StateHasChanged();
         }));
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
