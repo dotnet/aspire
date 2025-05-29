@@ -1199,6 +1199,72 @@ public class DistributedApplicationTests
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
+    [Fact]
+    public async Task LogStreamOptionsWork()
+    {
+        // The purpose of this test is to verify that there are no major issues with commonly used log stream options.
+        // It is not intended to verify the functionality of all possible option combinations.
+
+        const string testName = "log-stream-options-work";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var workerNamePattern = $"workera-{ReplicaIdRegex}-{suffix}";
+        var worker = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, workerNamePattern, r => r.Status?.State == ContainerState.Running, cts.Token)
+            .DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        Assert.NotNull(worker);
+
+        const long minimumLines = 4;
+
+        using (var logCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout))
+        {
+            using var logStream = await kubernetes.GetLogStreamAsync(worker, Logs.StreamTypeStdOut, logCts.Token, follow: true, timestamps: true);
+            Assert.NotNull(logStream);
+            await ensureLogLines(logStream, logCts.Token, minimumLines);
+        }
+
+        // Now we know the worker produced at least "minimumLines" lines
+
+        using (var logCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout))
+        {
+            const long skip = 2;
+            const long limit = 2;
+
+            // Verifies skip + limit combination works as expected
+            using var logStream = await kubernetes.GetLogStreamAsync(worker, Logs.StreamTypeStdOut, logCts.Token,
+                follow: false, timestamps: true, skip: skip, limit: limit, lineNumbers: true);
+            Assert.NotNull(logStream);
+
+            long expectedLineNumber = 1 + skip; // Line numbers are 1-based
+            await ensureLogLines(logStream, logCts.Token, limit, (long n) => expectedLineNumber++ == n);
+        }
+
+        using (var logCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout))
+        {
+            const long tail = 2;
+
+            // Verifies "tail" option works as expected
+            using var logStream = await kubernetes.GetLogStreamAsync(worker, Logs.StreamTypeStdOut, logCts.Token,
+                follow: false, timestamps: true, lineNumbers: true, tail: tail);
+            Assert.NotNull(logStream);
+
+            // Since we have at least "minimumLines" lines, the last two should have numbers that start at at least minimumLines - (tail size).
+            long minimumLineNumber = minimumLines - tail;
+            await ensureLogLines(logStream, logCts.Token, tail, (long n) => n >= minimumLineNumber++);
+        }
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
     private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
     {
         return builder.AddContainer(containerName, RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
@@ -1212,6 +1278,32 @@ public class DistributedApplicationTests
             b.AddXunit(_testOutputHelper);
             b.SetMinimumLevel(LogLevel.Trace);
         });
+    }
+
+    private static async Task ensureLogLines(Stream stream, CancellationToken ct, long nlines, Func<long, bool>? validateLineNumber = default)
+    {
+        using var reader = new StreamReader(stream);
+
+        for (long i = 0; i < nlines; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var line = await reader.ReadLineAsync(ct);
+            Assert.NotNull(line);
+
+            var parts = line.Split(" ");
+            Assert.NotNull(parts);
+            if (validateLineNumber is not null)
+            {
+                Assert.True(parts.Length >= 3, """A line should have line number, timestamp, and "the rest".""");
+                Assert.True(Int64.TryParse(parts[0], out var ln), $"Line should start with a line number, but instead it started with '{parts[0]}'");
+                Assert.True(validateLineNumber(ln), $"Line number {ln} is invalid in log line '{line}'");
+                Assert.True(DateTimeOffset.TryParse(parts[1], out var _), $"Line should have a valid timestamp, but instead we found '{parts[1]}'");
+            } else
+            {
+                Assert.True(parts.Length >= 2, """A line should start with a timestamp""");
+                Assert.True(DateTimeOffset.TryParse(parts[0], out var _), $"Line should should start with a valid timestamp, but instead we found '{parts[0]}'");
+            }
+        }
     }
 
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
