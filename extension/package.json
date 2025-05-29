@@ -1,0 +1,79 @@
+{
+  "name": "aspire-vscode",
+  "displayName": "aspire",
+  "description": "vscode extension for aspire",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.98.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aspire-vscode.run",
+        "title": "%command.run%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.addPackage",
+        "title": "%command.addPackage%",
+        "category": "Aspire"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://dev.azure.com/devdiv/DevDiv/_git/aspire-vscode",
+    "branch": "main"
+  },
+  "scripts": {
+    "vscode:prepublish": "yarn run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "lint": "eslint src",
+    "unit-test": "vscode-test",
+    "test": "yarn unit-test",
+    "localize": "yarn ci-prepareLoc && yarn ci-deployLoc",
+    "ci-localize": "gulp localizationBundle",
+    "ci-prepareLoc": "gulp prepare",
+    "ci-deployLoc": "copyfiles -u 2 .localization/out/**/* ./dist",
+    "precompile": "yarn localize",
+    "prewatch": "yarn localize"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.98.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.27.0",
+    "gulp": "^4.0.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-filter": "^7.0.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1",
+    "vscode-nls-dev": "^4.0.1",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@vscode/vsce": "^3.3.2",
+    "ts-node": "^10.9.2",
+    "vscode-nls": "5.2.0"
+  }
+}
