@@ -138,7 +138,7 @@ internal class InteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
-        DisplayMessage("stop_sign", "[yellow bold]Operation cancelled by user action.[/]");
+        DisplayMessage("stop_sign", "[teal bold]Stopping Aspire.[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
