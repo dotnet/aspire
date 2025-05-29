@@ -188,11 +188,29 @@ jobs:
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
 
+  extension_tests_lin:
+    name: Setup for VS Code extension tests (Linux)
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: yarn install
+      - name: Build the extension
+        run: yarn compile
+      - name: Run extension tests
+        run: yarn test
+
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests ]
+    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests, extension_tests_lin ]
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

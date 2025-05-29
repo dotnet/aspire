@@ -1,0 +1,15 @@
+{
+	"extension.title": "Aspire VSCode",
+	"extension.description": "Official Aspire extension for Visual Studio Code",
+	"command.run": "Run",
+	"command.addPackage": "Add Package",
+	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
+	"aspire-vscode.strings.error": "Error: {0}",
+	"aspire-vscode.commands.add.selectProjectToAddTo": "Select the Aspire project to add to",
+	"aspire-vscode.commands.add.projectSelectionRequired": "Project selection is required to add a component",
+	"aspire-vscode.commands.add.noAspirePackagesFound": "No Aspire packages found",
+	"aspire-vscode.commands.add.selectPackageToAdd": "Select a package to add",
+	"aspire-vscode.commands.add.selectedPackage": "Selected package: {0}",
+	"aspire-vscode.commands.add.noOptionSelected": "No option selected",
+	"aspire-vscode.commands.run.selectProjectToRun": "Select the Aspire project to run"
+}
