@@ -64,7 +64,7 @@ public static class RedisBuilderExtensions
 
         // StackExchange.Redis doesn't support passwords with commas.
         // See https://github.com/StackExchange/StackExchange.Redis/issues/680 and
-        // https://github.com/Azure/azure-dev/issues/4848 
+        // https://github.com/Azure/azure-dev/issues/4848
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var redis = new RedisResource(name, passwordParameter);
@@ -158,7 +158,7 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
@@ -172,17 +172,14 @@ public static class RedisBuilderExtensions
 
                 foreach (var redisInstance in redisInstances)
                 {
-                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                    // This will need to be refactored once updated service discovery APIs are available
+                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                    if (redisInstance.PasswordParameter is not null)
                     {
-                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
-                        if (redisInstance.PasswordParameter is not null)
-                        {
-                            hostString += $":{redisInstance.PasswordParameter.Value}";
-                        }
-                        hostsVariableBuilder.Append(hostString);
+                        hostString += $":{redisInstance.PasswordParameter.Value}";
                     }
+                    hostsVariableBuilder.Append(hostString);
                 }
 
                 resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());

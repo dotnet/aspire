@@ -52,7 +52,7 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
         _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishInitialResourceUrls);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
@@ -94,15 +94,18 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
     {
+        // TODO: Remove once we support async endpoint allocation
         var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(_serviceProvider, _model);
         await _eventing.PublishAsync(afterEndpointsAllocatedEvent, context.CancellationToken).ConfigureAwait(false);
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {
+            // TODO: Replace this once async endpoint allocation is supported
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
 
         // Fire the endpoints allocated event for all resources.
+        // TODO: Fire these events asynchronously once an endpoint is actually allocated
         foreach (var resource in _model.Resources)
         {
             await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, _serviceProvider), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
@@ -240,48 +243,45 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private Task ProcessResourcesWithoutLifetime(AfterEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    private async Task ProcessResourcesWithoutLifetime(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        async Task ProcessValueAsync(IResource resource, IValueProvider vp)
+        if (@event.Resource is not IResourceWithoutLifetime resource)
         {
-            try
-            {
-                var value = await vp.GetValueAsync(default).ConfigureAwait(false);
-
-                await _notificationService.PublishUpdateAsync(resource, s =>
-                {
-                    return s with
-                    {
-                        Properties = s.Properties.SetResourceProperty("Value", value ?? "", resource is ParameterResource p && p.Secret)
-                    };
-                })
-                .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await _notificationService.PublishUpdateAsync(resource, s =>
-                {
-                    return s with
-                    {
-                        State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = s.Properties.SetResourceProperty("Value", ex.Message)
-                    };
-                })
-                .ConfigureAwait(false);
-
-                _loggerService.GetLogger(resource.Name).LogError("{Message}", ex.Message);
-            }
+            return;
         }
 
-        foreach (var resource in _model.Resources.OfType<IResourceWithoutLifetime>())
+        if (resource is not IValueProvider valueProvider)
         {
-            if (resource is IValueProvider provider)
-            {
-                _ = ProcessValueAsync(resource, provider);
-            }
+            return;
         }
 
-        return Task.CompletedTask;
+        try
+        {
+            var value = await valueProvider.GetValueAsync(default).ConfigureAwait(false);
+
+            await _notificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    Properties = s.Properties.SetResourceProperty("Value", value ?? "", resource is ParameterResource p && p.Secret)
+                };
+            })
+            .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await _notificationService.PublishUpdateAsync(resource, s =>
+            {
+                return s with
+                {
+                    State = new("Value missing", KnownResourceStateStyles.Error),
+                    Properties = s.Properties.SetResourceProperty("Value", ex.Message)
+                };
+            })
+            .ConfigureAwait(false);
+
+            _loggerService.GetLogger(resource.Name).LogError("{Message}", ex.Message);
+        }
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
