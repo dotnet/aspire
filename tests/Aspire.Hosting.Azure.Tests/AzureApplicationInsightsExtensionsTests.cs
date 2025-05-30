@@ -107,7 +107,7 @@ public class AzureApplicationInsightsExtensionsTests
         var env = builder.AddAzureContainerAppEnvironment("aca");
 
         var appInsights = builder.AddAzureApplicationInsights("appInsights")
-                                 .WithLogAnalyticsWorkspaceId(env.GetOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID"));
+                                 .WithLogAnalyticsWorkspace(env.GetOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID"));
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
 

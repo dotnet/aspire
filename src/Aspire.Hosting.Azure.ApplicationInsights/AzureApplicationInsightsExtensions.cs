@@ -119,22 +119,6 @@ public static class AzureApplicationInsightsExtensions
     }
 
     /// <summary>
-    /// Configures the Application Insights resource to use an existing Log Analytics Workspace via a Bicep output reference.
-    /// </summary>
-    /// <param name="builder">The resource builder for <see cref="AzureApplicationInsightsResource"/>.</param>
-    /// <param name="workspaceId">The <see cref="BicepOutputReference"/> for the Log Analytics Workspace resource id.</param>
-    /// <returns>The <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/> for chaining.</returns>
-    public static IResourceBuilder<AzureApplicationInsightsResource> WithLogAnalyticsWorkspaceId(
-        this IResourceBuilder<AzureApplicationInsightsResource> builder,
-        BicepOutputReference workspaceId)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(workspaceId);
-
-        return builder.WithAnnotation(new LogAnalyticsWorkspaceReferenceAnnotation(workspaceId));
-    }
-
-    /// <summary>
     /// Configures the Application Insights resource to use an existing Log Analytics Workspace via a <see cref="BicepOutputReference"/>.
     /// </summary>
     /// <param name="builder">The resource builder for <see cref="AzureApplicationInsightsResource"/>.</param>
@@ -144,7 +128,7 @@ public static class AzureApplicationInsightsExtensions
         this IResourceBuilder<AzureApplicationInsightsResource> builder,
         BicepOutputReference workspaceId)
     {
-        return builder.WithLogAnalyticsWorkspaceId(workspaceId);
+        return builder.WithAnnotation(new LogAnalyticsWorkspaceReferenceAnnotation(workspaceId));
     }
 
     /// <summary>
@@ -157,7 +141,7 @@ public static class AzureApplicationInsightsExtensions
         this IResourceBuilder<AzureApplicationInsightsResource> builder,
         IResourceBuilder<AzureLogAnalyticsWorkspaceResource> logAnalyticsWorkspace)
     {
-        return builder.WithLogAnalyticsWorkspaceId(logAnalyticsWorkspace.Resource.WorkspaceId);
+        return builder.WithLogAnalyticsWorkspace(logAnalyticsWorkspace.Resource.WorkspaceId);
     }
 
     // REVIEW: This isn't strongly typed, but it allows us to pass the workspaceId as a BicepOutputReference
