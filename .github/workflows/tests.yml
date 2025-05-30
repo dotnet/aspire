@@ -188,10 +188,10 @@ jobs:
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
 
-  extension_tests_lin:
-    name: Setup for VS Code extension tests (Linux)
+  extension_tests_win:
+    name: Setup for VS Code extension tests (Widnows)
     if: ${{ github.repository_owner == 'dotnet' }}
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     defaults:
       run:
         working-directory: ./extension
@@ -204,17 +204,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
         run: yarn install
-      # There is no X server on Linux, so this is a workaround as per https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
-      - run: xvfb-run -a yarn test
-        if: runner.os == 'Linux'
       - run: yarn test
-        if: runner.os != 'Linux'
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests, extension_tests_lin ]
+    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests, extension_tests_win ]
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
