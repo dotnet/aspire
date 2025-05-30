@@ -63,12 +63,4 @@ public class StackExchangeRedisPublicApiTests
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
-
-    // Temporary test failure for GitHub Checks validation
-    [Fact]
-    public void ArtificialFailureForTesting3()
-    {
-        // This test intentionally fails to validate GitHub Checks integration for a different test project
-        Assert.Fail("This test is intentionally failing to test GitHub Checks integration");
-    }
 }

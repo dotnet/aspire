@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using Aspire.TestTools;
 
 // Usage: PostTestSummaryToCheck --test-results-path <path> --github-token <token> --repository <repo> --commit-sha <sha> --check-name <name>
@@ -91,11 +92,91 @@ static string GenerateTestSummary(string testResultsPath, string? url)
         foreach (var trxFile in trxFiles)
         {
             TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url);
+            
+            // If no failed tests were shown, create a basic summary
+            if (reportBuilder.Length == 0)
+            {
+                try
+                {
+                    var testRun = TrxReader.DeserializeTrxFile(trxFile);
+                    if (testRun?.ResultSummary?.Counters is not null)
+                    {
+                        var counters = testRun.ResultSummary.Counters;
+                        var passed = counters.Passed;
+                        var failed = counters.Failed;
+                        var skipped = counters.NotExecuted;
+                        var total = counters.Total;
+
+                        var title = string.IsNullOrEmpty(url)
+                            ? TestSummaryGenerator.GetTestTitle(trxFile)
+                            : $"{TestSummaryGenerator.GetTestTitle(trxFile)} (<a href=\"{url}\">Logs</a>)";
+
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {title}");
+                        reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
+                        reportBuilder.AppendLine("|--------|--------|---------|-------|");
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
+                        reportBuilder.AppendLine();
+                        
+                        if (failed == 0)
+                        {
+                            reportBuilder.AppendLine("✅ All tests passed!");
+                            reportBuilder.AppendLine();
+                        }
+                    }
+                }
+                catch
+                {
+                    // If we can't read the file, just show the filename
+                    reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {Path.GetFileNameWithoutExtension(trxFile)}");
+                    reportBuilder.AppendLine("Unable to read test results.");
+                    reportBuilder.AppendLine();
+                }
+            }
         }
     }
     else if (File.Exists(testResultsPath) && testResultsPath.EndsWith(".trx"))
     {
         TestSummaryGenerator.CreateSingleTestSummaryReport(testResultsPath, reportBuilder, url);
+        
+        // If no failed tests were shown, create a basic summary
+        if (reportBuilder.Length == 0)
+        {
+            try
+            {
+                var testRun = TrxReader.DeserializeTrxFile(testResultsPath);
+                if (testRun?.ResultSummary?.Counters is not null)
+                {
+                    var counters = testRun.ResultSummary.Counters;
+                    var passed = counters.Passed;
+                    var failed = counters.Failed;
+                    var skipped = counters.NotExecuted;
+                    var total = counters.Total;
+
+                    var title = string.IsNullOrEmpty(url)
+                        ? TestSummaryGenerator.GetTestTitle(testResultsPath)
+                        : $"{TestSummaryGenerator.GetTestTitle(testResultsPath)} (<a href=\"{url}\">Logs</a>)";
+
+                    reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {title}");
+                    reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
+                    reportBuilder.AppendLine("|--------|--------|---------|-------|");
+                    reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
+                    reportBuilder.AppendLine();
+                    
+                    if (failed == 0)
+                    {
+                        reportBuilder.AppendLine("✅ All tests passed!");
+                        reportBuilder.AppendLine();
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't read the file, just show the filename
+                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {Path.GetFileNameWithoutExtension(testResultsPath)}");
+                reportBuilder.AppendLine("Unable to read test results.");
+                reportBuilder.AppendLine();
+            }
+        }
     }
     else
     {
