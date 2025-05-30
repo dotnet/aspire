@@ -204,8 +204,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
         run: yarn install
-      - run: yarn test
-
+      - name: Run tests
+        run: yarn test
+      - name: Package VSIX
+        run: npx @vscode/vsce package --yarn --pre-release -o out/aspire-extension-prerelease.vsix
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspire-extension-prerelease
+          path: out/aspire-extension-prerelease.vsix
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
