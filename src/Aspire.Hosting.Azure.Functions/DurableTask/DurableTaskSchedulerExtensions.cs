@@ -82,8 +82,8 @@ public static class DurableTaskSchedulerExtensions
         }
 
         var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(new DurableTaskSchedulerEmulatorResource(builder.Resource))
-            .WithEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Worker, scheme: "http", targetPort: 8080)
-            .WithEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Dashboard, scheme: "http", targetPort: 8082)
+            .WithHttpEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Worker, targetPort: 8080)
+            .WithHttpEndpoint(name: DurableTaskConstants.Scheduler.Emulator.Endpoints.Dashboard, targetPort: 8082)
             .WithEnvironment(
                 async (EnvironmentCallbackContext context) =>
                     {
