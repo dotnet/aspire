@@ -297,7 +297,7 @@ public static class DurableTaskSchedulerExtensions
                 subscriptionId: null,
                 dashboardEndpoint: dashboardEndpoint));
 
-            builder.WithOpenDashboardCommand();
+            builder.WithOpenDashboardCommand(isTaskHub: false);
         }
 
         return builder;
@@ -388,7 +388,7 @@ public static class DurableTaskSchedulerExtensions
                 subscriptionId: subscriptionId,
                 dashboardEndpoint: dashboardEndpoint));
 
-            builder.WithOpenDashboardCommand();
+            builder.WithOpenDashboardCommand(isTaskHub: true);
         }
 
         return builder;
@@ -413,12 +413,12 @@ public static class DurableTaskSchedulerExtensions
         return builder;
     }
 
-    static IResourceBuilder<T> WithOpenDashboardCommand<T>(this IResourceBuilder<T> builder) where T : IResourceWithDashboard
+    static IResourceBuilder<T> WithOpenDashboardCommand<T>(this IResourceBuilder<T> builder, bool isTaskHub) where T : IResourceWithDashboard
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             builder.WithCommand(
-                builder.Resource.IsTaskHub ? "durabletask-hub-open-dashboard" : "durabletask-scheduler-open-dashboard",
+                isTaskHub ? "durabletask-hub-open-dashboard" : "durabletask-scheduler-open-dashboard",
                 "Open Dashboard",
                 async context =>
                 {
@@ -432,7 +432,7 @@ public static class DurableTaskSchedulerExtensions
                 {
                     Description = "Open the Durable Task Scheduler Dashboard",
                     IconName = "GlobeArrowForward",
-                    IsHighlighted = builder.Resource.IsTaskHub,
+                    IsHighlighted = isTaskHub,
                 });
         }
 

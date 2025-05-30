@@ -8,6 +8,4 @@ namespace Aspire.Hosting.Azure;
 internal interface IResourceWithDashboard : IResource
 {
     ReferenceExpression DashboardEndpointExpression { get; }
-
-    bool IsTaskHub => false;
 }
