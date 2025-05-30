@@ -203,11 +203,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
-        run: yarn install --network-timeout 30000
-      - name: Build the extension
-        run: yarn compile
-      - name: Run extension tests
-        run: yarn test
+        run: yarn install
+      # There is no X server on Linux, so this is a workaround as per https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
+      - run: xvfb-run -a yarn test
+        if: runner.os == 'Linux'
+      - run: yarn test
+        if: runner.os != 'Linux'
 
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
