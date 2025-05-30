@@ -74,7 +74,7 @@ jobs:
         with:
           name: ${{ matrix.tests.project }}-${{ matrix.tests.os }}-logs
           path: |
-            testresults/**
+            ${{ github.workspace }}/testresults/**
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
           # Longer retention time to allow scanning runs for quarantined test results
