@@ -125,7 +125,7 @@ public class Program
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-        builder.Services.AddHostedService<NuGetPackagePrefetcher>();
+        builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddMemoryCache();
 
         // Commands.
@@ -137,6 +137,14 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
+        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
+        var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
