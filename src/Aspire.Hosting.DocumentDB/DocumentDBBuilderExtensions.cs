@@ -59,7 +59,6 @@ public static class DocumentDBBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var DocumentDBContainer = new DocumentDBServerResource(name, userName?.Resource, passwordParameter, tls, allowInsecureTls);
-        Console.WriteLine($"Adding DocumentDB resource '{DocumentDBContainer.Name}' with user '{DocumentDBContainer.UserNameReference}' and password parameter '{DocumentDBContainer.PasswordParameter?.Name}'.");
 
         string? connectionString = null;
 
@@ -168,42 +167,6 @@ public static class DocumentDBBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/data/db", isReadOnly);
-    }
-
-    /// <summary>
-    /// Adds a bind mount for the init folder to a DocumentDB container resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source directory on the host to mount into the container.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use WithInitFiles instead.")]
-    public static IResourceBuilder<DocumentDBServerResource> WithInitBindMount(this IResourceBuilder<DocumentDBServerResource> builder, string source, bool isReadOnly = true)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(source);
-
-        return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
-    }
-
-    /// <summary>
-    /// Copies init files into a DocumentDB container resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source file or directory on the host to copy into the container.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DocumentDBServerResource> WithInitFiles(this IResourceBuilder<DocumentDBServerResource> builder, string source)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(source);
-
-        const string initPath = "/docker-entrypoint-initdb.d";
-
-        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
-
-        return builder.WithContainerFiles(
-            initPath,
-            ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
+        return builder.WithBindMount(source, "/home/documentdb/postgresql/data", isReadOnly);
     }
 }
