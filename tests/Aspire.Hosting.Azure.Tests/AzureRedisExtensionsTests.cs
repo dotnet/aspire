@@ -72,8 +72,6 @@ public class AzureRedisExtensionsTests
 
         if (kvName is null)
         {
-            kvName = "redis-cache-kv";
-
             redis.WithAccessKeyAuthentication();
         }
         else
