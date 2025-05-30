@@ -92,7 +92,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (_telemetryService == null)
         {
-            logger.LogWarning("Telemetry service is not initialized. Cannot post properties.");
+            logger.LogWarning($"Telemetry service for '{_componentType}' is not initialized. Cannot post properties.");
             return;
         }
 
