@@ -69,4 +69,55 @@ public static class DockerComposeEnvironmentExtensions
         builder.Resource.ConfigureComposeFile += configure;
         return builder;
     }
+
+    /// <summary>
+    /// Configures the Docker Compose environment to include a dashboard for telemetry visualization.
+    /// </summary>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
+    /// <param name="enabled">Whether to enable the dashboard. Defaults to true.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, bool enabled = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (enabled && builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            var dashboard = builder.ApplicationBuilder
+                .AddContainer("aspire-dashboard", "mcr.microsoft.com/dotnet/nightly/aspire-dashboard")
+                .WithHttpEndpoint(targetPort: 18888, name: "dashboard")
+                .WithHttpEndpoint(targetPort: 18889, name: "otlp")
+                .PublishAsDockerComposeService((_, service) =>
+                {
+                    service.Restart = "always";
+                });
+
+            // Subscribe to BeforeStartEvent to configure OTLP endpoints for all resources with OtlpExporterAnnotation
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+            {
+                foreach (var resource in e.Model.Resources.OfType<IResourceWithEnvironment>())
+                {
+                    // Skip the dashboard itself
+                    if (resource == dashboard.Resource)
+                    {
+                        continue;
+                    }
+
+                    // Only configure OTLP for resources that have the OtlpExporterAnnotation
+                    if (resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+                    {
+                        builder.ApplicationBuilder.CreateResourceBuilder(resource).WithEnvironment(c =>
+                        {
+                            c.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = dashboard.GetEndpoint("otlp");
+                            c.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                            c.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                        });
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return builder;
+    }
 }

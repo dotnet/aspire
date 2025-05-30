@@ -109,6 +109,10 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
+        
+        // Add annotation to mark this resource as having OTLP exporter configured
+        builder.Resource.Annotations.Add(new OtlpExporterAnnotation());
+        
         return builder;
     }
 }
