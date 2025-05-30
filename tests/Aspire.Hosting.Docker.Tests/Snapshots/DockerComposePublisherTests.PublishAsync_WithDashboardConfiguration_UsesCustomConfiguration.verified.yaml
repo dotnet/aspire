@@ -1,0 +1,15 @@
+﻿services:
+  docker-compose-dashboard:
+    image: "custom-dashboard:latest"
+    container_name: "custom-dashboard"
+    environment:
+      CUSTOM_VAR: "custom-value"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+networks:
+  aspire:
+    driver: "bridge"

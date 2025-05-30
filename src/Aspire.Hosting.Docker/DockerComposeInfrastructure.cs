@@ -1,3 +1,4 @@
+#pragma warning disable ASPIRECOMPUTE001
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -39,6 +40,17 @@ internal sealed class DockerComposeInfrastructure(
 
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
+        if (environment.DashboardEnabled && environment.Dashboard?.Resource is AspireDashboardResource dashboard)
+        {
+            // Ensure the dashboard resource is created (even though it's not part of the main application model)
+            var dashboardService = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(dashboard, executionContext, cancellationToken).ConfigureAwait(false);
+
+            dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
+            {
+                ComputeEnvironment = environment
+            });
+        }
+
         foreach (var r in appModel.Resources)
         {
             if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
@@ -51,17 +63,38 @@ internal sealed class DockerComposeInfrastructure(
             {
                 continue;
             }
+            
+            // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
+            if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
+            {
+                ConfigureOtlp(r, otlpGrpcEndpoint);
+            }
 
             // Create a Docker Compose compute resource for the resource
             var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
             // Add deployment target annotation to the resource
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
             {
                 ComputeEnvironment = environment
             });
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
+    }
+
+    private static void ConfigureOtlp(IResource resource, EndpointReference otlpEndpoint)
+    {
+        // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
+        if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+        {
+            // Configure OTLP environment variables
+            resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+            {
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                return Task.CompletedTask;
+            }));
+        }
+
     }
 }

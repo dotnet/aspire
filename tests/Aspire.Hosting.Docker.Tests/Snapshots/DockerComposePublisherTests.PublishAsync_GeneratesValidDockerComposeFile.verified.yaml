@@ -1,4 +1,12 @@
 ﻿services:
+  docker-compose-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
   cache:
     image: "redis:latest"
     command:
@@ -42,6 +50,9 @@
       param1: "${PARAM1}"
       param2: "${PARAM2}"
       ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://docker-compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "myapp"
     expose:
       - "8001"
     depends_on:
@@ -58,6 +69,9 @@
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       services__myapp__http__0: "http://myapp:8001"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://docker-compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "project1"
     networks:
       - "aspire"
 networks:
