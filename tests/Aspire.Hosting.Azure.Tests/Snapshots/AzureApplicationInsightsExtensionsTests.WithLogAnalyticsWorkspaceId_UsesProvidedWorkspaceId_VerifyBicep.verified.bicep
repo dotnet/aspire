@@ -5,7 +5,7 @@ param applicationType string = 'web'
 
 param kind string = 'web'
 
-param mylaw_outputs_loganalyticsworkspaceid string
+param aca_outputs_azure_log_analytics_workspace_id string
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
@@ -13,7 +13,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   location: location
   properties: {
     Application_Type: applicationType
-    WorkspaceResourceId: mylaw_outputs_loganalyticsworkspaceid
+    WorkspaceResourceId: aca_outputs_azure_log_analytics_workspace_id
   }
   tags: {
     'aspire-resource-name': 'appInsights'

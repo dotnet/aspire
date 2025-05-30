@@ -1,0 +1,7 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "infra.module.bicep",
+  "params": {
+    "env_outputs_azure_container_apps_environment_name": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME}"
+  }
+}

@@ -277,16 +277,7 @@ public static class AzureContainerAppExtensions
                 }
             }
 
-            infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_NAME", typeof(string))
-            {
-                Value = identity.Name
-            });
-
-            infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_PRINCIPAL_ID", typeof(string))
-            {
-                Value = identity.PrincipalId
-            });
-
+            // Exposed so that callers reference the LA workspace in other bicep modules
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_NAME", typeof(string))
             {
                 Value = laWorkspace.Name
@@ -297,6 +288,7 @@ public static class AzureContainerAppExtensions
                 Value = laWorkspace.Id
             });
 
+            // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
                 Value = containerRegistry.Name
@@ -307,6 +299,7 @@ public static class AzureContainerAppExtensions
                 Value = containerRegistry.LoginServer
             });
 
+            // Required by the IAzureContainerRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
                 Value = identity.Id
@@ -322,6 +315,7 @@ public static class AzureContainerAppExtensions
                 Value = containerAppEnvironment.Id
             });
 
+            // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
                 Value = containerAppEnvironment.DefaultDomain

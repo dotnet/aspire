@@ -729,7 +729,9 @@ public class AzureContainerAppsTests
 
         var resource = builder.AddAzureInfrastructure("resourceWithSecret", infra =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var kvNameParam = new ProvisioningParameter(AzureBicepResource.KnownParameters.KeyVaultName, typeof(string));
+#pragma warning restore CS0618 // Type or member is obsolete
             infra.Add(kvNameParam);
 
             var kv = KeyVaultService.FromExisting("kv");
@@ -749,7 +751,7 @@ public class AzureContainerAppsTests
             infra.Add(secret);
         });
 
-        builder.AddContainer("api", "image")
+        var container = builder.AddContainer("api", "image")
             .WithEnvironment(context =>
             {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -759,7 +761,13 @@ public class AzureContainerAppsTests
 
         using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var target = container.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(target);
+
+        var ex = Assert.Throws<NotSupportedException>(() => target.GetBicepTemplateFile());
 
         Assert.Equal("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.", ex.Message);
     }
@@ -1194,47 +1202,6 @@ public class AzureContainerAppsTests
         Assert.Empty(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
     }
 
-    [Fact]
-    public async Task KnownParametersAreNotSetWhenUsingAzdResources()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-        builder.AddAzureContainerAppsInfrastructure();
-#pragma warning restore CS0618 // Type or member is obsolete
-
-        var pg = builder.AddAzurePostgresFlexibleServer("pg")
-                        .WithPasswordAuthentication()
-                        .AddDatabase("db");
-
-        builder.AddContainer("cache", "redis")
-               .WithVolume("data", "/data")
-               .WithReference(pg);
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        foreach (var resource in model.Resources.OfType<AzureBicepResource>())
-        {
-            foreach (var param in resource.Parameters)
-            {
-                if (param.Key == AzureBicepResource.KnownParameters.KeyVaultName)
-                {
-                    // Skip kv since we fill it in by default
-                    continue;
-                }
-
-                if (AzureBicepResource.KnownParameters.IsKnownParameterName(param.Key))
-                {
-                    Assert.Equal(string.Empty, param.Value);
-                }
-            }
-        }
-    }
-
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -1346,6 +1313,33 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(containerBicep, "bicep")
               .AppendContentAsFile(registryManifest.ToString(), "json")
               .AppendContentAsFile(registryBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task CanReferenceContainerAppEnvironment()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        var azResource = builder.AddAzureInfrastructure("infra", infra =>
+        {
+            var managedEnvironment = (ContainerAppManagedEnvironment)env.Resource.AddAsExistingResource(infra);
+
+            infra.Add(new ProvisioningOutput("id", typeof(string))
+            {
+                Value = managedEnvironment.Id
+            });
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (manifest, bicep) = await GetManifestWithBicep(azResource.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

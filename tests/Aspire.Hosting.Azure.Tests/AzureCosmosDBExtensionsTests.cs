@@ -351,24 +351,10 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             return Task.FromResult<string?>(value);
         };
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
-                               {
-                                 "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "keyVaultName": "{{{kvName}}.outputs.name}"
-                                 }
-                               }
-                               """;
-        var m = manifest.ManifestNode.ToString();
-        output.WriteLine(m);
-
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -469,25 +455,10 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             return Task.FromResult<string?>(value);
         };
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
-                               {
-                                 "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "keyVaultName": "{{{kvName}}.outputs.name}"
-                                 }
-                               }
-                               """;
-
-        var m = manifest.ManifestNode.ToString();
-
-        output.WriteLine(m);
-        Assert.Equal(expectedManifest, m);
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(

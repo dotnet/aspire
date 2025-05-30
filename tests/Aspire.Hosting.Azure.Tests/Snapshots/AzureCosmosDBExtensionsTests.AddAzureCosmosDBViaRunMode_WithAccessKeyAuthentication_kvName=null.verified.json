@@ -1,12 +1,8 @@
 ﻿{
-  "type": "azure.bicep.v1",
+  "type": "azure.bicep.v0",
   "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
   "path": "cosmos.module.bicep",
   "params": {
-    "existingResourceName": "{existingResourceName.value}",
     "cosmos_kv_outputs_name": "{cosmos-kv.outputs.name}"
-  },
-  "scope": {
-    "resourceGroup": "{existingResourceGroupName.value}"
   }
 }
