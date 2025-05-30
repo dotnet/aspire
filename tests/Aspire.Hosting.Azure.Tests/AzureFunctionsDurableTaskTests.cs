@@ -35,7 +35,7 @@ public class AzureFunctionsDurableTaskTests
 
         Assert.Null(scheduler.SubscriptionIdExpression);
         
-        Assert.Equal(DurableTaskConstants.Scheduler.Dashboard.Endpoint.ToString(), await (scheduler as IResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal(DurableTaskConstants.Scheduler.Dashboard.Endpoint.ToString(), await (scheduler as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await scheduler.DashboardSchedulerEndpointExpression.GetValueAsync(CancellationToken.None));
         Assert.Equal("scheduler", await scheduler.SchedulerNameExpression.GetValueAsync(CancellationToken.None));
     }
@@ -72,7 +72,7 @@ public class AzureFunctionsDurableTaskTests
 
         Assert.Null(scheduler.SubscriptionIdExpression);
         
-        Assert.Equal("https://dashboard.durabletask.io/".ToString(), await (scheduler as IResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("https://dashboard.durabletask.io/".ToString(), await (scheduler as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
         Assert.Equal("https://scheduler.test.io/", scheduler.DashboardSchedulerEndpointExpression.ValueExpression);
         Assert.Equal("TestSchedulerName", await scheduler.SchedulerNameExpression.GetValueAsync(CancellationToken.None));
     }
@@ -103,7 +103,7 @@ public class AzureFunctionsDurableTaskTests
 
         Assert.Null(scheduler.SubscriptionIdExpression);
         
-        Assert.Equal("https://dashboard.durabletask.io/".ToString(), await (scheduler as IResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("https://dashboard.durabletask.io/".ToString(), await (scheduler as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.GetValueAsync(CancellationToken.None));
         Assert.Equal("https://scheduler.test.io/", scheduler.DashboardSchedulerEndpointExpression.ValueExpression);
         Assert.Equal("scheduler", await scheduler.SchedulerNameExpression.GetValueAsync(CancellationToken.None));
     }
@@ -134,7 +134,7 @@ public class AzureFunctionsDurableTaskTests
 
         Assert.Null(scheduler.SubscriptionIdExpression);
         
-        Assert.Equal("{scheduler.bindings.dashboard.url}/", (scheduler as IResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
+        Assert.Equal("{scheduler.bindings.dashboard.url}/", (scheduler as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
         Assert.Equal("{scheduler.bindings.dashboard.url}/api/", scheduler.DashboardSchedulerEndpointExpression.ValueExpression);
         Assert.Equal("default", await scheduler.SchedulerNameExpression.GetValueAsync(CancellationToken.None));
 
@@ -229,12 +229,12 @@ public class AzureFunctionsDurableTaskTests
         var taskHub1 = model.Resources.OfType<DurableTaskHubResource>().Single(x => x.Name == "taskhub1");
 
         Assert.Equal("Endpoint={scheduler.bindings.worker.url}/;Authentication=None;TaskHub=taskhub1", taskHub1.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{scheduler.bindings.dashboard.url}/subscriptions/default/schedulers/default/taskhubs/taskhub1", (taskHub1 as IResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
+        Assert.Equal("{scheduler.bindings.dashboard.url}/subscriptions/default/schedulers/default/taskhubs/taskhub1", (taskHub1 as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
 
         var taskHub2 = model.Resources.OfType<DurableTaskHubResource>().Single(x => x.Name == "taskhub2");
 
         Assert.Equal("Endpoint={scheduler.bindings.worker.url}/;Authentication=None;TaskHub=taskhub2a", taskHub2.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{scheduler.bindings.dashboard.url}/subscriptions/default/schedulers/default/taskhubs/taskhub2a", (taskHub2 as IResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
+        Assert.Equal("{scheduler.bindings.dashboard.url}/subscriptions/default/schedulers/default/taskhubs/taskhub2a", (taskHub2 as IDurableTaskResourceWithDashboard).DashboardEndpointExpression.ValueExpression);
     }
 
     [RequiresDocker]

@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the task hub resource.</param>
 /// <param name="parent">The scheduler to which the task hub belongs.</param>
 public class DurableTaskHubResource(string name, DurableTaskSchedulerResource parent)
-    : Resource(name), IResourceWithConnectionString, IResourceWithEndpoints, IResourceWithParent<DurableTaskSchedulerResource>, IResourceWithDashboard
+    : Resource(name), IResourceWithConnectionString, IResourceWithEndpoints, IResourceWithParent<DurableTaskSchedulerResource>, IDurableTaskResourceWithDashboard
 {
     /// <inheritdoc />
     public ReferenceExpression ConnectionStringExpression =>
@@ -25,13 +25,11 @@ public class DurableTaskHubResource(string name, DurableTaskSchedulerResource pa
     /// </summary>
     public string? TaskHubName { get; set; }
 
-    ReferenceExpression IResourceWithDashboard.DashboardEndpointExpression =>
+    ReferenceExpression IDurableTaskResourceWithDashboard.DashboardEndpointExpression =>
         this.GetDashboardEndpoint();
 
     internal ReferenceExpression TaskHubNameExpression =>
         ReferenceExpression.Create($"{this.ResolveTaskHubName()}");
-
-    bool IResourceWithDashboard.IsTaskHub => true;
 
     ReferenceExpression GetDashboardEndpoint()
     {
@@ -60,7 +58,7 @@ public class DurableTaskHubResource(string name, DurableTaskSchedulerResource pa
             return annotation.DashboardEndpoint;
         }
 
-        return (this.Parent as IResourceWithDashboard).DashboardEndpointExpression;
+        return (this.Parent as IDurableTaskResourceWithDashboard).DashboardEndpointExpression;
     }
 
     ReferenceExpression? ResolveSubscriptionId()

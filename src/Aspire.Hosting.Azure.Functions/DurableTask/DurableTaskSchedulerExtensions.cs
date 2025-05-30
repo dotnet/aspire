@@ -413,7 +413,7 @@ public static class DurableTaskSchedulerExtensions
         return builder;
     }
 
-    static IResourceBuilder<T> WithOpenDashboardCommand<T>(this IResourceBuilder<T> builder, bool isTaskHub) where T : IResourceWithDashboard
+    static IResourceBuilder<T> WithOpenDashboardCommand<T>(this IResourceBuilder<T> builder, bool isTaskHub) where T : IDurableTaskResourceWithDashboard
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {

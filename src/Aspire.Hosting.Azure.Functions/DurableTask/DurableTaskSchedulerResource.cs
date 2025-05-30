@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public sealed class DurableTaskSchedulerResource(string name)
-    : Resource(name), IResourceWithConnectionString, IResourceWithEndpoints, IResourceWithDashboard
+    : Resource(name), IResourceWithConnectionString, IResourceWithEndpoints, IDurableTaskResourceWithDashboard
 {
     EndpointReference EmulatorDashboardEndpoint => new(this, DurableTaskConstants.Scheduler.Emulator.Endpoints.Dashboard);
     EndpointReference EmulatorSchedulerEndpoint => new(this, DurableTaskConstants.Scheduler.Emulator.Endpoints.Worker);
@@ -48,7 +48,7 @@ public sealed class DurableTaskSchedulerResource(string name)
     /// </summary>
     public string? SchedulerName { get; set; }
 
-    ReferenceExpression IResourceWithDashboard.DashboardEndpointExpression =>
+    ReferenceExpression IDurableTaskResourceWithDashboard.DashboardEndpointExpression =>
         this.ResolveDashboardEndpoint();
 
     internal ReferenceExpression DashboardSchedulerEndpointExpression =>
