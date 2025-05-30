@@ -27,6 +27,7 @@ public interface IDistributedApplicationLifecycleHook
     /// <param name="appModel">The distributed application model.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+
     Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;

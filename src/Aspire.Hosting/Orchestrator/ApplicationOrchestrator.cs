@@ -94,18 +94,17 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
     {
-        // TODO: Remove once we support async endpoint allocation
+#pragma warning disable CS0618 // Type or member is obsolete
         var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(_serviceProvider, _model);
+#pragma warning restore CS0618 // Type or member is obsolete
         await _eventing.PublishAsync(afterEndpointsAllocatedEvent, context.CancellationToken).ConfigureAwait(false);
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {
-            // TODO: Replace this once async endpoint allocation is supported
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
 
         // Fire the endpoints allocated event for all resources.
-        // TODO: Fire these events asynchronously once an endpoint is actually allocated
         foreach (var resource in _model.Resources)
         {
             await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, _serviceProvider), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
