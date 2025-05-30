@@ -203,7 +203,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --network-timeout 30000
       - name: Build the extension
         run: yarn compile
       - name: Run extension tests
