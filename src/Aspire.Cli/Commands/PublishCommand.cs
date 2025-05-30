@@ -228,8 +228,8 @@ internal sealed class PublishCommand : BaseCommand
             if (lastActivityUpdateLookup.Any(kvp => kvp.Value.IsError) || lastActivityUpdateLookup.All(kvp => kvp.Value.IsComplete))
             {
                 // If we have an error or all tasks are complete then we can stop
-                // processing the publishing activities.
-                return false;
+                // processing the publishing activities. Return true if there are no errors.
+                return lastActivityUpdateLookup.All(kvp => !kvp.Value.IsError);
             }
         }
 
