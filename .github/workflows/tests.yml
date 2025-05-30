@@ -212,7 +212,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: aspire-extension-prerelease
-          path: out/aspire-extension-prerelease.vsix
+          path: extension/out/aspire-extension-prerelease.vsix
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
