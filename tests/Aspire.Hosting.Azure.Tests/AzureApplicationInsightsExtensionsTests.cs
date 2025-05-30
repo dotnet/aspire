@@ -98,6 +98,38 @@ public class AzureApplicationInsightsExtensionsTests
         Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
     }
 
+    [Fact]
+    public async Task WithLogAnalyticsWorkspaceId_UsesProvidedWorkspaceId_VerifyBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Doesn't need to be ACA but this is a more real scenario
+        var env = builder.AddAzureContainerAppEnvironment("aca");
+
+        var appInsights = builder.AddAzureApplicationInsights("appInsights")
+                                 .WithLogAnalyticsWorkspaceId(env.GetOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID"));
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+    }
+
+    [Fact]
+    public async Task WithLogAnalyticsWorkspace_UsesWorkspaceResourceId_VerifyBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var law = builder.AddAzureLogAnalyticsWorkspace("law");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
+        appInsights.WithLogAnalyticsWorkspace(law);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

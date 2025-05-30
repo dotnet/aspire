@@ -283,6 +283,11 @@ public static class AzureContainerAppExtensions
                 Value = laWorkspace.Name
             });
 
+            infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID", typeof(string))
+            {
+                Value = laWorkspace.Id
+            });
+
             // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {

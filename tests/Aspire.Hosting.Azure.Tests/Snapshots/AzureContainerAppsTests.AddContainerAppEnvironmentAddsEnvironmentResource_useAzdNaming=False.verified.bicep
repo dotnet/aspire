@@ -114,6 +114,8 @@ output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = env_law.name
 
+output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = env_law.id
+
 output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer

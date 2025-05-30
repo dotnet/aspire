@@ -42,6 +42,8 @@ public static class AzureApplicationInsightsExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureApplicationInsightsResource)infrastructure.AspireResource;
+
             var appInsights = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -70,10 +72,10 @@ public static class AzureApplicationInsightsExtensions
                         Tags = { { "aspire-resource-name", name } }
                     };
 
-                    if (logAnalyticsWorkspace != null)
+                    // Check for LogAnalyticsWorkspaceReferenceAnnotation on the AzureApplicationInsightsResource
+                    if (azureResource.TryGetLastAnnotation<LogAnalyticsWorkspaceReferenceAnnotation>(out var annotation))
                     {
-                        // If someone provides a workspace via the extension method we should use it.
-                        appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsProvisioningParameter(infrastructure);
+                        appInsights.WorkspaceResourceId = annotation.WorkspaceId.AsProvisioningParameter(infrastructure);
                     }
                     else
                     {
@@ -105,6 +107,62 @@ public static class AzureApplicationInsightsExtensions
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);
 
-        return builder.AddResource(resource);
+        var rb = builder.AddResource(resource);
+
+        if (logAnalyticsWorkspace != null)
+        {
+            // If a Log Analytics Workspace resource is provided use it directly.
+            rb.WithLogAnalyticsWorkspace(logAnalyticsWorkspace);
+        }
+
+        return rb;
+    }
+
+    /// <summary>
+    /// Configures the Application Insights resource to use an existing Log Analytics Workspace via a Bicep output reference.
+    /// </summary>
+    /// <param name="builder">The resource builder for <see cref="AzureApplicationInsightsResource"/>.</param>
+    /// <param name="workspaceId">The <see cref="BicepOutputReference"/> for the Log Analytics Workspace resource id.</param>
+    /// <returns>The <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/> for chaining.</returns>
+    public static IResourceBuilder<AzureApplicationInsightsResource> WithLogAnalyticsWorkspaceId(
+        this IResourceBuilder<AzureApplicationInsightsResource> builder,
+        BicepOutputReference workspaceId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(workspaceId);
+
+        return builder.WithAnnotation(new LogAnalyticsWorkspaceReferenceAnnotation(workspaceId));
+    }
+
+    /// <summary>
+    /// Configures the Application Insights resource to use an existing Log Analytics Workspace via a <see cref="BicepOutputReference"/>.
+    /// </summary>
+    /// <param name="builder">The resource builder for <see cref="AzureApplicationInsightsResource"/>.</param>
+    /// <param name="workspaceId">The <see cref="BicepOutputReference"/> for the Log Analytics Workspace resource id.</param>
+    /// <returns>The <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/> for chaining.</returns>
+    public static IResourceBuilder<AzureApplicationInsightsResource> WithLogAnalyticsWorkspace(
+        this IResourceBuilder<AzureApplicationInsightsResource> builder,
+        BicepOutputReference workspaceId)
+    {
+        return builder.WithLogAnalyticsWorkspaceId(workspaceId);
+    }
+
+    /// <summary>
+    /// Configures the Application Insights resource to use the specified Log Analytics Workspace resource.
+    /// </summary>
+    /// <param name="builder">The resource builder for <see cref="AzureApplicationInsightsResource"/>.</param>
+    /// <param name="logAnalyticsWorkspace">The resource builder for the <see cref="AzureLogAnalyticsWorkspaceResource"/>.</param>
+    /// <returns>The <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/> for chaining.</returns>
+    public static IResourceBuilder<AzureApplicationInsightsResource> WithLogAnalyticsWorkspace(
+        this IResourceBuilder<AzureApplicationInsightsResource> builder,
+        IResourceBuilder<AzureLogAnalyticsWorkspaceResource> logAnalyticsWorkspace)
+    {
+        return builder.WithLogAnalyticsWorkspaceId(logAnalyticsWorkspace.Resource.WorkspaceId);
+    }
+
+    // REVIEW: This isn't strongly typed, but it allows us to pass the workspaceId as a BicepOutputReference
+    private sealed class LogAnalyticsWorkspaceReferenceAnnotation(BicepOutputReference workspaceId) : IResourceAnnotation
+    {
+        public BicepOutputReference WorkspaceId { get; } = workspaceId;
     }
 }
