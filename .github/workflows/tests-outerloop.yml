@@ -62,6 +62,9 @@ jobs:
         run: ./dotnet.sh dev-certs https --trust
 
       - name: Test ${{ matrix.tests.label }}
+        env:
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
           ${{ matrix.tests.command }}
 
@@ -71,6 +74,7 @@ jobs:
         with:
           name: ${{ matrix.tests.project }}-${{ matrix.tests.os }}-logs
           path: |
+            testresults/**
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
           # Longer retention time to allow scanning runs for quarantined test results
