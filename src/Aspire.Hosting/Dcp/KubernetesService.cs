@@ -323,7 +323,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         }
         if (tail.HasValue)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(tail.Value, 1, nameof(limit));
+            ArgumentOutOfRangeException.ThrowIfLessThan(tail.Value, 1, nameof(tail));
             queryParams.Add((name: "tail", value: tail.Value.ToString(CultureInfo.InvariantCulture)));
         }
         if (skip.HasValue)
