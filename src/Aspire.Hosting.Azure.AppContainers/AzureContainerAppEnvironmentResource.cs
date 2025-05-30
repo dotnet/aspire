@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure.AppContainers;
 
@@ -38,24 +40,9 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
     /// <summary>
-    /// Gets the unique identifier of the Log Analytics workspace.
-    /// </summary>
-    internal BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
-
-    /// <summary>
-    /// Gets the principal name of the managed identity.
-    /// </summary>
-    internal BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
-
-    /// <summary>
-    /// Gets the principal ID of the managed identity.
-    /// </summary>
-    internal BicepOutputReference PrincipalId => new("MANAGED_IDENTITY_PRINCIPAL_ID", this);
-
-    /// <summary>
     /// Gets the name of the Container App Environment.
     /// </summary>
-    internal BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
+    public BicepOutputReference NameOutputReference => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
     /// <summary>
     /// Gets the container registry name.
@@ -91,5 +78,15 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         }
 
         return volumeName.outputReference;
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        // Even though it's a compound resource, we'll only expose the managed environment
+        var cae = ContainerAppManagedEnvironment.FromExisting(this.GetBicepIdentifier());
+        cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(cae);
+        return cae;
     }
 }

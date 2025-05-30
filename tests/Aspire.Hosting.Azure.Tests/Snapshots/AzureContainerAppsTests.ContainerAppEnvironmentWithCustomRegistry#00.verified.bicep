@@ -67,13 +67,7 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   parent: env
 }
 
-output MANAGED_IDENTITY_NAME string = env_mi.name
-
-output MANAGED_IDENTITY_PRINCIPAL_ID string = env_mi.properties.principalId
-
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = env_law.name
-
-output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = env_law.id
 
 output AZURE_CONTAINER_REGISTRY_NAME string = customregistry_outputs_name
 
