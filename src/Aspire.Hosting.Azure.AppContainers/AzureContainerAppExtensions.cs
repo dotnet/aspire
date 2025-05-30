@@ -310,7 +310,7 @@ public static class AzureContainerAppExtensions
                 Value = containerAppEnvironment.Id
             });
 
-            // Required or azd to output the dashboard URL
+            // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
                 Value = containerAppEnvironment.DefaultDomain
