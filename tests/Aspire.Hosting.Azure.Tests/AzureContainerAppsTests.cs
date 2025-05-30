@@ -1315,6 +1315,33 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(registryBicep, "bicep");
     }
 
+    [Fact]
+    public async Task CanReferenceContainerAppEnvironment()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        var azResource = builder.AddAzureInfrastructure("infra", infra =>
+        {
+            var managedEnvironment = (ContainerAppManagedEnvironment)env.Resource.AddAsExistingResource(infra);
+
+            infra.Add(new ProvisioningOutput("id", typeof(string))
+            {
+                Value = managedEnvironment.Id
+            });
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (manifest, bicep) = await GetManifestWithBicep(azResource.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
