@@ -303,3 +303,14 @@ jobs:
           if (Test-Path "${{ github.workspace }}/testresults") {
             & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
           }
+
+      - name: Post test results to GitHub Check
+        if: always() && github.event_name == 'pull_request' && env.GITHUB_TOKEN != ''
+        env:
+          CI: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- --test-results-path "${{ github.workspace }}/testresults" --github-token "$env:GITHUB_TOKEN" --repository "${{ github.repository }}" --commit-sha "${{ github.event.pull_request.head.sha || github.sha }}" --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" --url "${{ steps.upload-logs.outputs.artifact-url }}"
+          }
