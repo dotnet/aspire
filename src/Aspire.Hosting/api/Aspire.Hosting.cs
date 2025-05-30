@@ -1497,6 +1497,12 @@ namespace Aspire.Hosting.ApplicationModel
         public static ManifestPublishingCallbackAnnotation Ignore { get { throw null; } }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}")]
+    public partial class OtlpExporterAnnotation : IResourceAnnotation
+    {
+        public OtlpExporterAnnotation() { }
+    }
+
     public abstract partial class ParameterDefault
     {
         public abstract string GetDefaultValue();
