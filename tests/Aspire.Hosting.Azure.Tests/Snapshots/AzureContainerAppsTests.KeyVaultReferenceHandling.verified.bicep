@@ -20,7 +20,7 @@ resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vau
   parent: mydb_kv_outputs_name_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
   location: location
   properties: {

@@ -23,7 +23,7 @@ resource kv_outputs_name_kv_secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01
   parent: kv_outputs_name_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
   location: location
   properties: {

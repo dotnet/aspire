@@ -17,7 +17,7 @@ param redis_outputs_connectionstring string
 
 param api_identity_outputs_clientid string
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
   location: location
   properties: {

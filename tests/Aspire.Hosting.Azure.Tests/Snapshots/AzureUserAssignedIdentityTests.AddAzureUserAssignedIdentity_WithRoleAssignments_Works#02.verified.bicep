@@ -5,7 +5,7 @@ param myregistry_outputs_name string
 
 param principalId string
 
-resource myregistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+resource myregistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   name: myregistry_outputs_name
 }
 
