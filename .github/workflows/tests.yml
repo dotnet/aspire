@@ -189,7 +189,7 @@ jobs:
       requiresNugets: true
 
   extension_tests_win:
-    name: Setup for VS Code extension tests (Widnows)
+    name: Run VS Code extension tests (Windows)
     if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: windows-latest
     defaults:
