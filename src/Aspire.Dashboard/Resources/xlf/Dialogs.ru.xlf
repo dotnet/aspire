@@ -77,11 +77,6 @@
         <target state="translated">Включить все</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogEnableFilterButtonText">
-        <source>Enable filter</source>
-        <target state="translated">Включить фильтр</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Поле</target>
@@ -210,11 +205,6 @@
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
         <target state="translated">Журналы ресурсов и телеметрия</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SettingsDialogEnableTelemetry">
-        <source>Enable dashboard telemetry</source>
-        <target state="translated">Включить телеметрию панели мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">

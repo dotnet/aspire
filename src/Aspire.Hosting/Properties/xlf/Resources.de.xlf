@@ -17,23 +17,6 @@
         <target state="translated">Für "Bereitstellungen einbinden" muss ein Quellpfad angegeben werden.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">Die Containerruntime „{0}“ wurde nicht gefunden. Fehler bei der Überprüfung der Containerruntime: {1}.
-Weitere Informationen zu unterstützten Containerruntimes finden Sie unter „https://aka.ms/dotnet/aspire/containers“.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">Die Containerruntime "{0}" wurde gefunden, scheint aber fehlerhaft zu sein. Fehler bei der Überprüfung der Containerruntime: {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">Die Containerruntime "{0}" wurde gefunden, scheint aber nicht zu reagieren. Der Befehl "{0}" wurde nach {1} Sekunden nicht zurückgegeben.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">Fehler bei der Abhängigkeitsprüfung des Anwendungsorchestrierers: {0}</target>

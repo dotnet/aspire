@@ -22,24 +22,9 @@
         <target state="translated">Yapılandırılmış günlük yakalama işlemi {0}’da duraklatıldı</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Filtre ekle</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Filtreyi düzenle</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Günlük girişi ayrıntıları</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtreler</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -70,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">En düşük günlük düzeyi filtresi</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Filtre bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

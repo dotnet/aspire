@@ -79,7 +79,6 @@
     <PackageVersion Include="Confluent.Kafka" Version="2.10.0" />
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
-    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.17.3" />
     <PackageVersion Include="Google.Protobuf" Version="3.30.2" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.71.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.71.0" />

@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../ConsoleLogs.resx">
     <body>
-      <trans-unit id="ConsoleLogsFailedToInitialize">
-        <source>Failed to initialize</source>
-        <target state="translated">초기화 실패</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
         <target state="translated">로그 보기 완료</target>
@@ -15,11 +10,6 @@
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
         <target state="translated">콘솔 로그</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ConsoleLogsInitializingLogViewer">
-        <source>Initializing log viewer...</source>
-        <target state="translated">로그 뷰어를 초기화하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">

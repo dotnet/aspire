@@ -59,15 +59,7 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to initialize.
-        /// </summary>
-        public static string ConsoleLogsFailedToInitialize {
-            get {
-                return ResourceManager.GetString("ConsoleLogsFailedToInitialize", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to Finished watching logs.
@@ -86,15 +78,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ConsoleLogsHeader", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Initializing log viewer....
-        /// </summary>
-        public static string ConsoleLogsInitializingLogViewer {
-            get {
-                return ResourceManager.GetString("ConsoleLogsInitializingLogViewer", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to Loading resources ....

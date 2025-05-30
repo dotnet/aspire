@@ -17,11 +17,6 @@
         <target state="translated">Log strutturati</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">Non sono stati trovati dati di telemetria per questa risorsa.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">Tracce</target>
@@ -50,16 +45,6 @@
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
         <target state="translated">Visualizza log della console</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">URL endpoint</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">URL proxy</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -172,11 +157,6 @@
         <target state="translated">Ora di arresto</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">Ambiente</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">Con filtri</target>
@@ -232,19 +212,9 @@
         <target state="translated">Stato</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">Variabili di ambiente per {0}</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">Risorse</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">Nessuna variabile di ambiente</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

@@ -34,8 +34,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-manifests
           base: main
+          commit-message: "[Automated] Update Playground Manifests"
           labels: |
             area-app-model
             area-engineering-systems
-          title: "[Automated] Update Manifests"
+          title: "[Automated] Update Playground Manifests"
           body: "Auto-generated update to refresh the manifests."

@@ -72,11 +72,6 @@
         <target state="translated">已检测到基数上限</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerSelectFilters">
-        <source>Select filters</source>
-        <target state="translated">选择筛选器</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">显示计数</target>
@@ -275,11 +270,6 @@
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
         <target state="translated">未找到指标数据</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableShowLatestValues">
-        <source>Show latest 10 values</source>
-        <target state="translated">显示最新的 10 个值</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
@@ -497,21 +487,6 @@
         <target state="translated">状态</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredFilteringAddFilter">
-        <source>Add filter</source>
-        <target state="translated">添加筛选器</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringFilters">
-        <source>Filters</source>
-        <target state="translated">筛选器</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringNoFilters">
-        <source>No filters</source>
-        <target state="translated">无筛选器</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
         <target state="translated">上下文</target>
@@ -555,11 +530,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">切换嵌套</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceDetailAttributesHeader">
-        <source>Attributes</source>
-        <target state="translated">属性</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
