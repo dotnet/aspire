@@ -309,117 +309,12 @@ jobs:
         env:
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
         run: |
-          if (Test-Path "${{ github.workspace }}/testresults") {
-            Write-Host "Generating test summary for GitHub Check..." -ForegroundColor Green
-            
-            # Generate test summary using existing tool and capture output
-            $tempSummaryFile = [System.IO.Path]::GetTempFileName()
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}" --output "$tempSummaryFile"
-            
-            # Read the generated summary
-            $summaryContent = ""
-            if (Test-Path $tempSummaryFile) {
-              $summaryContent = Get-Content $tempSummaryFile -Raw
-            }
-            
-            # If no summary was generated or it's empty, create a basic one
-            if ([string]::IsNullOrWhiteSpace($summaryContent)) {
-              Write-Host "No summary generated, creating basic summary..." -ForegroundColor Yellow
-              $summaryBuilder = New-Object System.Text.StringBuilder
-              
-              $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter "*.trx" -Recurse
-              foreach ($trxFile in $trxFiles) {
-                try {
-                  [xml]$trxContent = Get-Content $trxFile.FullName
-                  $counters = $trxContent.TestRun.ResultSummary.Counters
-                  $passed = [int]$counters.passed
-                  $failed = [int]$counters.failed
-                  $skipped = [int]$counters.notExecuted
-                  $total = [int]$counters.total
-                  
-                  $testTitle = [System.IO.Path]::GetFileNameWithoutExtension($trxFile.Name) -replace '\.trx$', ''
-                  if ("${{ steps.upload-logs.outputs.artifact-url }}" -ne "") {
-                    $testTitle = "$testTitle (<a href=`"${{ steps.upload-logs.outputs.artifact-url }}`">Logs</a>)"
-                  }
-                  
-                  [void]$summaryBuilder.AppendLine("### $testTitle")
-                  [void]$summaryBuilder.AppendLine("| Passed | Failed | Skipped | Total |")
-                  [void]$summaryBuilder.AppendLine("|--------|--------|---------|-------|")
-                  [void]$summaryBuilder.AppendLine("| $passed | $failed | $skipped | $total |")
-                  [void]$summaryBuilder.AppendLine()
-                  
-                  if ($failed -eq 0) {
-                    [void]$summaryBuilder.AppendLine("✅ All tests passed!")
-                    [void]$summaryBuilder.AppendLine()
-                  }
-                } catch {
-                  Write-Host "Warning: Could not parse TRX file $($trxFile.FullName)" -ForegroundColor Yellow
-                  [void]$summaryBuilder.AppendLine("### $([System.IO.Path]::GetFileNameWithoutExtension($trxFile.Name))")
-                  [void]$summaryBuilder.AppendLine("Unable to read test results.")
-                  [void]$summaryBuilder.AppendLine()
-                }
-              }
-              
-              $summaryContent = $summaryBuilder.ToString()
-            }
-            
-            # Determine check conclusion based on test results
-            $hasFailures = $false
-            $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter "*.trx" -Recurse
-            
-            foreach ($trxFile in $trxFiles) {
-              try {
-                [xml]$trxContent = Get-Content $trxFile.FullName
-                $failed = [int]$trxContent.TestRun.ResultSummary.Counters.failed
-                if ($failed -gt 0) {
-                  $hasFailures = $true
-                  break
-                }
-              } catch {
-                Write-Host "Warning: Could not parse TRX file $($trxFile.FullName)" -ForegroundColor Yellow
-                $hasFailures = $true
-                break
-              }
-            }
-            
-            $conclusion = if ($hasFailures) { "failure" } else { "success" }
-            $checkName = "CHECKTEST Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})"
-            
-            Write-Host "Creating GitHub Check with verbose logging..." -ForegroundColor Green
-            Write-Host "Check Name: $checkName" -ForegroundColor Cyan
-            Write-Host "Repository: ${{ github.repository }}" -ForegroundColor Cyan
-            Write-Host "Commit SHA: ${{ github.event.pull_request.head.sha || github.sha }}" -ForegroundColor Cyan
-            Write-Host "Conclusion: $conclusion" -ForegroundColor Cyan
-            Write-Host "Summary Length: $($summaryContent.Length) characters" -ForegroundColor Cyan
-            
-            # Write summary to temp file for gh api
-            $summaryFile = [System.IO.Path]::GetTempFileName()
-            $summaryContent | Out-File -FilePath $summaryFile -Encoding utf8
-            
-            # Create the check using gh api with verbose logging
-            gh api `
-              --method POST `
-              -H "Accept: application/vnd.github+json" `
-              -H "X-GitHub-Api-Version: 2022-11-28" `
-              --verbose `
-              /repos/${{ github.repository }}/check-runs `
-              -f "name=$checkName" `
-              -f "head_sha=${{ github.event.pull_request.head.sha || github.sha }}" `
-              -f "status=completed" `
-              -f "conclusion=$conclusion" `
-              -f "output[title]=$checkName Test Results" `
-              -F "output[summary]=@$summaryFile"
-              
-            # Clean up temp files
-            Remove-Item $tempSummaryFile -ErrorAction SilentlyContinue
-            Remove-Item $summaryFile -ErrorAction SilentlyContinue
-              
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "✅ GitHub Check created successfully" -ForegroundColor Green
-            } else {
-              Write-Host "❌ Failed to create GitHub Check" -ForegroundColor Red
-              exit 1
-            }
-          }
+          if [ -d "${{ github.workspace }}/testresults" ]; then
+            ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- \
+              "${{ github.workspace }}/testresults" \
+              --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" \
+              --repo "${{ github.repository }}" \
+              --sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+              --url "${{ steps.upload-logs.outputs.artifact-url }}"
+          fi
