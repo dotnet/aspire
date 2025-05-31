@@ -23,8 +23,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard(false);
+        builder.AddDockerComposeEnvironment("docker-compose");
 
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
@@ -80,7 +79,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithArgs("--cs", cs.Resource)
                          .WaitFor(redis)
                          .WaitForCompletion(migration)
-                         .WaitFor(param0);
+                         .WaitFor(param0)
+                         .WithOtlpExporter();
 
         builder.AddProject(
             "project1",
@@ -110,8 +110,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
 
-        builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard(false);
+        builder.AddDockerComposeEnvironment("docker-compose");
 
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
                .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -170,7 +169,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var containerNameParam = builder.AddParameter("param-1", "default-name", publishValueAsDefault: true);
 
         builder.AddDockerComposeEnvironment("docker-compose")
-               .WithDashboard(false)
                .WithProperties(e => e.DefaultNetworkName = "default-network")
                .ConfigureComposeFile(file =>
                {

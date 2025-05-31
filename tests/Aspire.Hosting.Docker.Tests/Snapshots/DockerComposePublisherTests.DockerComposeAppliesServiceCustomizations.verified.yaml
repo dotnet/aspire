@@ -1,5 +1,13 @@
 ﻿name: "my application"
 services:
+  docker-compose-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    ports:
+      - "8000:18888"
+      - "8001:18889"
+    networks:
+      - "default-network"
+    restart: "always"
   service:
     image: "nginx:latest"
     container_name: "${PARAM_1}"

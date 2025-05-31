@@ -63,6 +63,12 @@ internal sealed class DockerComposeInfrastructure(
             {
                 continue;
             }
+            
+            // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
+            if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
+            {
+                ConfigureOtlp(r, otlpGrpcEndpoint);
+            }
 
             // Create a Docker Compose compute resource for the resource
             var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
@@ -72,12 +78,6 @@ internal sealed class DockerComposeInfrastructure(
             {
                 ComputeEnvironment = environment
             });
-
-            // Configure OTLP for resources if dashboard is enabled
-            if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
-            {
-                ConfigureOtlp(r, otlpGrpcEndpoint);
-            }
         }
     }
 

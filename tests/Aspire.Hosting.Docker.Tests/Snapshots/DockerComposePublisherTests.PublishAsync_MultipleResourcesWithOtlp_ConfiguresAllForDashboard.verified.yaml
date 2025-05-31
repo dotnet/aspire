@@ -9,10 +9,18 @@
     restart: "always"
   api:
     image: "my-api:latest"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://docker-compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "api"
     networks:
       - "aspire"
   worker:
     image: "my-worker:latest"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://docker-compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "worker"
     networks:
       - "aspire"
   database:
