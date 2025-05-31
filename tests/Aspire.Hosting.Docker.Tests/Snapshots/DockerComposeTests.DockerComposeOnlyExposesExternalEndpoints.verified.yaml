@@ -1,8 +1,8 @@
 ﻿services:
   service:
-    image: "${SERVICE_IMAGE}"
-    environment:
-      PORT: "8000"
+    image: "nginx:latest"
+    ports:
+      - "8081:8001"
     expose:
       - "8000"
     networks:

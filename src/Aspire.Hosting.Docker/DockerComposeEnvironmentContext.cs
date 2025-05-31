@@ -47,8 +47,13 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
             var internalPort = endpoint.TargetPort ?? environment.PortAllocator.AllocatePort();
             environment.PortAllocator.AddUsedPort(internalPort);
 
-            var exposedPort = endpoint.Port ?? environment.PortAllocator.AllocatePort();
-            environment.PortAllocator.AddUsedPort(exposedPort);
+            // Only allocate exposed port if the endpoint is external
+            int? exposedPort = null;
+            if (endpoint.IsExternal)
+            {
+                exposedPort = endpoint.Port ?? environment.PortAllocator.AllocatePort();
+                environment.PortAllocator.AddUsedPort(exposedPort.Value);
+            }
 
             serviceResource.EndpointMappings.Add(endpoint.Name, new(endpoint.UriScheme, serviceResource.TargetResource.Name, internalPort, exposedPort, false));
         }
