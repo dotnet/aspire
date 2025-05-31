@@ -60,6 +60,12 @@ internal sealed class DockerComposeInfrastructure(
                 continue;
             }
 
+            // Configure OTLP for this resource if dashboard is enabled
+            if (dashboardResource != null)
+            {
+                ConfigureOtlpForResource(r, dashboardResource);
+            }
+
             // Create a Docker Compose compute resource for the resource
             var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
@@ -70,12 +76,6 @@ internal sealed class DockerComposeInfrastructure(
                 ComputeEnvironment = environment
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        }
-
-        // Configure OTLP endpoints for resources that have OtlpExporterAnnotation
-        if (dashboardResource != null)
-        {
-            ConfigureOtlpForResources(appModel, dashboardResource);
         }
     }
 
@@ -103,29 +103,26 @@ internal sealed class DockerComposeInfrastructure(
         return dashboardResource;
     }
 
-    private static void ConfigureOtlpForResources(DistributedApplicationModel appModel, ContainerResource dashboardResource)
+    private static void ConfigureOtlpForResource(IResource resource, ContainerResource dashboardResource)
     {
-        foreach (var resource in appModel.Resources.OfType<IResourceWithEnvironment>())
+        // Skip the dashboard itself
+        if (resource == dashboardResource)
         {
-            // Skip the dashboard itself
-            if (resource == dashboardResource)
-            {
-                continue;
-            }
+            return;
+        }
 
-            // Only configure OTLP for resources that have the OtlpExporterAnnotation
-            if (resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+        // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
+        if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+        {
+            // Configure OTLP environment variables
+            resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
             {
-                // Configure OTLP environment variables
-                resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-                {
-                    var otlpEndpoint = dashboardResource.GetEndpoint("otlp");
-                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
-                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
-                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
-                    return Task.CompletedTask;
-                }));
-            }
+                var otlpEndpoint = dashboardResource.GetEndpoint("otlp");
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                return Task.CompletedTask;
+            }));
         }
     }
 }
