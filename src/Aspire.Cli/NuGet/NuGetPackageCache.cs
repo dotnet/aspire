@@ -2,9 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli;
+namespace Aspire.Cli.NuGet;
 
 internal interface INuGetPackageCache
 {
@@ -12,7 +13,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache) : INuGetPackageCache
 {
     private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 
@@ -20,7 +21,14 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
+        var key = $"TemplatePackages-{workingDirectory.FullName}-{prerelease}-{source}";
+
+        var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
+        {
+            return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
+        }) ?? throw new NuGetPackageCacheException("Failed to retrieve template packages via cache.");
+
+        return packages;
     }
 
     public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)

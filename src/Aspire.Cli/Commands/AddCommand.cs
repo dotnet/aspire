@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Semver;

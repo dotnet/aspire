@@ -159,7 +159,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 );
         }
 
-        interactionService.DisplayEmptyLine();
         await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
         return selectedAppHost;
     }
