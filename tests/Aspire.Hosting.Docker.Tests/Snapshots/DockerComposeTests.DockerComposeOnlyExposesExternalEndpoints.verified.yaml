@@ -1,0 +1,11 @@
+﻿services:
+  service:
+    image: "nginx:latest"
+    ports:
+      - "8000"
+      - "8081:8001"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"

@@ -50,7 +50,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void DockerComposeOnlyExposesExternalEndpoints()
+    public async Task DockerComposeOnlyExposesExternalEndpoints()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -71,7 +71,7 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         var composeContent = File.ReadAllText(composeFile);
 
-        Verify(composeContent, "yaml");
+        await Verify(composeContent, "yaml");
         
         tempDir.Delete(recursive: true);
     }
