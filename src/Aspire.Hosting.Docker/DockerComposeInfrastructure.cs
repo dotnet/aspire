@@ -40,7 +40,7 @@ internal sealed class DockerComposeInfrastructure(
 
         // Check if dashboard is enabled and create it if needed
         ContainerResource? dashboardResource = null;
-        if (environment.DashboardEnabled && executionContext.IsPublishMode)
+        if (environment.DashboardEnabled)
         {
             dashboardResource = CreateDashboardResource(appModel);
         }
