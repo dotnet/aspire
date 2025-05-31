@@ -23,7 +23,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
@@ -109,7 +110,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
                .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -135,7 +137,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .WithTestAndResourceLogging(outputHelper);
 
         builder.AddDockerComposeEnvironment("docker-compose")
-               .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
+               .WithProperties(e => e.BuildContainerImages = shouldBuildImages)
+               .WithDashboard(false);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -169,6 +172,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose")
                .WithProperties(e => e.DefaultNetworkName = "default-network")
+               .WithDashboard(false)
                .ConfigureComposeFile(file =>
                {
                    file.AddNetwork(new Network { Name = "custom-network", Driver = "host" });
@@ -219,7 +223,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp()
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
-            builder.AddDockerComposeEnvironment("docker-compose");
+            builder.AddDockerComposeEnvironment("docker-compose")
+                .WithDashboard(false);
             var param = builder.AddParameter("param1");
             builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
             var app = builder.Build();
@@ -248,7 +253,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp(params string[] paramNames)
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
-            builder.AddDockerComposeEnvironment("docker-compose");
+            builder.AddDockerComposeEnvironment("docker-compose")
+                .WithDashboard(false);
 
             var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
 
@@ -286,7 +292,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         var container = builder.AddExecutable("service", "foo", ".")
             .PublishAsDockerFile()
