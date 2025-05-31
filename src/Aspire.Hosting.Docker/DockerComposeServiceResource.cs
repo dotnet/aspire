@@ -229,6 +229,11 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
 
                 composeService.Ports.Add($"{exposedPort}:{internalPort}");
             }
+            else
+            {
+                // For HTTP ingress, we expose the internal port without a specific external port
+                composeService.Ports.Add(mapping.InternalPort.ToString(CultureInfo.InvariantCulture));
+            }
         }
     }
 

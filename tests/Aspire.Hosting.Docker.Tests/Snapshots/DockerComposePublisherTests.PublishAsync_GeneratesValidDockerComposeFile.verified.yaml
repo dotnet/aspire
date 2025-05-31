@@ -12,8 +12,8 @@
       TP: "8000"
       TPH2: "5001"
     ports:
-      - "5000:5001"
-      - "8001:8000"
+      - "5001"
+      - "8000"
     networks:
       - "aspire"
     configs:
@@ -37,13 +37,13 @@
       - "Url=${PARAM0}, Secret=${PARAM1}"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      PORT: "8002"
+      PORT: "8001"
       param0: "${PARAM0}"
       param1: "${PARAM1}"
       param2: "${PARAM2}"
       ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
     ports:
-      - "8003:8002"
+      - "8001"
     depends_on:
       cache:
         condition: "service_started"
@@ -57,7 +57,7 @@
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
-      services__myapp__http__0: "http://myapp:8002"
+      services__myapp__http__0: "http://myapp:8001"
     networks:
       - "aspire"
 networks:

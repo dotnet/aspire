@@ -4,7 +4,7 @@
     environment:
       PORT: "8000"
     ports:
-      - "8001:8000"
+      - "8000"
     networks:
       - "aspire"
 networks:

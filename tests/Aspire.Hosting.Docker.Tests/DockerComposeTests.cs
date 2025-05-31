@@ -60,8 +60,8 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         // Add a container with both external and non-external endpoints
         builder.AddContainer("service", "nginx")
-               .WithEndpoint(port: 8080, name: "internal")  // Non-external endpoint
-               .WithEndpoint(port: 8081, name: "external", isExternal: true); // External endpoint
+               .WithEndpoint(scheme: "http", port: 8080, name: "internal")  // Non-external endpoint
+               .WithEndpoint(scheme: "http", port: 8081, name: "external", isExternal: true); // External endpoint
 
         var app = builder.Build();
         app.Run();
@@ -70,17 +70,9 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
 
         var composeContent = File.ReadAllText(composeFile);
-        output.WriteLine("Docker Compose content:");
-        output.WriteLine(composeContent);
 
-        // The external endpoint should have a port mapping, but the internal one should not
-        // We expect to see one port mapping for the external endpoint only
-        var portMappingCount = composeContent.Split('\n')
-            .Where(line => line.Trim().StartsWith("- ") && line.Contains(':'))
-            .Count();
-
-        Assert.Equal(1, portMappingCount);
-
+        Verify(composeContent, "yaml");
+        
         tempDir.Delete(recursive: true);
     }
 
