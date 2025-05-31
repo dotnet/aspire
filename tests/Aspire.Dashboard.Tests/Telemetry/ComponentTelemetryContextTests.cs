@@ -19,6 +19,7 @@ public class ComponentTelemetryContextTests
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
         telemetryContextProvider.SetBrowserUserAgent("mozilla");
         await telemetryService.InitializeAsync();
+        var logger = NullLogger<ComponentTelemetryContextTests>.Instance;
 
         telemetryContextProvider.Initialize(telemetryContext);
         for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
@@ -35,18 +36,18 @@ public class ComponentTelemetryContextTests
 
         OperationContext? parametersUpdateOperation;
 
-        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
+        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
         Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
         Assert.Equal("/telemetry/operation - $aspire/dashboard/component/paramsSet", parametersUpdateOperation.Name);
         Assert.Single(parametersUpdateOperation.Properties);
 
         // If value didn't change, we shouldn't post again
-        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
+        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
         Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
-        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("NewValue"))]);
+        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("NewValue"))], logger);
         Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
@@ -64,11 +65,12 @@ public class ComponentTelemetryContextTests
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
         telemetryContextProvider.SetBrowserUserAgent("mozilla");
         await telemetryService.InitializeAsync();
+        var logger = NullLogger<ComponentTelemetryContextTests>.Instance;
 
         telemetryContextProvider.Initialize(telemetryContext);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
-        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))]);
+        telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
         Assert.Equal(3, telemetryContext.Properties.Count);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
