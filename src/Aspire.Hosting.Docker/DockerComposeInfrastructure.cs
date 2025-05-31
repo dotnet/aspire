@@ -37,9 +37,6 @@ internal sealed class DockerComposeInfrastructure(
             return;
         }
 
-        // Get the dashboard configuration if it exists
-        var dashboardConfiguration = environment.DashboardEnabled ? environment.DashboardConfiguration : null;
-
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
         foreach (var r in appModel.Resources)
@@ -55,12 +52,6 @@ internal sealed class DockerComposeInfrastructure(
                 continue;
             }
 
-            // Configure OTLP for this resource if dashboard is enabled
-            if (dashboardConfiguration != null)
-            {
-                ConfigureOtlpForResource(r, dashboardConfiguration);
-            }
-
             // Create a Docker Compose compute resource for the resource
             var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
@@ -71,24 +62,6 @@ internal sealed class DockerComposeInfrastructure(
                 ComputeEnvironment = environment
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        }
-    }
-
-    private static void ConfigureOtlpForResource(IResource resource, DashboardConfiguration dashboardConfiguration)
-    {
-        // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
-        if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
-        {
-            // Configure OTLP environment variables
-            resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-            {
-                var dashboardName = dashboardConfiguration.ContainerName ?? "aspire-dashboard";
-                var otlpEndpoint = $"http://{dashboardName}:{dashboardConfiguration.OtlpPort}";
-                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
-                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
-                context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
-                return Task.CompletedTask;
-            }));
         }
     }
 }

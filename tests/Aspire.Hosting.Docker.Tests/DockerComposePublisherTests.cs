@@ -380,14 +380,15 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose")
             .WithDashboard()
-            .ConfigureDashboard(config =>
+            .ConfigureDashboard(service =>
             {
-                config.Image = "custom-dashboard:latest";
-                config.ContainerName = "custom-dashboard";
-                config.DashboardPort = 19999;
-                config.OtlpPort = 20000;
-                config.Restart = "unless-stopped";
-                config.EnvironmentVariables["CUSTOM_VAR"] = "custom-value";
+                service.Image = "custom-dashboard:latest";
+                service.ContainerName = "custom-dashboard";
+                service.Restart = "unless-stopped";
+                service.Ports.Clear();
+                service.Ports.Add("19999:18888"); // Custom dashboard port
+                service.Ports.Add("20000:18889"); // Custom OTLP port
+                service.AddEnvironmentalVariable("CUSTOM_VAR", "custom-value");
             });
 
         var app = builder.Build();

@@ -71,6 +71,19 @@ internal sealed class DockerComposePublishingContext(
         var composeFile = new ComposeFile();
         composeFile.AddNetwork(defaultNetwork);
 
+        // Create and configure dashboard service if enabled
+        Service? dashboardService = null;
+        if (environment.DashboardEnabled)
+        {
+            dashboardService = CreateDashboardService(environment, defaultNetwork.Name);
+            
+            // Apply the dashboard configuration callback if it exists
+            environment.ConfigureDashboard?.Invoke(dashboardService);
+            
+            // Configure OTLP for all resources with OtlpExporterAnnotation before processing services
+            ConfigureOtlpForResources(model, dashboardService);
+        }
+
         foreach (var resource in model.Resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
@@ -113,10 +126,9 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Add dashboard service if enabled
-        if (environment.DashboardEnabled && environment.DashboardConfiguration is not null)
+        // Add dashboard service to the compose file
+        if (dashboardService is not null)
         {
-            var dashboardService = CreateDashboardService(environment.DashboardConfiguration, defaultNetwork.Name);
             composeFile.AddService(dashboardService);
         }
 
@@ -226,35 +238,44 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private static Service CreateDashboardService(DashboardConfiguration config, string networkName)
+    private static Service CreateDashboardService(DockerComposeEnvironmentResource environment, string networkName)
     {
+        var dashboardName = $"{environment.Name}-dashboard";
         var service = new Service
         {
-            Name = config.ContainerName ?? "aspire-dashboard",
-            Image = config.Image,
-            ContainerName = config.ContainerName,
-            Restart = config.Restart,
+            Name = dashboardName,
+            Image = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard",
+            ContainerName = dashboardName,
+            Restart = "always",
             Networks = [networkName]
         };
 
         // Add dashboard UI port
-        service.Ports.Add($"{config.DashboardPort}:18888");
+        service.Ports.Add("18888:18888");
         
         // Add OTLP port
-        service.Ports.Add($"{config.OtlpPort}:18889");
-
-        // Add any additional ports
-        foreach (var port in config.AdditionalPorts)
-        {
-            service.Ports.Add(port);
-        }
-
-        // Add environment variables
-        foreach (var envVar in config.EnvironmentVariables)
-        {
-            service.AddEnvironmentalVariable(envVar.Key, envVar.Value);
-        }
+        service.Ports.Add("18889:18889");
 
         return service;
+    }
+
+    private static void ConfigureOtlpForResources(DistributedApplicationModel model, Service dashboardService)
+    {
+        foreach (var resource in model.Resources)
+        {
+            // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
+            if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+            {
+                // Configure OTLP environment variables
+                resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                {
+                    var otlpEndpoint = $"http://{dashboardService.ContainerName}:18889";
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                    return Task.CompletedTask;
+                }));
+            }
+        }
     }
 }

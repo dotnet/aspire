@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
+using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
@@ -38,12 +39,6 @@ public static class DockerComposeEnvironmentExtensions
 
         var resourceBuilder = builder.AddResource(resource);
         
-        // Only create dashboard configuration in publish mode and when enabled by default
-        if (builder.ExecutionContext.IsPublishMode && resource.DashboardEnabled)
-        {
-            CreateDashboardConfigurationForEnvironment(resourceBuilder);
-        }
-
         return resourceBuilder;
     }
 
@@ -90,12 +85,6 @@ public static class DockerComposeEnvironmentExtensions
 
         builder.Resource.DashboardEnabled = enabled;
 
-        // Create dashboard configuration if enabled and in publish mode
-        if (enabled && builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            CreateDashboardConfigurationForEnvironment(builder);
-        }
-
         return builder;
     }
 
@@ -103,9 +92,9 @@ public static class DockerComposeEnvironmentExtensions
     /// Configures the dashboard properties for this Docker Compose environment.
     /// </summary>
     /// <param name="builder">The Docker Compose environment resource builder.</param>
-    /// <param name="configure">A method that can be used for customizing the dashboard configuration.</param>
+    /// <param name="configure">A method that can be used for customizing the dashboard service.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<DashboardConfiguration> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<Service> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
@@ -113,32 +102,9 @@ public static class DockerComposeEnvironmentExtensions
         // Ensure dashboard is enabled
         builder.Resource.DashboardEnabled = true;
 
-        // Ensure dashboard configuration exists
-        if (builder.Resource.DashboardConfiguration is null && builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            CreateDashboardConfigurationForEnvironment(builder);
-        }
-
-        if (builder.Resource.DashboardConfiguration is not null)
-        {
-            configure(builder.Resource.DashboardConfiguration);
-        }
+        // Store the configuration callback
+        builder.Resource.ConfigureDashboard += configure;
 
         return builder;
-    }
-
-    private static void CreateDashboardConfigurationForEnvironment(IResourceBuilder<DockerComposeEnvironmentResource> environmentBuilder)
-    {
-        // Check if dashboard configuration already exists and noop if it does
-        if (environmentBuilder.Resource.DashboardConfiguration is not null)
-        {
-            return;
-        }
-
-        var dashboardName = $"{environmentBuilder.Resource.Name}-dashboard";
-        environmentBuilder.Resource.DashboardConfiguration = new DashboardConfiguration
-        {
-            ContainerName = dashboardName
-        };
     }
 }
