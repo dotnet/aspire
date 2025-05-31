@@ -12,6 +12,47 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
+/// Configuration for the dashboard service in a Docker Compose environment.
+/// </summary>
+public class DashboardConfiguration
+{
+    /// <summary>
+    /// Gets or sets the container image for the dashboard.
+    /// </summary>
+    public string Image { get; set; } = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard";
+
+    /// <summary>
+    /// Gets or sets the restart policy for the dashboard container.
+    /// </summary>
+    public string Restart { get; set; } = "always";
+
+    /// <summary>
+    /// Gets or sets the dashboard UI port.
+    /// </summary>
+    public int DashboardPort { get; set; } = 18888;
+
+    /// <summary>
+    /// Gets or sets the OTLP ingestion port.
+    /// </summary>
+    public int OtlpPort { get; set; } = 18889;
+
+    /// <summary>
+    /// Gets or sets environment variables for the dashboard container.
+    /// </summary>
+    public Dictionary<string, string> EnvironmentVariables { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets additional ports to expose.
+    /// </summary>
+    public List<string> AdditionalPorts { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the container name for the dashboard.
+    /// </summary>
+    public string? ContainerName { get; set; }
+}
+
+/// <summary>
 /// Represents a Docker Compose environment resource that can host application resources.
 /// </summary>
 /// <remarks>
@@ -40,9 +81,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     public bool DashboardEnabled { get; set; } = true;
 
     /// <summary>
-    /// Gets the dashboard resource builder for this environment, if one has been created.
+    /// Gets or sets the dashboard configuration for this environment.
     /// </summary>
-    internal IResourceBuilder<ContainerResource>? Dashboard { get; set; }
+    internal DashboardConfiguration? DashboardConfiguration { get; set; }
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 

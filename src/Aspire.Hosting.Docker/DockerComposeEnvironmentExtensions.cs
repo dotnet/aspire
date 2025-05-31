@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
@@ -39,10 +38,10 @@ public static class DockerComposeEnvironmentExtensions
 
         var resourceBuilder = builder.AddResource(resource);
         
-        // Always create dashboard resource in publish mode
-        if (builder.ExecutionContext.IsPublishMode)
+        // Only create dashboard configuration in publish mode and when enabled by default
+        if (builder.ExecutionContext.IsPublishMode && resource.DashboardEnabled)
         {
-            CreateDashboardForEnvironment(resourceBuilder);
+            CreateDashboardConfigurationForEnvironment(resourceBuilder);
         }
 
         return resourceBuilder;
@@ -91,6 +90,12 @@ public static class DockerComposeEnvironmentExtensions
 
         builder.Resource.DashboardEnabled = enabled;
 
+        // Create dashboard configuration if enabled and in publish mode
+        if (enabled && builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            CreateDashboardConfigurationForEnvironment(builder);
+        }
+
         return builder;
     }
 
@@ -98,47 +103,42 @@ public static class DockerComposeEnvironmentExtensions
     /// Configures the dashboard properties for this Docker Compose environment.
     /// </summary>
     /// <param name="builder">The Docker Compose environment resource builder.</param>
-    /// <param name="configure">A method that can be used for customizing the dashboard container.</param>
+    /// <param name="configure">A method that can be used for customizing the dashboard configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<ContainerResource>> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<DashboardConfiguration> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        configure(builder.Resource.Dashboard!);
+        // Ensure dashboard is enabled
+        builder.Resource.DashboardEnabled = true;
+
+        // Ensure dashboard configuration exists
+        if (builder.Resource.DashboardConfiguration is null && builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            CreateDashboardConfigurationForEnvironment(builder);
+        }
+
+        if (builder.Resource.DashboardConfiguration is not null)
+        {
+            configure(builder.Resource.DashboardConfiguration);
+        }
 
         return builder;
     }
 
-    private static void CreateDashboardForEnvironment(IResourceBuilder<DockerComposeEnvironmentResource> environmentBuilder)
+    private static void CreateDashboardConfigurationForEnvironment(IResourceBuilder<DockerComposeEnvironmentResource> environmentBuilder)
     {
-        // Check if dashboard already exists and noop if it does
-        if (environmentBuilder.Resource.Dashboard is not null)
+        // Check if dashboard configuration already exists and noop if it does
+        if (environmentBuilder.Resource.DashboardConfiguration is not null)
         {
             return;
         }
 
         var dashboardName = $"{environmentBuilder.Resource.Name}-dashboard";
-        var dashboardResource = new ContainerResource(dashboardName);
-        
-        // Add container image annotation
-        dashboardResource.Annotations.Add(new ContainerImageAnnotation { Image = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard" });
-        
-        // Add endpoint annotations
-        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18888, name: "dashboard"));
-        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18889, name: "otlp"));
-
-        // Add Docker Compose service customization for restart policy
-        dashboardResource.Annotations.Add(new DockerComposeServiceCustomizationAnnotation((serviceResource, service) =>
+        environmentBuilder.Resource.DashboardConfiguration = new DashboardConfiguration
         {
-            service.Restart = "always";
-        }));
-
-        // Create the dashboard builder and add to environment
-        var dashboardBuilder = environmentBuilder.ApplicationBuilder.CreateResourceBuilder(dashboardResource);
-        environmentBuilder.Resource.Dashboard = dashboardBuilder;
-
-        // Add the dashboard resource to the model
-        environmentBuilder.ApplicationBuilder.AddResource(dashboardResource);
+            ContainerName = dashboardName
+        };
     }
 }

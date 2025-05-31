@@ -113,6 +113,13 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
+        // Add dashboard service if enabled
+        if (environment.DashboardEnabled && environment.DashboardConfiguration is not null)
+        {
+            var dashboardService = CreateDashboardService(environment.DashboardConfiguration, defaultNetwork.Name);
+            composeFile.AddService(dashboardService);
+        }
+
         // Call the environment's ConfigureComposeFile method to allow for custom modifications
         environment.ConfigureComposeFile?.Invoke(composeFile);
 
@@ -217,5 +224,37 @@ internal sealed class DockerComposePublishingContext(
 
             composeFile.AddVolume(newVolume);
         }
+    }
+
+    private static Service CreateDashboardService(DashboardConfiguration config, string networkName)
+    {
+        var service = new Service
+        {
+            Name = config.ContainerName ?? "aspire-dashboard",
+            Image = config.Image,
+            ContainerName = config.ContainerName,
+            Restart = config.Restart,
+            Networks = [networkName]
+        };
+
+        // Add dashboard UI port
+        service.Ports.Add($"{config.DashboardPort}:18888");
+        
+        // Add OTLP port
+        service.Ports.Add($"{config.OtlpPort}:18889");
+
+        // Add any additional ports
+        foreach (var port in config.AdditionalPorts)
+        {
+            service.Ports.Add(port);
+        }
+
+        // Add environment variables
+        foreach (var envVar in config.EnvironmentVariables)
+        {
+            service.AddEnvironmentalVariable(envVar.Key, envVar.Value);
+        }
+
+        return service;
     }
 }

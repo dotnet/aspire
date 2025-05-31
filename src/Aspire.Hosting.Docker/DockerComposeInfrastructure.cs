@@ -37,20 +37,8 @@ internal sealed class DockerComposeInfrastructure(
             return;
         }
 
-        // Get the dashboard resource if it exists and handle enablement
-        ContainerResource? dashboardResource = null;
-        if (environment.Dashboard?.Resource is ContainerResource dashboard)
-        {
-            if (environment.DashboardEnabled)
-            {
-                dashboardResource = dashboard;
-            }
-            else
-            {
-                // Remove dashboard from model if disabled
-                appModel.Resources.Remove(dashboard);
-            }
-        }
+        // Get the dashboard configuration if it exists
+        var dashboardConfiguration = environment.DashboardEnabled ? environment.DashboardConfiguration : null;
 
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
@@ -68,9 +56,9 @@ internal sealed class DockerComposeInfrastructure(
             }
 
             // Configure OTLP for this resource if dashboard is enabled
-            if (dashboardResource != null)
+            if (dashboardConfiguration != null)
             {
-                ConfigureOtlpForResource(r, dashboardResource);
+                ConfigureOtlpForResource(r, dashboardConfiguration);
             }
 
             // Create a Docker Compose compute resource for the resource
@@ -86,21 +74,16 @@ internal sealed class DockerComposeInfrastructure(
         }
     }
 
-    private static void ConfigureOtlpForResource(IResource resource, ContainerResource dashboardResource)
+    private static void ConfigureOtlpForResource(IResource resource, DashboardConfiguration dashboardConfiguration)
     {
-        // Skip the dashboard itself
-        if (resource == dashboardResource)
-        {
-            return;
-        }
-
         // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
         if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
         {
             // Configure OTLP environment variables
             resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
             {
-                var otlpEndpoint = dashboardResource.GetEndpoint("otlp");
+                var dashboardName = dashboardConfiguration.ContainerName ?? "aspire-dashboard";
+                var otlpEndpoint = $"http://{dashboardName}:{dashboardConfiguration.OtlpPort}";
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
                 context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
