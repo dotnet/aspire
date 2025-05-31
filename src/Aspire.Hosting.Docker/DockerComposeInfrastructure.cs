@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,13 @@ internal sealed class DockerComposeInfrastructure(
             return;
         }
 
+        // Check if dashboard is enabled and create it if needed
+        ContainerResource? dashboardResource = null;
+        if (environment.DashboardEnabled && executionContext.IsPublishMode)
+        {
+            dashboardResource = CreateDashboardResource(appModel);
+        }
+
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
         foreach (var r in appModel.Resources)
@@ -62,6 +70,62 @@ internal sealed class DockerComposeInfrastructure(
                 ComputeEnvironment = environment
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        }
+
+        // Configure OTLP endpoints for resources that have OtlpExporterAnnotation
+        if (dashboardResource != null)
+        {
+            ConfigureOtlpForResources(appModel, dashboardResource);
+        }
+    }
+
+    private static ContainerResource CreateDashboardResource(DistributedApplicationModel appModel)
+    {
+        // Create dashboard container resource
+        var dashboardResource = new ContainerResource("aspire-dashboard");
+        
+        // Add container image annotation
+        dashboardResource.Annotations.Add(new ContainerImageAnnotation { Image = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard" });
+        
+        // Add endpoint annotations
+        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18888, name: "dashboard"));
+        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18889, name: "otlp"));
+
+        // Add Docker Compose service customization for restart policy
+        dashboardResource.Annotations.Add(new DockerComposeServiceCustomizationAnnotation((serviceResource, service) =>
+        {
+            service.Restart = "always";
+        }));
+
+        // Add the dashboard resource to the model
+        appModel.Resources.Add(dashboardResource);
+        
+        return dashboardResource;
+    }
+
+    private static void ConfigureOtlpForResources(DistributedApplicationModel appModel, ContainerResource dashboardResource)
+    {
+        foreach (var resource in appModel.Resources.OfType<IResourceWithEnvironment>())
+        {
+            // Skip the dashboard itself
+            if (resource == dashboardResource)
+            {
+                continue;
+            }
+
+            // Only configure OTLP for resources that have the OtlpExporterAnnotation
+            if (resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+            {
+                // Configure OTLP environment variables
+                resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                {
+                    var otlpEndpoint = dashboardResource.GetEndpoint("otlp");
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                    return Task.CompletedTask;
+                }));
+            }
         }
     }
 }

@@ -54,12 +54,12 @@ public class DockerComposeTests(ITestOutputHelper output)
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     [Fact]
-    public async Task WithDashboard_InPublishMode_AddsDashboardResource()
+    public async Task DashboardEnabled_InPublishMode_AddsDashboardResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard();
+            .WithProperties(env => env.DashboardEnabled = true);
 
         var app = builder.Build();
 
@@ -74,12 +74,12 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task WithDashboard_WithOtlpExporter_ConfiguresOtlpEndpoint()
+    public async Task DashboardEnabled_WithOtlpExporter_ConfiguresOtlpEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard();
+            .WithProperties(env => env.DashboardEnabled = true);
 
         // Add a container with OTLP exporter
         var container = builder.AddContainer("service", "nginx")
@@ -101,12 +101,12 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task WithDashboard_Disabled_DoesNotAddDashboard()
+    public async Task DashboardDisabled_DoesNotAddDashboard()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard(enabled: false);
+            .WithProperties(env => env.DashboardEnabled = false);
 
         var app = builder.Build();
 
@@ -120,12 +120,12 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task WithDashboard_InRunMode_DoesNotAddDashboard()
+    public async Task DashboardEnabled_InRunMode_DoesNotAddDashboard()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard();
+            .WithProperties(env => env.DashboardEnabled = true);
 
         var app = builder.Build();
 
