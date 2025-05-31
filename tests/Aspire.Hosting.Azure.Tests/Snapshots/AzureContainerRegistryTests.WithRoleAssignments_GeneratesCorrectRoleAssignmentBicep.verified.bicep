@@ -5,7 +5,7 @@ param acr_outputs_name string
 
 param principalId string
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   name: acr_outputs_name
 }
 

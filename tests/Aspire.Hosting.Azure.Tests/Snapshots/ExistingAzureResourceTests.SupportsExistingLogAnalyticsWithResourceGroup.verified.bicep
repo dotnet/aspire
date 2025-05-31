@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 
 param existingResourceName string
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: existingResourceName
 }
 

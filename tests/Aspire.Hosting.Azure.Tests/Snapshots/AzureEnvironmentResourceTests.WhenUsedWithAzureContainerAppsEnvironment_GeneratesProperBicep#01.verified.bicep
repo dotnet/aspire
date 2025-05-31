@@ -5,13 +5,13 @@ param userPrincipalId string
 
 param tags object = { }
 
-resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('env_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
   tags: tags
 }
 
-resource env_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: take('envacr${uniqueString(resourceGroup().id)}', 50)
   location: location
   sku: {
@@ -30,7 +30,7 @@ resource env_acr_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04
   scope: env_acr
 }
 
-resource env_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource env_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('envlaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
@@ -41,7 +41,7 @@ resource env_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   tags: tags
 }
 
-resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource env 'Microsoft.App/managedEnvironments@2025-01-01' = {
   name: take('env${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
