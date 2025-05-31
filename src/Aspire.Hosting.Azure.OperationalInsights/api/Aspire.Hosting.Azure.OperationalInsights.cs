@@ -20,6 +20,8 @@ namespace Aspire.Hosting.Azure
     {
         public AzureLogAnalyticsWorkspaceResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public BicepOutputReference WorkspaceId { get { throw null; } }
     }
 }

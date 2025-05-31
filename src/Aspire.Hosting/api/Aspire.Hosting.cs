@@ -51,6 +51,9 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithContainerFiles<T>(this ApplicationModel.IResourceBuilder<T> builder, string destinationPath, System.Func<ApplicationModel.ContainerFileSystemCallbackContext, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<ApplicationModel.ContainerFileSystemItem>>> callback, int? defaultOwner = null, int? defaultGroup = null, System.IO.UnixFileMode? umask = null)
             where T : ApplicationModel.ContainerResource { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<T> WithContainerFiles<T>(this ApplicationModel.IResourceBuilder<T> builder, string destinationPath, string sourcePath, int? defaultOwner = null, int? defaultGroup = null, System.IO.UnixFileMode? umask = null)
+            where T : ApplicationModel.ContainerResource { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithContainerName<T>(this ApplicationModel.IResourceBuilder<T> builder, string name)
             where T : ApplicationModel.ContainerResource { throw null; }
 
@@ -733,11 +736,15 @@ namespace Aspire.Hosting.ApplicationModel
     public sealed partial class ContainerDirectory : ContainerFileSystemItem
     {
         public System.Collections.Generic.IEnumerable<ContainerFileSystemItem> Entries { get { throw null; } set { } }
+
+        public static System.Collections.Generic.IEnumerable<ContainerFileSystemItem> GetFileSystemItemsFromPath(string path, string searchPattern = "*", System.IO.SearchOption searchOptions = System.IO.SearchOption.TopDirectoryOnly, System.Action<ContainerFileSystemItem>? updateItem = null) { throw null; }
     }
 
     public sealed partial class ContainerFile : ContainerFileSystemItem
     {
         public string? Contents { get { throw null; } set { } }
+
+        public string? SourcePath { get { throw null; } set { } }
     }
 
     [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nw}, DestinationPath = {DestinationPath}")]
@@ -1705,7 +1712,7 @@ namespace Aspire.Hosting.ApplicationModel
         Hidden = 2
     }
 
-    public partial class ResourceEndpointsAllocatedEvent : Eventing.IDistributedApplicationEvent
+    public partial class ResourceEndpointsAllocatedEvent : Eventing.IDistributedApplicationResourceEvent, Eventing.IDistributedApplicationEvent
     {
         public ResourceEndpointsAllocatedEvent(IResource resource, System.IServiceProvider services) { }
 
