@@ -27,3 +27,4 @@ export const selectProjectToRun = localize('aspire-vscode.commands.run.selectPro
 // Activation and RPC Server Messages
 export const activated = localize('aspire-vscode.strings.activated', 'Aspire Extension activated.');
 export const rpcServerListening = (port: number) => localize('aspire-vscode.rpcserver.listening', 'JSON-RPC server listening on port {0}', port);
+export const rpcServerAddressError = localize('aspire-vscode.rpcserver.addressError', 'Failed to get RPC server address. The extension may not function correctly.');

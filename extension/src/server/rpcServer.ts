@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { outputChannel } from '../utils/vsc';
-import { rpcServerListening } from '../constants/strings';
+import { rpcServerListening, rpcServerAddressError } from '../constants/strings';
 import * as crypto from 'crypto';
 
 export function setupRpcServer(context: vscode.ExtensionContext, onListening?: (port: number, token: string) => void): net.Server {
@@ -41,7 +41,9 @@ export function setupRpcServer(context: vscode.ExtensionContext, onListening?: (
                 onListening(address.port, token);
             }
         } else {
-            throw new Error('Failed to get RPC server address');
+            outputChannel.appendLine(rpcServerAddressError);
+            vscode.window.showErrorMessage(rpcServerAddressError);
+            throw new Error(rpcServerAddressError);
         }
     });
 

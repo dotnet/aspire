@@ -13,5 +13,6 @@
 	"aspire-vscode.commands.add.noOptionSelected": "No option selected",
 	"aspire-vscode.commands.run.selectProjectToRun": "Select the Aspire project to run",
 	"aspire-vscode.strings.activated": "Aspire Extension activated.",
-	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on port {0}"
+	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on port {0}",
+	"aspire-vscode.rpcserver.addressError": "Failed to get RPC server address"
 }
