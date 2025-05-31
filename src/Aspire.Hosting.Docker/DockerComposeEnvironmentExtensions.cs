@@ -105,16 +105,19 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        if (builder.Resource.Dashboard is not null)
-        {
-            configure(builder.Resource.Dashboard);
-        }
+        configure(builder.Resource.Dashboard!);
 
         return builder;
     }
 
     private static void CreateDashboardForEnvironment(IResourceBuilder<DockerComposeEnvironmentResource> environmentBuilder)
     {
+        // Check if dashboard already exists and noop if it does
+        if (environmentBuilder.Resource.Dashboard is not null)
+        {
+            return;
+        }
+
         var dashboardName = $"{environmentBuilder.Resource.Name}-dashboard";
         var dashboardResource = new ContainerResource(dashboardName);
         

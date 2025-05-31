@@ -137,8 +137,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .WithTestAndResourceLogging(outputHelper);
 
         builder.AddDockerComposeEnvironment("docker-compose")
-               .WithProperties(e => e.BuildContainerImages = shouldBuildImages)
-               .WithDashboard(false);
+               .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
@@ -171,8 +170,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var containerNameParam = builder.AddParameter("param-1", "default-name", publishValueAsDefault: true);
 
         builder.AddDockerComposeEnvironment("docker-compose")
-               .WithProperties(e => e.DefaultNetworkName = "default-network")
                .WithDashboard(false)
+               .WithProperties(e => e.DefaultNetworkName = "default-network")
                .ConfigureComposeFile(file =>
                {
                    file.AddNetwork(new Network { Name = "custom-network", Driver = "host" });
@@ -223,8 +222,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp()
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
-            builder.AddDockerComposeEnvironment("docker-compose")
-                .WithDashboard(false);
+            builder.AddDockerComposeEnvironment("docker-compose");
             var param = builder.AddParameter("param1");
             builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
             var app = builder.Build();
@@ -253,8 +251,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp(params string[] paramNames)
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
-            builder.AddDockerComposeEnvironment("docker-compose")
-                .WithDashboard(false);
+            builder.AddDockerComposeEnvironment("docker-compose");
 
             var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
 
