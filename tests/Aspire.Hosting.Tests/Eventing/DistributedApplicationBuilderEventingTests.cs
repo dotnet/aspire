@@ -265,6 +265,163 @@ public class DistributedApplicationBuilderEventingTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task TrySubscribeOnceShouldSucceedFirstTimeOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var hitCount = 0;
+
+        // First call should succeed and return true
+        var success1 = builder.Eventing.TrySubscribeOnce<DummyEvent>(
+            "key1", 
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription1);
+        
+        Assert.True(success1);
+        Assert.NotNull(subscription1);
+
+        // Second call with same key should fail
+        var success2 = builder.Eventing.TrySubscribeOnce<DummyEvent>(
+            "key1", 
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription2);
+        
+        Assert.False(success2);
+        Assert.Null(subscription2);
+
+        // Different key should succeed
+        var success3 = builder.Eventing.TrySubscribeOnce<DummyEvent>(
+            "key2", 
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription3);
+        
+        Assert.True(success3);
+        Assert.NotNull(subscription3);
+
+        // Publish event to verify both subscriptions are called
+        await builder.Eventing.PublishAsync(new DummyEvent());
+        Assert.Equal(2, hitCount);
+    }
+
+    [Fact]
+    public async Task TrySubscribeOnceWithInstanceKeyShouldSucceedFirstTimeOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var hitCount = 0;
+
+        // First call should succeed and return true
+        var success1 = builder.Eventing.TrySubscribeOnce<DummyEvent>(
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription1);
+        
+        Assert.True(success1);
+        Assert.NotNull(subscription1);
+
+        // Second call should fail
+        var success2 = builder.Eventing.TrySubscribeOnce<DummyEvent>(
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription2);
+        
+        Assert.False(success2);
+        Assert.Null(subscription2);
+
+        // Publish event to verify subscription is called
+        await builder.Eventing.PublishAsync(new DummyEvent());
+        Assert.Equal(1, hitCount);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void TrySubscribeOnceForResourceShouldSucceedFirstTimeOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis");
+        var hitCount = 0;
+
+        // First call should succeed and return true
+        var success1 = builder.Eventing.TrySubscribeOnce<BeforeResourceStartedEvent>(
+            redis.Resource,
+            "key1", 
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription1);
+        
+        Assert.True(success1);
+        Assert.NotNull(subscription1);
+
+        // Second call with same key should fail
+        var success2 = builder.Eventing.TrySubscribeOnce<BeforeResourceStartedEvent>(
+            redis.Resource,
+            "key1", 
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription2);
+        
+        Assert.False(success2);
+        Assert.Null(subscription2);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void TrySubscribeOnceForResourceWithInstanceKeyShouldSucceedFirstTimeOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis");
+        var hitCount = 0;
+
+        // First call should succeed and return true
+        var success1 = builder.Eventing.TrySubscribeOnce<BeforeResourceStartedEvent>(
+            redis.Resource,
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription1);
+        
+        Assert.True(success1);
+        Assert.NotNull(subscription1);
+
+        // Second call should fail
+        var success2 = builder.Eventing.TrySubscribeOnce<BeforeResourceStartedEvent>(
+            redis.Resource,
+            (@event, ct) => 
+            {
+                Interlocked.Increment(ref hitCount); 
+                return Task.CompletedTask; 
+            }, 
+            out var subscription2);
+        
+        Assert.False(success2);
+        Assert.Null(subscription2);
+    }
+
     public class DummyEvent : IDistributedApplicationEvent
     {
     }
