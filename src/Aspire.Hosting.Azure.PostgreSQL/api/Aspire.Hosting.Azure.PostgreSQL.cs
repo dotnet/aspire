@@ -53,6 +53,8 @@ namespace Aspire.Hosting.Azure
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
 
