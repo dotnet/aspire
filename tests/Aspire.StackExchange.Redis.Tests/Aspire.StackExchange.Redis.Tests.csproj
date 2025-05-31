@@ -13,7 +13,7 @@
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.DistributedCaching\Aspire.StackExchange.Redis.DistributedCaching.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.OutputCaching\Aspire.StackExchange.Redis.OutputCaching.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>

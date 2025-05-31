@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 using Aspire.Hosting.RabbitMQ;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;

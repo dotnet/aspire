@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>
