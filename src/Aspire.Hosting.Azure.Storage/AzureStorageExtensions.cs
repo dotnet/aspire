@@ -121,9 +121,9 @@ public static class AzureStorageExtensions
             return builder;
         }
 
-        builder.WithEndpoint(name: "blob", targetPort: 10000)
-               .WithEndpoint(name: "queue", targetPort: 10001)
-               .WithEndpoint(name: "table", targetPort: 10002)
+        builder.WithHttpEndpoint(name: "blob", targetPort: 10000)
+               .WithHttpEndpoint(name: "queue", targetPort: 10001)
+               .WithHttpEndpoint(name: "table", targetPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation
                {
                    Registry = StorageEmulatorContainerImageTags.Registry,

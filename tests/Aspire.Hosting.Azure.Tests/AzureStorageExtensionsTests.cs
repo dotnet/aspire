@@ -322,6 +322,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         string Resolve(string? qs, string name, int port) =>
             qs!.Replace("{storage.bindings." + name + ".host}", "127.0.0.1")
+               .Replace("{storage.bindings." + name + ".scheme}", "http")
                .Replace("{storage.bindings." + name + ".port}", port.ToString());
 
         Assert.Equal(Resolve(blobqs, "blob", 10000), await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
