@@ -65,6 +65,13 @@ internal sealed class ContainerSpec
     [JsonPropertyName("networks")]
     public List<ContainerNetworkConnection>? Networks { get; set; }
 
+    /// <summary>
+    /// Should this resource be started? If set to false, we will not attempt
+    /// to start the resource until Start is set to true (or null).
+    /// </summary>
+    [JsonPropertyName("start")]
+    public bool? Start { get; set; }
+
     // Should this resource be stopped?
     [JsonPropertyName("stop")]
     public bool? Stop { get; set; }
