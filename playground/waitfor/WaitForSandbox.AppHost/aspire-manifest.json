@@ -8,7 +8,7 @@
       "params": {
         "administratorLogin": "{pg-username.value}",
         "administratorLoginPassword": "{pg-password.value}",
-        "keyVaultName": "{pg-kv.outputs.name}"
+        "pg_kv_outputs_name": "{pg-kv.outputs.name}"
       }
     },
     "pg-kv": {

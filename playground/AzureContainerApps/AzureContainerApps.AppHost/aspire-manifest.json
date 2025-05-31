@@ -79,7 +79,7 @@
       "connectionString": "{account-kv.secrets.connectionstrings--account}",
       "path": "account.module.bicep",
       "params": {
-        "keyVaultName": "{account-kv.outputs.name}"
+        "account_kv_outputs_name": "{account-kv.outputs.name}"
       }
     },
     "account-kv": {

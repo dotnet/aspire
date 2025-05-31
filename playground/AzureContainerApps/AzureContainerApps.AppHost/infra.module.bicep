@@ -112,10 +112,6 @@ resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/stora
 
 output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
-output MANAGED_IDENTITY_NAME string = infra_mi.name
-
-output MANAGED_IDENTITY_PRINCIPAL_ID string = infra_mi.properties.principalId
-
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = infra_law.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = infra_law.id

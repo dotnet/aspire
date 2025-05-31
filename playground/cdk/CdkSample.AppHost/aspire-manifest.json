@@ -98,7 +98,7 @@
       "params": {
         "administratorLogin": "{pgsqlAdministratorLogin.value}",
         "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}",
-        "keyVaultName": "{pgsql-kv.outputs.name}"
+        "pgsql_kv_outputs_name": "{pgsql-kv.outputs.name}"
       }
     },
     "pgsql-kv": {
@@ -180,7 +180,7 @@
       "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
       "path": "appInsights.module.bicep",
       "params": {
-        "logAnalyticsWorkspaceId": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
+        "loganalyticsworkspace_outputs_loganalyticsworkspaceid": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "api": {
