@@ -74,6 +74,7 @@
   "dependencies": {
     "@vscode/vsce": "^3.3.2",
     "ts-node": "^10.9.2",
+    "vscode-jsonrpc": "^8.2.1",
     "vscode-nls": "5.2.0"
   }
 }

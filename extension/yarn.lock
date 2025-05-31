@@ -6151,6 +6151,11 @@ vinyl@^2.0.0, vinyl@^2.2.0, vinyl@^2.2.1:
     remove-trailing-separator "^1.0.1"
     replace-ext "^1.0.0"
 
+vscode-jsonrpc@^8.2.1:
+  version "8.2.1"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz#a322cc0f1d97f794ffd9c4cd2a898a0bde097f34"
+  integrity sha1-oyLMDx2X95T/2cTNKomKC94JfzQ=
+
 vscode-nls-dev@^4.0.1:
   version "4.0.4"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/vscode-nls-dev/-/vscode-nls-dev-4.0.4.tgz#1d842a809525990aca5346f8031a0a0bf63e01ef"

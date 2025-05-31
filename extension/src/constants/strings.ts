@@ -23,3 +23,8 @@ export const noOptionSelected = localize('aspire-vscode.commands.add.noOptionSel
 
 // Run Command
 export const selectProjectToRun = localize('aspire-vscode.commands.run.selectProject', 'Select the Aspire project to run');
+
+// Activation and RPC Server Messages
+export const activated = localize('aspire-vscode.strings.activated', 'Aspire Extension activated.');
+export const rpcServerListening = (port: number) => localize('aspire-vscode.rpcserver.listening', 'JSON-RPC server listening on port {0}', port);
+export const rpcServerStarted = localize('aspire-vscode.rpcserver.started', 'JSON-RPC server started');

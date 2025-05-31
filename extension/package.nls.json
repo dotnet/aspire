@@ -11,5 +11,8 @@
 	"aspire-vscode.commands.add.selectPackageToAdd": "Select a package to add",
 	"aspire-vscode.commands.add.selectedPackage": "Selected package: {0}",
 	"aspire-vscode.commands.add.noOptionSelected": "No option selected",
-	"aspire-vscode.commands.run.selectProjectToRun": "Select the Aspire project to run"
+	"aspire-vscode.commands.run.selectProjectToRun": "Select the Aspire project to run",
+	"aspire-vscode.strings.activated": "Aspire Extension activated.",
+	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on port {0}",
+	"aspire-vscode.rpcserver.started": "JSON-RPC server started"
 }
