@@ -360,7 +360,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task PublishAsync_ConfigureDashboard_UsesCustomConfiguration()
+    public async Task PublishAsync_WithDashboardConfiguration_UsesCustomConfiguration()
     {
         using var tempDir = new TempDirectory();
 
@@ -369,16 +369,11 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose")
             .WithDashboard()
-            .ConfigureDashboard(service =>
+            .WithDashboardConfiguration(service =>
             {
-                service.Name = "custom-dashboard";
-                service.Image = "custom-dashboard:latest";
-                service.ContainerName = "custom-dashboard";
-                service.Restart = "unless-stopped";
-                service.Ports.Clear();
-                service.Ports.Add("19999:18888"); // Custom dashboard port
-                service.Ports.Add("20000:18889"); // Custom OTLP port
-                service.AddEnvironmentalVariable("CUSTOM_VAR", "custom-value");
+                service.WithImage("custom-dashboard:latest")
+                    .WithContainerName("custom-dashboard")
+                    .WithEnvironment("CUSTOM_VAR", "custom-value");
             });
 
         var app = builder.Build();
