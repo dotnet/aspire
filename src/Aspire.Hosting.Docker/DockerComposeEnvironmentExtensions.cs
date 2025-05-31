@@ -26,16 +26,25 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new DockerComposeEnvironmentResource(name);
+        var resource = new DockerComposeEnvironmentResource(name)
+        {
+            // Initialize the dashboard resource
+            Dashboard = builder.CreateDashboard($"{name}-dashboard")
+                               .PublishAsDockerComposeService((_, service) =>
+                               {
+                                   service.Restart = "always";
+                               })
+        };
+
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
+        
         if (builder.ExecutionContext.IsRunMode)
         {
-
             // Return a builder that isn't added to the top-level application builder
             // so it doesn't surface as a resource.
             return builder.CreateResourceBuilder(resource);
-
         }
+
         return builder.AddResource(resource);
     }
 
@@ -67,6 +76,37 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(configure);
 
         builder.Resource.ConfigureComposeFile += configure;
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables the Aspire dashboard for telemetry visualization in this Docker Compose environment.
+    /// </summary>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
+    /// <param name="enabled">Whether to enable the dashboard. Default is true.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, bool enabled = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.DashboardEnabled = enabled;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the dashboard properties for this Docker Compose environment.
+    /// </summary>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the dashboard service.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboardConfiguration(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<AspireDashboardResource>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        configure(builder.Resource.Dashboard ?? throw new InvalidOperationException("Dashboard resource is not initialized"));
+
         return builder;
     }
 }

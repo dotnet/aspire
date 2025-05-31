@@ -79,7 +79,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                          .WithArgs("--cs", cs.Resource)
                          .WaitFor(redis)
                          .WaitForCompletion(migration)
-                         .WaitFor(param0);
+                         .WaitFor(param0)
+                         .WithOtlpExporter();
 
         builder.AddProject(
             "project1",
@@ -286,7 +287,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         var container = builder.AddExecutable("service", "foo", ".")
             .PublishAsDockerFile()
@@ -301,6 +303,139 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composeFile = File.ReadAllText(composePath);
 
         await Verify(composeFile);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithDashboardEnabled_IncludesDashboardService()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(); // Dashboard enabled by default
+
+        // Add a container with OTLP exporter
+        builder.AddContainer("api", "my-api")
+            .WithOtlpExporter();
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithDashboardDisabled_DoesNotIncludeDashboardService()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with OTLP exporter
+        builder.AddContainer("api", "my-api")
+            .WithOtlpExporter();
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithDashboardConfiguration_UsesCustomConfiguration()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard()
+            .WithDashboardConfiguration(service =>
+            {
+                service.WithImage("custom-dashboard:latest")
+                    .WithContainerName("custom-dashboard")
+                    .WithEnvironment("CUSTOM_VAR", "custom-value");
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task PublishAsync_MultipleResourcesWithOtlp_ConfiguresAllForDashboard()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard();
+
+        // Add multiple containers with OTLP exporter
+        builder.AddContainer("api", "my-api")
+            .WithOtlpExporter();
+
+        builder.AddContainer("worker", "my-worker") 
+            .WithOtlpExporter();
+
+        // Add a container without OTLP - should not be configured
+        builder.AddContainer("database", "postgres");
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public void PublishAsync_InRunMode_DoesNotCreateDashboard()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(); // Should be ignored in run mode
+
+        builder.AddContainer("api", "my-api")
+            .WithOtlpExporter();
+
+        var app = builder.Build();
+
+        // In run mode, no compose file should be generated
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.False(File.Exists(composePath));
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
