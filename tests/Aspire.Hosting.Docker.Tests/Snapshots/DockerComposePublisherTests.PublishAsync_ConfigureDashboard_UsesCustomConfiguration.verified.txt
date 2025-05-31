@@ -1,0 +1,15 @@
+﻿services:
+  custom-dashboard:
+    image: "custom-dashboard:latest"
+    container_name: "custom-dashboard"
+    environment:
+      CUSTOM_VAR: "custom-value"
+    ports:
+      - "19999:18888"
+      - "20000:18889"
+    networks:
+      - "aspire"
+    restart: "unless-stopped"
+networks:
+  aspire:
+    driver: "bridge"
