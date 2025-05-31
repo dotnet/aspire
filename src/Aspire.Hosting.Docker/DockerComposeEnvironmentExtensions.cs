@@ -39,8 +39,8 @@ public static class DockerComposeEnvironmentExtensions
 
         var resourceBuilder = builder.AddResource(resource);
         
-        // Create dashboard resource early in publish mode if enabled by default
-        if (builder.ExecutionContext.IsPublishMode && resource.DashboardEnabled)
+        // Always create dashboard resource in publish mode
+        if (builder.ExecutionContext.IsPublishMode)
         {
             CreateDashboardForEnvironment(resourceBuilder);
         }
@@ -90,12 +90,6 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.Resource.DashboardEnabled = enabled;
-        
-        // If enabling the dashboard and we're in publish mode but dashboard hasn't been created yet, create it now
-        if (enabled && builder.ApplicationBuilder.ExecutionContext.IsPublishMode && builder.Resource.Dashboard is null)
-        {
-            CreateDashboardForEnvironment(builder);
-        }
 
         return builder;
     }
