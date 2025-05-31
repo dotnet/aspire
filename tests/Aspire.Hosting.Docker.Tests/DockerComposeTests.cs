@@ -49,6 +49,41 @@ public class DockerComposeTests(ITestOutputHelper output)
         tempDir.Delete(recursive: true);
     }
 
+    [Fact]
+    public void DockerComposeOnlyExposesExternalEndpoints()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container with both external and non-external endpoints
+        builder.AddContainer("service", "nginx")
+               .WithEndpoint(port: 8080, name: "internal")  // Non-external endpoint
+               .WithEndpoint(port: 8081, name: "external", isExternal: true); // External endpoint
+
+        var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+
+        var composeContent = File.ReadAllText(composeFile);
+        output.WriteLine("Docker Compose content:");
+        output.WriteLine(composeContent);
+
+        // The external endpoint should have a port mapping, but the internal one should not
+        // We expect to see one port mapping for the external endpoint only
+        var portMappingCount = composeContent.Split('\n')
+            .Where(line => line.Trim().StartsWith("- ") && line.Contains(':'))
+            .Count();
+
+        Assert.Equal(1, portMappingCount);
+
+        tempDir.Delete(recursive: true);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
