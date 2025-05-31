@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
-using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
@@ -27,7 +26,16 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new DockerComposeEnvironmentResource(name);
+        var resource = new DockerComposeEnvironmentResource(name)
+        {
+            // Initialize the dashboard resource
+            Dashboard = builder.CreateDashboard($"{name}-dashboard")
+                               .PublishAsDockerComposeService((_, service) =>
+                               {
+                                   service.Restart = "always";
+                               })
+        };
+
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
         
         if (builder.ExecutionContext.IsRunMode)
@@ -37,9 +45,7 @@ public static class DockerComposeEnvironmentExtensions
             return builder.CreateResourceBuilder(resource);
         }
 
-        var resourceBuilder = builder.AddResource(resource);
-        
-        return resourceBuilder;
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -94,16 +100,13 @@ public static class DockerComposeEnvironmentExtensions
     /// <param name="builder">The Docker Compose environment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the dashboard service.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<Service> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboardConfiguration(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<AspireDashboardResource>> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        // Ensure dashboard is enabled
-        builder.Resource.DashboardEnabled = true;
-
         // Store the configuration callback
-        builder.Resource.ConfigureDashboard += configure;
+        configure(builder.Resource.Dashboard ?? throw new InvalidOperationException("Dashboard resource is not initialized"));
 
         return builder;
     }

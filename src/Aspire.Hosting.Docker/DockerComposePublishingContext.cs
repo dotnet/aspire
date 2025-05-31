@@ -71,17 +71,11 @@ internal sealed class DockerComposePublishingContext(
         var composeFile = new ComposeFile();
         composeFile.AddNetwork(defaultNetwork);
 
-        // Create and configure dashboard service if enabled
-        Service? dashboardService = null;
-        if (environment.DashboardEnabled)
-        {
-            dashboardService = CreateDashboardService(environment, defaultNetwork.Name);
-            
-            // Apply the dashboard configuration callback if it exists
-            environment.ConfigureDashboard?.Invoke(dashboardService);
-        }
+        IEnumerable<IResource> resources = environment.Dashboard?.Resource is IResource r
+                ? [r, .. model.Resources]
+                : model.Resources;
 
-        foreach (var resource in model.Resources)
+        foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
@@ -121,12 +115,6 @@ internal sealed class DockerComposePublishingContext(
 
                 composeFile.AddService(composeService);
             }
-        }
-
-        // Add dashboard service to the compose file
-        if (dashboardService is not null)
-        {
-            composeFile.AddService(dashboardService);
         }
 
         // Call the environment's ConfigureComposeFile method to allow for custom modifications
@@ -233,26 +221,5 @@ internal sealed class DockerComposePublishingContext(
 
             composeFile.AddVolume(newVolume);
         }
-    }
-
-    private static Service CreateDashboardService(DockerComposeEnvironmentResource environment, string networkName)
-    {
-        var dashboardName = $"{environment.Name}-dashboard";
-        var service = new Service
-        {
-            Name = dashboardName,
-            Image = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard",
-            ContainerName = dashboardName,
-            Restart = "always",
-            Networks = [networkName]
-        };
-
-        // Add dashboard UI port
-        service.Ports.Add("18888:18888");
-        
-        // Add OTLP port
-        service.Ports.Add("18889:18889");
-
-        return service;
     }
 }

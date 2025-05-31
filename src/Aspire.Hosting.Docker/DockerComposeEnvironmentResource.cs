@@ -6,7 +6,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
-using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -42,7 +41,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
-    internal Action<Service>? ConfigureDashboard { get; set; }
+    internal IResourceBuilder<AspireDashboardResource>? Dashboard { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.
