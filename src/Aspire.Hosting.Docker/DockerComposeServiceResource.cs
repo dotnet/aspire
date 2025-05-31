@@ -221,18 +221,18 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
 
         foreach (var (_, mapping) in EndpointMappings)
         {
-            // Only add port mappings for external endpoints (when ExposedPort is set)
+            var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
+
             if (mapping.ExposedPort.HasValue)
             {
-                var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
+                // External endpoints use ports with exposedPort:internalPort format
                 var exposedPort = mapping.ExposedPort.Value.ToString(CultureInfo.InvariantCulture);
-
                 composeService.Ports.Add($"{exposedPort}:{internalPort}");
             }
             else
             {
-                // For HTTP ingress, we expose the internal port without a specific external port
-                composeService.Ports.Add(mapping.InternalPort.ToString(CultureInfo.InvariantCulture));
+                // Internal endpoints use expose with just internalPort
+                composeService.Expose.Add(internalPort);
             }
         }
     }

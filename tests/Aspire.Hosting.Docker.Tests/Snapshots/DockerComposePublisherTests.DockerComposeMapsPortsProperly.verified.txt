@@ -3,7 +3,7 @@
     image: "${SERVICE_IMAGE}"
     environment:
       PORT: "8000"
-    ports:
+    expose:
       - "8000"
     networks:
       - "aspire"

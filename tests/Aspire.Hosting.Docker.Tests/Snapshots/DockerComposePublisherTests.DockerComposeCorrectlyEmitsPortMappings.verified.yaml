@@ -4,7 +4,7 @@
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       HTTP_PORT: "8000"
-    ports:
+    expose:
       - "8000"
     networks:
       - "aspire"

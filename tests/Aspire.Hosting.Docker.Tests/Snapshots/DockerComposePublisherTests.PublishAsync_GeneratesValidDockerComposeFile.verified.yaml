@@ -11,7 +11,7 @@
       MSG: "world"
       TP: "8000"
       TPH2: "5001"
-    ports:
+    expose:
       - "5001"
       - "8000"
     networks:
@@ -42,7 +42,7 @@
       param1: "${PARAM1}"
       param2: "${PARAM2}"
       ConnectionStrings__cs: "Url=${PARAM0}, Secret=${PARAM1}"
-    ports:
+    expose:
       - "8001"
     depends_on:
       cache:

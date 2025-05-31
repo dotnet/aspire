@@ -2,8 +2,9 @@
   service:
     image: "nginx:latest"
     ports:
-      - "8000"
       - "8081:8001"
+    expose:
+      - "8000"
     networks:
       - "aspire"
 networks:
