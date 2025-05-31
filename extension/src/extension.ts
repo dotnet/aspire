@@ -10,6 +10,11 @@ import { activated, rpcServerListening, rpcServerStarted } from './constants/str
 import { disposeRpcServer, setupRpcServer } from './server/rpcServer';
 
 let rpcServer: net.Server | undefined;
+let rpcServerPort: number | undefined;
+
+function getRpcServerPort(): number | undefined {
+	return rpcServerPort;
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -23,7 +28,14 @@ export function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine(activated);
 
 	// Start JSON-RPC server in the background
-	rpcServer = setupRpcServer(context);
+	rpcServer = setupRpcServer(context, (port) => {
+		rpcServerPort = port;
+	});
+
+	// Return exported API for tests or other extensions
+	return {
+		getRpcServerPort
+	};
 }
 
 // This method is called when your extension is deactivated
