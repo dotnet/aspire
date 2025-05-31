@@ -238,6 +238,7 @@ public class DistributedApplicationBuilderEventingTests
             beforeStartEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
@@ -245,6 +246,7 @@ public class DistributedApplicationBuilderEventingTests
             afterEndpointsAllocatedEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
