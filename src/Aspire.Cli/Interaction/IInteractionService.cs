@@ -15,6 +15,7 @@ internal interface IInteractionService
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion);
     void DisplayError(string errorMessage);
+    void DisplayWarning(string warningMessage);
     void DisplayMessage(string emoji, string message);
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message);
