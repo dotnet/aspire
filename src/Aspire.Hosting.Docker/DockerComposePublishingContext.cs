@@ -79,9 +79,6 @@ internal sealed class DockerComposePublishingContext(
             
             // Apply the dashboard configuration callback if it exists
             environment.ConfigureDashboard?.Invoke(dashboardService);
-            
-            // Configure OTLP for all resources with OtlpExporterAnnotation before processing services
-            ConfigureOtlpForResources(model, dashboardService);
         }
 
         foreach (var resource in model.Resources)
@@ -257,25 +254,5 @@ internal sealed class DockerComposePublishingContext(
         service.Ports.Add("18889:18889");
 
         return service;
-    }
-
-    private static void ConfigureOtlpForResources(DistributedApplicationModel model, Service dashboardService)
-    {
-        foreach (var resource in model.Resources)
-        {
-            // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
-            if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
-            {
-                // Configure OTLP environment variables
-                resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-                {
-                    var otlpEndpoint = $"http://{dashboardService.ContainerName}:18889";
-                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
-                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
-                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
-                    return Task.CompletedTask;
-                }));
-            }
-        }
     }
 }

@@ -37,6 +37,12 @@ internal sealed class DockerComposeInfrastructure(
             return;
         }
 
+        // Configure OTLP for resources if dashboard is enabled
+        if (environment.DashboardEnabled)
+        {
+            ConfigureOtlpForResources(appModel.Resources, environment);
+        }
+
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
         foreach (var r in appModel.Resources)
@@ -62,6 +68,28 @@ internal sealed class DockerComposeInfrastructure(
                 ComputeEnvironment = environment
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        }
+    }
+
+    private static void ConfigureOtlpForResources(IEnumerable<IResource> resources, DockerComposeEnvironmentResource environment)
+    {
+        var dashboardName = $"{environment.Name}-dashboard";
+        
+        foreach (var resource in resources)
+        {
+            // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
+            if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+            {
+                // Configure OTLP environment variables
+                resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                {
+                    var otlpEndpoint = $"http://{dashboardName}:18889";
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                    context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                    return Task.CompletedTask;
+                }));
+            }
         }
     }
 }
