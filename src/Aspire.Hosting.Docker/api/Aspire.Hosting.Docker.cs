@@ -14,8 +14,6 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureComposeFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.Resources.ComposeFile> configure) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, bool enabled = true) { throw null; }
-
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithProperties(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.DockerComposeEnvironmentResource> configure) { throw null; }
     }
 
