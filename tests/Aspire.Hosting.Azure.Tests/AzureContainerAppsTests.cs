@@ -1342,6 +1342,50 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task ContainerAppEnvironmentWithDashboardEnabled()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env")
+               .WithDashboard(true);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerAppEnvResource = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(containerAppEnvResource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task ContainerAppEnvironmentWithDashboardDisabled()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env")
+               .WithDashboard(false);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerAppEnvResource = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(containerAppEnvResource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 

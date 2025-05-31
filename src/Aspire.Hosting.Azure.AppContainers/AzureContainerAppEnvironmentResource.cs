@@ -18,6 +18,12 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     internal bool UseAzdNamingConvention { get; set; }
+    
+    /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableDashboard { get; set; } = true;
 
     /// <summary>
     /// Gets the unique identifier of the Container App Environment.
