@@ -329,15 +329,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(composePath));
 
         var composeContent = File.ReadAllText(composePath);
-        
-        // Verify dashboard service is included
-        Assert.Contains("docker-compose-dashboard:", composeContent);
-        Assert.Contains("mcr.microsoft.com/dotnet/nightly/aspire-dashboard", composeContent);
-        Assert.Contains("18888:18888", composeContent); // Dashboard UI port
-        Assert.Contains("18889:18889", composeContent); // OTLP port
-        Assert.Contains("restart: always", composeContent);
 
-        await Verify(composeContent);
+        await Verify(composeContent, "yaml");
     }
 
     [Fact]
@@ -362,12 +355,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(composePath));
 
         var composeContent = File.ReadAllText(composePath);
-        
-        // Verify dashboard service is NOT included
-        Assert.DoesNotContain("docker-compose-dashboard:", composeContent);
-        Assert.DoesNotContain("aspire-dashboard", composeContent);
 
-        await Verify(composeContent);
+        await Verify(composeContent, "yaml");
     }
 
     [Fact]
@@ -382,6 +371,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             .WithDashboard()
             .ConfigureDashboard(service =>
             {
+                service.Name = "custom-dashboard";
                 service.Image = "custom-dashboard:latest";
                 service.ContainerName = "custom-dashboard";
                 service.Restart = "unless-stopped";
@@ -398,16 +388,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(composePath));
 
         var composeContent = File.ReadAllText(composePath);
-        
-        // Verify custom configuration is applied
-        Assert.Contains("custom-dashboard:", composeContent);
-        Assert.Contains("custom-dashboard:latest", composeContent);
-        Assert.Contains("19999:18888", composeContent); // Custom dashboard port
-        Assert.Contains("20000:18889", composeContent); // Custom OTLP port
-        Assert.Contains("restart: unless-stopped", composeContent);
-        Assert.Contains("CUSTOM_VAR: custom-value", composeContent);
 
-        await Verify(composeContent);
+        await Verify(composeContent, "yaml");
     }
 
     [Fact]
@@ -439,14 +421,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeContent = File.ReadAllText(composePath);
 
-        // Verify dashboard is included
-        Assert.Contains("docker-compose-dashboard:", composeContent);
-
-        // Verify OTLP configuration for services with OtlpExporterAnnotation
-        Assert.Contains("OTEL_EXPORTER_OTLP_ENDPOINT", composeContent);
-        Assert.Contains("docker-compose-dashboard:18889", composeContent); // OTLP endpoint pointing to dashboard
-
-        await Verify(composeContent);
+        await Verify(composeContent, "yaml");
     }
 
     [Fact]
