@@ -152,14 +152,17 @@ public static class AzureContainerAppExtensions
 
             infra.Add(containerAppEnvironment);
 
-            var dashboard = new ContainerAppEnvironmentDotnetComponentResource("aspireDashboard", "2024-10-02-preview")
+            if (appEnvResource.EnableDashboard)
             {
-                Name = "aspire-dashboard",
-                ComponentType = "AspireDashboard",
-                Parent = containerAppEnvironment
-            };
+                var dashboard = new ContainerAppEnvironmentDotnetComponentResource("aspireDashboard", "2024-10-02-preview")
+                {
+                    Name = "aspire-dashboard",
+                    ComponentType = "AspireDashboard",
+                    Parent = containerAppEnvironment
+                };
 
-            infra.Add(dashboard);
+                infra.Add(dashboard);
+            }
 
             var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
 
@@ -346,6 +349,18 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
     {
         builder.Resource.UseAzdNamingConvention = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether the Aspire dashboard should be included in the container app environment.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithDashboard(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableDashboard = enable;
         return builder;
     }
 }
