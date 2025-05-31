@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
@@ -38,11 +37,19 @@ internal sealed class DockerComposeInfrastructure(
             return;
         }
 
-        // Check if dashboard is enabled and create it if needed
+        // Get the dashboard resource if it exists and handle enablement
         ContainerResource? dashboardResource = null;
-        if (environment.DashboardEnabled)
+        if (environment.Dashboard?.Resource is ContainerResource dashboard)
         {
-            dashboardResource = CreateDashboardResource(appModel);
+            if (environment.DashboardEnabled)
+            {
+                dashboardResource = dashboard;
+            }
+            else
+            {
+                // Remove dashboard from model if disabled
+                appModel.Resources.Remove(dashboard);
+            }
         }
 
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
@@ -77,30 +84,6 @@ internal sealed class DockerComposeInfrastructure(
             });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
-    }
-
-    private static ContainerResource CreateDashboardResource(DistributedApplicationModel appModel)
-    {
-        // Create dashboard container resource
-        var dashboardResource = new ContainerResource("aspire-dashboard");
-        
-        // Add container image annotation
-        dashboardResource.Annotations.Add(new ContainerImageAnnotation { Image = "mcr.microsoft.com/dotnet/nightly/aspire-dashboard" });
-        
-        // Add endpoint annotations
-        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18888, name: "dashboard"));
-        dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, targetPort: 18889, name: "otlp"));
-
-        // Add Docker Compose service customization for restart policy
-        dashboardResource.Annotations.Add(new DockerComposeServiceCustomizationAnnotation((serviceResource, service) =>
-        {
-            service.Restart = "always";
-        }));
-
-        // Add the dashboard resource to the model
-        appModel.Resources.Add(dashboardResource);
-        
-        return dashboardResource;
     }
 
     private static void ConfigureOtlpForResource(IResource resource, ContainerResource dashboardResource)

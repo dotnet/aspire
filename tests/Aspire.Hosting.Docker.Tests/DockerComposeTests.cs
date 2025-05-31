@@ -17,7 +17,8 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         // Add a container to the application
         var container = builder.AddContainer("service", "nginx");
@@ -36,7 +37,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
 
-        builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
 
         // Add a container to the application
         builder.AddContainer("service", "nginx");
@@ -58,8 +60,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithProperties(env => env.DashboardEnabled = true);
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
         var app = builder.Build();
 
@@ -67,8 +68,8 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Verify dashboard was added
-        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "aspire-dashboard");
+        // Verify dashboard was added (enabled by default)
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
         Assert.NotNull(dashboardResource);
         Assert.IsType<ContainerResource>(dashboardResource);
     }
@@ -78,8 +79,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithProperties(env => env.DashboardEnabled = true);
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
         // Add a container with OTLP exporter
         var container = builder.AddContainer("service", "nginx")
@@ -95,8 +95,8 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Verify dashboard was added
-        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "aspire-dashboard");
+        // Verify dashboard was added (enabled by default)
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
         Assert.NotNull(dashboardResource);
     }
 
@@ -106,7 +106,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithProperties(env => env.DashboardEnabled = false);
+            .WithDashboard(false);
 
         var app = builder.Build();
 
@@ -115,7 +115,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         // Verify dashboard was not added
-        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "aspire-dashboard");
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
         Assert.Null(dashboardResource);
     }
 
@@ -124,8 +124,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
-            .WithProperties(env => env.DashboardEnabled = true);
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
         var app = builder.Build();
 
@@ -133,8 +132,59 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Verify dashboard was not added in run mode
-        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "aspire-dashboard");
+        // Verify dashboard was not added in run mode (even though enabled by default)
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
         Assert.Null(dashboardResource);
+    }
+
+    [Fact]
+    public async Task WithDashboard_EnablesAndDisablesDashboard()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(true);
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify dashboard was added
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
+        Assert.NotNull(dashboardResource);
+    }
+
+    [Fact]
+    public async Task ConfigureDashboard_ModifiesDashboardConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customImageCalled = false;
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard()
+            .ConfigureDashboard(dashboard =>
+            {
+                customImageCalled = true;
+                dashboard.WithImage("custom-dashboard", "v1.0");
+            });
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify dashboard was added and configured
+        var dashboardResource = appModel.Resources.FirstOrDefault(r => r.Name == "docker-compose-dashboard");
+        Assert.NotNull(dashboardResource);
+        Assert.True(customImageCalled);
+
+        // Verify the custom image was applied
+        var containerImageAnnotation = dashboardResource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        Assert.NotNull(containerImageAnnotation);
+        Assert.Equal("custom-dashboard", containerImageAnnotation.Image);
+        Assert.Equal("v1.0", containerImageAnnotation.Tag);
     }
 }

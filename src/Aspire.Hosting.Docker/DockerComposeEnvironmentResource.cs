@@ -37,7 +37,12 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// <summary>
     /// Determines whether to include an Aspire dashboard for telemetry visualization in this environment.
     /// </summary>
-    public bool DashboardEnabled { get; set; }
+    public bool DashboardEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets the dashboard resource builder for this environment, if one has been created.
+    /// </summary>
+    internal IResourceBuilder<ContainerResource>? Dashboard { get; set; }
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
