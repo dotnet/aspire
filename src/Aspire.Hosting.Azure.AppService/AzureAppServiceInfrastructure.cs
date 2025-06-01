@@ -37,7 +37,7 @@ internal sealed class AzureAppServiceInfrastructure(
             }
 
             // Support project resources and containers with Dockerfile
-            if (resource is not ProjectResource && !resource.Annotations.OfType<DockerfileBuildAnnotation>().Any())
+            if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
             {
                 continue;
             }

@@ -42,11 +42,11 @@ public static class ResourceExtensions
     /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
-        var matchingTypeAnnotations = resource.Annotations.OfType<T>().ToArray();
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
 
-        if (matchingTypeAnnotations.Length is not 0)
+        if (matchingTypeAnnotations.Any())
         {
-            result = matchingTypeAnnotations;
+            result = matchingTypeAnnotations.ToArray();
             return true;
         }
         else
