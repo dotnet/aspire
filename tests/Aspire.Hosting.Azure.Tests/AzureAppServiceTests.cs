@@ -165,11 +165,47 @@ public class AzureAppServiceTests
         Assert.Null(resource);
     }
 
+    [Fact]
+    public async Task UnknownManifestExpressionProviderIsHandledWithAllocateParameter()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var customProvider = new CustomManifestExpressionProvider();
+        
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["CUSTOM_VALUE"] = customProvider;
+            })
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        // This should not throw an exception
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+        
+        // Verify that the project has the deployment target (meaning the processing succeeded)
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        Assert.NotNull(target);
+        Assert.NotNull(target.DeploymentTarget);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "/foo/bar/project.csproj";
+    }
+
+    private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
+    {
+        public string ValueExpression => "{customValue}";
     }
 }
