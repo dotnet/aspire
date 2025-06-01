@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
+using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting;
 
@@ -102,5 +103,120 @@ public static class AzureKeyVaultResourceExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, KeyVaultBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Gets a secret reference for the specified secret name from the Azure Key Vault resource.
+    /// </summary>
+    /// <param name="builder">The Azure Key Vault resource builder.</param>
+    /// <param name="secretName">The name of the secret.</param>
+    /// <returns>A reference to the secret.</returns>
+    public static IAzureKeyVaultSecretReference GetSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.Resource.GetSecret(secretName);
+    }
+
+    /// <summary>
+    /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource.
+    /// </summary>
+    /// <param name="builder">The Azure Key Vault resource builder.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules (1-127 characters, ASCII letters, digits, and dashes only).</param>
+    /// <param name="parameterResource">The parameter resource containing the secret value.</param>
+    /// <returns>The Azure Key Vault resource builder.</returns>
+    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, IResourceBuilder<ParameterResource> parameterResource)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(parameterResource);
+
+        return builder.AddSecret(secretName, parameterResource.Resource);
+    }
+
+    /// <summary>
+    /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource.
+    /// </summary>
+    /// <param name="builder">The Azure Key Vault resource builder.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules (1-127 characters, ASCII letters, digits, and dashes only).</param>
+    /// <param name="parameterResource">The parameter resource containing the secret value.</param>
+    /// <returns>The Azure Key Vault resource builder.</returns>
+    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(parameterResource);
+
+        ValidateSecretName(secretName);
+
+        var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretName)}";
+        builder.WithParameter(parameterName, parameterResource);
+
+        return builder.ConfigureInfrastructure(infra =>
+        {
+            var keyVault = infra.GetProvisionableResources().OfType<KeyVaultService>().Single();
+            
+            // Create a parameter that will be populated by the ParameterResource
+            var paramValue = new ProvisioningParameter(parameterName, typeof(string)) { IsSecure = true };
+            infra.Add(paramValue);
+
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
+            {
+                Name = secretName,
+                Properties = new SecretProperties
+                {
+                    Value = paramValue
+                },
+                Parent = keyVault,
+            };
+
+            infra.Add(secret);
+        });
+    }
+
+    /// <summary>
+    /// Adds a secret to the Azure Key Vault resource with the value from a reference expression.
+    /// </summary>
+    /// <param name="builder">The Azure Key Vault resource builder.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules (1-127 characters, ASCII letters, digits, and dashes only).</param>
+    /// <param name="value">The reference expression containing the secret value.</param>
+    /// <returns>The Azure Key Vault resource builder.</returns>
+    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(value);
+
+        ValidateSecretName(secretName);
+
+        return builder.ConfigureInfrastructure(infra =>
+        {
+            var keyVault = infra.GetProvisionableResources().OfType<KeyVaultService>().Single();
+
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
+            {
+                Name = secretName,
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"{value.ValueExpression}")
+                },
+                Parent = keyVault,
+            };
+
+            infra.Add(secret);
+        });
+    }
+
+    private static void ValidateSecretName(string secretName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretName, nameof(secretName));
+
+        if (secretName.Length is < 1 or > 127)
+        {
+            throw new ArgumentException("Secret name must be between 1 and 127 characters long.", nameof(secretName));
+        }
+
+        // Azure Key Vault secret names can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-)
+        if (!Regex.IsMatch(secretName, "^[a-zA-Z0-9-]+$"))
+        {
+            throw new ArgumentException("Secret name can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-).", nameof(secretName));
+        }
     }
 }

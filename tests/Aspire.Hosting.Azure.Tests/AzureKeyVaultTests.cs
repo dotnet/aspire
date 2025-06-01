@@ -113,4 +113,115 @@ public class AzureKeyVaultTests
               .AppendContentAsFile(bicep, "bicep");
               
     }
+
+    [Fact]
+    public void GetSecret_ReturnsSecretReference()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        
+        var secret = kv.GetSecret("mySecret");
+        
+        Assert.NotNull(secret);
+        Assert.Equal("mySecret", secret.SecretName);
+        Assert.Same(kv.Resource, secret.Resource);
+    }
+
+    [Fact]
+    public async Task AddSecret_WithParameterResource_AddsSecretToKeyVault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault")
+            .AddSecret("my-secret", secretParam);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddSecret_WithParameterResourceBuilder_AddsSecretToKeyVault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault")
+            .AddSecret("my-secret", secretParam.Resource);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddSecret_WithReferenceExpression_AddsSecretToKeyVault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var connection = ReferenceExpression.Create($"Server=myserver;Database=mydb;User Id=myuser;Password=mypassword");
+        var kv = builder.AddAzureKeyVault("myKeyVault")
+            .AddSecret("connection-string", connection);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("secret_with_underscores")]
+    [InlineData("secret.with.dots")]
+    [InlineData("secret with spaces")]
+    [InlineData("secret/with/slashes")]
+    [InlineData("secret@with@symbols")]
+    public void AddSecret_WithInvalidSecretName_ThrowsArgumentException(string invalidSecretName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(invalidSecretName, secretParam));
+        Assert.Contains("Secret name", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("valid-secret")]
+    [InlineData("VALID-SECRET")]
+    [InlineData("valid123")]
+    [InlineData("123valid")]
+    [InlineData("a")]
+    [InlineData("a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-z-1-2-3-4-5-6-7-8-9-0-1-2-3-4-5-6-7-8-9-0-1-2-3-4-5-6-7-8-9-0-a-b-c-d-e")]
+    public void AddSecret_WithValidSecretName_DoesNotThrow(string validSecretName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        var exception = Record.Exception(() => kv.AddSecret(validSecretName, secretParam));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddSecret_WithTooLongSecretName_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        // Create a 128-character secret name (too long)
+        var tooLongSecretName = new string('a', 128);
+
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(tooLongSecretName, secretParam));
+        Assert.Contains("between 1 and 127 characters", exception.Message);
+    }
 }
