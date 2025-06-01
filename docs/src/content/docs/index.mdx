@@ -1,16 +1,19 @@
 ---
 title: Aspire
-description: From localhost to liftoff, your stack stays in orbit.
+head:
+  - tag: title
+    content: Aspire 💫 Your stack, streamlined
+description: Your stack, streamlined.
 template: splash
 editUrl: false
 next: false
 hero:
-  tagline: From localhost to liftoff, your stack stays in orbit! 💫
+  tagline: Your stack, streamlined - from local dev to liftoff 💫
   image:
     alt: Aspire logo
     file: ../../assets/dotnet-aspire-logo-256.svg
   actions:
-    - text: Liftoff
+    - text: Get Aspire
       link: /aspire/get-started/first-app
       icon: rocket
     - text: View Docs
@@ -24,13 +27,13 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 ## Why developers love Aspire
 
 <CardGrid stagger>
-	<Card title="Code-First Control" icon="setting">
+	<Card title="Code-First Control" icon="laptop">
 		Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
 	</Card>
 	<Card title="Modular and Extensible" icon="puzzle">
 		Orchestrate your existing stack—frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
 	</Card>
-	<Card title="Observability from the Start" icon="open-book">
+	<Card title="Observability from the Start" icon="magnifier">
 		Logs, traces, health checks—all local, all wired up automatically. OpenTelemetry included with zero setup.
 	</Card>
 	<Card title="Flexible Deployments" icon="rocket">
@@ -40,7 +43,7 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 
 ## Code-Centric Control
 
-Define your orbit however you want. Easily add services, connect them to each other, and get everything running with a single command.
+Describe your stack in code. Easily add services, connect them to each other, and get everything running locally with a single command.
 
 export const ts = `
 import { createBuilder } from "./.modules/distributed-application";
@@ -161,15 +164,15 @@ builder.Build().Run();
   <Card title="Production Deployment" icon="rocket">
     
 	- Same app structure, deployed where you want
-	- Connects to cloud services (e.g., Azure Redis, Azure Monitor)
-	- No code changes required
+	- Connects to cloud services (e.g., Azure Container Apps, Kubernetes)
+	- Works with your pipeline, no code changes required
 
   </Card>
 </CardGrid>
 
-## Mission Control
+## Aspire Dashboard
 
-Monitor all your services from a central dashboard, like a mission control center for your orbit.
+Get deep insights into your app while you build it.
 
 <video autoplay loop muted>
   <source src="https://github.com/IEvangelist/aspire/raw/refs/heads/docs/docs/src/assets/dashboard-graph.mp4" type="video/mp4" />
@@ -178,7 +181,7 @@ Monitor all your services from a central dashboard, like a mission control cente
 ## Ready for liftoff?
 
 <LinkButton href="/aspire/get-started/installation" icon="rocket" iconPlacement="start">
-    Liftoff
+    Get Aspire
 </LinkButton>
 <LinkButton href="/aspire/get-started/overview" icon="open-book" variant="secondary" iconPlacement="start">
     View Docs

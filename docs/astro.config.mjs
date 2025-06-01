@@ -8,8 +8,8 @@ import starlightImageZoom from 'starlight-image-zoom'
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://IEvangelist.github.io',
-	base: 'aspire',
+	site: 'https://aspire.dev',
+	base: `aspire`,
 	integrations: [
 		starlight({
 			title: 'Aspire',
@@ -41,7 +41,7 @@ export default defineConfig({
 				{
 					icon: 'x.com',
 					label: 'X',
-					href: 'https://x.com/dotnet'
+					href: 'https://x.com/aspiredotdev'
 				},
 				{
 					icon: 'blueSky',
@@ -70,7 +70,8 @@ export default defineConfig({
 				}
 			],
 			customCss: [
-				'./src/styles/site.css'
+				'./src/styles/site.css',
+				'@fontsource-variable/outfit'
 			],
 			components: {
 				ContentPanel: './src/components/ContentPanel.astro',
@@ -83,7 +84,7 @@ export default defineConfig({
 				/* TODO: decide which themes we want
 				   https://expressive-code.com/guides/themes/#using-bundled-themes
 				*/
-				themes: ['github-dark-default', 'github-light']
+				themes: ['catppuccin-mocha', 'catppuccin-latte']
 			},
 			sidebar: [
 				{
@@ -164,11 +165,11 @@ export default defineConfig({
 				}),
 				starlightKbd({
 					types: [
-						{ id: 'mac', label: 'macOS' },
-						{ id: 'windows', label: 'Windows', default: true },
-						{ id: 'linux', label: 'Linux' },
+					  { id: 'mac', label: 'macOS' },
+					  { id: 'windows', label: 'Windows', default: true },
+					  { id: 'linux', label: 'Linux' },
 					],
-				}),
+				  }),
 			],
 		}),
 	],
