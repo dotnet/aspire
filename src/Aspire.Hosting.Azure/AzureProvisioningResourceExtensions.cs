@@ -232,13 +232,14 @@ public static class AzureProvisioningResourceExtensions
     /// </param>
     /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <param name="isSecure">Indicates whether the parameter is secure.</param>
     /// <returns>
     /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
     /// </returns>
     /// <remarks>
     /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="EndpointReference"/>.
     /// </remarks>
-    public static ProvisioningParameter AsProvisioningParameter(this ReferenceExpression expression, AzureResourceInfrastructure infrastructure, string parameterName)
+    public static ProvisioningParameter AsProvisioningParameter(this ReferenceExpression expression, AzureResourceInfrastructure infrastructure, string parameterName, bool? isSecure = null)
     {
         ArgumentNullException.ThrowIfNull(expression);
         ArgumentNullException.ThrowIfNull(infrastructure);
@@ -246,7 +247,7 @@ public static class AzureProvisioningResourceExtensions
 
         infrastructure.AspireResource.Parameters[parameterName] = expression;
 
-        return GetOrAddParameter(infrastructure, parameterName);
+        return GetOrAddParameter(infrastructure, parameterName, isSecure);
     }
 
     private static ProvisioningParameter GetOrAddParameter(AzureResourceInfrastructure infrastructure, string parameterName, bool? isSecure = null)

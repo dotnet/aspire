@@ -150,16 +150,15 @@ public class AzureKeyVaultTests
     [InlineData("secret@with@symbols")]
     [InlineData("multiple___underscores")]
     [InlineData("--leading-trailing--")]
-    public void AddSecret_WithInvalidSecretName_NormalizesName(string originalName)
+    public void AddSecret_WithInvalidSecretName_ThrowsArgumentException(string invalidName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
 
-        // Should not throw - normalization should work
-        var exception = Record.Exception(() => kv.AddSecret(originalName, secretParam));
-        Assert.Null(exception);
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(invalidName, secretParam));
+        Assert.Contains("Secret name can only contain", exception.Message);
     }
 
     [Theory]
@@ -181,7 +180,7 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
-    public void AddSecret_WithTooLongSecretName_TruncatesName()
+    public void AddSecret_WithTooLongSecretName_ThrowsArgumentException()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -191,9 +190,8 @@ public class AzureKeyVaultTests
         // Create a 128-character secret name (too long)
         var tooLongSecretName = new string('a', 128);
 
-        // Should not throw - normalization should truncate to 127 characters
-        var exception = Record.Exception(() => kv.AddSecret(tooLongSecretName, secretParam));
-        Assert.Null(exception);
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(tooLongSecretName, secretParam));
+        Assert.Contains("cannot be longer than 127 characters", exception.Message);
     }
 
     [Fact]
@@ -204,10 +202,10 @@ public class AzureKeyVaultTests
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
 
-        // A string with only invalid characters that would result in empty after normalization
+        // A string with only invalid characters
         var onlyInvalidChars = "!!!@@@###";
 
         var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(onlyInvalidChars, secretParam));
-        Assert.Contains("cannot be normalized", exception.Message);
+        Assert.Contains("Secret name can only contain", exception.Message);
     }
 }

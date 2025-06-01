@@ -122,7 +122,7 @@ public static class AzureKeyVaultResourceExtensions
     /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource.
     /// </summary>
     /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Invalid characters will be normalized to follow Azure Key Vault naming rules.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, IResourceBuilder<ParameterResource> parameterResource)
@@ -137,7 +137,7 @@ public static class AzureKeyVaultResourceExtensions
     /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource.
     /// </summary>
     /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Invalid characters will be normalized to follow Azure Key Vault naming rules.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource)
@@ -145,22 +145,19 @@ public static class AzureKeyVaultResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(parameterResource);
 
-        var normalizedSecretName = NormalizeSecretName(secretName);
-
-        var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(normalizedSecretName)}";
-        builder.WithParameter(parameterName, parameterResource);
+        ValidateSecretName(secretName);
 
         return builder.ConfigureInfrastructure(infra =>
         {
             var keyVault = infra.GetProvisionableResources().OfType<KeyVaultService>().Single();
             
-            // Create a parameter that will be populated by the ParameterResource
-            var paramValue = new ProvisioningParameter(parameterName, typeof(string)) { IsSecure = true };
-            infra.Add(paramValue);
+            var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretName)}";
+            var paramValue = parameterResource.AsProvisioningParameter(infra, parameterName);
+            paramValue.IsSecure = true;
 
-            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{normalizedSecretName}"))
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
             {
-                Name = normalizedSecretName,
+                Name = secretName,
                 Properties = new SecretProperties
                 {
                     Value = paramValue
@@ -176,7 +173,7 @@ public static class AzureKeyVaultResourceExtensions
     /// Adds a secret to the Azure Key Vault resource with the value from a reference expression.
     /// </summary>
     /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Invalid characters will be normalized to follow Azure Key Vault naming rules.</param>
+    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="value">The reference expression containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value)
@@ -184,18 +181,21 @@ public static class AzureKeyVaultResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(value);
 
-        var normalizedSecretName = NormalizeSecretName(secretName);
+        ValidateSecretName(secretName);
 
         return builder.ConfigureInfrastructure(infra =>
         {
             var keyVault = infra.GetProvisionableResources().OfType<KeyVaultService>().Single();
 
-            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{normalizedSecretName}"))
+            var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretName)}";
+            var paramValue = value.AsProvisioningParameter(infra, parameterName, isSecure: true);
+
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
             {
-                Name = normalizedSecretName,
+                Name = secretName,
                 Properties = new SecretProperties
                 {
-                    Value = BicepFunction.Interpolate($"{value.ValueExpression}")
+                    Value = paramValue
                 },
                 Parent = keyVault,
             };
@@ -204,29 +204,19 @@ public static class AzureKeyVaultResourceExtensions
         });
     }
 
-    private static string NormalizeSecretName(string secretName)
+    private static void ValidateSecretName(string secretName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(secretName, nameof(secretName));
 
-        // Replace invalid characters with dashes to follow Azure Key Vault naming rules
-        // Azure Key Vault secret names can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-)
-        var normalized = Regex.Replace(secretName, "[^a-zA-Z0-9-]", "-");
-        
-        // Remove consecutive dashes and trim dashes from ends
-        normalized = Regex.Replace(normalized, "-+", "-").Trim('-');
-        
-        // Ensure it's not empty after normalization
-        if (string.IsNullOrEmpty(normalized))
+        // Azure Key Vault secret names must be 1-127 characters long and contain only ASCII letters (a-z, A-Z), digits (0-9), and dashes (-)
+        if (secretName.Length > 127)
         {
-            throw new ArgumentException("Secret name cannot be normalized to a valid Key Vault secret name.", nameof(secretName));
+            throw new ArgumentException("Secret name cannot be longer than 127 characters.", nameof(secretName));
         }
-        
-        // Truncate if too long (max 127 characters)
-        if (normalized.Length > 127)
+
+        if (!Regex.IsMatch(secretName, "^[a-zA-Z0-9-]+$"))
         {
-            normalized = normalized.Substring(0, 127).TrimEnd('-');
+            throw new ArgumentException("Secret name can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-).", nameof(secretName));
         }
-        
-        return normalized;
     }
 }
