@@ -146,12 +146,12 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, IResourceBuilder<ParameterResource> parameterResource)
+    public static IResourceBuilder<AzureKeyVaultResource> WithSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, IResourceBuilder<ParameterResource> parameterResource)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(parameterResource);
 
-        return builder.AddSecret(secretName, parameterResource.Resource);
+        return builder.WithSecret(secretName, parameterResource.Resource);
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="parameterResource">The parameter resource containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource)
+    public static IResourceBuilder<AzureKeyVaultResource> WithSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(parameterResource);
@@ -178,7 +178,7 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
     /// <param name="value">The reference expression containing the secret value.</param>
     /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value)
+    public static IResourceBuilder<AzureKeyVaultResource> WithSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(value);
