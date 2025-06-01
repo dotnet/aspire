@@ -210,8 +210,8 @@ public class AzureKeyVaultTests
     public async Task AddSecret_WithReferenceExpression_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=mydb");
+        var pwd = builder.AddParameter("password", secret: true);
+        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=mydb;pwd={pwd}");
         var kv = builder.AddAzureKeyVault("mykv")
             .AddSecret("connection-string", connectionString);
 

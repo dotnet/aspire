@@ -11,24 +11,9 @@ using System.Text.RegularExpressions;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Annotation used to store Key Vault secret definitions that will be processed during infrastructure generation.
-/// </summary>
-internal sealed class AzureKeyVaultSecretAnnotation : IResourceAnnotation
-{
-    public string SecretName { get; }
-    public IManifestExpressionProvider ValueProvider { get; }
-
-    public AzureKeyVaultSecretAnnotation(string secretName, IManifestExpressionProvider valueProvider)
-    {
-        SecretName = secretName;
-        ValueProvider = valueProvider;
-    }
-}
-
-/// <summary>
 /// Provides extension methods for adding the Azure Key Vault resources to the application model.
 /// </summary>
-public static class AzureKeyVaultResourceExtensions
+public static partial class AzureKeyVaultResourceExtensions
 {
     /// <summary>
     /// Adds an Azure Key Vault resource to the application model.
@@ -79,28 +64,29 @@ public static class AzureKeyVaultResourceExtensions
                 Value = keyVault.Properties.VaultUri
             });
 
+            // Process all secret annotations
+            if (infrastructure.AspireResource.TryGetAnnotationsOfType<AzureKeyVaultSecretAnnotation>(out var secretAnnotations))
+            {
+                foreach (var secretAnnotation in secretAnnotations)
+                {
+                    var paramValue = secretAnnotation.Value.AsProvisioningParameter(infrastructure, isSecure: true);
+
+                    var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretAnnotation.SecretName}"))
+                    {
+                        Name = secretAnnotation.SecretName,
+                        Properties = new SecretProperties
+                        {
+                            Value = paramValue
+                        },
+                        Parent = keyVault,
+                    };
+
+                    infrastructure.Add(secret);
+                }
+            }
+
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
-
-            // Process all secret annotations
-            var secretAnnotations = infrastructure.AspireResource.Annotations.OfType<AzureKeyVaultSecretAnnotation>();
-            foreach (var secretAnnotation in secretAnnotations)
-            {
-                var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretAnnotation.SecretName)}";
-                var paramValue = secretAnnotation.ValueProvider.AsProvisioningParameter(infrastructure, parameterName, isSecure: true);
-
-                var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretAnnotation.SecretName}"))
-                {
-                    Name = secretAnnotation.SecretName,
-                    Properties = new SecretProperties
-                    {
-                        Value = paramValue
-                    },
-                    Parent = keyVault,
-                };
-
-                infrastructure.Add(secret);
-            }
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
@@ -182,8 +168,7 @@ public static class AzureKeyVaultResourceExtensions
 
         ValidateSecretName(secretName);
 
-        builder.Resource.Annotations.Add(new AzureKeyVaultSecretAnnotation(secretName, parameterResource));
-        return builder;
+        return builder.WithAnnotation(new AzureKeyVaultSecretAnnotation(secretName, parameterResource));
     }
 
     /// <summary>
@@ -200,23 +185,32 @@ public static class AzureKeyVaultResourceExtensions
 
         ValidateSecretName(secretName);
 
-        builder.Resource.Annotations.Add(new AzureKeyVaultSecretAnnotation(secretName, value));
-        return builder;
+        return builder.WithAnnotation(new AzureKeyVaultSecretAnnotation(secretName, value));
     }
 
     private static void ValidateSecretName(string secretName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(secretName, nameof(secretName));
-
         // Azure Key Vault secret names must be 1-127 characters long and contain only ASCII letters (a-z, A-Z), digits (0-9), and dashes (-)
         if (secretName.Length > 127)
         {
             throw new ArgumentException("Secret name cannot be longer than 127 characters.", nameof(secretName));
         }
 
-        if (!Regex.IsMatch(secretName, "^[a-zA-Z0-9-]+$"))
+        if (!MyRegex().IsMatch(secretName))
         {
             throw new ArgumentException("Secret name can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-).", nameof(secretName));
         }
     }
+
+    /// <summary>
+    /// Annotation used to store Key Vault secret definitions that will be processed during infrastructure generation.
+    /// </summary>
+    private sealed class AzureKeyVaultSecretAnnotation(string secretName, IManifestExpressionProvider value) : IResourceAnnotation
+    {
+        public string SecretName { get; } = secretName;
+        public IManifestExpressionProvider Value { get; } = value;
+    }
+
+    [GeneratedRegex("^[a-zA-Z0-9-]+$")]
+    private static partial Regex MyRegex();
 }
