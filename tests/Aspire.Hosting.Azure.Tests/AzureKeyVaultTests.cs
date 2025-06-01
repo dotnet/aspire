@@ -148,8 +148,6 @@ public class AzureKeyVaultTests
     [InlineData("secret with spaces")]
     [InlineData("secret/with/slashes")]
     [InlineData("secret@with@symbols")]
-    [InlineData("multiple___underscores")]
-    [InlineData("--leading-trailing--")]
     public void AddSecret_WithInvalidSecretName_ThrowsArgumentException(string invalidName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -167,7 +165,6 @@ public class AzureKeyVaultTests
     [InlineData("valid123")]
     [InlineData("123valid")]
     [InlineData("a")]
-    [InlineData("a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-z-1-2-3-4-5-6-7-8-9-0-1-2-3-4-5-6-7-8-9-0-1-2-3-4-5-6-7-8-9-0-a-b-c-d-e")]
     public void AddSecret_WithValidSecretName_DoesNotThrow(string validSecretName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -195,55 +192,52 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
-    public void AddSecret_WithOnlyInvalidCharacters_ThrowsArgumentException()
+    public async Task AddSecret_WithParameterResource_GeneratesCorrectBicep()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var secretParam = builder.AddParameter("secretParam", secret: true);
-        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var secret = builder.AddParameter("my-secret-param", secret: true);
+        var kv = builder.AddAzureKeyVault("mykv")
+            .AddSecret("my-secret", secret);
 
-        // A string with only invalid characters
-        var onlyInvalidChars = "!!!@@@###";
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
 
-        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(onlyInvalidChars, secretParam));
-        Assert.Contains("Secret name can only contain", exception.Message);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
-    public void AddSecret_WithSecretNameOverride_UsesOverrideName()
+    public async Task AddSecret_WithReferenceExpression_GeneratesCorrectBicep()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var secretParam = builder.AddParameter("secretParam", secret: true);
-        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=mydb");
+        var kv = builder.AddAzureKeyVault("mykv")
+            .AddSecret("connection-string", connectionString);
 
-        // Should not throw - the override name is valid even though the parameter name has invalid characters
-        var exception = Record.Exception(() => kv.AddSecret("invalid_param_name", secretParam, "valid-override"));
-        Assert.Null(exception);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
-    public void AddSecret_WithReferenceExpressionAndOverride_UsesOverrideName()
+    public async Task AddSecret_WithMultipleSecrets_GeneratesCorrectBicep()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var kv = builder.AddAzureKeyVault("myKeyVault");
-        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=db");
+        var secretParam = builder.AddParameter("secret-param", secret: true);
+        var apiKey = builder.AddParameter("api-key", secret: true);
+        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=mydb;User=user");
 
-        // Should not throw - the override name is valid
-        var exception = Record.Exception(() => kv.AddSecret("invalid_param_name", connectionString, "valid-connection-string"));
-        Assert.Null(exception);
-    }
+        var kv = builder.AddAzureKeyVault("mykv")
+            .AddSecret("my-secret", secretParam)
+            .AddSecret("app-api-key", apiKey)
+            .AddSecret("connection-string", connectionString);
 
-    [Fact]
-    public void AddSecret_WithInvalidOverrideName_ThrowsArgumentException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
 
-        var secretParam = builder.AddParameter("secretParam", secret: true);
-        var kv = builder.AddAzureKeyVault("myKeyVault");
-
-        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret("valid-secret", secretParam, "invalid_override!"));
-        Assert.Contains("Secret name can only contain", exception.Message);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 }

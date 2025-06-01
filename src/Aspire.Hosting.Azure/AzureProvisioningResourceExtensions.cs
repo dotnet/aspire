@@ -249,33 +249,6 @@ public static class AzureProvisioningResourceExtensions
         return GetOrAddParameter(infrastructure, parameterName);
     }
 
-    /// <summary>
-    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
-    /// the same name already exists, that corresponds to <paramref name="expression"/>.
-    /// </summary>
-    /// <param name="expression">
-    /// The <see cref="ReferenceExpression"/> that represents the value to use for the <see cref="ProvisioningParameter"/>.
-    /// </param>
-    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
-    /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    /// <param name="isSecure">Indicates whether the parameter is secure.</param>
-    /// <returns>
-    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
-    /// </returns>
-    /// <remarks>
-    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="EndpointReference"/>.
-    /// </remarks>
-    public static ProvisioningParameter AsProvisioningParameter(this ReferenceExpression expression, AzureResourceInfrastructure infrastructure, string parameterName, bool isSecure)
-    {
-        ArgumentNullException.ThrowIfNull(expression);
-        ArgumentNullException.ThrowIfNull(infrastructure);
-        ArgumentException.ThrowIfNullOrEmpty(parameterName);
-
-        infrastructure.AspireResource.Parameters[parameterName] = expression;
-
-        return GetOrAddParameter(infrastructure, parameterName, isSecure);
-    }
-
     private static ProvisioningParameter GetOrAddParameter(AzureResourceInfrastructure infrastructure, string parameterName, bool? isSecure = null)
     {
         var parameter = infrastructure.GetParameters().FirstOrDefault(p => p.BicepIdentifier == parameterName);

@@ -11,21 +11,6 @@ using System.Text.RegularExpressions;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Represents a secret definition to be added to the Azure Key Vault.
-/// </summary>
-internal sealed record AzureKeyVaultSecretDefinition(
-    string Name,
-    object Value);
-
-/// <summary>
-/// Internal annotation for tracking secrets to be added to Azure Key Vault.
-/// </summary>
-internal sealed class AzureKeyVaultSecretsAnnotation : IResourceAnnotation
-{
-    public List<AzureKeyVaultSecretDefinition> Secrets { get; } = new();
-}
-
-/// <summary>
 /// Provides extension methods for adding the Azure Key Vault resources to the application model.
 /// </summary>
 public static class AzureKeyVaultResourceExtensions
@@ -81,37 +66,6 @@ public static class AzureKeyVaultResourceExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
-
-            // Process secrets from annotation
-            var secretsAnnotation = infrastructure.AspireResource.Annotations.OfType<AzureKeyVaultSecretsAnnotation>().FirstOrDefault();
-            if (secretsAnnotation is not null)
-            {
-                foreach (var secretDef in secretsAnnotation.Secrets)
-                {
-                    var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretDef.Name)}";
-                    
-                    ProvisioningParameter paramValue = secretDef.Value switch
-                    {
-                        ParameterResource paramResource => paramResource.AsProvisioningParameter(infrastructure, parameterName),
-                        ReferenceExpression refExpr => refExpr.AsProvisioningParameter(infrastructure, parameterName, isSecure: true),
-                        _ => throw new InvalidOperationException($"Unknown secret value type: {secretDef.Value.GetType()}")
-                    };
-                    
-                    paramValue.IsSecure = true;
-
-                    var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretDef.Name}"))
-                    {
-                        Name = secretDef.Name,
-                        Properties = new SecretProperties
-                        {
-                            Value = paramValue
-                        },
-                        Parent = keyVault,
-                    };
-
-                    infrastructure.Add(secret);
-                }
-            }
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
@@ -180,22 +134,6 @@ public static class AzureKeyVaultResourceExtensions
     }
 
     /// <summary>
-    /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource, allowing custom secret name override.
-    /// </summary>
-    /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
-    /// <param name="parameterResource">The parameter resource containing the secret value.</param>
-    /// <param name="secretNameOverride">Optional override for the secret name in Key Vault. If null, uses secretName.</param>
-    /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, IResourceBuilder<ParameterResource> parameterResource, string? secretNameOverride)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(parameterResource);
-
-        return builder.AddSecret(secretName, parameterResource.Resource, secretNameOverride);
-    }
-
-    /// <summary>
     /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource.
     /// </summary>
     /// <param name="builder">The Azure Key Vault resource builder.</param>
@@ -204,37 +142,30 @@ public static class AzureKeyVaultResourceExtensions
     /// <returns>The Azure Key Vault resource builder.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource)
     {
-        return builder.AddSecret(secretName, parameterResource, secretNameOverride: null);
-    }
-
-    /// <summary>
-    /// Adds a secret to the Azure Key Vault resource with the value from a parameter resource, allowing custom secret name override.
-    /// </summary>
-    /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
-    /// <param name="parameterResource">The parameter resource containing the secret value.</param>
-    /// <param name="secretNameOverride">Optional override for the secret name in Key Vault. If null, uses secretName.</param>
-    /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ParameterResource parameterResource, string? secretNameOverride)
-    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(parameterResource);
 
-        var actualSecretName = secretNameOverride ?? secretName;
-        ValidateSecretName(actualSecretName);
+        ValidateSecretName(secretName);
 
-        var secretsAnnotation = builder.Resource.Annotations.OfType<AzureKeyVaultSecretsAnnotation>().FirstOrDefault();
-        if (secretsAnnotation is null)
+        return builder.ConfigureInfrastructure(infrastructure =>
         {
-            secretsAnnotation = new AzureKeyVaultSecretsAnnotation();
-            builder.Resource.Annotations.Add(secretsAnnotation);
-        }
+            var keyVault = infrastructure.GetProvisionableResources().OfType<KeyVaultService>().Single();
+            var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretName)}";
+            var paramValue = parameterResource.AsProvisioningParameter(infrastructure, parameterName);
+            paramValue.IsSecure = true;
 
-        secretsAnnotation.Secrets.Add(new AzureKeyVaultSecretDefinition(
-            actualSecretName,
-            parameterResource));
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
+            {
+                Name = secretName,
+                Properties = new SecretProperties
+                {
+                    Value = paramValue
+                },
+                Parent = keyVault,
+            };
 
-        return builder;
+            infrastructure.Add(secret);
+        });
     }
 
     /// <summary>
@@ -246,37 +177,29 @@ public static class AzureKeyVaultResourceExtensions
     /// <returns>The Azure Key Vault resource builder.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value)
     {
-        return builder.AddSecret(secretName, value, secretNameOverride: null);
-    }
-
-    /// <summary>
-    /// Adds a secret to the Azure Key Vault resource with the value from a reference expression, allowing custom secret name override.
-    /// </summary>
-    /// <param name="builder">The Azure Key Vault resource builder.</param>
-    /// <param name="secretName">The name of the secret. Must follow Azure Key Vault naming rules.</param>
-    /// <param name="value">The reference expression containing the secret value.</param>
-    /// <param name="secretNameOverride">Optional override for the secret name in Key Vault. If null, uses secretName.</param>
-    /// <returns>The Azure Key Vault resource builder.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddSecret(this IResourceBuilder<AzureKeyVaultResource> builder, string secretName, ReferenceExpression value, string? secretNameOverride)
-    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(value);
 
-        var actualSecretName = secretNameOverride ?? secretName;
-        ValidateSecretName(actualSecretName);
+        ValidateSecretName(secretName);
 
-        var secretsAnnotation = builder.Resource.Annotations.OfType<AzureKeyVaultSecretsAnnotation>().FirstOrDefault();
-        if (secretsAnnotation is null)
+        return builder.ConfigureInfrastructure(infrastructure =>
         {
-            secretsAnnotation = new AzureKeyVaultSecretsAnnotation();
-            builder.Resource.Annotations.Add(secretsAnnotation);
-        }
+            var keyVault = infrastructure.GetProvisionableResources().OfType<KeyVaultService>().Single();
+            var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretName)}";
+            var paramValue = value.AsProvisioningParameter(infrastructure, parameterName, isSecure: true);
 
-        secretsAnnotation.Secrets.Add(new AzureKeyVaultSecretDefinition(
-            actualSecretName,
-            value));
+            var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretName}"))
+            {
+                Name = secretName,
+                Properties = new SecretProperties
+                {
+                    Value = paramValue
+                },
+                Parent = keyVault,
+            };
 
-        return builder;
+            infrastructure.Add(secret);
+        });
     }
 
     private static void ValidateSecretName(string secretName)
