@@ -15,17 +15,7 @@ namespace Aspire.Hosting;
 /// </summary>
 internal sealed record AzureKeyVaultSecretDefinition(
     string Name,
-    object Value,
-    AzureKeyVaultSecretType Type);
-
-/// <summary>
-/// Represents the type of secret value.
-/// </summary>
-internal enum AzureKeyVaultSecretType
-{
-    ParameterResource,
-    ReferenceExpression
-}
+    object Value);
 
 /// <summary>
 /// Internal annotation for tracking secrets to be added to Azure Key Vault.
@@ -100,11 +90,11 @@ public static class AzureKeyVaultResourceExtensions
                 {
                     var parameterName = $"secret_{Infrastructure.NormalizeBicepIdentifier(secretDef.Name)}";
                     
-                    ProvisioningParameter paramValue = secretDef.Type switch
+                    ProvisioningParameter paramValue = secretDef.Value switch
                     {
-                        AzureKeyVaultSecretType.ParameterResource => ((ParameterResource)secretDef.Value).AsProvisioningParameter(infrastructure, parameterName),
-                        AzureKeyVaultSecretType.ReferenceExpression => ((ReferenceExpression)secretDef.Value).AsProvisioningParameter(infrastructure, parameterName, isSecure: true),
-                        _ => throw new InvalidOperationException($"Unknown secret type: {secretDef.Type}")
+                        ParameterResource paramResource => paramResource.AsProvisioningParameter(infrastructure, parameterName),
+                        ReferenceExpression refExpr => refExpr.AsProvisioningParameter(infrastructure, parameterName, isSecure: true),
+                        _ => throw new InvalidOperationException($"Unknown secret value type: {secretDef.Value.GetType()}")
                     };
                     
                     paramValue.IsSecure = true;
@@ -242,8 +232,7 @@ public static class AzureKeyVaultResourceExtensions
 
         secretsAnnotation.Secrets.Add(new AzureKeyVaultSecretDefinition(
             actualSecretName,
-            parameterResource,
-            AzureKeyVaultSecretType.ParameterResource));
+            parameterResource));
 
         return builder;
     }
@@ -285,8 +274,7 @@ public static class AzureKeyVaultResourceExtensions
 
         secretsAnnotation.Secrets.Add(new AzureKeyVaultSecretDefinition(
             actualSecretName,
-            value,
-            AzureKeyVaultSecretType.ReferenceExpression));
+            value));
 
         return builder;
     }
