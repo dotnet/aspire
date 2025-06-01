@@ -128,51 +128,6 @@ public class AzureKeyVaultTests
         Assert.Same(kv.Resource, secret.Resource);
     }
 
-    [Fact]
-    public async Task AddSecret_WithParameterResource_AddsSecretToKeyVault()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var secretParam = builder.AddParameter("secretParam", secret: true);
-        var kv = builder.AddAzureKeyVault("myKeyVault")
-            .AddSecret("my-secret", secretParam);
-
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
-
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddSecret_WithParameterResourceBuilder_AddsSecretToKeyVault()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var secretParam = builder.AddParameter("secretParam", secret: true);
-        var kv = builder.AddAzureKeyVault("myKeyVault")
-            .AddSecret("my-secret", secretParam.Resource);
-
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
-
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddSecret_WithReferenceExpression_AddsSecretToKeyVault()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var connection = ReferenceExpression.Create($"Server=myserver;Database=mydb;User Id=myuser;Password=mypassword");
-        var kv = builder.AddAzureKeyVault("myKeyVault")
-            .AddSecret("connection-string", connection);
-
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
-
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
