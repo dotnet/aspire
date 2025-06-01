@@ -121,11 +121,21 @@ public static class AzureContainerAppExtensions
             pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
             infra.Add(pullRa);
 
-            var laWorkspace = new OperationalInsightsWorkspace(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_law"))
+            OperationalInsightsWorkspace? laWorkspace = null;
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            if (appEnvResource.TryGetLastAnnotation<LogAnalyticsWorkspaceReferenceAnnotation>(out var logAnalyticsReferenceAnnotation) && logAnalyticsReferenceAnnotation.Workspace is AzureProvisioningResource workspace)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
-                Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
-                Tags = tags
-            };
+                laWorkspace = (OperationalInsightsWorkspace)workspace.AddAsExistingResource(infra);
+            }
+            else
+            {
+                laWorkspace = new OperationalInsightsWorkspace(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_law"))
+                {
+                    Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
+                    Tags = tags
+                };
+            }
 
             infra.Add(laWorkspace);
 
