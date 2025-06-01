@@ -1399,19 +1399,25 @@ public class AzureContainerAppsTests
                .WithEnvironment(context =>
                {
                    context.EnvironmentVariables["CUSTOM_VALUE"] = customProvider;
-               });
+               })
+               .PublishAsAzureContainerApp((_, _) => { });
 
         using var app = builder.Build();
 
-        // Before the fix, this would throw NotSupportedException during environment processing
-        // After the fix, this should complete without throwing
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await ExecuteBeforeStartHooksAsync(app, default);
-        });
+        await ExecuteBeforeStartHooksAsync(app, default);
 
-        // The test passes if no exception is thrown
-        Assert.Null(exception);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

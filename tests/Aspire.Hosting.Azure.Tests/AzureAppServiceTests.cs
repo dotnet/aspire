@@ -174,7 +174,7 @@ public class AzureAppServiceTests
 
         var customProvider = new CustomManifestExpressionProvider();
         
-        builder.AddProject<Project>("api", launchProfileName: null)
+        var apiProject = builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
             .WithEnvironment(context =>
             {
@@ -184,15 +184,20 @@ public class AzureAppServiceTests
 
         using var app = builder.Build();
 
-        // Before the fix, this would throw NotSupportedException during environment processing
-        // After the fix, this should complete without throwing
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await ExecuteBeforeStartHooksAsync(app, default);
-        });
+        await ExecuteBeforeStartHooksAsync(app, default);
 
-        // The test passes if no exception is thrown
-        Assert.Null(exception);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
