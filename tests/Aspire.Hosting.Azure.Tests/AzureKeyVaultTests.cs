@@ -208,4 +208,42 @@ public class AzureKeyVaultTests
         var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(onlyInvalidChars, secretParam));
         Assert.Contains("Secret name can only contain", exception.Message);
     }
+
+    [Fact]
+    public void AddSecret_WithSecretNameOverride_UsesOverrideName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        // Should not throw - the override name is valid even though the parameter name has invalid characters
+        var exception = Record.Exception(() => kv.AddSecret("invalid_param_name", secretParam, "valid-override"));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddSecret_WithReferenceExpressionAndOverride_UsesOverrideName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var connectionString = ReferenceExpression.Create($"Server=localhost;Database=db");
+
+        // Should not throw - the override name is valid
+        var exception = Record.Exception(() => kv.AddSecret("invalid_param_name", connectionString, "valid-connection-string"));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddSecret_WithInvalidOverrideName_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret("valid-secret", secretParam, "invalid_override!"));
+        Assert.Contains("Secret name can only contain", exception.Message);
+    }
 }
