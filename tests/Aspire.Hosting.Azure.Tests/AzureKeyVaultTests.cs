@@ -131,12 +131,7 @@ public class AzureKeyVaultTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    [InlineData("secret_with_underscores")]
-    [InlineData("secret.with.dots")]
-    [InlineData("secret with spaces")]
-    [InlineData("secret/with/slashes")]
-    [InlineData("secret@with@symbols")]
-    public void AddSecret_WithInvalidSecretName_ThrowsArgumentException(string invalidSecretName)
+    public void AddSecret_WithEmptySecretName_ThrowsArgumentException(string invalidSecretName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -145,6 +140,26 @@ public class AzureKeyVaultTests
 
         var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(invalidSecretName, secretParam));
         Assert.Contains("Secret name", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("secret_with_underscores")]
+    [InlineData("secret.with.dots")]
+    [InlineData("secret with spaces")]
+    [InlineData("secret/with/slashes")]
+    [InlineData("secret@with@symbols")]
+    [InlineData("multiple___underscores")]
+    [InlineData("--leading-trailing--")]
+    public void AddSecret_WithInvalidSecretName_NormalizesName(string originalName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        // Should not throw - normalization should work
+        var exception = Record.Exception(() => kv.AddSecret(originalName, secretParam));
+        Assert.Null(exception);
     }
 
     [Theory]
@@ -166,7 +181,7 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
-    public void AddSecret_WithTooLongSecretName_ThrowsArgumentException()
+    public void AddSecret_WithTooLongSecretName_TruncatesName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -176,7 +191,23 @@ public class AzureKeyVaultTests
         // Create a 128-character secret name (too long)
         var tooLongSecretName = new string('a', 128);
 
-        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(tooLongSecretName, secretParam));
-        Assert.Contains("between 1 and 127 characters", exception.Message);
+        // Should not throw - normalization should truncate to 127 characters
+        var exception = Record.Exception(() => kv.AddSecret(tooLongSecretName, secretParam));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void AddSecret_WithOnlyInvalidCharacters_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var secretParam = builder.AddParameter("secretParam", secret: true);
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+
+        // A string with only invalid characters that would result in empty after normalization
+        var onlyInvalidChars = "!!!@@@###";
+
+        var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(onlyInvalidChars, secretParam));
+        Assert.Contains("cannot be normalized", exception.Message);
     }
 }
