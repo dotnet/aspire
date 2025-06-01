@@ -36,8 +36,8 @@ internal sealed class AzureAppServiceInfrastructure(
                 continue;
             }
 
-            // We only support project resources for now.
-            if (resource is not ProjectResource)
+            // Support project resources and containers with Dockerfile
+            if (resource is not ProjectResource && !resource.IsContainer())
             {
                 continue;
             }
