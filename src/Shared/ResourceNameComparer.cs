@@ -3,9 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.AppContainers;
+namespace Aspire.Hosting;
 
-internal sealed class ResourceComparer : IEqualityComparer<IResource>
+internal sealed class ResourceNameComparer : IEqualityComparer<IResource>
 {
     public bool Equals(IResource? x, IResource? y)
     {

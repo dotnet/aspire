@@ -140,7 +140,7 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    public async Task AzureAppServiceDoesNotSupportBaitAndSwitchResources()
+    public async Task AzureAppServiceSupportBaitAndSwitchResources()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -148,7 +148,8 @@ public class AzureAppServiceTests
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .PublishAsDockerFile()
-            .WithHttpEndpoint(env: "PORT");
+            .WithHttpEndpoint(env: "PORT", targetPort: 80)
+            .WithExternalHttpEndpoints();
 
         using var app = builder.Build();
 
@@ -162,7 +163,12 @@ public class AzureAppServiceTests
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
 
-        Assert.Null(resource);
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -177,7 +183,9 @@ public class AzureAppServiceTests
         // Contents of the Dockerfile are not important for this test
         File.WriteAllText(Path.Combine(directory.FullName, "Dockerfile"), "");
 
-        builder.AddDockerfile("api", directory.FullName);
+        builder.AddDockerfile("api", directory.FullName)
+               .WithHttpEndpoint(targetPort: 85, env: "PORT")
+               .WithExternalHttpEndpoints();
 
         using var app = builder.Build();
 
