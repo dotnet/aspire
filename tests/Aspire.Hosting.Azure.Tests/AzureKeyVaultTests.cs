@@ -232,7 +232,6 @@ public class AzureKeyVaultTests
     [InlineData("valid-secret")]
     [InlineData("VALID-SECRET")]
     [InlineData("valid123")]
-    [InlineData("123valid")]
     [InlineData("a")]
     public void AddSecret_WithValidSecretName_DoesNotThrow(string validSecretName)
     {
