@@ -111,7 +111,14 @@ sealed partial class TestSummaryGenerator
         var passed = counters.Passed;
         var skipped = counters.NotExecuted;
 
-        // Always generate a report, but only show failed tests details if there are failures
+        // Restore original behavior: no report when tests ran and all passed
+        if (total > 0 && failed == 0)
+        {
+            Console.WriteLine($"No failed tests in {trxFilePath}");
+            return;
+        }
+
+        // Generate report for zero tests or when there are failures
         var title = string.IsNullOrEmpty(url)
             ? GetTestTitle(trxFilePath)
             : $"{GetTestTitle(trxFilePath)} (<a href=\"{url}\">Logs</a>)";
