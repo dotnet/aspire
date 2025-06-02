@@ -14,7 +14,7 @@ jobs:
 
   generate_tests_matrix:
     name: Generate test runsheet
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
@@ -25,12 +25,12 @@ jobs:
       # and find out whether it contains any quarantined tests.
       - name: Build the solution
         run: |
-          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
+          ./build.sh -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
         run: |
-          ./build.cmd -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true -c Release -ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
+          ./build.sh -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true -c Release -ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
 
       - name: Upload logs, and test results
         if: ${{ always() }}
