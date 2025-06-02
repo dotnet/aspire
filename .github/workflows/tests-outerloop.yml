@@ -98,7 +98,7 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/artifacts/TestResults") {
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/artifacts/TestResults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/artifacts/TestResults" -u "${{ steps.upload-logs.outputs.artifact-url }}" --error-on-zero-tests
           }
 
   results:
@@ -151,4 +151,3 @@ jobs:
           --
           ${{ github.workspace }}/testresults
           --combined
-          --error-on-zero-tests
