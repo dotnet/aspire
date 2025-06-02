@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.Docker;
 
 /// <summary>
 /// Represents a resource for the Aspire Dashboard.
