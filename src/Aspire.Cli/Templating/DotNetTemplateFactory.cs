@@ -68,15 +68,32 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             "Aspire Test Project (xUnit)",
             projectName => $"./{projectName}",
             _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
+            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
             );
     }
 
     private async Task<string[]> PromptForExtraAspireStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
     {
         var extraArgs = new List<string>();
-        var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
 
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForTestFrameworkOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspireXUnitOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task PromptForRedisCacheOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
+    {
+        var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
         if (!useRedisCache.HasValue)
         {
             useRedisCache = await interactionService.PromptForSelectionAsync("Use Redis Cache", ["Yes", "No"], choice => choice, cancellationToken) switch
@@ -92,8 +109,63 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             interactionService.DisplayMessage("french_fries", "Using Redis Cache for caching.");
             extraArgs.Add("--use-redis-cache");
         }
+    }
 
-        return extraArgs.ToArray();
+    private async Task PromptForTestFrameworkOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
+    {
+        var testFramework = result.GetValue<string?>("--test-framework");
+
+        if (testFramework is null)
+        {
+            var createTestProject = await interactionService.PromptForSelectionAsync(
+                "Do you want to create a test project?",
+                ["Yes", "No"],
+                choice => choice,
+                cancellationToken);
+
+            if (createTestProject == "No")
+            {
+                return;
+            }
+        }
+
+        if (string.IsNullOrEmpty(testFramework))
+        {
+            testFramework = await interactionService.PromptForSelectionAsync(
+                "Select a test framework",
+                ["MSTest", "NUnit", "xUnit.net", "None"],
+                choice => choice,
+                cancellationToken);
+        }
+
+        if (testFramework is { } && testFramework != "None")
+        {
+            if (testFramework.ToLower() == "xunit.net")
+            {
+                await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
+            }
+
+            interactionService.DisplayMessage("french_fries", $"Using {testFramework} for testing.");
+
+            extraArgs.Add("--test-framework");
+            extraArgs.Add(testFramework);
+        }
+    }
+
+    private async Task PromptForXUnitVersionOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
+    {
+        var xunitVersion = result.GetValue<string?>("--xunit-version");
+        if (string.IsNullOrEmpty(xunitVersion))
+        {
+            xunitVersion = await interactionService.PromptForSelectionAsync(
+                "Enter the xUnit.net version to use",
+                ["v2", "v3", "v3mtp"],
+                choice => choice,
+                cancellationToken: cancellationToken);
+        }
+
+        extraArgs.Add("--xunit-version");
+        extraArgs.Add(xunitVersion);
     }
 
     private static void ApplyExtraAspireStarterOptions(Command command)
@@ -102,6 +174,14 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         useRedisCacheOption.Description = "Configures whether to setup the application to use Redis for caching.";
         useRedisCacheOption.DefaultValueFactory = _ => false;
         command.Options.Add(useRedisCacheOption);
+
+        var testFrameworkOption = new Option<string?>("--test-framework");
+        testFrameworkOption.Description = "Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.";
+        command.Options.Add(testFrameworkOption);
+
+        var xunitVersionOption = new Option<string?>("--xunit-version");
+        xunitVersionOption.Description = "The version of xUnit.net to use for the test project.";
+        command.Options.Add(xunitVersionOption);
     }
 
     private async Task<int> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
