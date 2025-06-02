@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -14,13 +12,15 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureKeyVaultSecretResource(string name, string secretName, AzureKeyVaultResource parent, IManifestExpressionProvider value)
+public class AzureKeyVaultSecretResource(string name, string secretName, AzureKeyVaultResource parent, object value)
     : Resource(name), IResourceWithParent<AzureKeyVaultResource>, IAzureKeyVaultSecretReference
 {
+    private readonly IAzureKeyVaultSecretReference _secret = parent.GetSecret(secretName);
+
     /// <summary>
     /// Gets or sets the secret name.
     /// </summary>
-    public string SecretName { get; set; } = ThrowIfNullOrEmpty(secretName);
+    public string SecretName => _secret.SecretName;
 
     /// <summary>
     /// Gets the parent Azure Key Vault resource.
@@ -30,7 +30,7 @@ public class AzureKeyVaultSecretResource(string name, string secretName, AzureKe
     /// <summary>
     /// Gets the value provider for the secret.
     /// </summary>
-    public IManifestExpressionProvider Value { get; } = value ?? throw new ArgumentNullException(nameof(value));
+    public object Value { get; } = value ?? throw new ArgumentNullException(nameof(value));
 
     /// <summary>
     /// Gets the Azure Key Vault resource that contains this secret.
@@ -40,26 +40,13 @@ public class AzureKeyVaultSecretResource(string name, string secretName, AzureKe
     /// <summary>
     /// Gets the expression for the secret value in the manifest.
     /// </summary>
-    string IManifestExpressionProvider.ValueExpression => $"{{{Parent.Name}.secrets.{SecretName}}}";
+    string IManifestExpressionProvider.ValueExpression => _secret.ValueExpression;
 
     /// <summary>
     /// Gets the secret value asynchronously.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The secret value.</returns>
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
-    {
-        if (Parent.SecretResolver is { } secretResolver)
-        {
-            return await secretResolver(this, cancellationToken).ConfigureAwait(false);
-        }
-
-        throw new InvalidOperationException($"Secret '{SecretName}' not found in Key Vault '{Parent.Name}'.");
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
-    }
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) =>
+        _secret.GetValueAsync(cancellationToken);
 }

@@ -69,7 +69,10 @@ public static partial class AzureKeyVaultResourceExtensions
             {
                 foreach (var secretResource in kvResource.Secrets)
                 {
-                    var paramValue = secretResource.Value.AsProvisioningParameter(infrastructure, isSecure: true);
+                    var value = secretResource.Value as IManifestExpressionProvider ?? throw new NotSupportedException(
+                        $"Secret value for '{secretResource.SecretName}' is an unsupported type.");
+
+                    var paramValue = value.AsProvisioningParameter(infrastructure, isSecure: true);
 
                     var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret_{secretResource.SecretName}"))
                     {
