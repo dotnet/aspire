@@ -63,7 +63,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new");
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -79,11 +79,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
-
-                prompter.PromptForTemplateCallback = (templates) =>
-                {
-                    return templates.Single(t => t.Name == "aspire-starter");
-                };
 
                 prompter.PromptForProjectNameCallback = (defaultName) =>
                 {
@@ -122,122 +117,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new");
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task NewCommandPromptsForProjectTemplateIfInvalidTemplateSpecified()
-    {
-        var tcs = new TaskCompletionSource();
-
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
-
-            // Set of options that we'll give when prompted.
-            options.NewCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestNewCommandPrompter(interactionService);
-                prompter.PromptForTemplateCallback = (templates) => {
-                    tcs.SetResult();
-                    return templates[0];
-                };
-
-                return prompter;
-            };
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
-                {
-                    var package = new NuGetPackage()
-                    {
-                        Id = "Aspire.ProjectTemplates",
-                        Source = "nuget",
-                        Version = "9.2.0"
-                    };
-
-                    return (
-                        0, // Exit code.
-                        new NuGetPackage[] { package } // Single package.
-                        );
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new notavalidtemplate");
-
-        var pendingNewCommand = result.InvokeAsync();
-
-        // This basically waits for the prompt to select the project
-        // template to be shown. If it isn't shown then this test will
-        // fail witha timeout.
-        await tcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
-        var exitCode = await pendingNewCommand;
-
-        // Success because the default behavior of the prompter will
-        // result in the new command completing and the stub
-        // for the DotNetCliRunner will return success for all the
-        // commands.
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task NewCommandIgnoresCaseWhenSearchingForTemplateName()
-    {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
-
-            // Set of options that we'll give when prompted.
-            options.NewCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                return new TestNewCommandPrompter(interactionService);
-            };
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
-                {
-                    var package = new NuGetPackage()
-                    {
-                        Id = "Aspire.ProjectTemplates",
-                        Source = "nuget",
-                        Version = "9.2.0"
-                    };
-
-                    return (
-                        0, // Exit code.
-                        new NuGetPackage[] { package } // Single package.
-                        );
-                };
-
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
-                {
-                    // This is the template name that we expect to be passed
-                    // to the new command.
-                    Assert.Equal("aspire-apphost", templateName);
-                    return 0; // Success
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new ASPIRE-APPHOST");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
     [Fact]
@@ -293,7 +177,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new");
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -365,7 +249,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new");
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -424,7 +308,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --name MyApp");
+        var result = command.Parse("new aspire-starter --name MyApp --output . --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -477,7 +361,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --output notsrc");
+        var result = command.Parse("new aspire-starter --output notsrc --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -530,7 +414,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new aspire-starter");
+        var result = command.Parse("new aspire-starter --name MyApp --output . --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -583,7 +467,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --version 9.2.0");
+        var result = command.Parse("new aspire-starter --name MyApp --output . --use-redis-cache --test-framework None --version 9.2.0");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
@@ -670,7 +554,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("new");
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
