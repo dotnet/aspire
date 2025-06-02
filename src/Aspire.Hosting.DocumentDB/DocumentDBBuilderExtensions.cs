@@ -112,8 +112,7 @@ public static class DocumentDBBuilderExtensions
             if (connectionString == null)
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{DocumentDBDatabase.Name}' resource but the connection string was null.");
-            }
-        });
+            }        });
 
         // var healthCheckKey = $"{name}_check";
         // // cache the database client so it is reused on subsequent calls to the health check
@@ -127,6 +126,22 @@ public static class DocumentDBBuilderExtensions
 
         return builder.ApplicationBuilder
             .AddResource(DocumentDBDatabase);
+    }
+
+    /// <summary>
+    /// Configures the host port that the DocumentDB resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for DocumentDB.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<DocumentDBServerResource> WithHostPort(this IResourceBuilder<DocumentDBServerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -167,6 +182,13 @@ public static class DocumentDBBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/home/documentdb/postgresql/data", isReadOnly);
+        const string targetPath = "/home/documentdb/postgresql/data";
+
+        return builder
+            .WithBindMount(source, targetPath, isReadOnly)
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["DATA_PATH"] = targetPath;
+            });
     }
 }

@@ -68,7 +68,7 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    //[InlineData(true)]
+    [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
@@ -103,22 +103,6 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
                 Directory.CreateDirectory(bindMountPath);
-
-                if (!OperatingSystem.IsWindows())
-                {
-                    // PostgreSQL requires strict permissions on its data directory
-                    // Set permissions to 0700 (user read/write/execute only) as required by PostgreSQL
-                    const UnixFileMode BindMountPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
-
-                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
-
-                    Console.WriteLine($"Created bind mount path: {bindMountPath} with permissions {BindMountPermissions}");
-                }
-                else
-                {
-                    Console.WriteLine($"Created bind mount path: {bindMountPath}");
-                }
 
                 DocumentDB1.WithDataBindMount(bindMountPath);
             }

@@ -154,6 +154,10 @@
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/DocumentDB/">
+    <Project Path="playground/DocumentDB/DocumentDB.ApiService/DocumentDB.ApiService.csproj" />
+    <Project Path="playground/DocumentDB/DocumentDB.AppHost/DocumentDB.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/EventHubs/">
     <Project Path="playground/AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
