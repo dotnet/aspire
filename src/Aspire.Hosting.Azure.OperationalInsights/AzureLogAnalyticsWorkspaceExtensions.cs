@@ -63,10 +63,10 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     }
 
     /// <summary>
-    /// Configures a resource that implements <see cref="ILogAnalyticsWorkspace"/> to use the specified Log Analytics Workspace.
+    /// Configures a resource that implements <see cref="IComputeEnvironmentResource"/> to use the specified Log Analytics Workspace.
     /// </summary>
-    /// <typeparam name="T">The resource type that implements <see cref="ILogAnalyticsWorkspace"/>.</typeparam>
-    /// <param name="builder">The resource builder for a resource that implements <see cref="ILogAnalyticsWorkspace"/>.</param>
+    /// <typeparam name="T">The resource type that implements <see cref="IComputeEnvironmentResource"/>.</typeparam>
+    /// <param name="builder">The resource builder for a resource that implements <see cref="IComputeEnvironmentResource"/>.</param>
     /// <param name="workspaceBuilder">The resource builder for the <see cref="AzureLogAnalyticsWorkspaceResource"/> to use.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="workspaceBuilder"/> is null.</exception>

@@ -13,10 +13,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </remarks>
 /// <param name="workspace">The Log Analytics Workspace resource.</param>
 [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class LogAnalyticsWorkspaceReferenceAnnotation(ILogAnalyticsWorkspace workspace) : IResourceAnnotation
+public class LogAnalyticsWorkspaceReferenceAnnotation(Resource workspace) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the Log Analytics Workspace resource.
     /// </summary>
-    public ILogAnalyticsWorkspace Workspace { get; } = workspace;
+    public Resource Workspace { get; } = workspace;
 }
