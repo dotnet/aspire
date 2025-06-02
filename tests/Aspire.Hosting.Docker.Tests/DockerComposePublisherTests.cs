@@ -4,10 +4,10 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
+using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker.Tests;
 
@@ -87,6 +87,39 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             "..\\TestingAppHost1\\TestingAppHost1.MyWebApp\\TestingAppHost1.MyWebApp.csproj",
             launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
+
+        var app = builder.Build();
+
+        // Act
+        app.Run();
+
+        // Assert
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
+    [Fact]
+    public async Task DockerComposeWithProjectResources()
+    {
+        using var tempDir = new TempDirectory();
+        // Arrange
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a project
+        var project = builder.AddProject<TestProjectWithLaunchSettings>("project1");
+
+        builder.AddContainer("api", "reg:api")
+               .WithReference(project);
 
         var app = builder.Build();
 
@@ -366,12 +399,12 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboard()
             .WithDashboardConfiguration(service =>
             {
                 service.WithImage("custom-dashboard:latest")
                     .WithContainerName("custom-dashboard")
-                    .WithEnvironment("CUSTOM_VAR", "custom-value");
+                    .WithEnvironment("CUSTOM_VAR", "custom-value")
+                    .WithBrowserPort(8081);
             });
 
         var app = builder.Build();
@@ -454,5 +487,36 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         public string ProjectPath => "another-path";
 
         public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    {
+        public Dictionary<string, LaunchProfile>? Profiles { get; set; } = [];
+        public string ProjectPath => "another-path";
+        public LaunchSettings? LaunchSettings => new() { Profiles = Profiles! };
+
+        public TestProjectWithLaunchSettings() => Profiles = new()
+        {
+            ["https"] = new()
+            {
+                CommandName = "Project",
+                LaunchBrowser = true,
+                ApplicationUrl = "http://localhost:5031;https://localhost:5032",
+                EnvironmentVariables = new()
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            },
+            ["http"] = new()
+            {
+                CommandName = "Project",
+                LaunchBrowser = true,
+                ApplicationUrl = "http://localhost:5031",
+                EnvironmentVariables = new()
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            }
+        };
     }
 }

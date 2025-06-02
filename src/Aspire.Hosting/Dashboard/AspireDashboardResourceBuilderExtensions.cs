@@ -21,8 +21,8 @@ public static class AspireDashboardResourceBuilderExtensions
     /// in the Aspire Hosting environment. The resource is not automatically added to the application model;
     /// instead, it returns a builder that can be further configured and added as needed.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown when the builder is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when the name is null or empty.</exception>  
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
     public static IResourceBuilder<AspireDashboardResource> CreateDashboard(
         this IDistributedApplicationBuilder builder,
         string name)
@@ -39,5 +39,20 @@ public static class AspireDashboardResourceBuilderExtensions
                       // Expose the browser endpoint by default, there's auth required to access it
                       .WithEndpoint("http", e => e.IsExternal = true)
                       .WithHttpEndpoint(name: "otlp-grpc", targetPort: 18889);
+    }
+
+    /// <summary>
+    /// Configures the browser port for the Aspire Dashboard resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance.</param>
+    /// <param name="port">The port to use for the browser endpoint.</param>
+    /// <returns>
+    /// The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance for chaining.
+    /// </returns>
+    public static IResourceBuilder<AspireDashboardResource> WithBrowserPort(
+        this IResourceBuilder<AspireDashboardResource> builder,
+        int port)
+    {
+        return builder.WithEndpoint("http", e => e.Port = port);
     }
 }
