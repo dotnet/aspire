@@ -151,3 +151,4 @@ jobs:
           --
           ${{ github.workspace }}/testresults
           --combined
+          --error-on-zero-tests
