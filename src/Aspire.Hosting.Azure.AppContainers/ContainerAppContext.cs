@@ -580,6 +580,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         }
 
+        if (value is IManifestExpressionProvider manifestExpressionProvider)
+        {
+            return (AllocateParameter(manifestExpressionProvider, secretType), secretType);
+        }
+
         throw new NotSupportedException("Unsupported value type " + value.GetType());
     }
 

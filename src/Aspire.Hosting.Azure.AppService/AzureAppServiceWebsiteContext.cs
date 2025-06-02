@@ -181,6 +181,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             return (new BicepFormatString(expr.Format, args), finalSecretType);
         }
 
+        if (value is IManifestExpressionProvider manifestExpressionProvider)
+        {
+            return (AllocateParameter(manifestExpressionProvider, secretType), secretType);
+        }
+
         throw new NotSupportedException($"Unsupported value type {value.GetType()}");
     }
 

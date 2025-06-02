@@ -1386,11 +1386,50 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task UnknownManifestExpressionProviderIsHandledWithAllocateParameter()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var customProvider = new CustomManifestExpressionProvider();
+        
+        builder.AddContainer("api", "myimage")
+               .WithEnvironment(context =>
+               {
+                   context.EnvironmentVariables["CUSTOM_VALUE"] = customProvider;
+               })
+               .PublishAsAzureContainerApp((_, _) => { });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
+    }
+
+    private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
+    {
+        public string ValueExpression => "{customValue}";
     }
 }
