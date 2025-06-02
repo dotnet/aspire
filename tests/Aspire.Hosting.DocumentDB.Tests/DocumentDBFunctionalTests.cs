@@ -97,7 +97,8 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
                 // if the volume already exists (because of a crashing previous run), delete it
                 DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 DocumentDB1.WithDataVolume(volumeName);
-            }            else
+            }
+            else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
@@ -105,13 +106,10 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    // The docker container runs as a non-root user, so we need to grant other user's read/write permission
-                    // to the bind mount directory.
-                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+                    // PostgreSQL requires strict permissions on its data directory
+                    // Set permissions to 0700 (user read/write/execute only) as required by PostgreSQL
                     const UnixFileMode BindMountPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
 
                     File.SetUnixFileMode(bindMountPath, BindMountPermissions);
 
