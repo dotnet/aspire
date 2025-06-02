@@ -68,8 +68,10 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<ITemplate> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.CommandResult.Command != this &&
-            _templates.FirstOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase)) is ITemplate template)
+        // NOTE: I am using Single(...) here because if we get to this point and we are not running the 'aspire new' without a template
+        //       specified then we should have errored out with the help text. If we get there then someting is really wrong and we should
+        //       throw an exception.
+        if (parseResult.CommandResult.Command != this && _templates.Single(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase)) is ITemplate template)
         {
             // If the command is not this NewCommand instance then we assume
             // that we are using a generated TemplateCommand. If this is the case
