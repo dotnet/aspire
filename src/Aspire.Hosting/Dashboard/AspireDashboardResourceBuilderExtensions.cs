@@ -36,6 +36,8 @@ public static class AspireDashboardResourceBuilderExtensions
         return builder.CreateResourceBuilder(resource)
                       .WithImage("mcr.microsoft.com/dotnet/nightly/aspire-dashboard")
                       .WithHttpEndpoint(targetPort: 18888)
+                      // Expose the browser endpoint by default, there's auth required to access it
+                      .WithEndpoint("http", e => e.IsExternal = true)
                       .WithHttpEndpoint(name: "otlp-grpc", targetPort: 18889);
     }
 }

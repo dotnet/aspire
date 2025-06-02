@@ -4,8 +4,9 @@
     container_name: "custom-dashboard"
     environment:
       CUSTOM_VAR: "custom-value"
+    ports:
+      - "8000:18888"
     expose:
-      - "18888"
       - "18889"
     networks:
       - "aspire"
