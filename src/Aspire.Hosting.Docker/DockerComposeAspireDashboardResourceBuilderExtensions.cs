@@ -8,7 +8,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for creating Aspire Dashboard resources in the application model.
 /// </summary>
-public static class AspireDashboardResourceBuilderExtensions
+public static class DockerComposeAspireDashboardResourceBuilderExtensions
 {
     /// <summary>
     /// Creates a new Aspire Dashboard resource builder with the specified name.
@@ -23,14 +23,14 @@ public static class AspireDashboardResourceBuilderExtensions
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
-    public static IResourceBuilder<AspireDashboardResource> CreateDashboard(
+    internal static IResourceBuilder<DockerComposeAspireDashboardResource> CreateDashboard(
         this IDistributedApplicationBuilder builder,
         string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new AspireDashboardResource(name);
+        var resource = new DockerComposeAspireDashboardResource(name);
 
         // Initialize the dashboard resource
         return builder.CreateResourceBuilder(resource)
@@ -47,8 +47,8 @@ public static class AspireDashboardResourceBuilderExtensions
     /// <returns>
     /// The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance for chaining.
     /// </returns>
-    public static IResourceBuilder<AspireDashboardResource> WithBrowserPort(
-        this IResourceBuilder<AspireDashboardResource> builder,
+    public static IResourceBuilder<DockerComposeAspireDashboardResource> WithBrowserPort(
+        this IResourceBuilder<DockerComposeAspireDashboardResource> builder,
         int? port = null)
     {
         return builder.WithEndpoint("http", e =>

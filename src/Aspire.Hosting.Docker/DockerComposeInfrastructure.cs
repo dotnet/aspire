@@ -40,7 +40,7 @@ internal sealed class DockerComposeInfrastructure(
 
         var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
-        if (environment.DashboardEnabled && environment.Dashboard?.Resource is AspireDashboardResource dashboard)
+        if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
         {
             // Ensure the dashboard resource is created (even though it's not part of the main application model)
             var dashboardService = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(dashboard, executionContext, cancellationToken).ConfigureAwait(false);

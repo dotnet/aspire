@@ -41,7 +41,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
-    internal IResourceBuilder<AspireDashboardResource>? Dashboard { get; set; }
+    internal IResourceBuilder<DockerComposeAspireDashboardResource>? Dashboard { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.

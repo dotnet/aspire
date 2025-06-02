@@ -100,7 +100,7 @@ public static class DockerComposeEnvironmentExtensions
     /// <param name="builder">The Docker Compose environment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the dashboard service.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<AspireDashboardResource>> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<DockerComposeAspireDashboardResource>> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);

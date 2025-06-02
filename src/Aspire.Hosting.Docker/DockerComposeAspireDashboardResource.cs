@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// This resource is used to visualize telemetry data in the Aspire Hosting environment.
 /// </summary>
 /// <param name="name">The name of the Aspire Dashboard resource.</param>
-public class AspireDashboardResource(string name) : ContainerResource(name)
+public class DockerComposeAspireDashboardResource(string name) : ContainerResource(name)
 {
     /// <summary>
     /// Gets or sets the URL of the Aspire Dashboard.
