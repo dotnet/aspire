@@ -4,6 +4,7 @@
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,7 +82,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
                 prompter.PromptForTemplateCallback = (templates) =>
                 {
-                    return templates.Single(t => t.TemplateName == "aspire-starter");
+                    return templates.Single(t => t.Name == "aspire-starter");
                 };
 
                 prompter.PromptForProjectNameCallback = (defaultName) =>
@@ -687,11 +688,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
 {
     public Func<IEnumerable<NuGetPackage>, NuGetPackage>? PromptForTemplatesVersionCallback { get; set; }
-    public Func<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[], (string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)>? PromptForTemplateCallback { get; set; }
+    public Func<ITemplate[], ITemplate>? PromptForTemplateCallback { get; set; }
     public Func<string, string>? PromptForProjectNameCallback { get; set; }
     public Func<string, string>? PromptForOutputPathCallback { get; set; }
 
-    public override Task<(string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)> PromptForTemplateAsync((string TemplateName, string TemplateDescription, Func<string, string> PathDeriver)[] validTemplates, CancellationToken cancellationToken)
+    public override Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {
         return PromptForTemplateCallback switch
         {
