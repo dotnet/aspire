@@ -22,11 +22,34 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
+    /// <para>
     /// By default references to the Azure Key Vault resource will be assigned the following roles:
-    /// 
+    /// </para>
+    /// <para>
     /// - <see cref="KeyVaultBuiltInRole.KeyVaultAdministrator"/>
-    ///
+    /// </para>
+    /// <para>
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureKeyVaultResource}, KeyVaultBuiltInRole[])"/>.
+    /// </para>
+    /// <para>
+    /// <strong>Secret Management Implementation:</strong>
+    /// </para>
+    /// <para>
+    /// This implementation uses a child resource pattern for managing Key Vault secrets, similar to how CosmosDB databases 
+    /// are handled. When secrets are added using the <see cref="AddSecret(IResourceBuilder{AzureKeyVaultResource}, string, ParameterResource)"/> 
+    /// methods, they create <see cref="AzureKeyVaultSecretResource"/> child resources that implement 
+    /// <see cref="IResourceWithParent{AzureKeyVaultResource}"/> and <see cref="IAzureKeyVaultSecretReference"/>.
+    /// </para>
+    /// <para>
+    /// Child secrets are tracked in the parent Key Vault resource's <see cref="AzureKeyVaultResource.Secrets"/> collection 
+    /// and are processed during infrastructure generation in a single <c>ConfigureInfrastructure</c> callback. This approach 
+    /// ensures all secrets are created atomically and avoids multiple infrastructure configuration calls that could lead to 
+    /// resource conflicts or ordering issues.
+    /// </para>
+    /// <para>
+    /// Each secret resource supports parameter resources, reference expressions, and other <see cref="IManifestExpressionProvider"/> 
+    /// implementations as value sources, providing flexibility for different secret provisioning scenarios.
+    /// </para>
     /// </remarks>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
