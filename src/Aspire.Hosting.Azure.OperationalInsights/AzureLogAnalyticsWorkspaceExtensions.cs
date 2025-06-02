@@ -77,7 +77,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
         ArgumentNullException.ThrowIfNull(workspaceBuilder);
 
         // Add a LogAnalyticsWorkspaceReferenceAnnotation to indicate that the resource is using a specific workspace
-        builder.WithAnnotation(new LogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
+        builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
 
         return builder;
     }

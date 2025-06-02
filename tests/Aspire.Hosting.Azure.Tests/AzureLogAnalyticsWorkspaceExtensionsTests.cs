@@ -50,7 +50,7 @@ public class AzureLogAnalyticsWorkspaceExtensionsTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
 
-        Assert.True(environment.TryGetLastAnnotation<LogAnalyticsWorkspaceReferenceAnnotation>(out var annotation));
+        Assert.True(environment.TryGetLastAnnotation<AzureLogAnalyticsWorkspaceReferenceAnnotation>(out var annotation));
         Assert.Same(workspaceBuilder.Resource, annotation!.Workspace);
     }
 }
