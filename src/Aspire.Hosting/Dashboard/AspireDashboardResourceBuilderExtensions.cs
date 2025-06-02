@@ -36,23 +36,25 @@ public static class AspireDashboardResourceBuilderExtensions
         return builder.CreateResourceBuilder(resource)
                       .WithImage("mcr.microsoft.com/dotnet/nightly/aspire-dashboard")
                       .WithHttpEndpoint(targetPort: 18888)
-                      // Expose the browser endpoint by default, there's auth required to access it
-                      .WithEndpoint("http", e => e.IsExternal = true)
                       .WithHttpEndpoint(name: "otlp-grpc", targetPort: 18889);
     }
 
     /// <summary>
-    /// Configures the browser port for the Aspire Dashboard resource.
+    /// Configures the browser port and marks it as external for the Aspire Dashboard resource.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance.</param>
-    /// <param name="port">The port to use for the browser endpoint.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance to configure.</param>
+    /// <param name="port">The port to use for the browser endpoint. If <c>null</c>, the dashboard port will not be exposed to the host.</param>
     /// <returns>
     /// The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance for chaining.
     /// </returns>
     public static IResourceBuilder<AspireDashboardResource> WithBrowserPort(
         this IResourceBuilder<AspireDashboardResource> builder,
-        int port)
+        int? port = null)
     {
-        return builder.WithEndpoint("http", e => e.Port = port);
+        return builder.WithEndpoint("http", e =>
+        {
+            e.Port = port;
+            e.IsExternal = port is not null;
+        });
     }
 }

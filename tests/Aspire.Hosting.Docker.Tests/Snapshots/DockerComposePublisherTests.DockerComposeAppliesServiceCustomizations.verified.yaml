@@ -2,9 +2,8 @@
 services:
   docker-compose-dashboard:
     image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
-    ports:
-      - "18888"
     expose:
+      - "18888"
       - "18889"
     networks:
       - "default-network"
