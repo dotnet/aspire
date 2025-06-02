@@ -32,7 +32,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
 
     internal bool IsShellExec { get; private set; }
 
-    internal record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress);
+    internal record struct EndpointMapping(string Scheme, string Host, int InternalPort, int? ExposedPort, bool IsHttpIngress);
 
     /// <summary>
     /// Gets the resource that is the target of this Docker Compose service.
@@ -222,9 +222,18 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         foreach (var (_, mapping) in EndpointMappings)
         {
             var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
-            var exposedPort = mapping.ExposedPort.ToString(CultureInfo.InvariantCulture);
 
-            composeService.Ports.Add($"{exposedPort}:{internalPort}");
+            if (mapping.ExposedPort.HasValue)
+            {
+                // External endpoints use ports with exposedPort:internalPort format
+                var exposedPort = mapping.ExposedPort.Value.ToString(CultureInfo.InvariantCulture);
+                composeService.Ports.Add($"{exposedPort}:{internalPort}");
+            }
+            else
+            {
+                // Internal endpoints use expose with just internalPort
+                composeService.Expose.Add(internalPort);
+            }
         }
     }
 
