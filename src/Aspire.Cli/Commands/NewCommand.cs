@@ -68,7 +68,15 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<ITemplate> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
+        if (parseResult.CommandResult.Command != this &&
+            _templates.FirstOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase)) is ITemplate template)
+        {
+            // If the command is not this NewCommand instance then we assume
+            // that we are using a generated TemplateCommand. If this is the case
+            // we return the template based on the command name - otherwise we prompt for it.
+            return template;
+        }
+
         return await _prompter.PromptForTemplateAsync(_templates.ToArray(), cancellationToken);
     }
 
