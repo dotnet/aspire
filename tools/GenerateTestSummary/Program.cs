@@ -13,13 +13,15 @@ var dirPathOrTrxFilePathArgument = new Argument<string>("dirPathOrTrxFilePath");
 var outputOption = new Option<string>("--output", "-o") { Description = "Output file path" };
 var combinedSummaryOption = new Option<bool>("--combined", "-c") { Description = "Generate combined summary report" };
 var urlOption = new Option<string>("--url", "-u") { Description = "URL for test links" };
+var errorOnZeroTestsOption = new Option<bool>("--error-on-zero-tests") { Description = "Treat zero tests as an error instead of warning" };
 
 var rootCommand = new RootCommand
 {
     dirPathOrTrxFilePathArgument,
     outputOption,
     combinedSummaryOption,
-    urlOption
+    urlOption,
+    errorOnZeroTestsOption
 };
 
 rootCommand.SetAction(result =>
@@ -33,6 +35,7 @@ rootCommand.SetAction(result =>
 
     var combinedSummary = result.GetValue<bool>(combinedSummaryOption);
     var url = result.GetValue<string>(urlOption);
+    var errorOnZeroTests = result.GetValue<bool>(errorOnZeroTestsOption);
 
     if (combinedSummary && !string.IsNullOrEmpty(url))
     {
@@ -43,7 +46,7 @@ rootCommand.SetAction(result =>
     string report;
     if (combinedSummary)
     {
-        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath);
+        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath, errorOnZeroTests);
     }
     else
     {
@@ -59,13 +62,13 @@ rootCommand.SetAction(result =>
             {
                 foreach (var trxFile in trxFiles)
                 {
-                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url);
+                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url, errorOnZeroTests);
                 }
             }
         }
         else
         {
-            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url);
+            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url, errorOnZeroTests);
         }
 
         report = reportBuilder.ToString();
