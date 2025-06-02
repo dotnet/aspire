@@ -7,13 +7,12 @@
     networks:
       - "aspire"
     restart: "always"
-  resource:
-    image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+  api:
+    image: "my-api:latest"
     environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      HTTP_PORT: "8000"
-    expose:
-      - "8000"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://docker-compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "api"
     networks:
       - "aspire"
 networks:

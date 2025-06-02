@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
@@ -35,27 +36,49 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
         return serviceResource;
     }
 
-    private void ProcessEndpoints(DockerComposeServiceResource serviceResource)
+    private static void ProcessEndpoints(DockerComposeServiceResource serviceResource)
     {
         if (!serviceResource.TargetResource.TryGetEndpoints(out var endpoints))
         {
             return;
         }
 
-        foreach (var endpoint in endpoints)
-        {
-            var internalPort = endpoint.TargetPort ?? environment.PortAllocator.AllocatePort();
-            environment.PortAllocator.AddUsedPort(internalPort);
+        var portAllocator = serviceResource.Parent.PortAllocator;
 
-            // Only allocate exposed port if the endpoint is external
-            int? exposedPort = null;
-            if (endpoint.IsExternal)
+        string ResolveTargetPort(EndpointAnnotation endpoint)
+        {
+            if (endpoint.TargetPort is int port)
             {
-                exposedPort = endpoint.Port ?? environment.PortAllocator.AllocatePort();
-                environment.PortAllocator.AddUsedPort(exposedPort.Value);
+                return port.ToString(CultureInfo.InvariantCulture);
             }
 
-            serviceResource.EndpointMappings.Add(endpoint.Name, new(endpoint.UriScheme, serviceResource.TargetResource.Name, internalPort, exposedPort, false));
+            if (serviceResource.TargetResource is ProjectResource)
+            {
+                return serviceResource.AsContainerPortPlaceholder();
+            }
+
+            // The container did not specify a target port, so we allocate one
+            // this mimics the semantics of what happens at runtime.
+            var dynamicTargetPort = portAllocator.AllocatePort();
+
+            portAllocator.AddUsedPort(dynamicTargetPort);
+
+            return dynamicTargetPort.ToString(CultureInfo.InvariantCulture);
+        }
+
+        foreach (var endpoint in endpoints)
+        {
+            var internalPort = ResolveTargetPort(endpoint);
+            var exposedPort = endpoint.Port;
+
+            serviceResource.EndpointMappings.Add(endpoint.Name,
+                new(serviceResource.TargetResource,
+                    endpoint.UriScheme,
+                    serviceResource.TargetResource.Name,
+                    internalPort,
+                    exposedPort,
+                    endpoint.IsExternal,
+                    endpoint.Name));
         }
     }
 
