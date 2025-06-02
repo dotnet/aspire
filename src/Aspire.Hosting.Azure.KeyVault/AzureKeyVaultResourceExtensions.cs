@@ -71,7 +71,7 @@ public static partial class AzureKeyVaultResourceExtensions
                 {
                     var paramValue = secretAnnotation.Value.AsProvisioningParameter(infrastructure, isSecure: true);
 
-                    var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret-{secretAnnotation.SecretName}"))
+                    var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret_{secretAnnotation.SecretName}"))
                     {
                         Name = secretAnnotation.SecretName,
                         Properties = new SecretProperties
@@ -196,7 +196,7 @@ public static partial class AzureKeyVaultResourceExtensions
             throw new ArgumentException("Secret name cannot be longer than 127 characters.", nameof(secretName));
         }
 
-        if (!MyRegex().IsMatch(secretName))
+        if (!AzureKeyVaultSecretNameRegex().IsMatch(secretName))
         {
             throw new ArgumentException("Secret name can only contain ASCII letters (a-z, A-Z), digits (0-9), and dashes (-).", nameof(secretName));
         }
@@ -212,5 +212,5 @@ public static partial class AzureKeyVaultResourceExtensions
     }
 
     [GeneratedRegex("^[a-zA-Z0-9-]+$")]
-    private static partial Regex MyRegex();
+    private static partial Regex AzureKeyVaultSecretNameRegex();
 }
