@@ -63,7 +63,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             });
     }
 
-    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties)
+    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
     {
         // Only send updated properties if they are different from the existing ones.
         var anyChange = false;
@@ -84,15 +84,21 @@ public sealed class ComponentTelemetryContext : IDisposable
 
         if (anyChange)
         {
-            PostProperties();
+            PostProperties(logger);
         }
 
         return anyChange;
     }
 
-    private void PostProperties()
+    private void PostProperties(ILogger logger)
     {
-        TelemetryService.PostOperation(
+        if (_telemetryService == null)
+        {
+            logger.LogWarning($"Telemetry service for '{_componentType}' is not initialized. Cannot post properties.");
+            return;
+        }
+
+        _telemetryService.PostOperation(
             TelemetryEventKeys.ParametersSet,
             TelemetryResult.Success,
             properties: Properties,
