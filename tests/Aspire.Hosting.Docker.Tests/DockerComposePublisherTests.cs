@@ -391,7 +391,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task PublishAsync_WithDashboardConfiguration_UsesCustomConfiguration()
+    public async Task PublishAsync_WithDashboard_UsesCustomConfiguration()
     {
         using var tempDir = new TempDirectory();
 
@@ -399,9 +399,9 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
-            .WithDashboardConfiguration(service =>
+            .WithDashboard(dashboard =>
             {
-                service.WithImage("custom-dashboard:latest")
+                dashboard.WithImage("custom-dashboard:latest")
                     .WithContainerName("custom-dashboard")
                     .WithEnvironment("CUSTOM_VAR", "custom-value")
                     .WithBrowserPort(8081);

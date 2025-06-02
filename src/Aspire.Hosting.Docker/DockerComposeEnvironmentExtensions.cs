@@ -37,7 +37,7 @@ public static class DockerComposeEnvironmentExtensions
         };
 
         builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
-        
+
         if (builder.ExecutionContext.IsRunMode)
         {
             // Return a builder that isn't added to the top-level application builder
@@ -100,10 +100,13 @@ public static class DockerComposeEnvironmentExtensions
     /// <param name="builder">The Docker Compose environment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the dashboard service.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboardConfiguration(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<AspireDashboardResource>> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> WithDashboard(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IResourceBuilder<AspireDashboardResource>> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
+
+        // Ensure the dashboard resource is initialized
+        builder.Resource.DashboardEnabled = true;
 
         configure(builder.Resource.Dashboard ?? throw new InvalidOperationException("Dashboard resource is not initialized"));
 
