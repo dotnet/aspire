@@ -125,9 +125,18 @@ sealed partial class TestSummaryGenerator
 
         var statusSymbol = GetStatusSymbol(failed, total, errorOnZeroTests);
         reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {statusSymbol} {title}");
-        reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
-        reportBuilder.AppendLine("|--------|--------|---------|-------|");
-        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
+        
+        // Special handling for zero tests - show message instead of table
+        if (total == 0)
+        {
+            reportBuilder.AppendLine("Zero tests were run. Consider disabling this in the test project using $(RunOnGithubActionsLinux) like properties");
+        }
+        else
+        {
+            reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
+            reportBuilder.AppendLine("|--------|--------|---------|-------|");
+            reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
+        }
 
         reportBuilder.AppendLine();
 
