@@ -20,7 +20,6 @@
       OTEL_SERVICE_NAME: "project1"
     expose:
       - "${PROJECT1_PORT}"
-      - "${PROJECT1_PORT}"
     networks:
       - "aspire"
   api:

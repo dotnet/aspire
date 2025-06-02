@@ -219,6 +219,9 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             return;
         }
 
+        var ports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var expose = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var (_, mapping) in EndpointMappings)
         {
             // Resolve the internal port for the endpoint mapping
@@ -231,20 +234,23 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
                 // No explicit exposed port, let docker compose assign a random port
                 if (exposedPort is null)
                 {
-                    composeService.Ports.Add(internalPort);
+                    ports.Add(internalPort);
                 }
                 else
                 {
                     // Explicit exposed port, map it to the internal port
-                    composeService.Ports.Add($"{exposedPort}:{internalPort}");
+                    ports.Add($"{exposedPort}:{internalPort}");
                 }
             }
             else
             {
                 // Internal endpoints use expose with just internalPort
-                composeService.Expose.Add(internalPort);
+                expose.Add(internalPort);
             }
         }
+
+        composeService.Ports.AddRange(ports);
+        composeService.Expose.AddRange(expose);
     }
 
     private void AddVolumes(Service composeService)
