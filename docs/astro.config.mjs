@@ -165,6 +165,10 @@ export default defineConfig({
 						{
 							label: 'Videos',
 							slug: 'community/videos'
+						},
+						{
+							label: 'Posts',
+							slug: 'community/posts'
 						}
 					]
 				}
