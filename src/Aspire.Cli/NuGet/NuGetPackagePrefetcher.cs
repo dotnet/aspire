@@ -10,6 +10,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Because of this: https://github.com/dotnet/aspire/issues/6956
         _ = Task.Run(async () =>
         {
             try
