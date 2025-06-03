@@ -32,24 +32,29 @@ public static partial class AzureKeyVaultResourceExtensions
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureKeyVaultResource}, KeyVaultBuiltInRole[])"/>.
     /// </para>
     /// <para>
-    /// <strong>Secret Management Implementation:</strong>
+    /// <strong>Managing Secrets:</strong>
     /// </para>
     /// <para>
-    /// This implementation uses a child resource pattern for managing Key Vault secrets, similar to how CosmosDB databases 
-    /// are handled. When secrets are added using the <see cref="AddSecret(IResourceBuilder{AzureKeyVaultResource}, string, ParameterResource)"/> 
-    /// methods, they create <see cref="AzureKeyVaultSecretResource"/> child resources that implement 
-    /// <see cref="IResourceWithParent{AzureKeyVaultResource}"/> and <see cref="IAzureKeyVaultSecretReference"/>.
+    /// Use the <see cref="AddSecret(IResourceBuilder{AzureKeyVaultResource}, string, ParameterResource)"/> methods to add secrets to the Key Vault:
     /// </para>
-    /// <para>
-    /// Child secrets are tracked in the parent Key Vault resource's <see cref="AzureKeyVaultResource.Secrets"/> collection 
-    /// and are processed during infrastructure generation in a single <c>ConfigureInfrastructure</c> callback. This approach 
-    /// ensures all secrets are created atomically and avoids multiple infrastructure configuration calls that could lead to 
-    /// resource conflicts or ordering issues.
-    /// </para>
-    /// <para>
-    /// Each secret resource supports parameter resources, reference expressions, and other <see cref="IManifestExpressionProvider"/> 
-    /// implementations as value sources, providing flexibility for different secret provisioning scenarios.
-    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// var vault = builder.AddAzureKeyVault("vault");
+    /// 
+    /// // Add a secret from a parameter
+    /// var secret = builder.AddParameter("secretParam", secret: true);
+    /// vault.AddSecret("my-secret", secret);
+    /// 
+    /// // Add a secret from a reference expression
+    /// var connectionString = ReferenceExpression.Create($"Server={server};Database={db}");
+    /// vault.AddSecret("connection-string", connectionString);
+    /// 
+    /// // Get a reference to an existing secret
+    /// var existingSecret = vault.GetSecret("existing-secret");
+    /// </code>
+    /// </example>
     /// </remarks>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
