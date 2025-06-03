@@ -135,7 +135,6 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
-        outputHelper.WriteLine($"Selected: {selectedProjectFile?.FullName}");
         Assert.Equal(projectFile1.FullName, selectedProjectFile!.FullName);
     }
 
