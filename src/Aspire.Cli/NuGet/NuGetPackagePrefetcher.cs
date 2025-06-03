@@ -8,23 +8,28 @@ namespace Aspire.Cli.NuGet;
 
 internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, DirectoryInfo currentDirectory) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
+        _ = Task.Run(async () =>
         {
-            await nuGetPackageCache.GetTemplatePackagesAsync(
-                workingDirectory: currentDirectory,
-                prerelease: true,
-                source: null,
-                cancellationToken: stoppingToken
-                );
-        }
-        catch (System.Exception ex)
-        {
-            logger.LogDebug(ex, "Non-fatal error while prefetching template packages. This is not critical to the operation of the CLI.");
-            // This prefetching is best effort. If it fails we log (above) and then the
-            // background service will exit gracefully. Code paths that depend on this
-            // data will handle the absence of pre-fetched packages gracefully.
-        }
+            try
+            {
+                await nuGetPackageCache.GetTemplatePackagesAsync(
+                    workingDirectory: currentDirectory,
+                    prerelease: true,
+                    source: null,
+                    cancellationToken: stoppingToken
+                    );
+            }
+            catch (System.Exception ex)
+            {
+                logger.LogDebug(ex, "Non-fatal error while prefetching template packages. This is not critical to the operation of the CLI.");
+                // This prefetching is best effort. If it fails we log (above) and then the
+                // background service will exit gracefully. Code paths that depend on this
+                // data will handle the absence of pre-fetched packages gracefully.
+            }
+        }, stoppingToken);
+
+        return Task.CompletedTask;
     }
 }
