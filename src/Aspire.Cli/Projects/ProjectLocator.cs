@@ -41,7 +41,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            await Parallel.ForEachAsync(projectFiles, async (projectFile, ct) =>
+            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
             {
                 logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
                 var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
