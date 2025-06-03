@@ -189,7 +189,8 @@ export default defineConfig({
 					errorOnRelativeLinks: false
 				}),
 				starlightScrollToTop({
-					svgPath: 'M12 6L6 12M12 6L18 12M12 12L6 18M12 12L18 18',
+					// https://frostybee.github.io/starlight-scroll-to-top/svg-paths/
+					svgPath: 'M4 16L12 8L20 16',
 					showTooltip: true,
 				}),
 				starlightLlmsTxt({
