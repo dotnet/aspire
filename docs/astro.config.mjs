@@ -6,6 +6,7 @@ import starlightLlmsTxt from 'starlight-llms-txt'
 import starlightKbd from 'starlight-kbd'
 import starlightImageZoom from 'starlight-image-zoom'
 import starlightLinksValidator from 'starlight-links-validator'
+import starlightScrollToTop from 'starlight-scroll-to-top'
 
 // https://astro.build/config
 export default defineConfig({
@@ -173,6 +174,10 @@ export default defineConfig({
 				starlightLinksValidator({
 					exclude: [ '#', '/' ],
 					errorOnRelativeLinks: false
+				}),
+				starlightScrollToTop({
+					svgPath: 'M12 6L6 12M12 6L18 12M12 12L6 18M12 12L18 18',
+					showTooltip: true,
 				}),
 				starlightLlmsTxt({
 					projectName: 'Aspire',
