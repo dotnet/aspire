@@ -161,14 +161,23 @@ export default defineConfig({
 				},
 				{
 					label: 'Community',
+					collapsed: true,
 					items: [
 						{
 							label: 'Videos',
 							slug: 'community/videos'
 						},
 						{
-							label: 'Posts',
-							slug: 'community/posts'
+							label: 'BlueSky',
+							slug: 'community/posts',
+							badge: {
+								text: '#aspire',
+								variant: 'note'
+							}
+						},
+						{
+							label: 'Contributors',
+							slug: 'community/contributors',
 						}
 					]
 				}

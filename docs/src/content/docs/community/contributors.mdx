@@ -1,0 +1,41 @@
+---
+title: Contributors 🤝
+description: We're grateful for the contributions of our community members who help make Aspire better every day.
+tableOfContents: false
+lastUpdated: false
+editUrl: false
+---
+
+import { LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { ContributorList } from "starlight-contributor-list";
+
+Aspire wouldn't be what it is today without the amazing contributions from our community. From code contributions to documentation improvements, every bit helps us grow and improve. Your ideas have the potential to shape the future of the project, and issues you uncover help others be successful too. Interested in contributing? Check out our [contributing guide](https://github.com/dotnet/aspire/blob/main/docs/contributing.md) to get started!
+
+export const ignore = [
+    "github-actions[bot]",
+    "dependabot[bot]",
+    "dependabot",
+    "dotnet-maestro[bot]",
+    "copilot-swe-agent",
+    "microsoftopensource"
+];
+
+## Aspire Contributors 🙏
+
+Thank you to all the community members who have contributed to Aspire! Your efforts help shape the future of this project.
+
+<ContributorList githubRepo="dotnet/aspire" ignore={ignore} />
+
+<LinkButton target={'_blank'} href="https://github.com/dotnet/aspire" icon="github" iconPlacement="start" variant="secondary">
+  Aspire on GitHub
+</LinkButton>
+
+## Aspire Samples Contributors 💜
+
+Thank you to all the community members who have contributed to Aspire Samples! Your contributions help showcase the power and flexibility of Aspire in real-world scenarios.
+
+<ContributorList githubRepo="dotnet/aspire-samples" ignore={ignore} />
+
+<LinkButton target={'_blank'} href="https://github.com/dotnet/aspire-samples" icon="github" iconPlacement="start" variant="secondary">
+  Aspire Samples on GitHub
+</LinkButton>
