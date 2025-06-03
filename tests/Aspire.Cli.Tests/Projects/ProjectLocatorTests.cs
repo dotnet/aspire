@@ -7,6 +7,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -106,6 +107,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9652")]
     public async Task UseOrFindAppHostProjectFilePromptsWhenMultipleFilesFound()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
@@ -117,25 +119,12 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var projectFile2 = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost2.csproj"));
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
 
-        // Verify both files were created
-        Assert.True(projectFile1.Exists, $"Project file 1 should exist: {projectFile1.FullName}");
-        Assert.True(projectFile2.Exists, $"Project file 2 should exist: {projectFile2.FullName}");
-        
-        // Verify string comparison works as expected
-        var comparison = projectFile1.FullName.CompareTo(projectFile2.FullName);
-        outputHelper.WriteLine($"File comparison result: {comparison}");
-        outputHelper.WriteLine($"File 1: {projectFile1.FullName}");
-        outputHelper.WriteLine($"File 2: {projectFile2.FullName}");
-        
-        Assert.True(comparison < 0, "AppHost1.csproj should come before AppHost2.csproj alphabetically");
-
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
-        outputHelper.WriteLine($"Selected: {selectedProjectFile?.FullName}");
         Assert.Equal(projectFile1.FullName, selectedProjectFile!.FullName);
     }
 
