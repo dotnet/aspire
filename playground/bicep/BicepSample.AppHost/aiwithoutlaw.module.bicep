@@ -5,7 +5,18 @@ param applicationType string = 'web'
 
 param kind string = 'web'
 
-param logAnalyticsWorkspaceId string
+resource law_aiwithoutlaw 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: take('lawaiwithoutlaw-${uniqueString(resourceGroup().id)}', 63)
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+  tags: {
+    'aspire-resource-name': 'law_aiwithoutlaw'
+  }
+}
 
 resource aiwithoutlaw 'Microsoft.Insights/components@2020-02-02' = {
   name: take('aiwithoutlaw-${uniqueString(resourceGroup().id)}', 260)
@@ -13,7 +24,7 @@ resource aiwithoutlaw 'Microsoft.Insights/components@2020-02-02' = {
   location: location
   properties: {
     Application_Type: applicationType
-    WorkspaceResourceId: logAnalyticsWorkspaceId
+    WorkspaceResourceId: law_aiwithoutlaw.id
   }
   tags: {
     'aspire-resource-name': 'aiwithoutlaw'
@@ -21,3 +32,5 @@ resource aiwithoutlaw 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 output appInsightsConnectionString string = aiwithoutlaw.properties.ConnectionString
+
+output name string = aiwithoutlaw.name

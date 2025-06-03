@@ -68,12 +68,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("FilterDialogApplyFilterButtonText", resourceCulture);
             }
         }
-        
-        public static string FilterDialogEnableFilterButtonText {
-            get {
-                return ResourceManager.GetString("FilterDialogEnableFilterButtonText", resourceCulture);
-            }
-        }
+
         
         public static string FilterDialogDisableFilterButtonText {
             get {
@@ -380,12 +375,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
             }
         }
-        
-        public static string SettingsDialogEnableTelemetry {
-            get {
-                return ResourceManager.GetString("SettingsDialogEnableTelemetry", resourceCulture);
-            }
-        }
+
         
         public static string SettingsDialogTelemetryEnabledInfo {
             get {

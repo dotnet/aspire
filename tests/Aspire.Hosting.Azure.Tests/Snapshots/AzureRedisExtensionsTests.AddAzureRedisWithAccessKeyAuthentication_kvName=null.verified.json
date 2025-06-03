@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{redis-cache-kv.secrets.connectionstrings--redis-cache}",
+  "path": "redis-cache.module.bicep",
+  "params": {
+    "redis_cache_kv_outputs_name": "{redis-cache-kv.outputs.name}"
+  }
+}

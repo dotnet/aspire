@@ -57,11 +57,6 @@
         <target state="translated">Últimas 12 horas</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">Últimas 24 horas</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">No hay métricas para el recurso seleccionado</target>

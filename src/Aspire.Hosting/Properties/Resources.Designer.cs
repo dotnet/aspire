@@ -86,34 +86,9 @@ namespace Aspire.Hosting.Properties {
                 return ResourceManager.GetString("ContainerMountBindMountsRequireSourceExceptionMessage", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}.
-        ///See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
-        /// </summary>
-        internal static string ContainerRuntimePrerequisiteMissingExceptionMessage {
-            get {
-                return ResourceManager.GetString("ContainerRuntimePrerequisiteMissingExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; was found but appears to be unhealthy. The error from the container runtime check was {1}..
-        /// </summary>
-        internal static string ContainerRuntimeUnhealthyExceptionMessage {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeUnhealthyExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; was found but appears to be unresponsive. The command &apos;{0}&apos; did not return after {1} seconds..
-        /// </summary>
-        internal static string ContainerRuntimeUnresponsiveExceptionMessage {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeUnresponsiveExceptionMessage", resourceCulture);
-            }
-        }
+
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to Application orchestrator dependency check returned an error: {0}.

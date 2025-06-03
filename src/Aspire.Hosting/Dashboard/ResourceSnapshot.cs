@@ -29,6 +29,7 @@ internal abstract class ResourceSnapshot
     public required ImmutableArray<HealthReportSnapshot> HealthReports { get; init; }
     public required ImmutableArray<ResourceCommandSnapshot> Commands { get; init; }
     public required bool IsHidden { get; init; }
+    public required bool SupportsDetailedTelemetry { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties();
 

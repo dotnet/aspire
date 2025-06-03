@@ -17,23 +17,6 @@
         <target state="translated">Los montajes de enlace deben especificar una ruta de acceso de origen.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">No se encontró el runtime del contenedor ''{0}''. El error de la comprobación del runtime del contenedor fue: {1}.
-Consulte https://aka.ms/dotnet/aspire/containers para obtener más información sobre los runtimes de contenedor admitidos.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">Se encontró el runtime de contenedor ''{0}'', pero parece que está en un estado incorrecto. El error de la comprobación del runtime del contenedor fue {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">Se encontró el runtime de contenedor ''{0}'', pero parece que no responde. El comando ''{0}'' no se devolvió después de {1} segundos.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">La comprobación de dependencia del orquestador de aplicación devolvió un error: {0}</target>

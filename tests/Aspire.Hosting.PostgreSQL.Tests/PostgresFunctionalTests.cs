@@ -468,11 +468,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 .CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
-            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+            var postgres = builder.AddPostgres("pg")
+                                  .WithEnvironment("POSTGRES_DB", postgresDbName)
+                                  .WithInitFiles(initFilesPath);
 
             var db = postgres.AddDatabase(postgresDbName);
-
-            postgres.WithInitFiles(initFilesPath);
 
             using var app = builder.Build();
 

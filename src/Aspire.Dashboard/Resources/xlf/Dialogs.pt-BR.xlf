@@ -77,11 +77,6 @@
         <target state="translated">Habilitar tudo</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogEnableFilterButtonText">
-        <source>Enable filter</source>
-        <target state="translated">Habilitar filtro</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Campo</target>
@@ -210,11 +205,6 @@
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
         <target state="translated">Logs e telemetria do recurso</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SettingsDialogEnableTelemetry">
-        <source>Enable dashboard telemetry</source>
-        <target state="translated">Habilitar a telemetria do painel</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">

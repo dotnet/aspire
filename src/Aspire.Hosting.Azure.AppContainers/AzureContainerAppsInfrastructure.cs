@@ -73,35 +73,5 @@ internal sealed class AzureContainerAppsInfrastructure(
                 ComputeEnvironment = environment
             });
         }
-
-        static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)
-        {
-            if (r.Parameters.TryGetValue(key, out var existingValue) && existingValue is null)
-            {
-                var value = factory(r);
-
-                r.Parameters[key] = value;
-            }
-        }
-
-        // Resolve the known parameters for the container app environment
-        foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
-        {
-            // HACK: This forces parameters to be resolved for any AzureProvisioningResource
-            r.GetBicepTemplateFile();
-
-            // This will throw an exception if there's no value specified, in this new mode, we don't no longer support
-            // automagic secret key vault references.
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, _ => throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly."));
-
-            // Set the known parameters for the container app environment
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.PrincipalId);
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
-
-            SetKnownParameterValue(r, "containerAppEnvironmentId", _ => environment.ContainerAppEnvironmentId);
-            SetKnownParameterValue(r, "containerAppEnvironmentName", _ => environment.ContainerAppEnvironmentName);
-        }
     }
 }

@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureSqlExtensionsTests()
+public class AzureSqlExtensionsTests
 {
     [Theory]
     // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
@@ -233,5 +233,70 @@ public class AzureSqlExtensionsTests()
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
-    }    
+    }
+    
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
+#pragma warning restore CS0618 // Type or member is obsolete
+        sql.AddDatabase("db", "dbName");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
+
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
+#pragma warning restore CS0618 // Type or member is obsolete
+        sql.AddDatabase("db", "dbName");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
+
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+    
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

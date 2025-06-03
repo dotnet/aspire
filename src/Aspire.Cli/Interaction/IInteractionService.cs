@@ -21,4 +21,5 @@ internal interface IInteractionService
     void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
+    void DisplayEmptyLine();
 }

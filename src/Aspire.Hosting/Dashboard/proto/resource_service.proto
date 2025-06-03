@@ -240,6 +240,9 @@ message Resource {
 
     // Whether the resource should be visually hidden in the dashboard.
     bool is_hidden = 21;
+
+    // Whether the resource is built into Aspire and supports more detailed telemetry.
+    bool supports_detailed_telemetry = 22;
 }
 
 ////////////////////////////////////////////

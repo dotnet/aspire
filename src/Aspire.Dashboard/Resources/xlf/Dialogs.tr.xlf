@@ -77,11 +77,6 @@
         <target state="translated">Tümünü etkinleştir</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogEnableFilterButtonText">
-        <source>Enable filter</source>
-        <target state="translated">Filtreyi etkinleştir</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Alan</target>
@@ -210,11 +205,6 @@
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
         <target state="translated">Kaynak günlükleri ve telemetri</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SettingsDialogEnableTelemetry">
-        <source>Enable dashboard telemetry</source>
-        <target state="translated">Pano telemetrisini etkinleştir</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">

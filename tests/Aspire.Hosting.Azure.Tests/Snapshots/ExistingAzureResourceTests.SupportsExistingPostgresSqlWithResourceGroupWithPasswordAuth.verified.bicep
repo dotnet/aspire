@@ -8,7 +8,7 @@ param administratorLogin string
 @secure()
 param administratorLoginPassword string
 
-param keyVaultName string
+param postgressql_kv_outputs_name string
 
 resource postgresSql 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
   name: existingResourceName
@@ -24,7 +24,7 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: postgressql_kv_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

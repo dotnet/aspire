@@ -56,6 +56,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+    [Inject]
+    public required ILogger<Resources> Logger { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -160,6 +162,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -214,7 +217,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
-        TelemetryContextProvider.Initialize(TelemetryContext);
         _isLoading = false;
 
         async Task SubscribeResourcesAsync()
@@ -864,9 +866,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         var properties = new List<ComponentTelemetryProperty>
         {
             new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting)),
-            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
+            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType, r.SupportsDetailedTelemetry)).OrderBy(t => t).ToList()))
         };
 
-        TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
+        TelemetryContext.UpdateTelemetryProperties(properties.ToArray(), Logger);
     }
 }

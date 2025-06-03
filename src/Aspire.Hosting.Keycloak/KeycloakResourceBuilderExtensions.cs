@@ -18,8 +18,7 @@ public static class KeycloakResourceBuilderExtensions
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
     private const string ManagementEndpointName = "management";
-
-    private const string KeycloakDataDirectory = "/opt/keycloak/data";
+    private const string KeycloakImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
     /// Adds a Keycloak container to the application model.
@@ -107,8 +106,7 @@ public static class KeycloakResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/keycloak/data",
-            false);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/keycloak/data", false);
     }
 
     /// <summary>
@@ -152,13 +150,18 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use WithRealmImport without isReadOnly instead.")]
+    [Obsolete("Use WithRealmImport(string import) instead.")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
         string import,
         bool isReadOnly)
     {
-        return builder.WithRealmImport(import);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(import);
+
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithBindMount(importFullPath, KeycloakImportDirectory, isReadOnly);
     }
 
     /// <summary>
@@ -187,15 +190,8 @@ public static class KeycloakResourceBuilderExtensions
         var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
         return builder.WithContainerFiles(
-            KeycloakDataDirectory,
-            [
-                // The import directory may not exist by default, so we need to ensure it is created.
-                new ContainerDirectory
-                {
-                    Name = "import",
-                    // Import the file (or children if a directory) into the container.
-                    Entries = ContainerDirectory.GetFileSystemItemsFromPath(importFullPath),
-                },
-            ]);
+            KeycloakImportDirectory,
+            importFullPath,
+            defaultOwner: KeycloakContainerImageTags.ContainerUser);
     }
 }

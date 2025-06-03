@@ -34,3 +34,7 @@
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
 (3) To then run tests, use a command similar to this `dotnet test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+
+## Editing resources
+
+The `*.Designer.cs` files are in the repo, but are intended to match same named `*.resx` files. If you add/remove/change resources in a resx, make the matching changes in the `*.Designer.cs` file that matches that resx.

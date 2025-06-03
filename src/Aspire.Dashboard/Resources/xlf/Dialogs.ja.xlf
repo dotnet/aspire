@@ -77,11 +77,6 @@
         <target state="translated">すべて有効にする</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogEnableFilterButtonText">
-        <source>Enable filter</source>
-        <target state="translated">フィルターを有効にする</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">フィールド</target>
@@ -210,11 +205,6 @@
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
         <source>Resource logs and telemetry</source>
         <target state="translated">リソース ログとテレメトリ</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SettingsDialogEnableTelemetry">
-        <source>Enable dashboard telemetry</source>
-        <target state="translated">ダッシュボード テレメトリを有効にする</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
