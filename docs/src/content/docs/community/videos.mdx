@@ -1,0 +1,56 @@
+---
+title: Community Videos
+description: A collection of community videos showcasing Aspire in action.
+---
+
+import YouTubeGrid from '../../../components/YouTubeGrid.astro';
+
+<p>
+	Explore a collection of Community <strong>YouTube</strong> videos that showcasing Aspire. These videos are curated to help you learn from real-world examples and get inspired by the community.
+</p>
+
+<YouTubeGrid
+	videos={[
+		{
+			href: 'https://youtu.be/UjQ-fVkwqpY?t=158',
+			title: 'AspiriFridays - Bitwarden',
+			description: 'Welcome to the first ever AspiriFriday! Join David Fowler, Damian Edwards, and Maddy Montaquila while they try to Aspireify (aka add Aspire to) your apps, live on stream!',
+            tags: ['Official','AspiriFridays']
+		},
+		{
+			href: 'https://youtu.be/sKGx3mOPlB0',
+			title: 'Aspire is Finally Awesome',
+			description: 'Nick Chapsas shows you every .NET Aspire 9 features and explain why I finally think that it is production ready and that everyone should be using it.',
+            tags: ['Community','9.0']
+		},
+        {
+            href: 'https://www.youtube.com/watch?v=QvSDRRGv8cs',
+            title: 'Aspire 9.2 is Amazing',
+            description: 'In this video, Milan Jovanović demonstrates how to upgrade an existing .NET Aspire 8 application to the newly released Aspire 9.2',
+            tags: ['9.2','Community', 'Upgrade']
+        },
+	]}
+/>
+
+<YouTubeGrid
+	videos={[
+        {
+            href: 'https://youtu.be/dftmYBuZOLA?list=PL2E-vlKoo_v2dgxPizLVtdxvurOHvd8_h&t=341',
+            title: 'Microservices With Aspire & Blazor SSR',
+            description: 'Codewrinkles builds a microservices app, orchestrated with .NET Aspire and using Blazor SSR on the front end.',
+            tags: ['Community', 'Blazor', 'SSR']
+        },
+        {
+            href: 'https://www.youtube.com/shorts/EvxmwQKJ4Nw?feature=share',
+            title: 'Aspire Dashboard in 60 Seconds',
+            description: 'David Fowler and Nick Chapsas quickly discuss the future of app development with Aspire.',
+            tags: ['Community', 'Shorts']
+        },
+        {
+            href: 'https://youtu.be/g-fKXzrNOhI?list=PLdo4fOcmZ0oWTWWbWXqhn2w8NM3sQ_qDz',
+            title: 'Build your first Azure Function with Aspire support',
+            description: 'In this video, you will learn how to build your first Azure Function with Aspire support.',
+            tags: ['Offical', 'Azure Functions', 'Serverless']
+        }
+	]}
+/>

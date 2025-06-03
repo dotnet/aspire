@@ -1,0 +1,47 @@
+---
+import { YouTube } from '@astro-community/astro-embed-youtube';
+import { Badge } from '@astrojs/starlight/components'
+import MediaCard from './MediaCard.astro';
+
+export interface Props {
+	href: string;
+	title: string;
+	description?: string;
+	tags: string[];
+}
+const { href, title, description, tags } = Astro.props;
+---
+
+<MediaCard>
+	<YouTube slot='media' id={href} />
+	<div class='meta sl-flex'>
+		<p class='title'>{title}</p>
+		{description && <p class='description' set:html={description} />}
+		{ tags && tags.length > 0 && (
+			<div class='tags sl-flex' style={{ gap: '0.5rem' }}>
+				{tags.map((tag) => (
+					<Badge class='badge' text={tag} />
+				))}
+			</div>
+		)}
+	</div>
+</MediaCard>
+
+<style>
+	.meta {
+		padding: 1rem;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.title {
+		font-size: var(--sl-text-lg);
+	}
+	.description {
+		color: var(--sl-color-gray-3);
+		line-height: 1.5;
+	}
+	/* .badge {
+		border-radius: 1rem;
+		padding: .5rem;
+	} */
+</style>

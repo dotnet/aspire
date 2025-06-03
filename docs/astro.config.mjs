@@ -84,7 +84,8 @@ export default defineConfig({
 				/* TODO: decide which themes we want
 				   https://expressive-code.com/guides/themes/#using-bundled-themes
 				*/
-				themes: ['catppuccin-mocha', 'catppuccin-latte']
+				themes: ['catppuccin-mocha', 'catppuccin-latte'],
+				styleOverrides: { borderRadius: '0.5rem' },
 			},
 			sidebar: [
 				{
@@ -155,11 +156,23 @@ export default defineConfig({
 					},
 					collapsed: true,
 					autogenerate: { directory: 'reference' },
+				},
+				{
+					label: 'Community',
+					items: [
+						{
+							label: 'Videos',
+							slug: 'community/videos'
+						}
+					]
 				}
 			],
 			plugins: [
 				catppuccin(),
-				starlightLlmsTxt(),
+				starlightLlmsTxt({
+					projectName: 'Aspire',
+					description: 'Aspire is a polyglot local dev-time orchestration tool chain for building, running, debugging, and deploying distributed applications.',
+				}),
 				starlightImageZoom({
 					showCaptions: true
 				}),
