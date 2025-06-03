@@ -92,12 +92,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("NavMenuResourcesTab", resourceCulture);
             }
         }
-        
-        public static string NavMenuMonitoringTab {
-            get {
-                return ResourceManager.GetString("NavMenuMonitoringTab", resourceCulture);
-            }
-        }
+
         
         public static string NavMenuConsoleLogsTab {
             get {

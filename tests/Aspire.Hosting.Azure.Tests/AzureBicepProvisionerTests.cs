@@ -182,13 +182,11 @@ public class AzureBicepProvisionerTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
+                       .WithParameter("name", "david");
 
         // Simulate the case where a known parameter has a value
         var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
                        .WithParameter("name", "david")
-                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, "blah")
                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalId, "id")
                        .WithParameter(AzureBicepResource.KnownParameters.Location, "tomorrow")
                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalType, "type");

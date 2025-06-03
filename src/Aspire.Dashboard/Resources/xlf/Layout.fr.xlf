@@ -67,11 +67,6 @@
         <target state="translated">Métriques</target>
         <note />
       </trans-unit>
-      <trans-unit id="NavMenuMonitoringTab">
-        <source>Monitoring</source>
-        <target state="translated">Surveillance</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
         <target state="translated">Ressources</target>

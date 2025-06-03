@@ -17,11 +17,6 @@
         <target state="translated">Journaux structurés</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">Aucune télémétrie n’a été trouvée pour cette ressource.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">Traces</target>
@@ -50,16 +45,6 @@
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
         <target state="translated">Afficher les journaux de console</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">URL de point de terminaison</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">URL du proxy</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -172,11 +157,6 @@
         <target state="translated">Heure d’arrêt</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">Environnement</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">A des filtres</target>
@@ -232,19 +212,9 @@
         <target state="translated">État</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">Variables d’environnement pour {0}</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">Ressources</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">Aucune variable d’environnement</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

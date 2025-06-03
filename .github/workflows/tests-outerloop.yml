@@ -61,20 +61,45 @@ jobs:
         if: matrix.tests.os == 'ubuntu-latest'
         run: ./dotnet.sh dev-certs https --trust
 
+      - name: Setup vars (Linux)
+        if: ${{ matrix.tests.os == 'ubuntu-latest' || matrix.tests.os == 'macos-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+
+      - name: Setup vars (Windows)
+        if: ${{ matrix.tests.os == 'windows-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+
       - name: Test ${{ matrix.tests.label }}
+        env:
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
         run: |
           ${{ matrix.tests.command }}
 
       - name: Upload logs, and test results
+        id: upload-logs
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: ${{ matrix.tests.project }}-${{ matrix.tests.os }}-logs
           path: |
+            ${{ github.workspace }}/testresults/**
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
           # Longer retention time to allow scanning runs for quarantined test results
           retention-days: 30
+          
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/artifacts/TestResults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/artifacts/TestResults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+          }
 
   results:
     if: always()
@@ -82,98 +107,47 @@ jobs:
     name: Final Results
     needs: run_tests
     steps:
-      # get all the test-job-result* artifacts into a single directory
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # get all the test logs artifacts into a single directory
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: '*-logs'
           path: ${{ github.workspace }}/artifacts/all-logs
-
-      - name: Process logs and post results
-        if: ${{ always() && github.repository_owner == 'dotnet' }}
+          
+      # Organize the .trx files by OS
+      - name: Organize test results by OS
         shell: pwsh
         run: |
           $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
+          
+          # Create OS-specific directories
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/ubuntu-latest" -Force
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/windows-latest" -Force
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/macos-latest" -Force
+          
+          # Find all .trx files
           $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
-
-          $testResults = @() # Initialize an array to store test results
-
+          
+          # Copy each .trx file to the appropriate OS folder
           foreach ($trxFile in $trxFiles) {
-            # Determine the OS based on the file path
-            if ($trxFile.FullName -match "ubuntu") {
-                $OS = "ubuntu"
-            } elseif ($trxFile.FullName -match "windows") {
-                $OS = "windows"
-            } elseif ($trxFile.FullName -match "macos") {
-                $OS = "macos"
-            } else {
-                $OS = "unknown"
-            }
-
-            # Load the .trx file as XML
-            try {
-                # Attempt to load the .trx file as XML
-                $xmlContent = [xml](Get-Content -Path $trxFile.FullName)
-
-                # Extract test results from the XML
-                foreach ($testResult in $xmlContent.TestRun.Results.UnitTestResult) {
-                    $testName = $testResult.testName
-                    $outcome = $testResult.outcome
-                    $duration = $testResult.duration
-
-                    # Map outcome to emoji
-                    switch ($outcome) {
-                        "Passed" { $emoji = "✅" }
-                        "Failed" { $emoji = "❌" }
-                        default { $emoji = "❔" }
-                    }
-
-                    # Normalize the duration to a consistent format (hh:mm:ss.fff)
-                    $normalizedDuration = [TimeSpan]::Parse($duration).ToString("mm\:ss\.fff")
-
-                    # Add the test result to the array
-                    $testResults += [PSCustomObject]@{
-                        TestName    = $testName
-                        Outcome     = $outcome
-                        OutcomeIcon = $emoji
-                        Duration    = $normalizedDuration
-                        OS          = $OS
-                    }
-                }
-            } catch {
-                Write-Host "::error::Failed to process $($trxFile.FullName): $($_.Exception.Message)"
-            }
+              if ($trxFile.FullName -match "ubuntu") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/ubuntu-latest/" -Force
+              } elseif ($trxFile.FullName -match "windows") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/windows-latest/" -Force
+              } elseif ($trxFile.FullName -match "macos") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/macos-latest/" -Force
+              }
           }
 
-          if ($testResults.Length -lt 1) {
-              Write-Host "::notice::Tests Summary: no quaratined tests found"
-              return;
-          }
-
-          # Sort the test results by test name
-          $testResults = $testResults | Sort-Object -Property TestName
-
-          # Calculate summary statistics
-          $totalTests = $testResults.Count
-          $passedTests = ($testResults | Where-Object { $_.Outcome -eq "Passed" }).Count
-          $failedTests = ($testResults | Where-Object { $_.Outcome -eq "Failed" }).Count
-          $skippedTests = ($testResults | Where-Object { $_.Outcome -eq "NotExecuted" }).Count
-
-          # Add the summary to the annotation
-          $summary = "total: $totalTests, passed: $passedTests, failed: $failedTests, skipped: $skippedTests"
-          if ($failedTests -gt 0) {
-              Write-Host "::error::Tests Summary: $summary"
-          } else {
-              Write-Host "::notice::Tests Summary: $summary"
-          }
-
-          # Format the test results as a console-friendly table
-          $tableHeader = "{0,-12} {1,-10} {2,-140} {3,-16}" -f "Result", "OS", "Test Name", "Duration"
-          $tableSeparator = "-" * 190
-          $tableRows = $testResults | ForEach-Object { "{0,-12} {1,-10} {2,-140} {3,-16}" -f "$($_.OutcomeIcon) $($_.Outcome)", $_.OS, $_.TestName, $_.Duration }
-          $table = "$tableHeader`n$tableSeparator`n" + ($tableRows -join "`n") + "`n$tableSeparator`n"
-          Write-Host "`nTest Results:`n`n$table"
-
-          # Optionally, save the results to a file for further processing
-          $outputPath = "${{ github.workspace }}/artifacts/summary.log"
-          $table | Out-File -FilePath $outputPath -Encoding utf8
-          Write-Host "Test results saved to $outputPath"
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+          --combined

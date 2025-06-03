@@ -17,23 +17,6 @@
         <target state="translated">Привязка подключений должна указывать исходный путь.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">Не удалось найти среду выполнения контейнера "{0}". Ошибка проверки среды выполнения контейнера: {1}.
-Дополнительные сведения о поддерживаемых средах выполнения контейнеров см. на странице https://aka.ms/dotnet/aspire/containers.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">Обнаружена среда выполнения контейнера "{0}", но, судя по всему, неработоспособная. Ошибка, выданная при проверке среды выполнения контейнера: {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">Среда выполнения контейнера "{0}" обнаружена, но не реагирует. Команда "{0}" не вернула управление по истечении {1} секунд.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">Проверка зависимостей оркестратора приложения вернула ошибку: {0}</target>

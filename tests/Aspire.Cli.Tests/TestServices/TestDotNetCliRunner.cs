@@ -64,7 +64,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : Task.FromResult<(int, string?)>((0, version)); // If not overridden, just return success for the version specified.
     }
 
-    public Task<int> NewProjectAsync(string templateName, string name, string outputPath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return NewProjectAsyncCallback != null
             ? Task.FromResult(NewProjectAsyncCallback(templateName, name, outputPath, options, cancellationToken))

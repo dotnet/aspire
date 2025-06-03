@@ -21,8 +21,7 @@
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Verify.XunitV3" Version="29.1.0" />
+    <PackageVersion Include="Verify.XunitV3" Version="30.3.0" />
   </ItemGroup>
 </Project>

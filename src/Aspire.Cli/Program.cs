@@ -14,6 +14,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Microsoft.Extensions.Configuration;
+using Aspire.Cli.NuGet;
+using Aspire.Cli.Templating;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 #if DEBUG
 using OpenTelemetry;
@@ -123,7 +126,13 @@ public class Program
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
-        builder.Services.AddTransient<INuGetPackageCache, NuGetPackageCache>();
+        builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
+        builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddMemoryCache();
+
+        // Template factories.
+        builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
@@ -134,6 +143,14 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
+        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
+        var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)

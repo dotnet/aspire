@@ -32,7 +32,14 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
 
     internal bool IsShellExec { get; private set; }
 
-    internal record struct EndpointMapping(string Scheme, string Host, int InternalPort, int ExposedPort, bool IsHttpIngress);
+    internal record struct EndpointMapping(
+        IResource Resource,
+        string Scheme,
+        string Host,
+        string InternalPort,
+        int? ExposedPort,
+        bool IsExternal,
+        string EndpointName);
 
     /// <summary>
     /// Gets the resource that is the target of this Docker Compose service.
@@ -89,14 +96,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         // it will come as a parameter
         if (resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resourceInstance is ProjectResource)
         {
-            var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
-
-            containerImageName = composeEnvironmentResource.AddEnvironmentVariable(
-                 imageEnvName,
-                 description: $"Container image name for {resourceInstance.Name}",
-                 defaultValue: $"{resourceInstance.Name}:latest",
-                 source: new ContainerImageReference(resourceInstance)
-            );
+            containerImageName = this.AsContainerImagePlaceholder();
             return true;
         }
 
@@ -219,13 +219,38 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
             return;
         }
 
+        var ports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var expose = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var (_, mapping) in EndpointMappings)
         {
-            var internalPort = mapping.InternalPort.ToString(CultureInfo.InvariantCulture);
-            var exposedPort = mapping.ExposedPort.ToString(CultureInfo.InvariantCulture);
+            // Resolve the internal port for the endpoint mapping
+            var internalPort = mapping.InternalPort;
 
-            composeService.Ports.Add($"{exposedPort}:{internalPort}");
+            if (mapping.IsExternal)
+            {
+                var exposedPort = mapping.ExposedPort?.ToString(CultureInfo.InvariantCulture);
+
+                // No explicit exposed port, let docker compose assign a random port
+                if (exposedPort is null)
+                {
+                    ports.Add(internalPort);
+                }
+                else
+                {
+                    // Explicit exposed port, map it to the internal port
+                    ports.Add($"{exposedPort}:{internalPort}");
+                }
+            }
+            else
+            {
+                // Internal endpoints use expose with just internalPort
+                expose.Add(internalPort);
+            }
         }
+
+        composeService.Ports.AddRange(ports);
+        composeService.Expose.AddRange(expose);
     }
 
     private void AddVolumes(Service composeService)

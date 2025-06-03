@@ -5,17 +5,19 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cosmos = builder.AddAzureCosmosDB("cosmos")
-                .RunAsPreviewEmulator(e => e.WithDataExplorer());
+var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
 
 var db = cosmos.AddCosmosDatabase("db");
 var entries = db.AddContainer("entries", "/id", "staging-entries");
-db.AddContainer("users", "/id");
+var users = db.AddContainer("users", "/id");
+var userToDo = db.AddContainer("user-todo", ["/userId", "/id"], "UserTodo");
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db).WaitFor(db)
-       .WithReference(entries).WaitFor(entries);
+       .WithReference(users).WaitFor(users)
+       .WithReference(entries).WaitFor(entries)
+       .WithReference(userToDo).WaitFor(userToDo);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

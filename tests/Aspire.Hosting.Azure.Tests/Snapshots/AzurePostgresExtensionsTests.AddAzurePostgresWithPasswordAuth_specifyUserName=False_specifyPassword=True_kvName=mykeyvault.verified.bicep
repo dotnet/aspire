@@ -6,7 +6,7 @@ param administratorLogin string
 @secure()
 param administratorLoginPassword string
 
-param keyVaultName string
+param mykeyvault_outputs_name string
 
 resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
@@ -64,7 +64,7 @@ resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = 
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: mykeyvault_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

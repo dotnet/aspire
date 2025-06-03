@@ -90,7 +90,7 @@
       "params": {
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}",
-        "keyVaultName": "{postgres2-kv.outputs.name}"
+        "postgres2_kv_outputs_name": "{postgres2-kv.outputs.name}"
       }
     },
     "postgres2-kv": {
@@ -120,16 +120,13 @@
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
       "path": "ai.module.bicep",
       "params": {
-        "logAnalyticsWorkspaceId": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
+        "lawkspc_outputs_loganalyticsworkspaceid": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "aiwithoutlaw": {
       "type": "azure.bicep.v0",
       "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
-      "path": "aiwithoutlaw.module.bicep",
-      "params": {
-        "logAnalyticsWorkspaceId": ""
-      }
+      "path": "aiwithoutlaw.module.bicep"
     },
     "redis": {
       "type": "azure.bicep.v0",

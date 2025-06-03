@@ -57,11 +57,6 @@
         <target state="translated">过去 12 小时</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">过去 24 小时</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">所选资源没有指标</target>

@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{mykeyvault.secrets.connectionstrings--cosmos}",
+  "path": "cosmos.module.bicep",
+  "params": {
+    "mykeyvault_outputs_name": "{mykeyvault.outputs.name}"
+  }
+}

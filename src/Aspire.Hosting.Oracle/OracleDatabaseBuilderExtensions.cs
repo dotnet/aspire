@@ -145,9 +145,7 @@ public static class OracleDatabaseBuilderExtensions
 
         var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
 
-        return builder.WithContainerFiles(
-            initPath,
-            ContainerDirectory.GetFileSystemItemsFromPath(importFullPath));
+        return builder.WithContainerFiles(initPath, importFullPath);
     }
 
     /// <summary>

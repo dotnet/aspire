@@ -22,24 +22,9 @@
         <target state="translated">Przechwytywanie dzienników strukturalnych zostało wstrzymane w {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Dodaj filtr</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Edytuj filtr</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Szczegóły wpisu dziennika</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -70,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">Filtr minimalnego poziomu dziennika</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Brak filtrów</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

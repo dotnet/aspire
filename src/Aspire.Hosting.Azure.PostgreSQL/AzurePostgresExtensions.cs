@@ -339,8 +339,6 @@ public static class AzurePostgresExtensions
 
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{builder.Resource.Name}");
 
-        builder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName, keyVaultBuilder.Resource.NameOutputReference);
-
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;
         if (containerResource is not null)
@@ -439,8 +437,7 @@ public static class AzurePostgresExtensions
             var administratorLoginPassword = new ProvisioningParameter("administratorLoginPassword", typeof(string)) { IsSecure = true };
             infrastructure.Add(administratorLoginPassword);
 
-            var kvNameParam = new ProvisioningParameter("keyVaultName", typeof(string));
-            infrastructure.Add(kvNameParam);
+            var kvNameParam = azureResource.ConnectionStringSecretOutput.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
 
             var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
