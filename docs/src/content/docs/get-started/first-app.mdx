@@ -1,5 +1,5 @@
 ---
-title: Create your first app
+title: Create Your First App
 description: Learn about essential tooling concepts for Aspire.
 lastUpdated: true
 next: false # change this to the next desired page.
@@ -18,7 +18,7 @@ can create a new Aspire solution.
 
 1. Create a new Aspire solution:
 
-    ```console title="Create a new aspire solution"
+    ```bash title="Create a new aspire solution"
     aspire new aspire-starter -n AspireApp -o AspireApp
     ```
 
@@ -62,23 +62,23 @@ can create a new Aspire solution.
         - WeatherApiClient.cs
     </FileTree>
 
-    This relies on the Aspire templates. If they're not installed already, the CLI will install them for you.
+    This solution structure is based on the Aspire templates. If they're not installed already, the CLI will install them for you.
 
 1. Change to the _output_ directory:
 
-    ```console title="Change directories—stepping into the output directory"
+    ```bash title="Change directories—stepping into the output directory"
     cd ./AspireApp
     ```
 
 1. Run the Aspire app host project:
 
-    ```console title="Run dev-time orchestration"
+    ```bash title="Run dev-time orchestration"
     aspire run
     ```
 
-    The Aspire CLI locates the app host project, builds the solution, runs dev-time orchestration, and when the dashboard is ready—it's URL with login token are output to the console, finally  he resources are represented with live states as well:
+    When you run this command, the Aspire CLI automatically finds the app host project, builds your solution, and launches dev-time orchestration. Once the dashboard is ready, its URL (with a login token) appears in your console. You’ll also see a live, real-time view of your running resources and their current states.
 
-    ```console frame="none"
+    ```bash title="Example output of aspire run"
     aspire run
 
     Dashboard:

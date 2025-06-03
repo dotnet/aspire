@@ -2,8 +2,8 @@
 title: Install Aspire CLI
 description: Learn about essential tooling concepts for Aspire.
 lastUpdated: true
-banner:
-  content: The Aspire CLI is currently in preview.
+# banner:
+#   content: The Aspire CLI is currently in preview.
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -16,7 +16,7 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
 1. Install the Aspire CLI:
 
-    ```console title="Install the Aspire CLI globally"
+    ```bash title="Install the Aspire CLI globally"
     dotnet tool install --global aspire.cli --prerelease
     ```
 
@@ -24,15 +24,22 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
       The Aspire CLI is currently in preview, hence the `--prerelease` flag is used.
     </Aside>
 
-1. Verify the installation by calling the CLI help command:
+1. Verify the installation by checking the Aspire CLI version:
 
-    ```console title="Aspire CLI help command"
+    ```bash title="Check Aspire CLI version"
+    aspire --version
+    ```
+    You should see the version number of the Aspire CLI, which indicates that it is installed correctly.
+
+1. To see the available commands and options, run the help command:
+
+    ```bash title="Aspire CLI help command"
     aspire --help
     ```
 
     You should see an example usage format, with a list of available options and commands, similar to the following:
 
-    ```console frame="none"
+    ```bash title="Example output from the Aspire CLI help command"
     Description:
       The Aspire CLI can be used to create, run, and publish Aspire-based applications.
 
@@ -54,13 +61,3 @@ Aspire includes tooling to help you create and configure cloud-native apps. The 
 
 </Steps>
 
-## Next steps
-
-After installing the Aspire CLI, you can initiate liftoff by creating your first app. The Aspire CLI includes various templates, and makes it easy to run distributed apps locally or publish that same collection of apps to your favorite production environments.
-
-<Link href="https://dotnet.microsoft.com/en-us/platform/support/policy/aspire">
-  Official support policy
-</Link>
-<Link href="./overview">
-  Overview
-</Link>

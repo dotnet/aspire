@@ -35,6 +35,7 @@
 	--gradient-purple-blue: linear-gradient(90deg, var(--color-purple), var(--color-blue));
 	--gradient-blue-purple: linear-gradient(90deg, var(--color-blue), var(--color-purple));
 
+	pre[data-language="bash"] > code,
 	pre[data-language="console"] > code {
 		line-height: initial;
 	}
