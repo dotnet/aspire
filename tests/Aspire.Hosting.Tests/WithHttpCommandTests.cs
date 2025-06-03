@@ -174,6 +174,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(403, false)]
     [InlineData(404, false)]
     [InlineData(500, false)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9670")]
     [Theory]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
