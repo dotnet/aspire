@@ -61,9 +61,9 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pipeline.ExecuteAsync(async token =>
         {
-            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+            var database = host.Services.GetRequiredService<IMongoDatabase>();
 
-            await CreateTestDataAsync(mongoDatabase, token);
+            await CreateTestDataAsync(database, token);
         }, cts.Token);
     }
 
@@ -124,8 +124,8 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
-                            await CreateTestDataAsync(mongoDatabase, token);
+                            var database = host.Services.GetRequiredService<IMongoDatabase>();
+                            await CreateTestDataAsync(database, token);
                         }, cts.Token);
                     }
                 }
@@ -168,9 +168,9 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+                            var database = host.Services.GetRequiredService<IMongoDatabase>();
 
-                            var collection = mongoDatabase.GetCollection<Movie>(CollectionName);
+                            var collection = database.GetCollection<Movie>(CollectionName);
 
                             var results = await collection.Find(new BsonDocument()).ToListAsync(token);
 
@@ -211,10 +211,10 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    private static async Task CreateTestDataAsync(IMongoDatabase mongoDatabase, CancellationToken token)
+    private static async Task CreateTestDataAsync(IMongoDatabase database, CancellationToken token)
     {
-        await mongoDatabase.CreateCollectionAsync(CollectionName, cancellationToken: token);
-        var collection = mongoDatabase.GetCollection<Movie>(CollectionName);
+        await database.CreateCollectionAsync(CollectionName, cancellationToken: token);
+        var collection = database.GetCollection<Movie>(CollectionName);
         await collection.InsertManyAsync(s_movies, cancellationToken: token);
 
         var results = await collection.Find(new BsonDocument()).ToListAsync(token);
