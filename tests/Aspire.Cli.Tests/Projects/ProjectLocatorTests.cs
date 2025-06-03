@@ -7,6 +7,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -106,6 +107,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9652")]
     public async Task UseOrFindAppHostProjectFilePromptsWhenMultipleFilesFound()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
@@ -162,7 +164,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
 
