@@ -41,14 +41,14 @@ public static class DockerComposeAspireDashboardResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the browser port and marks it as external for the Aspire Dashboard resource.
+    /// Configures the host port that the Aspire Dashboard resource is exposed on instead of using randomly assigned port.
     /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance to configure.</param>
-    /// <param name="port">The port to use for the browser endpoint. If <c>null</c>, the dashboard port will not be exposed to the host.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> instance to configure.</param>
+    /// <param name="port">The port to bind on the host. If <c>null</c> a random port will be assigned.</param>
     /// <returns>
-    /// The <see cref="IResourceBuilder{AspireDashboardResource}"/> instance for chaining.
+    /// The <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> instance for chaining.
     /// </returns>
-    public static IResourceBuilder<DockerComposeAspireDashboardResource> WithBrowserPort(
+    public static IResourceBuilder<DockerComposeAspireDashboardResource> WithHostPort(
         this IResourceBuilder<DockerComposeAspireDashboardResource> builder,
         int? port = null)
     {
