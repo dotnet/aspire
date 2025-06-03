@@ -12,6 +12,8 @@ const localize = nls.loadMessageBundle();
 // Common strings
 export const noCsprojFound = localize('aspire-vscode.strings.noCsprojFound', 'No AppHost found in the current workspace');
 export const errorMessage = (error: any) => localize('aspire-vscode.commands.add.error', 'Error: {0}', error);
+export const yesLabel = localize('aspire-vscode.strings.yes', 'Yes');
+export const noLabel = localize('aspire-vscode.strings.no', 'No');
 
 // Add Command
 export const selectProjectToAdd = localize('aspire-vscode.commands.add.selectProject', 'Select the Aspire project to add to');
