@@ -41,10 +41,10 @@ public static class DockerComposeAspireDashboardResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the host port that the Aspire Dashboard resource is exposed on instead of using randomly assigned port.
+    /// Configures the port used to access the Aspire Dashboard from a browser.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> instance to configure.</param>
-    /// <param name="port">The port to bind on the host. If <c>null</c> a random port will be assigned.</param>
+    /// <param name="port">The port to bind on the host. If non-null, the dashboard will be exposed on the host. If <c>null</c>, the dashboard will not be exposed on the host but will only be reachable within the container network.</param>
     /// <returns>
     /// The <see cref="IResourceBuilder{DockerComposeAspireDashboardResource}"/> instance for chaining.
     /// </returns>
