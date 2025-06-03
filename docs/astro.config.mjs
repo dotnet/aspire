@@ -5,6 +5,7 @@ import catppuccin from "@catppuccin/starlight";
 import starlightLlmsTxt from 'starlight-llms-txt'
 import starlightKbd from 'starlight-kbd'
 import starlightImageZoom from 'starlight-image-zoom'
+import starlightLinksValidator from 'starlight-links-validator'
 
 // https://astro.build/config
 export default defineConfig({
@@ -169,6 +170,10 @@ export default defineConfig({
 			],
 			plugins: [
 				catppuccin(),
+				starlightLinksValidator({
+					exclude: [ '#', '/' ],
+					errorOnRelativeLinks: false
+				}),
 				starlightLlmsTxt({
 					projectName: 'Aspire',
 					description: 'Aspire is a polyglot local dev-time orchestration tool chain for building, running, debugging, and deploying distributed applications.',

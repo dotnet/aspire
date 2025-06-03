@@ -16,8 +16,8 @@ For the official support information, see the [Aspire Support Policy](https://do
 Aspire improves the experience of building apps that have a variety of projects and resources. With dev-time productivity enhancements that emulate deployed scenarios, you can quickly develop interconnected apps. Designed for flexibility, Aspire allows you to replace or extend parts with your preferred tools and workflows. Key features include:
 
 - [**Dev-Time Orchestration**](#dev-time-orchestration): Aspire provides features for running and connecting multi-project applications, container resources, and other dependencies for [local development environments](../fundamentals/networking-overview.md).
-- [**Integrations**](#net-aspire-integrations): Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
-- [**Tooling**](#project-templates-and-tooling): Aspire comes with project templates and tooling experiences for Visual Studio, Visual Studio Code, and the [.NET CLI](/dotnet/core/tools/) to help you create and interact with Aspire projects.
+- [**Integrations**](#aspire-integrations): Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
+- [**Tooling**](#project-templates-and-tooling): Aspire comes with project templates and tooling experiences for Visual Studio, Visual Studio Code, and the [.NET CLI](https://learn.microsoft.com/dotnet/core/tools/) to help you create and interact with Aspire projects.
 
 ## Dev-time orchestration
 
@@ -72,7 +72,7 @@ A full list of available integrations is detailed on the [Aspire integrations](.
 
 ## Project templates and tooling
 
-Aspire provides a set of project templates and tooling experiences for Visual Studio, Visual Studio Code, and the [.NET CLI](/dotnet/core/tools/). These templates are designed to help you create and interact with Aspire projects, or add Aspire into your existing codebase. The templates include a set of opinionated defaults to help you get started quickly - for example, it has boilerplate code for turning on health checks and logging in .NET apps. These defaults are fully customizable, so you can edit and adapt them to suit your needs.
+Aspire provides a set of project templates and tooling experiences for Visual Studio, Visual Studio Code, and the [.NET CLI](https://learn.microsoft.com/dotnet/core/tools/). These templates are designed to help you create and interact with Aspire projects, or add Aspire into your existing codebase. The templates include a set of opinionated defaults to help you get started quickly - for example, it has boilerplate code for turning on health checks and logging in .NET apps. These defaults are fully customizable, so you can edit and adapt them to suit your needs.
 
 Aspire templates also include boilerplate extension methods that handle common service configurations for you:
 
@@ -85,5 +85,5 @@ For more information on what `AddServiceDefaults` does, see [Aspire service defa
 When added to your `Program.cs` file, the preceding code handles the following concerns:
 
 - **OpenTelemetry**: Sets up formatted logging, runtime metrics, built-in meters, and tracing for ASP.NET Core, gRPC, and HTTP. For more information, see [Aspire telemetry](../fundamentals/telemetry.md).
-- **Default health checks**: Adds default health check endpoints that tools can query to monitor your app. For more information, see [.NET app health checks in C#](/dotnet/core/diagnostics/diagnostic-health-checks).
+- **Default health checks**: Adds default health check endpoints that tools can query to monitor your app. For more information, see [.NET app health checks in C#](https://learn.microsoft.com/dotnet/aspire/fundamentals/health-checks).
 - **Service discovery**: Enables [service discovery](../service-discovery/overview.md) for the app and configures `HttpClient` accordingly.

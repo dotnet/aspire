@@ -19,6 +19,7 @@
     "sharp": "^0.34.1",
     "starlight-image-zoom": "^0.12.0",
     "starlight-kbd": "^0.2.0",
+    "starlight-links-validator": "^0.16.0",
     "starlight-llms-txt": "^0.5.1"
   },
   "devDependencies": {
