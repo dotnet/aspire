@@ -28,19 +28,6 @@ public static class AzureAIFoundryExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            //var hub = new AzureAIFoundryHubProvisioningResource(infrastructure.AspireResource.GetBicepIdentifier() + "_hub")
-            //{
-            //    FriendlyName = infrastructure.AspireResource.Name
-            //};
-            //infrastructure.Add(hub);
-
-            //var project = new AzureAIFoundryProjectProvisioningResource(infrastructure.AspireResource.GetBicepIdentifier() + "_project", hub)
-            //{
-            //    FriendlyName = infrastructure.AspireResource.Name,
-            //};
-
-            //infrastructure.Add(project);
-
             var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -75,45 +62,6 @@ public static class AzureAIFoundryExtensions
             {
                 Value = Interpolate($"Endpoint={inferenceEndpoint}models")
             });
-
-            //var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            //infrastructure.Add(principalTypeParameter);
-            //var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-            //infrastructure.Add(principalIdParameter);
-
-            //AddRoleAssignment("f6c7c914-8db3-469d-8ca1-694a8f32e121"); // AzureML Data Scientist role
-            //AddRoleAssignment("ea01e6af-a1c1-4350-9563-ad00f8c72ec5"); // Azure Machine Learning Connection Secrets Reader role
-
-            //void AddRoleAssignment(string id)
-            //{
-            //    var roleAssignment =
-            //            new RoleAssignment($"{cogServicesAccount.BicepIdentifier}_{id.Replace('-', '_')}")
-            //            {
-            //                Name = CreateGuid(cogServicesAccount.Id, principalIdParameter, GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", id)),
-            //                Scope = new IdentifierExpression(cogServicesAccount.BicepIdentifier),
-            //                PrincipalType = principalTypeParameter,
-            //                RoleDefinitionId = GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", id),
-            //                PrincipalId = principalIdParameter
-            //            };
-
-            //    infrastructure.Add(roleAssignment);
-            //}
-
-            //var cognitiveServicesConnectionName = Take(Interpolate($"{infrastructure.AspireResource.GetBicepIdentifier()}{GetUniqueString(GetResourceGroup().Id)}"), 64);
-            //if (cogServicesAccount.IsExistingResource)
-            //{
-            //    cognitiveServicesConnectionName = cogServicesAccount.Name;
-            //}
-
-            //var connectionCdk = new AzureAIFoundryConnectionProvisioningResource(
-            //    $"{Infrastructure.NormalizeBicepIdentifier(cogServicesAccount.BicepIdentifier)}_connection",
-            //    hub)
-            //{
-            //    Name = cognitiveServicesConnectionName,
-            //    Category = "AIServices",
-            //    CognitiveServicesAccount = cogServicesAccount
-            //};
-            //infrastructure.Add(connectionCdk);
 
             var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
 
