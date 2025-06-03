@@ -1,12 +1,12 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { outputChannel } from '../utils/vsc';
-import { yesLabel, noLabel } from '../constants/strings';
-import { ValidationResult } from './rpcClient';
+import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard } from '../constants/strings';
+import { ICliRpcClient, RpcClient, ValidationResult } from './rpcClient';
 
 interface IInteractionService {
     showStatus: (statusText: string | null) => void;
-    promptForString: (promptText: string, defaultValue: string | null) => Promise<string | null>;
+    promptForString: (promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string) => void;
@@ -15,7 +15,7 @@ interface IInteractionService {
     displaySuccess: (message: string) => void;
     displaySubtleMessage: (message: string) => void;
     displayEmptyLine: () => void;
-    displayDashboardUrls: (dashboardUrls: DashboardUrls) => void;
+    displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
     displayCancellationMessage: (message: string) => void;
 }
@@ -30,9 +30,8 @@ type ConsoleLine = {
     line: string;
 };
 
-class InteractionService implements IInteractionService {
+export class InteractionService implements IInteractionService {
     private _statusBarItem: vscode.StatusBarItem | undefined;
-
 
     showStatus(statusText: string | null) {
         if (!this._statusBarItem) {
@@ -47,20 +46,21 @@ class InteractionService implements IInteractionService {
         }
     }
 
-    async promptForString(promptText: string, defaultValue: string | null): Promise<string | null> {
+    async promptForString(promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage('Failed to show prompt, text was empty.');
             outputChannel.appendLine('Failed to show prompt, text was empty.');
         }
-        
+
         const input = await vscode.window.showInputBox({
             prompt: promptText,
             value: defaultValue || '',
             validateInput: async (value: string) => {
-                if (validator) {
-                    const result = await validator(value);
-                    return result.successful ? null : result.message;
+                const validationResult = await rpcClient.validatePromptInputString(promptText, value);
+                if (validationResult) {
+                    return validationResult.successful ? null : validationResult.message;
                 }
+
                 return null;
             }
         });
@@ -71,7 +71,7 @@ class InteractionService implements IInteractionService {
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
         const yes = yesLabel;
         const no = noLabel;
-        
+
         const result = await vscode.window.showInformationMessage(
             promptText,
             { modal: true },
@@ -144,8 +144,39 @@ class InteractionService implements IInteractionService {
         outputChannel.appendLine('');
     }
 
-    displayDashboardUrls(dashboardUrls: DashboardUrls) {
+    async displayDashboardUrls(dashboardUrls: DashboardUrls) {
+        outputChannel.appendLine('Dashboard:');
+        if (dashboardUrls.codespacesUrlWithLoginToken) {
+            outputChannel.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
+            outputChannel.appendLine(`📈 ${codespacesUrl(dashboardUrls.codespacesUrlWithLoginToken)}`);
+        }
+        else {
+            outputChannel.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
+        }
 
+        const actions: vscode.MessageItem[] = [
+            { title: directLink }
+        ];
+
+        if (dashboardUrls.codespacesUrlWithLoginToken) {
+            actions.push({ title: codespacesLink });
+        }
+
+        const selected = await vscode.window.showInformationMessage(
+            openAspireDashboard,
+            ...actions
+        );
+
+        if (!selected) {
+            return;
+        }
+
+        if (selected.title === directLink) {
+            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.baseUrlWithLoginToken));
+        }
+        else if (selected.title === codespacesLink && dashboardUrls.codespacesUrlWithLoginToken) {
+            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.codespacesUrlWithLoginToken));
+        }
     }
 
     displayLines(lines: ConsoleLine[]) {
@@ -160,19 +191,21 @@ class InteractionService implements IInteractionService {
     }
 }
 
-export function addInteractionServiceEndpoints(connection: MessageConnection) {
-    var interactionService = new InteractionService();
-
+export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient) {
     connection.onRequest("showStatus", interactionService.showStatus.bind(interactionService));
-    connection.onRequest("promptForString", interactionService.promptForString.bind(interactionService));
+    connection.onRequest("promptForString", (promptText: string, defaultValue: string | null) =>
+        interactionService.promptForString(promptText, defaultValue, rpcClient));
     connection.onRequest("confirm", interactionService.confirm.bind(interactionService));
-
+    connection.onRequest("promptForSelection", (promptText: string, choices: string[]) =>
+        interactionService.promptForSelection(promptText, choices)
+    );
+    connection.onRequest("displayIncompatibleVersionError", interactionService.displayIncompatibleVersionError.bind(interactionService));
     connection.onRequest("displayError", interactionService.displayError.bind(interactionService));
     connection.onRequest("displayMessage", interactionService.displayMessage.bind(interactionService));
     connection.onRequest("displaySuccess", interactionService.displaySuccess.bind(interactionService));
     connection.onRequest("displaySubtleMessage", interactionService.displaySubtleMessage.bind(interactionService));
     connection.onRequest("displayEmptyLine", interactionService.displayEmptyLine.bind(interactionService));
-
+    connection.onRequest("displayDashboardUrls", interactionService.displayDashboardUrls.bind(interactionService));
     connection.onRequest("displayLines", interactionService.displayLines.bind(interactionService));
     connection.onRequest("displayCancellationMessage", interactionService.displayCancellationMessage.bind(interactionService));
 }

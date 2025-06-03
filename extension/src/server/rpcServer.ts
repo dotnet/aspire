@@ -5,7 +5,8 @@ import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { outputChannel } from '../utils/vsc';
 import { rpcServerListening, rpcServerAddressError } from '../constants/strings';
 import * as crypto from 'crypto';
-import { addInteractionServiceEndpoints } from './interactionService';
+import { addInteractionServiceEndpoints, InteractionService } from './interactionService';
+import { RpcClient } from './rpcClient';
 
 export function setupRpcServer(context: vscode.ExtensionContext, onListening?: (port: number, token: string) => void): net.Server {
     const token = generateToken();
@@ -30,7 +31,10 @@ export function setupRpcServer(context: vscode.ExtensionContext, onListening?: (
             return { message: 'pong' };
         }));
 
-        addInteractionServiceEndpoints(connection);
+        var rpcClient = new RpcClient(connection, token);
+        var interactionService = new InteractionService();
+
+        addInteractionServiceEndpoints(connection, interactionService, rpcClient);
 
         connection.listen();
     });

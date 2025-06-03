@@ -1,7 +1,6 @@
-import * as vscode from 'vscode';
 import { MessageConnection } from 'vscode-jsonrpc';
 
-export interface CliRpcClient {
+export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
     validatePromptInputString(promptText: string, input: string): Promise<ValidationResult | null>;
 }
@@ -11,7 +10,7 @@ export type ValidationResult = {
     successful: boolean;
 };
 
-class RpcClient implements CliRpcClient {
+export class RpcClient implements ICliRpcClient {
     private _messageConnection: MessageConnection;
     private _token: string;
 

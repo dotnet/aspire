@@ -14,6 +14,11 @@ export const noCsprojFound = localize('aspire-vscode.strings.noCsprojFound', 'No
 export const errorMessage = (error: any) => localize('aspire-vscode.commands.add.error', 'Error: {0}', error);
 export const yesLabel = localize('aspire-vscode.strings.yes', 'Yes');
 export const noLabel = localize('aspire-vscode.strings.no', 'No');
+export const directUrl = (url: string) => localize('aspire-vscode.strings.directUrl', 'Direct: {0}', url);
+export const codespacesUrl = (url: string) => localize('aspire-vscode.strings.codespacesUrl', 'Codespaces: {0}', url);
+export const directLink = localize('aspire-vscode.strings.directLink', 'Direct link');
+export const codespacesLink = localize('aspire-vscode.strings.codespacesLink', 'Codespaces link');
+export const openAspireDashboard = localize('aspire-vscode.strings.openAspireDashboard', 'Open Aspire Dashboard');
 
 // Add Command
 export const selectProjectToAdd = localize('aspire-vscode.commands.add.selectProject', 'Select the Aspire project to add to');
