@@ -2,7 +2,5 @@
     "dotnet.previewSolution-freeWorkspaceMode": true,
     "dotnet.testWindow.useTestingPlatformProtocol": true,
     "dotnet.defaultSolution": "./Aspire.slnx",
-    "dotnet.preview.enableSupportForSlnx": true,
-    "sarif-viewer.connectToGithubCodeScanning": "off",
-    "vscode-nmake-tools.installRazzleSourcesFormatterExtension": false
+    "dotnet.preview.enableSupportForSlnx": true
 }
