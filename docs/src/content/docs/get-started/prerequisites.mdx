@@ -8,21 +8,27 @@ import { Aside, Icon, Code, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, T
 import IconAside from '../../../components/IconAside.astro';
 import IconLinkCard from '../../../components/IconLinkCard.astro';
 
-To get started with Aspire, you need to install a few prerequisites—if not already installed. This guide will help you set up your development environment for building and running Aspire applications.
+Ready to dive into Aspire? Before you begin, make sure your development environment is set up with a few essential tools. This guide walks you through everything you need to start building and running Aspire solutions with confidence.
 
 ## Install the SDK
 
-Install either [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) to work with Aspire. No prior .NET experience is required.
+Install either [.NET 8.0](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) to work with Aspire. No prior C# experience is required.
 
 ### Install OCI compliant container runtime
 
-Aspire uses an OCI compliant container runtime to run and manage containers. The most common option is Docker Desktop, which provides a user-friendly interface for managing containers and images.
+Aspire can run containers using several OCI-compatible runtimes, including Docker Desktop and Podman.
+
+#### Docker Desktop
+
+Docker Desktop is the most popular container runtime among Aspire developers, offering a familiar and widely supported environment for building and running containers.
 
 <LinkButton target={'_blank'} href="https://www.docker.com/products/docker-desktop" icon="seti:docker" iconPlacement="start" variant="secondary">
   Docker Desktop
 </LinkButton>
 
-Alternatively, you can use [Podman](https://podman.io/), which is a daemonless container engine that can run containers without requiring root privileges.
+#### Podman
+
+[Podman](https://podman.io/) is an open-source, daemonless alternative to Docker. It supports building and running Open Container Initiative (OCI) containers, making it a flexible choice for developers who prefer a lightweight solution.
 
 <Tabs>
   <TabItem label="Linux" icon="linux">
@@ -36,6 +42,10 @@ Alternatively, you can use [Podman](https://podman.io/), which is a daemonless c
   </TabItem>
 </Tabs>
 
+#### Rancher Desktop
+
+Some users have reported success using [Rancher Desktop](https://rancherdesktop.io/)—particularly when configured to use the Docker CLI. However, Rancher Desktop is not an officially supported or regularly tested scenario for Aspire. If you encounter issues with Rancher Desktop, please let us know, but fixes may not be prioritized.
+
 ### Install an integrated development environment (IDE)
 
 Aspire supports multiple IDEs and code editors. You can choose the one that best fits your workflow:
@@ -45,26 +55,28 @@ Aspire supports multiple IDEs and code editors. You can choose the one that best
     target={'_blank'}
     title="Visual Studio Code"
     href="https://code.visualstudio.com/"
-    description="Visual Studio Code is a lightweight code editor with support for .NET development through extensions. It's ideal for cross-platform development and quick edits."
+    description="Visual Studio Code is a lightweight code editor with support for C# development through extensions. It's ideal for cross-platform development and quick edits."
     icon="vscode" />
   <IconLinkCard
     target={'_blank'}
     title="JetBrains Rider" 
     href="https://blog.jetbrains.com/dotnet/2024/02/19/jetbrains-rider-and-the-net-aspire-plugin"
-    description="JetBrains Rider is a cross-platform .NET IDE that provides advanced code analysis, refactoring, and debugging capabilities."
+    description="JetBrains Rider is a cross-platform C# IDE that provides advanced code analysis, refactoring, and debugging capabilities."
     icon="jetbrains" />
+</CardGrid>
+
+<IconAside type='tip' icon='vscode' title='Visual Studio Code Tip'>
+  When choosing Visual Studio Code, it's recommended to install the [C# DevKit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for C# developmet. This extension provides features like IntelliSense, debugging, and project management.
+</IconAside>
+
+<CardGrid>
   <IconLinkCard
     target={'_blank'}
     title="Visual Studio"
     href="https://visualstudio.microsoft.com/vs/"
-    description="Visual Studio is a powerful IDE for .NET development. 
+    description="Visual Studio is a powerful IDE for C# development. 
     It provides a rich set of features, including debugging, IntelliSense, and integrated Git support." />
 </CardGrid>
-
-<IconAside type='tip' icon='vscode' title='Visual Studio Code Tip'>
-  When choosing Visual Studio Code, it's recommended to install the [C# DevKit extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for .NET developmet. This extension provides features like IntelliSense, debugging, and project management.
-</IconAside>
-
 
 ### Alternatives to local installation
 

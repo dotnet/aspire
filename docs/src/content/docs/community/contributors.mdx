@@ -6,10 +6,15 @@ lastUpdated: false
 editUrl: false
 ---
 
-import { LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
 import { ContributorList } from "starlight-contributor-list";
+import IconLinkCard from '../../../components/IconLinkCard.astro';
 
-Aspire wouldn't be what it is today without the amazing contributions from our community. From code contributions to documentation improvements, every bit helps us grow and improve. Your ideas have the potential to shape the future of the project, and issues you uncover help others be successful too. Interested in contributing? Check out our [contributing guide](https://github.com/dotnet/aspire/blob/main/docs/contributing.md) to get started!
+Aspire wouldn't be what it is today without the amazing contributions from our community. From code contributions to documentation improvements, every bit helps us grow and improve. Your ideas have the potential to shape the future of the project, and issues you uncover help others be successful too. Interested in contributing?
+
+<LinkButton target={'_blank'} href="https://github.com/dotnet/aspire/blob/main/docs/contributing.md" icon="github" iconPlacement="start" variant="secondary">
+  Interested in contributing?
+</LinkButton>
 
 export const ignore = [
     "github-actions[bot]",
@@ -26,9 +31,18 @@ Thank you to all the community members who have contributed to Aspire! Your effo
 
 <ContributorList githubRepo="dotnet/aspire" ignore={ignore} />
 
-<LinkButton target={'_blank'} href="https://github.com/dotnet/aspire" icon="github" iconPlacement="start" variant="secondary">
-  Aspire on GitHub
-</LinkButton>
+<CardGrid>
+  <IconLinkCard
+    target={'_blank'}
+    title="Aspire on GitHub"
+    href="https://github.com/dotnet/aspire"
+    icon="github" />
+  <IconLinkCard
+    target={'_blank'}
+    title="MIT Licensed"
+    href="https://github.com/dotnet/aspire?tab=MIT-1-ov-file#readme"
+    icon="seti:license" />
+</CardGrid>
 
 ## Aspire Samples Contributors 💜
 
@@ -36,6 +50,15 @@ Thank you to all the community members who have contributed to Aspire Samples! Y
 
 <ContributorList githubRepo="dotnet/aspire-samples" ignore={ignore} />
 
-<LinkButton target={'_blank'} href="https://github.com/dotnet/aspire-samples" icon="github" iconPlacement="start" variant="secondary">
-  Aspire Samples on GitHub
-</LinkButton>
+<CardGrid>
+  <IconLinkCard
+    target={'_blank'}
+    title="Aspire Samples on GitHub"
+    href="https://github.com/dotnet/aspire-samples"
+    icon="github" />
+  <IconLinkCard
+    target={'_blank'}
+    title="MIT Licensed"
+    href="https://github.com/dotnet/aspire-samples?tab=MIT-1-ov-file#readme"
+    icon="seti:license" />
+</CardGrid>

@@ -104,64 +104,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Build',
-					badge: {
-						text: 'Concepts',
-						variant: 'note'
-					},
-					autogenerate: { directory: 'build' },
-				},
-				{
-					label: 'Dashboard',
-					items: [
-						{ label: 'Overview', slug: '' },
-						{
-							label: 'Features', slug: '', badge: {
-								text: 'UX',
-								variant: 'caution'
-							},
-						},
-						{
-							label: 'Standalone', slug: '', badge: {
-								text: 'Container',
-								variant: 'danger'
-							},
-						},
-						{ label: 'Configuration', slug: '' },
-						{ label: 'Browser telemetry', slug: '' },
-					]
-				},
-				{
-					label: 'Integrations',
-					collapsed: true,
-					autogenerate: { directory: 'integrations' },
-				},
-				{
-					label: 'Custom Integrations',
-					collapsed: true,
-					items: [
-						{ label: 'Create hosting integration', slug: '' },
-						{ label: 'Create client integration', slug: '' },
-						{ label: 'Secure integrations', slug: '' },
-					]
-				},
-				{
-					label: 'Deploy',
-					collapsed: true,
-					autogenerate: { directory: 'deploy' },
-				},
-				{
-					label: 'Reference',
-					badge: {
-						text: 'API',
-						variant: 'tip'
-					},
-					collapsed: true,
-					autogenerate: { directory: 'reference' },
-				},
-				{
 					label: 'Community',
-					collapsed: true,
 					items: [
 						{
 							label: 'Videos',
