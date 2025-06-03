@@ -9,19 +9,42 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
+using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
+
+internal sealed record UserPrincipal(Guid Id, string Name);
+
+internal sealed class ProvisioningContext(
+    TokenCredential credential,
+    ArmClient armClient,
+    SubscriptionResource subscription,
+    ResourceGroupResource resourceGroup,
+    TenantResource tenant,
+    IReadOnlyDictionary<string, ArmResource> resourceMap,
+    AzureLocation location,
+    UserPrincipal principal,
+    JsonObject userSecrets)
+{
+    public TokenCredential Credential => credential;
+    public ArmClient ArmClient => armClient;
+    public SubscriptionResource Subscription => subscription;
+    public TenantResource Tenant => tenant;
+    public ResourceGroupResource ResourceGroup => resourceGroup;
+    public IReadOnlyDictionary<string, ArmResource> ResourceMap => resourceMap;
+    public AzureLocation Location => location;
+    public UserPrincipal Principal => principal;
+    public JsonObject UserSecrets => userSecrets;
+}
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(

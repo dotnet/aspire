@@ -48,5 +48,5 @@ internal interface IUserSecretsManager
 /// </summary>
 internal interface IProvisioningContextProvider
 {
-    Task<ProvisioningContext> GetProvisioningContextAsync(CancellationToken cancellationToken);
+    Task<global::Aspire.Hosting.Azure.ProvisioningContext> GetProvisioningContextAsync(CancellationToken cancellationToken);
 }

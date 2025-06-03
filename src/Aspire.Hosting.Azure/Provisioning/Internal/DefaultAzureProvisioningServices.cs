@@ -11,12 +11,9 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
-using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Dcp.Process;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -205,7 +202,7 @@ internal sealed class DefaultProvisioningContextProvider(
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    public async Task<ProvisioningContext> GetProvisioningContextAsync(CancellationToken cancellationToken)
+    public async Task<global::Aspire.Hosting.Azure.ProvisioningContext> GetProvisioningContextAsync(CancellationToken cancellationToken)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new Aspire.Hosting.Azure.MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -313,7 +310,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
-        return new ProvisioningContext(
+        return new global::Aspire.Hosting.Azure.ProvisioningContext(
                     credential,
                     armClient,
                     subscriptionResource,
@@ -325,11 +322,11 @@ internal sealed class DefaultProvisioningContextProvider(
                     userSecrets);
     }
 
-    private static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
+    private static async Task<global::Aspire.Hosting.Azure.UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
     {
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 
-        static UserPrincipal ParseToken(in AccessToken response)
+        static global::Aspire.Hosting.Azure.UserPrincipal ParseToken(in AccessToken response)
         {
             // Parse the access token to get the user's object id (this is their principal id)
             var oid = string.Empty;
@@ -378,7 +375,7 @@ internal sealed class DefaultProvisioningContextProvider(
                     }
                 }
             }
-            return new UserPrincipal(Guid.Parse(oid), upn);
+            return new global::Aspire.Hosting.Azure.UserPrincipal(Guid.Parse(oid), upn);
         }
 
         return ParseToken(response);
