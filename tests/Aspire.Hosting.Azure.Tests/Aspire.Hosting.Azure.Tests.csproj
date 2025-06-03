@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <!-- Only run on Linux; tests need Docker support -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
   </PropertyGroup>
 
   <ItemGroup>
