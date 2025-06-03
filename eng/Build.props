@@ -3,8 +3,7 @@
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
-
+    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" Condition="'$(SkipPlaygroundAppBuilds)' != 'true'" />
     <!-- `$(SkipTestProjects)` allows skipping test projects from being
           included in the build at all. This is useful for cases like when we are
           just building the packages, and don't need to build the test projects. -->
