@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Azure.AppConfiguration;
 internal static class AppConfigurationEmulatorContainerImageTags
 {
-    // WIP: Official emulator image is still not available in public registry.
+    // WIP: Official emulator image is still not available in MCR.
     public const string Registry = "docker.io";
 
     public const string Image = "charlesliangzhy/appconfig-emulator";

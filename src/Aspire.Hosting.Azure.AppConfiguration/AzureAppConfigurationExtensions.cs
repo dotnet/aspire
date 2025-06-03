@@ -68,7 +68,7 @@ public static class AzureAppConfigurationExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="AppConfigurationEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="AppConfigurationEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="AppConfigurationEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    /// <param name="builder">The Azure SignalR resource builder.</param>
+    /// <param name="builder">The Azure App Configuration resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureAppConfigurationResource> RunAsEmulator(this IResourceBuilder<AzureAppConfigurationResource> builder, Action<IResourceBuilder<AzureAppConfigurationEmulatorResource>>? configureContainer = null)
@@ -104,8 +104,8 @@ public static class AzureAppConfigurationExtensions
     /// <returns>A builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string filePath)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(filePath);
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentException.ThrowIfNullOrEmpty(filePath, nameof(filePath));
 
         return builder.WithBindMount(filePath, "/app/.aace/kv.ndjson", isReadOnly: false);
     }

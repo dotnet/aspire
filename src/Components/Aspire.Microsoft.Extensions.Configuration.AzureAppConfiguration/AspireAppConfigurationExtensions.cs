@@ -17,7 +17,9 @@ public static class AspireAppConfigurationExtensions
 {
     internal const string DefaultConfigSectionName = "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration";
     internal const string ActivitySourceName = "Microsoft.Extensions.Configuration.AzureAppConfiguration";
-    
+    internal const string DefaultEmulatorAccessKeyId = "default";
+    internal const string DefaultEmulatorAccesskeySecret = "abcdefghijklmnopqrstuvwxyz1234567890";
+
     /// <summary>
     /// Adds the Azure App Configuration to be configuration in the <paramref name="builder"/>.
     /// </summary>
@@ -33,8 +35,8 @@ public static class AspireAppConfigurationExtensions
         Action<AzureAppConfigurationSettings>? configureSettings = null,
         Action<AzureAppConfigurationOptions>? configureOptions = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentException.ThrowIfNullOrEmpty(connectionName, nameof(connectionName));
 
         IConfigurationSection configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
 
@@ -59,7 +61,7 @@ public static class AspireAppConfigurationExtensions
                 string host = settings.Endpoint.Host.ToLowerInvariant();
                 if (host == "localhost" || host == "127.0.0.1") // emulator
                 {
-                    options.Connect($"Endpoint={settings.Endpoint};Id=default;Secret=abcdefghijklmnopqrstuvwxyz1234567890");
+                    options.Connect($"Endpoint={settings.Endpoint};Id={DefaultEmulatorAccessKeyId};Secret={DefaultEmulatorAccesskeySecret}");
                 }
                 else
                 {
