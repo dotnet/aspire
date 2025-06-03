@@ -422,6 +422,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     {
         if (resource is Container container)
         {
+            if (container.Spec.Start == false && (container.Status?.State == null || container.Status?.State == ContainerState.Pending))
+            {
+                // If the resource is set for delay start, treat pending states as NotStarted.
+                return new(KnownResourceStates.NotStarted, null, null);
+            }
+
             return new(container.Status?.State, container.Status?.StartupTimestamp?.ToUniversalTime(), container.Status?.FinishTimestamp?.ToUniversalTime());
         }
         if (resource is Executable executable)
@@ -1223,8 +1229,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 if (cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _))
                 {
-                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
-                    continue;
+                    if (cr.DcpResource is Container container)
+                    {
+                        container.Spec.Start = false;
+                    }
                 }
 
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
@@ -1552,6 +1560,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             {
                 case Container c:
                     await EnsureResourceDeletedAsync<Container>(appResource.DcpResourceName).ConfigureAwait(false);
+
+                    // Ensure we explicitly start the container
+                    c.Spec.Start = true;
 
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
