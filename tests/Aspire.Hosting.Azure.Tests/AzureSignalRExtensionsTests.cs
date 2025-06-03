@@ -25,7 +25,7 @@ public class AzureSignalRExtensionsTests
         var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "signalr-roles");
         var (signalrRolesManifest, signalrRolesBicep) = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(signalrRolesManifest.ToString(), "json")
               .AppendContentAsFile(signalrRolesBicep, "bicep");
@@ -47,7 +47,7 @@ public class AzureSignalRExtensionsTests
         var signalrRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "signalr-roles");
         var (signalrRolesManifest, signalrRolesBicep) = await GetManifestWithBicep(signalrRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(signalrRolesManifest.ToString(), "json")
               .AppendContentAsFile(signalrRolesBicep, "bicep");

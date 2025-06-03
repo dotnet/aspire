@@ -45,7 +45,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -79,7 +79,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -111,7 +111,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -153,7 +153,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -184,7 +184,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -226,7 +226,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -256,7 +256,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -331,7 +331,7 @@ public class AzureContainerAppsTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
         var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(identityManifest.ToString(), "json")
               .AppendContentAsFile(identityBicep, "bicep");
@@ -408,7 +408,7 @@ public class AzureContainerAppsTests
         var (manifest, bicep) = await GetManifestWithBicep(resource);
         var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(identityManifest.ToString(), "json")
               .AppendContentAsFile(identityBicep, "bicep");
@@ -445,7 +445,7 @@ public class AzureContainerAppsTests
         _ = await GetManifestWithBicep(resource);
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -476,7 +476,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -537,7 +537,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -573,7 +573,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -611,7 +611,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -651,7 +651,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -683,7 +683,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -716,7 +716,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -841,7 +841,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -872,7 +872,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -904,7 +904,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -935,7 +935,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -976,7 +976,7 @@ public class AzureContainerAppsTests
         var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
         var (rolesStorageManifest, rolesStorageBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(rolesStorageManifest.ToString(), "json")
               .AppendContentAsFile(rolesStorageBicep, "bicep")
@@ -1020,7 +1020,7 @@ public class AzureContainerAppsTests
         var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
         var (rolesCosmosManifest, rolesCosmosBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(rolesCosmosManifest.ToString(), "json")
               .AppendContentAsFile(rolesCosmosBicep, "bicep")
@@ -1061,7 +1061,7 @@ public class AzureContainerAppsTests
         var (identityManifest, identityBicep) = await GetManifestWithBicep(projIdentity);
         var (rolesRedisManifest, rolesRedisBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(rolesRedisManifest.ToString(), "json")
               .AppendContentAsFile(rolesRedisBicep, "bicep")
@@ -1234,7 +1234,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -1260,7 +1260,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(sql.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -1307,7 +1307,7 @@ public class AzureContainerAppsTests
         var containerRegistry = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>());
         var (registryManifest, registryBicep) = await GetManifestWithBicep(containerRegistry);
 
-        await Verify(envManifest.ToString(), "json")
+        await Verify(envManifest)
               .AppendContentAsFile(envBicep, "bicep")
               .AppendContentAsFile(containerManifest.ToString(), "json")
               .AppendContentAsFile(containerBicep, "bicep")
@@ -1358,7 +1358,7 @@ public class AzureContainerAppsTests
         var logAnalyticsWorkspace = Assert.Single(model.Resources.OfType<AzureLogAnalyticsWorkspaceResource>());
         var (workspaceManifest, workspaceBicep) = await GetManifestWithBicep(logAnalyticsWorkspace);
 
-        await Verify(envManifest.ToString(), "json")
+        await Verify(envManifest)
               .AppendContentAsFile(envBicep, "bicep")
               .AppendContentAsFile(containerManifest.ToString(), "json")
               .AppendContentAsFile(containerBicep, "bicep")
@@ -1389,7 +1389,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(azResource.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -1411,7 +1411,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(containerAppEnvResource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -1433,7 +1433,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(containerAppEnvResource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -1467,7 +1467,7 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 

@@ -63,7 +63,7 @@ public class AzureContainerRegistryTests
 
         var (manifest, bicep) = await GetManifestWithBicep(acr.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -88,9 +88,8 @@ public class AzureContainerRegistryTests
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(rolesResource);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(rolesManifest)
               .AppendContentAsFile(rolesBicep, "bicep");
-              
     }
 
     private sealed class Project : IProjectMetadata

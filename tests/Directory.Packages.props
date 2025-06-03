@@ -23,5 +23,6 @@
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Verify.XunitV3" Version="30.3.0" />
+    <PackageVersion Include="Verify.SystemJson" Version="1.4.1" />
   </ItemGroup>
 </Project>

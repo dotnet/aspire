@@ -52,6 +52,7 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.Azure.SignalR.Management" />
     <PackageReference Include="Verify.XunitV3" />
+    <PackageReference Include="Verify.SystemJson" />
   </ItemGroup>
 
 </Project>

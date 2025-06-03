@@ -41,7 +41,7 @@ public class AzurePostgresExtensionsTests
         var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
         var (postgresRolesManifest, postgresRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
               .AppendContentAsFile(postgresRolesBicep, "bicep");

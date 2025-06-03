@@ -292,7 +292,7 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         var ehRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "eh-roles");
         var (ehRolesManifest, ehRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(ehRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(ehRolesManifest.ToString(), "json")
               .AppendContentAsFile(ehRolesBicep, "bicep");
