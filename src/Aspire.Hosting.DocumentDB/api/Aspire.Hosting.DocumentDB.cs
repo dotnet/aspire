@@ -20,8 +20,6 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.DocumentDBServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.DocumentDBServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.DocumentDBServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.DocumentDBServerResource> builder, string source, bool isReadOnly = true) { throw null; }
-
     }
 }
 

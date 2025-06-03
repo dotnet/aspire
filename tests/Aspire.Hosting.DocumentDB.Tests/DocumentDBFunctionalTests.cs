@@ -84,7 +84,7 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
             var DocumentDB1 = builder1.AddDocumentDB("DocumentDB", tls: true, allowInsecureTls: true);
             var password = DocumentDB1.Resource.PasswordParameter!.Value;
             var db1 = DocumentDB1.AddDatabase(dbName);
@@ -136,7 +136,7 @@ public class DocumentDBFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var DocumentDB2 = builder2.AddDocumentDB("DocumentDB", password: passwordParameter2, tls: true, allowInsecureTls: true);
