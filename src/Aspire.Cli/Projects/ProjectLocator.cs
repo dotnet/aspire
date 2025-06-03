@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 using Aspire.Cli.Interaction;
@@ -24,7 +25,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         return await interactionService.ShowStatusAsync("Searching", async () =>
         {
-            var appHostProjects = new List<FileInfo>();
+            var appHostProjects = new ConcurrentBag<FileInfo>();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
             {
@@ -62,9 +63,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
             // This sort is done here to make results deterministic since we get all the app
             // host information in parallel and the order may vary.
-            appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
+            var sortedProjects = appHostProjects.ToList();
+            sortedProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
-            return appHostProjects;
+            return sortedProjects;
         });
     }
 
