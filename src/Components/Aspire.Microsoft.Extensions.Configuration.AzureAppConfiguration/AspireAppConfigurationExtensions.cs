@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Aspire.Azure.Common;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -56,7 +56,15 @@ public static class AspireAppConfigurationExtensions
         builder.Configuration.AddAzureAppConfiguration(
             options =>
             {
-                options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
+                string host = settings.Endpoint.Host.ToLowerInvariant();
+                if (host == "localhost" || host == "127.0.0.1") // emulator
+                {
+                    options.Connect($"Endpoint={settings.Endpoint};Id=default;Secret=abcdefghijklmnopqrstuvwxyz1234567890");
+                }
+                else
+                {
+                    options.Connect(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential());
+                }
                 configureOptions?.Invoke(options);
             },
             settings.Optional);

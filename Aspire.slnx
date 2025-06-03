@@ -71,7 +71,7 @@
     <Project Path="src/Aspire.Hosting/Aspire.Hosting.csproj" />
     <Project Path="src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj" />
   </Folder>
-  <Folder Name="/Hosting/Azure/">
+  <Folder Name="/Hosting/Azure/" Id="87aa9a51-c451-96a4-5610-17491238cdd6">
     <Project Path="src/Aspire.Hosting.Azure.AppConfiguration/Aspire.Hosting.Azure.AppConfiguration.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.ApplicationInsights/Aspire.Hosting.Azure.ApplicationInsights.csproj" />
@@ -100,168 +100,172 @@
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureAppService/">
+  <Folder Name="/playground/AzureAppConfiguration/" Id="02ea681e-c7d8-13c7-8484-4ac65e1b71e8">
+    <Project Path="playground/AzureAppConfiguration/AppHost/AppHost.csproj" Id="e4bdd966-f8a6-455d-bcc9-9bb633c4e1e5" />
+    <Project Path="playground/AzureAppConfiguration/WorkerService/WorkerService.csproj" />
+  </Folder>
+  <Folder Name="/playground/AzureAppService/" Id="a5821463-62b2-3e4c-a156-209e242cb5eb">
     <Project Path="playground/AzureAppService/AzureAppService.ApiService/AzureAppService.ApiService.csproj" />
     <Project Path="playground/AzureAppService/AzureAppService.AppHost/AzureAppService.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureContainerApps/">
+  <Folder Name="/playground/AzureContainerApps/" Id="b3aa4b1d-040f-4685-c59b-f5a5f259493f">
     <Project Path="playground/AzureContainerApps/AzureContainerApps.ApiService/AzureContainerApps.ApiService.csproj" />
     <Project Path="playground/AzureContainerApps/AzureContainerApps.AppHost/AzureContainerApps.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureFunctionsEndToEnd/">
+  <Folder Name="/playground/AzureFunctionsEndToEnd/" Id="d36fd186-1f17-eb26-5abe-094647805d74">
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureSearchEndToEnd/">
+  <Folder Name="/playground/AzureSearchEndToEnd/" Id="823bd74b-851c-e4b6-9ca2-8df5be09159a">
     <Project Path="playground/AzureSearchEndToEnd/AzureSearch.ApiService/AzureSearch.ApiService.csproj" />
     <Project Path="playground/AzureSearchEndToEnd/AzureSearch.AppHost/AzureSearch.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureServiceBus/">
+  <Folder Name="/playground/AzureServiceBus/" Id="9a45f86f-1b9b-a19b-5a09-cefe046ef891">
     <Project Path="playground/AzureServiceBus/ServiceBus.AppHost/ServiceBus.AppHost.csproj" />
     <Project Path="playground/AzureServiceBus/ServiceBusWorker/ServiceBusWorker.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureStorageEndToEnd/">
+  <Folder Name="/playground/AzureStorageEndToEnd/" Id="082c4730-f740-e6b6-5e4b-c7d16b4bf69b">
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/bicep/">
+  <Folder Name="/playground/bicep/" Id="ea0fad62-9db2-3080-5974-5c1a8faca7af">
     <Project Path="playground/bicep/BicepSample.ApiService/BicepSample.ApiService.csproj" />
     <Project Path="playground/bicep/BicepSample.AppHost/BicepSample.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/BrowserTelemetry/">
+  <Folder Name="/playground/BrowserTelemetry/" Id="91df0922-94cf-d2ef-5c9a-a13beae931d7">
     <Project Path="playground/BrowserTelemetry/BrowserTelemetry.AppHost/BrowserTelemetry.AppHost.csproj" />
     <Project Path="playground/BrowserTelemetry/BrowserTelemetry.Web/BrowserTelemetry.Web.csproj" />
   </Folder>
-  <Folder Name="/playground/cdk/">
+  <Folder Name="/playground/cdk/" Id="442e6a74-0749-3db6-2c10-3590630fcfee">
     <Project Path="playground/cdk/CdkSample.ApiService/CdkSample.ApiService.csproj" />
     <Project Path="playground/cdk/CdkSample.AppHost/CdkSample.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/CosmosEndToEnd/">
+  <Folder Name="/playground/CosmosEndToEnd/" Id="789eaf53-b54b-7366-6077-ff8289863de4">
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj" />
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/CustomResources/">
+  <Folder Name="/playground/CustomResources/" Id="49f736e5-5790-ad59-a6e6-9a7d93d8f58d">
     <Project Path="playground/CustomResources/CustomResources.AppHost/CustomResources.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/DatabaseMigration/">
+  <Folder Name="/playground/DatabaseMigration/" Id="1f3e64ca-cfa5-9ee0-5dde-2dd60c041e21">
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiService/DatabaseMigration.ApiService.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.MigrationService/DatabaseMigration.MigrationService.csproj" />
   </Folder>
-  <Folder Name="/playground/dockerfile/">
+  <Folder Name="/playground/dockerfile/" Id="9cee9d3a-6d24-9018-67e5-9a2fbe92a9c3">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/EventHubs/">
+  <Folder Name="/playground/EventHubs/" Id="4338a729-0392-4ab8-6f78-314ced7c7752">
     <Project Path="playground/AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsConsumer/EventHubsConsumer.csproj" />
   </Folder>
-  <Folder Name="/playground/HealthChecks/">
+  <Folder Name="/playground/HealthChecks/" Id="639c6796-54da-0be2-14d0-1a4039fbf1d8">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/kafka/">
+  <Folder Name="/playground/kafka/" Id="f3555504-2194-c9b9-5b3c-e8edacc8777c">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />
     <Project Path="playground/kafka/KafkaBasic.AppHost/KafkaBasic.AppHost.csproj" />
     <Project Path="playground/kafka/Producer/Producer.csproj" />
   </Folder>
-  <Folder Name="/playground/keycloak/">
+  <Folder Name="/playground/keycloak/" Id="b9d9ed01-7994-c9c4-7197-2caa37fbf93f">
     <Project Path="playground/keycloak/Keycloak.ApiService/Keycloak.ApiService.csproj" />
     <Project Path="playground/keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
     <Project Path="playground/keycloak/Keycloak.Web/Keycloak.Web.csproj" />
   </Folder>
-  <Folder Name="/playground/milvus/">
+  <Folder Name="/playground/milvus/" Id="a1ecfaac-0e3d-adb3-06e3-edfeb04bc7ea">
     <Project Path="playground/milvus/MilvusPlayground.ApiService/MilvusPlayground.ApiService.csproj" />
     <Project Path="playground/milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/mongo/">
+  <Folder Name="/playground/mongo/" Id="74b80de6-b071-18ef-934c-41b56d5520a3">
     <Project Path="playground/mongo/Mongo.ApiService/Mongo.ApiService.csproj" />
     <Project Path="playground/mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/mysql/">
+  <Folder Name="/playground/mysql/" Id="ce6e56a3-93f9-dc48-09c1-244a37e205c3">
     <Project Path="playground/mysql/MySql.ApiService/MySql.ApiService.csproj" />
     <Project Path="playground/mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/nats/">
+  <Folder Name="/playground/nats/" Id="5b8c9d0a-74ad-0c0c-6dc7-60f1e0eaa9ae">
     <Project Path="playground/nats/Nats.ApiService/Nats.ApiService.csproj" />
     <Project Path="playground/nats/Nats.AppHost/Nats.AppHost.csproj" />
     <Project Path="playground/nats/Nats.Backend/Nats.Backend.csproj" />
     <Project Path="playground/nats/Nats.Common/Nats.Common.csproj" />
   </Folder>
-  <Folder Name="/playground/OpenAIEndToEnd/">
+  <Folder Name="/playground/OpenAIEndToEnd/" Id="d79d6e2b-fd83-eb9b-17df-d4504f8a9874">
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.WebStory/OpenAIEndToEnd.WebStory.csproj" />
   </Folder>
-  <Folder Name="/playground/OracleEndToEnd/">
+  <Folder Name="/playground/OracleEndToEnd/" Id="07f3ca17-d767-317c-c61d-fbf6adf56c4c">
     <Project Path="playground/OracleEndToEnd/OracleEndToEnd.ApiService/OracleEndToEnd.ApiService.csproj" />
     <Project Path="playground/OracleEndToEnd/OracleEndToEnd.AppHost/OracleEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/orleans/">
+  <Folder Name="/playground/orleans/" Id="1567f7d1-f232-6a20-c009-5f8c1048367c">
     <Project Path="playground/orleans/Orleans.AppHost/Orleans.AppHost.csproj" />
     <Project Path="playground/orleans/OrleansClient/OrleansClient.csproj" />
     <Project Path="playground/orleans/OrleansContracts/OrleansContracts.csproj" />
     <Project Path="playground/orleans/OrleansServer/OrleansServer.csproj" />
     <Project Path="playground/orleans/OrleansServiceDefaults/OrleansServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/playground/ParameterEndToEnd/">
+  <Folder Name="/playground/ParameterEndToEnd/" Id="834276ef-ee4f-5080-7356-4b31dc5afbe4">
     <Project Path="playground/ParameterEndToEnd/ParameterEndToEnd.ApiService/ParameterEndToEnd.ApiService.csproj" />
     <Project Path="playground/ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/PostgresEndToEnd/">
+  <Folder Name="/playground/PostgresEndToEnd/" Id="53cf2b4f-8037-564d-2d68-ce16f2c153b5">
     <Project Path="playground/PostgresEndToEnd/PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj" />
     <Project Path="playground/PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/ProxylessEndToEnd/">
+  <Folder Name="/playground/ProxylessEndToEnd/" Id="1644ee16-8e0f-4917-fefb-e3a95cd2a8c4">
     <Project Path="playground/ProxylessEndToEnd/ProxylessEndToEnd.ApiService/ProxylessEndToEnd.ApiService.csproj" />
     <Project Path="playground/ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/publishers/">
+  <Folder Name="/playground/publishers/" Id="5cf1b6d2-57b4-1c4e-4a96-b6f38395070b">
     <Project Path="playground/publishers/Publishers.ApiService/Publishers.ApiService.csproj" />
     <Project Path="playground/publishers/Publishers.AppHost/Publishers.AppHost.csproj" />
     <Project Path="playground/publishers/Publishers.Common/Publishers.Common.csproj" />
     <Project Path="playground/publishers/Publishers.DbSetup/Publishers.DbSetup.csproj" />
     <Project Path="playground/publishers/Publishers.Frontend/Publishers.Frontend.csproj" />
   </Folder>
-  <Folder Name="/playground/python/">
+  <Folder Name="/playground/python/" Id="45673a53-85ce-e353-891d-fe4ca241b87a">
     <Project Path="playground/python/Python.AppHost/Python.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/qdrant/">
+  <Folder Name="/playground/qdrant/" Id="810b3637-90c9-7fa5-4aad-00d6f5268f14">
     <Project Path="playground/Qdrant/Qdrant.ApiService/Qdrant.ApiService.csproj" />
     <Project Path="playground/Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/Redis/">
+  <Folder Name="/playground/Redis/" Id="e17493b4-df71-b563-45a9-2ff6154f2d93">
     <Project Path="playground/Redis/Redis.ApiService/Redis.ApiService.csproj" />
     <Project Path="playground/Redis/Redis.AppHost/Redis.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/seq/">
+  <Folder Name="/playground/seq/" Id="221662a5-bccc-bee2-9bf3-5386e0d5ca6a">
     <Project Path="playground/seq/Seq.ApiService/Seq.ApiService.csproj" />
     <Project Path="playground/seq/Seq.AppHost/Seq.AppHost.csproj" />
     <Project Path="playground/seq/Seq.ServiceDefaults/Seq.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/playground/signalr/">
+  <Folder Name="/playground/signalr/" Id="0aff5cba-4a28-1428-a377-1299c138b1cf">
     <Project Path="playground/signalr/SignalR.AppHost/SignalR.AppHost.csproj" />
     <Project Path="playground/signalr/SignalRServerlessWeb/SignalRServerlessWeb.csproj" />
     <Project Path="playground/signalr/SignalRWeb/SignalRWeb.csproj" />
   </Folder>
-  <Folder Name="/playground/SqlServerEndToEnd/">
+  <Folder Name="/playground/SqlServerEndToEnd/" Id="090d1546-9c7a-62cf-9459-3efc61460d76">
     <Project Path="playground/SqlServerEndToEnd/SqlServerEndToEnd.ApiService/SqlServerEndToEnd.ApiService.csproj" />
     <Project Path="playground/SqlServerEndToEnd/SqlServerEndToEnd.AppHost/SqlServerEndToEnd.AppHost.csproj" />
     <Project Path="playground/SqlServerEndToEnd/SqlServerEndToEnd.Common/SqlServerEndToEnd.Common.csproj" />
     <Project Path="playground/SqlServerEndToEnd/SqlServerEndToEnd.DbSetup/SqlServerEndToEnd.DbSetup.csproj" />
   </Folder>
-  <Folder Name="/playground/SqlServerScript/">
+  <Folder Name="/playground/SqlServerScript/" Id="69ba3f82-86e9-6e76-80c5-cdaef83e31f0">
     <Project Path="playground/SqlServerScript/AppHost1/AppHost1.csproj" />
     <Project Path="playground/SqlServerScript/WebApplication1/WebApplication1.csproj" />
     <Project Path="playground/SqlServerScript/WebApplication2/WebApplication2.csproj" />
   </Folder>
-  <Folder Name="/playground/Stress/">
+  <Folder Name="/playground/Stress/" Id="3f94ed78-485d-d88e-80e3-8e097413370b">
     <Project Path="playground/Stress/Stress.ApiService/Stress.ApiService.csproj" />
     <Project Path="playground/Stress/Stress.AppHost/Stress.AppHost.csproj" />
     <Project Path="playground/Stress/Stress.Empty/Stress.Empty.csproj" />
     <Project Path="playground/Stress/Stress.TelemetryService/Stress.TelemetryService.csproj" />
   </Folder>
-  <Folder Name="/playground/TestShop/">
+  <Folder Name="/playground/TestShop/" Id="cf5ffbea-f861-b368-bc1c-dfb949bd292f">
     <Project Path="playground/TestShop/BasketService/BasketService.csproj" />
     <Project Path="playground/TestShop/CatalogDb/CatalogDb.csproj" />
     <Project Path="playground/TestShop/CatalogModel/CatalogModel.csproj" />
@@ -271,14 +275,14 @@
     <Project Path="playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj" />
     <Project Path="playground/TestShop/TestShop.ServiceDefaults/TestShop.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/playground/waitfor/">
+  <Folder Name="/playground/waitfor/" Id="22125412-4397-c5d3-441c-f7d019f95507">
     <Project Path="playground/waitfor/WaitFor.Frontend/WaitFor.Frontend.csproj" />
     <Project Path="playground/waitfor/WaitForSandbox.ApiService/WaitForSandbox.ApiService.csproj" />
     <Project Path="playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj" />
     <Project Path="playground/waitfor/WaitForSandbox.Common/WaitForSandbox.Common.csproj" />
     <Project Path="playground/waitfor/WaitForSandbox.DbSetup/WaitForSandbox.DbSetup.csproj" />
   </Folder>
-  <Folder Name="/playground/webpubsub/">
+  <Folder Name="/playground/webpubsub/" Id="55e84b0a-3364-93d1-85c7-77b2afbb5b78">
     <Project Path="playground/webpubsub/WebPubSub.AppHost/WebPubSub.AppHost.csproj" />
     <Project Path="playground/webpubsub/WebPubSubWeb/WebPubSubWeb.csproj" />
   </Folder>
@@ -309,10 +313,10 @@
     <Project Path="tests/Aspire.TestUtilities/Aspire.TestUtilities.csproj" />
     <Project Path="tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Cli/">
+  <Folder Name="/tests/Cli/" Id="06d4bc97-dec4-1b2c-91f2-4d1e5c51a584">
     <Project Path="tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Components/">
+  <Folder Name="/tests/Components/" Id="07a47295-3f79-64ee-f7bd-4c8175965b57">
     <Project Path="tests/Aspire.Azure.AI.Inference.Tests/Aspire.Azure.AI.Inference.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Data.Tables.Tests/Aspire.Azure.Data.Tables.Tests.csproj" />
@@ -351,11 +355,11 @@
     <Project Path="tests/Aspire.StackExchange.Redis.OutputCaching.Tests/Aspire.StackExchange.Redis.OutputCaching.Tests.csproj" />
     <Project Path="tests/Aspire.StackExchange.Redis.Tests/Aspire.StackExchange.Redis.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Dashboard/">
+  <Folder Name="/tests/Dashboard/" Id="8ece9238-9bdc-58ce-47d4-9e8bb2f22c9f">
     <Project Path="tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj" />
     <Project Path="tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Hosting/">
+  <Folder Name="/tests/Hosting/" Id="2a5903aa-195d-83fb-6f94-018c32aa5ac8">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
@@ -382,18 +386,18 @@
     <Project Path="tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Yarp.Tests/Aspire.Hosting.Yarp.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/ServiceDiscovery/">
+  <Folder Name="/tests/ServiceDiscovery/" Id="9fd03709-4a03-8b40-50c9-cd242b4c3ccb">
     <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests.csproj" />
     <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Tests/Microsoft.Extensions.ServiceDiscovery.Tests.csproj" />
     <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/TestingAppHost1/">
+  <Folder Name="/tests/TestingAppHost1/" Id="6291a315-2e36-eb29-b3be-db4ee14e0f3f">
     <Project Path="tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj" />
     <Project Path="tests/TestingAppHost1/TestingAppHost1.MyWebApp/TestingAppHost1.MyWebApp.csproj" />
     <Project Path="tests/TestingAppHost1/TestingAppHost1.MyWorker/TestingAppHost1.MyWorker.csproj" />
     <Project Path="tests/TestingAppHost1/TestingAppHost1.ServiceDefaults/TestingAppHost1.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/tests/testproject/">
+  <Folder Name="/tests/testproject/" Id="57357b89-2adf-ae56-f094-b11f7eafd8f9">
     <Project Path="tests/testproject/TestProject.AppHost/TestProject.AppHost.csproj" />
     <Project Path="tests/testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj" />
     <Project Path="tests/testproject/TestProject.ServiceA/TestProject.ServiceA.csproj" />
@@ -403,8 +407,8 @@
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
-    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
+    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />
