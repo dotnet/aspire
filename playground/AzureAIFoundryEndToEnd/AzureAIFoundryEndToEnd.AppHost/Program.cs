@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddAzureAIFoundry("foundry4")
+var chat = builder.AddAzureAIFoundry("foundry")
     // .AddDeployment("chat", "DeepSeek-R1", "1", "DeepSeek");
     .AddDeployment("chat", "Phi-4-mini-instruct", "1", "Microsoft");
 

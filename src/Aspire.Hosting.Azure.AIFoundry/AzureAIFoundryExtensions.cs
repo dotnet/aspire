@@ -60,7 +60,7 @@ public static class AzureAIFoundryExtensions
                 "AI Foundry API");
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = Interpolate($"Endpoint={inferenceEndpoint}models")
+                Value = Interpolate($"Endpoint={inferenceEndpoint}")
             });
 
             var resource = (AzureAIFoundryResource)infrastructure.AspireResource;

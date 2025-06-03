@@ -1,10 +1,6 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalType string
-
-param principalId string
-
 resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: take('foundry${uniqueString(resourceGroup().id)}', 64)
   location: location
@@ -22,33 +18,13 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
 }
 
-resource foundry_f6c7c914_8db3_469d_8ca1_694a8f32e121 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(foundry.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f6c7c914-8db3-469d-8ca1-694a8f32e121'))
-  properties: {
-    principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f6c7c914-8db3-469d-8ca1-694a8f32e121')
-    principalType: principalType
-  }
-  scope: foundry
-}
-
-resource foundry_ea01e6af_a1c1_4350_9563_ad00f8c72ec5 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(foundry.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ea01e6af-a1c1-4350-9563-ad00f8c72ec5'))
-  properties: {
-    principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ea01e6af-a1c1-4350-9563-ad00f8c72ec5')
-    principalType: principalType
-  }
-  scope: foundry
-}
-
 resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'Phi-4'
+  name: 'Phi-4-mini-instruct'
   properties: {
     model: {
-      format: 'OpenAI'
-      name: 'Phi-4'
-      version: '2024-05-13'
+      format: 'Microsoft'
+      name: 'Phi-4-mini-instruct'
+      version: '1'
     }
   }
   sku: {
@@ -58,4 +34,4 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: foundry
 }
 
-output connectionString string = 'Endpoint=${foundry.properties.endpoints['OpenAI Language Model Instance API']}'
+output connectionString string = 'Endpoint=${foundry.properties.endpoints['AI Foundry API']}'

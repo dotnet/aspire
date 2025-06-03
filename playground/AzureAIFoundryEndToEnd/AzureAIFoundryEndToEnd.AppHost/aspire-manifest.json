@@ -4,15 +4,11 @@
     "foundry": {
       "type": "azure.bicep.v0",
       "connectionString": "{foundry.outputs.connectionString}",
-      "path": "foundry.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "foundry.module.bicep"
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{foundry.outputs.connectionString};Deployment=Phi-4"
+      "connectionString": "{foundry.outputs.connectionString};DeploymentId=Phi-4-mini-instruct"
     },
     "webstory": {
       "type": "project.v0",
