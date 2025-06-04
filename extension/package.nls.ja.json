@@ -5,6 +5,13 @@
 	"command.addPackage": "Add Package",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
+	"aspire-vscode.strings.yes": "Yes",
+	"aspire-vscode.strings.no": "No",
+	"aspire-vscode.strings.directUrl": "Direct: {0}",
+	"aspire-vscode.strings.codespacesUrl": "Codespaces: {0}",
+	"aspire-vscode.strings.directLink": "Direct link",
+	"aspire-vscode.strings.codespacesLink": "Codespaces link",
+	"aspire-vscode.strings.openAspireDashboard": "Open Aspire Dashboard",
 	"aspire-vscode.commands.add.selectProjectToAddTo": "Select the Aspire project to add to",
 	"aspire-vscode.commands.add.projectSelectionRequired": "Project selection is required to add a component",
 	"aspire-vscode.commands.add.noAspirePackagesFound": "No Aspire packages found",
@@ -14,5 +21,5 @@
 	"aspire-vscode.commands.run.selectProjectToRun": "Select the Aspire project to run",
 	"aspire-vscode.strings.activated": "Aspire Extension activated.",
 	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on port {0}",
-	"aspire-vscode.rpcserver.addressError": "Failed to get RPC server address"
+	"aspire-vscode.rpcserver.addressError": "Failed to get RPC server address. The extension may not function correctly."
 }

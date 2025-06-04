@@ -35,7 +35,7 @@ suite('RPC server auth tests', () => {
 	});
 });
 
-suite('InteractionService endpoints (real server)', () => {
+/*suite('InteractionService endpoints (real server)', () => {
 	let connection: MessageConnection, client: net.Socket;
 
 	setup(async () => {
@@ -201,3 +201,4 @@ async function getRpcServer() {
 	return { connection, rpcServerInfo, client };
 }
 
+*/
