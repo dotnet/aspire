@@ -51,29 +51,20 @@ import { createBuilder } from "./.modules/distributed-application";
 
 const builder = createBuilder();
 
-// Add frontend and API to orbit
-const frontend = builder.addNpmApp("frontend", "../frontend")
-    .withHttpEndpoint({ env: "PORT", targetPort: 3000 })
-    .withNpmPackageInstallation();
-
-const api = builder.addProject("api", "../api/ApiService")
-    .withHttpEndpoint({ env: "API_URL" });
-
-// Add database services to orbit
-const redis = builder.addRedis("cache");
+// Add database service to orbit
 const postgres = builder.addPostgres("db").addDatabase("appdata");
 
-// Connect services in orbit
-frontend.withReference(api);
-api.withReference(redis);
-api.withReference(postgres);
+// Add API service and reference the database
+const api = builder.addProject("api", "../api/ApiService")
+  .withHttpEndpoint({ env: "API_URL" })
+  .withReference(postgres);
 
-// Add telemetry dashboard
-builder.addProject("dashboard")
-    .withReference(api)
-    .withReference(frontend);
+// Add frontend service and reference the API
+const frontend = builder.addNpmApp("frontend", "../frontend")
+  .withHttpEndpoint({ env: "PORT", targetPort: 3000 })
+  .withNpmPackageInstallation()
+  .withReference(api);
 
-// Launch your services into orbit
 builder.build().run();
 `;
 
@@ -82,27 +73,19 @@ from aspire import create_builder
 
 builder = create_builder()
 
-# Add frontend and API to orbit
-frontend = builder.add_npm_app("frontend", "../frontend") \\
-                  .with_http_endpoint(env="PORT", target_port=3000) \\
-                  .with_npm_package_installation()
-
-api = builder.add_project("api", "../api/api_service.py") \\
-             .with_http_endpoint(env="API_URL")
-
-# Add database services to orbit
-redis = builder.add_redis("cache")
+# Add database service to orbit
 postgres = builder.add_postgres("db").add_database("appdata")
 
-# Connect services in orbit
-frontend.with_reference(api)
-api.with_reference(redis)
-api.with_reference(postgres)
+# Add API service and reference the database
+api = builder.add_project("api", "../api/api_service.py") \\
+       .with_http_endpoint(env="API_URL") \\
+       .with_reference(postgres)
 
-# Add telemetry dashboard
-builder.add_project("dashboard") \\
-      .with_reference(api) \\
-      .with_reference(frontend)
+# Add frontend service and reference the API
+builder.add_npm_app("frontend", "../frontend") \\
+          .with_http_endpoint(env="PORT", target_port=3000) \\
+          .with_npm_package_installation() \\
+          .with_reference(api)
 
 # Launch your services into orbit
 builder.build().run()
@@ -111,29 +94,20 @@ builder.build().run()
 export const cs = `
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add frontend and API to orbit
-var frontend = builder.AddNpmApp("frontend", "../frontend")
-                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
-                      .WithNpmPackageInstallation();
-
-var api = builder.AddProject("api", "../api/ApiService.csproj")
-                 .WithHttpEndpoint(env: "API_URL");
-
-// Add database services to orbit
-var redis = builder.AddRedis("cache");
+// Add database service to orbit
 var postgres = builder.AddPostgres("db").AddDatabase("appdata");
 
-// Connect services in orbit
-frontend.WithReference(api);
-api.WithReference(redis);
-api.WithReference(postgres);
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithHttpEndpoint(env: "API_URL")
+                 .WithReference(postgres);
 
-// Add telemetry dashboard
-builder.AddProject("dashboard")
-       .WithReference(api)
-       .WithReference(frontend);
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .WithReference(api);
 
-// Launch your services into orbit
 builder.Build().Run();
 `;
 
@@ -157,7 +131,7 @@ builder.Build().Run();
   <Card title="Local Development" icon="laptop">
     
 	- Runs Redis, Postgres, etc. with your local container runtime
-	- Dashboard available on localhost
+	- Dashboard available on `localhost`
 	- Uses dev secrets, volumes, dev-time config
 	
   </Card>

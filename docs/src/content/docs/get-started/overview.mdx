@@ -7,19 +7,15 @@ lastUpdated: true
 import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 import { Kbd } from 'starlight-kbd/components'
 
-Aspire streamlines building, running, and debugging distributed apps. Picture your app as a set of services, databases, and frontends—all working together seamlessly.
+Aspire streamlines building, running, and debugging distributed apps. Picture your app as a set of services, databases, and frontends—all working together seamlessly. With Aspire, you get a unified toolchain that eliminates complex configs and makes local debugging effortless. Instantly launch and debug your entire app with a single <Kbd windows='F5' />. Ready to deploy? Aspire lets you publish anywhere—Kubernetes, the cloud, or your own servers. It's also fully extensible, so you can integrate your favorite tools and services with ease.
 
-With Aspire, you get a unified toolchain that eliminates complex configs and makes local debugging effortless. Instantly launch and debug your entire app with a single <Kbd windows='F5' />.
+## The AppHost
 
-Ready to deploy? Aspire lets you publish anywhere—Kubernetes, the cloud, or your own servers. It's also fully extensible, so you can integrate your favorite tools and services with ease.
-
-## Aspire's App Host
-
-Aspire's **App Host** lets you define your app's services and dependencies in code—no complex configs required. Easily map out your architecture and let Aspire handle the local orchestration, so you can focus on building features.
+Aspire's **AppHost** lets you define your app's services and dependencies in code—no complex configs required. Easily map out your architecture and let Aspire handle the local orchestration, so you can focus on building features.
 
 ## Modeled as Resources
 
-Aspire makes it easy to define everything your app needs—frontends, APIs, databases, and more—using a unified **App Host** model. Just describe your resources in code, and Aspire handles the connections for you. Resources can include:
+Aspire makes it easy to define everything your app needs—frontends, APIs, databases, and more—using a unified **AppHost** model. Just describe your resources in code, and Aspire handles the connections for you. Resources can include:
 
 - AI Services
 - Caches
@@ -35,4 +31,4 @@ One resource can depend on another, and Aspire automatically wires them together
 
 ## Reusable Composition
 
-When you compose your distributed app in Aspire's **App Host**, you're not just defining services for local development and orchestration—you're also setting up the foundation for deployment. The same composition you use to run and debug locally is leveraged when you publish your app, ensuring consistency from development through to production. Likewise, Aspire doesn't get in the way of your existing deployment workflows.
+When you compose your distributed app in Aspire's **AppHost**, you're not just defining services for local development and orchestration—you're also setting up the foundation for deployment. The same composition you use to run and debug locally is leveraged when you publish your app, ensuring consistency from development through to production. Likewise, Aspire doesn't get in the way of your existing deployment workflows.
