@@ -440,6 +440,10 @@ public static class AzureCosmosExtensions
             (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                Capabilities =
+                {
+                    new CosmosDBAccountCapability { Name = CosmosConstants.EnableServerlessCapability }
+                },
                 ConsistencyPolicy = new ConsistencyPolicy()
                 {
                     DefaultConsistencyLevel = DefaultConsistencyLevel.Session
