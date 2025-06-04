@@ -3,8 +3,10 @@ import * as net from 'net';
 import waitForExpect from 'wait-for-expect';
 import * as vscode from 'vscode';
 
-import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
+import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
+import { getAndActivateExtension } from '../common';
+import { RpcServerInformation } from '../../server/rpcServer';
 
 suite('End-to-end RPC server auth tests', () => {
 	vscode.window.showInformationMessage('Starting end-to-end rpc server tests.');
