@@ -108,21 +108,34 @@ public static class AzureCosmosExtensions
                 throw new InvalidOperationException("CosmosClient is not initialized.");
             }
 
-            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
-
-            foreach (var database in builder.Resource.Databases)
+            var databasesCreated = false;
+            while (!databasesCreated && !ct.IsCancellationRequested)
             {
-                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
-
-                foreach (var container in database.Containers)
+                try
                 {
-                    var containerProperties = new ContainerProperties
+                    await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+        
+                    foreach (var database in builder.Resource.Databases)
                     {
-                        Id = container.ContainerName,
-                        PartitionKeyPaths = container.PartitionKeyPaths
-                    };
-
-                    await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
+                        var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
+        
+                        foreach (var container in database.Containers)
+                        {
+                            var containerProperties = new ContainerProperties
+                            {
+                                Id = container.ContainerName,
+                                PartitionKeyPaths = container.PartitionKeyPaths
+                            };
+        
+                            await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
+                        }
+                    }
+    
+                    databasesCreated = true;
+                }
+                catch (CosmosException)
+                {
+                    await Task.Delay(500, cancellationToken: ct).ConfigureAwait(false);
                 }
             }
         });
