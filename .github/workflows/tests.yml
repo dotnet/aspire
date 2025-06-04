@@ -260,7 +260,7 @@ jobs:
           --combined
 
       - name: Fail if any dependency failed
-        if: ${{ always() && contains(needs.*.result, 'failure') }}" = "true" }}
+        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1
