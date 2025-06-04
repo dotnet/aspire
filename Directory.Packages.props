@@ -146,7 +146,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.2" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Azure.Core" Version="1.46.0" />
+    <PackageVersion Include="Azure.Core" Version="1.46.1" />
     <PackageVersion Include="Azure.Identity" Version="1.13.2" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
