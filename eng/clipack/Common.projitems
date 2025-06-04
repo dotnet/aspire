@@ -1,61 +1,44 @@
 <Project>
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
+  <Import Project="$(SharedDir)Workload.targets" />
+
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <!-- <IsPackable>true</IsPackable> -->
-    <!-- Unset PackageType as that is being set by Workload.targets to DotnetPlatform, which this package no longer is. -->
-    <!-- <PackageType /> -->
-    <!-- <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking> -->
-    <!-- <GeneratePackageOnBuild>true</GeneratePackageOnBuild> -->
-    <!-- <IncludeBuildOutput>false</IncludeBuildOutput> -->
-    <!-- <EnableDefaultNoneItems>false</EnableDefaultNoneItems> -->
-    <!-- <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath> -->
-    <!-- <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageFiles</TargetsForTfmSpecificContentInPackage> -->
+
+    <_PublishOutputPath>$(DotNetOutputPath)Aspire.Cli/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish</_PublishOutputPath>
+    <!-- <CliPlatform Condition=" '$(CliPlatform)' == '' ">$([System.String]::Copy('$(CliRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</CliPlatform> -->
   </PropertyGroup>
-
-  <PropertyGroup>
-    <CliPlatform Condition=" '$(CliPlatform)' == '' ">$([System.String]::Copy('$(CliRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</CliPlatform>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- <PackageId>Aspire.Hosting.Orchestration.$(CliRuntime)</PackageId> -->
-    <Description>Command line tool for Aspire developers.</Description>
-  </PropertyGroup>
-
-  <!-- <ItemGroup>
-    <TextReplacementValue Include="PlatformRuntime" NewValue="$(CliRuntime)" />
-    <TextReplacementValue Include="PackageName" NewValue="$(AssemblyName)" />
-  </ItemGroup> -->
-
-   <ItemGroup>
-    <!-- <None Include="**/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" /> -->
-   </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 
   <Target Name="Build" />
 
   <Target Name="BeforeBuild" BeforeTargets="Build">
-    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish"
-      Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(CliRuntime);PlatformName=$(CliRuntime)" />
-
-    <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
     <ItemGroup>
-      <_PublishItems
-        Include="$(DotNetOutputPath)Aspire.Cli/$(CliRuntime)/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish/**/*" />
-      <None Include="@(_PublishItems)" />
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="TargetFramework=$(TargetFramework)" />
+      <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
+      <AdditionalProperties Include="PublishSingleFile=true" />
+      <AdditionalProperties Include="SelfContained=true" />
+      <!-- <AdditionalProperties Include="GenerateDocumenationFile=false" /> -->
     </ItemGroup>
 
-    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
-    <ZipDirectory
-      SourceDirectory="$(DotNetOutputPath)Aspire.Cli/$(CliRuntime)/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish"
-      DestinationFile="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)/aspire-Cli-$(CliRuntime).zip"
-      Overwrite="true" />
+    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
+
+    <ItemGroup>
+      <_PublishItems Include="$(_PublishOutputPath)/**/*" />
+    </ItemGroup>
 
     <!-- Throw an error if _PublishItems is empty. -->
     <Error Condition="'@(_PublishItems)' == ''"
-      Text="No files were found to pack. Ensure that the project being packed has a publish target defined." />
+      Text="No files were found to pack. Ensure that the project $(MSBuildProjectFullPath) has a publish target defined." />
+
+    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
+    <ZipDirectory
+      SourceDirectory="$(_PublishOutputPath)"
+      DestinationFile="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)/aspire-Cli-$(CliRuntime).zip"
+      Overwrite="true" />
   </Target>
 
 </Project>
