@@ -10,6 +10,7 @@ import { IOutputChannelWriter } from '../utils/vsc';
 
 export type RpcServerInformation = {
     port: number;
+    fullAddress: string;
     token: string;
     server: net.Server;
     dispose: () => void;
@@ -45,13 +46,15 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
 
         // Listen on a random available port
         rpcServer.listen(0, () => {
-            const address = rpcServer?.address();
-            if (typeof address === 'object' && address?.port) {
-                outputChannelWriter.appendLine(rpcServerListening(address.port));
+            const addressInfo = rpcServer?.address();
+            if (typeof addressInfo === 'object' && addressInfo?.port) {
+                outputChannelWriter.appendLine(rpcServerListening(addressInfo.port));
+                const fullAddress = `http://localhost:${addressInfo.port}`;
                 resolve({
-                    port: address.port,
+                    port: addressInfo.port,
                     token,
                     server: rpcServer,
+                    fullAddress: fullAddress,
                     dispose: () => disposeRpcServer(rpcServer)
                 });
             }
