@@ -10,7 +10,7 @@ import { InteractionService } from './server/interactionService';
 
 let rpcServerInfo: RpcServerInformation | undefined;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.addPackage', () => tryExecuteCommand(addCommand));
 
@@ -18,13 +18,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscOutputChannelWriter.appendLine(activated);
 
-	setupRpcServer(
+	rpcServerInfo = await setupRpcServer(
 		connection => new InteractionService(vscOutputChannelWriter),
 		(connection, token) => new RpcClient(connection, token),
 		vscOutputChannelWriter
-	).then(info => {
-		rpcServerInfo = info;
-	});
+	);
 
 	// Return exported API for tests or other extensions
 	return {
