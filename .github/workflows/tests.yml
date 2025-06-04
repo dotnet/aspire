@@ -178,7 +178,7 @@ jobs:
       requiresTestSdk: true
 
   endtoend_tests:
-    name: EndToEnd ${{ matrix.os }}
+    name: EndToEnd Linux
     uses: ./.github/workflows/run-tests.yml
     needs: build_packages
     with:
@@ -213,11 +213,21 @@ jobs:
         with:
           name: aspire-extension
           path: extension/out/aspire-extension.vsix
+
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests, extension_tests_win ]
+    needs: [
+      endtoend_tests,
+      extension_tests_win,
+      integrations_test_lin,
+      integrations_test_macos,
+      integrations_test_win,
+      templates_test_lin,
+      templates_test_macos,
+      templates_test_win
+    ]
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
