@@ -1,0 +1,121 @@
+---
+import { Icon, Badge } from "@astrojs/starlight/components";
+
+// Helper to abbreviate download counts
+function formatDownloads(n?: number) {
+    if (!n) return "0";
+    if (n >= 1_000_000_000)
+        return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+    if (n >= 1_000_000)
+        return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return n.toString();
+}
+
+const { pkg } = Astro.props;
+---
+
+<article class="card">
+    <div class="card-header">
+        {pkg.icon && <img class="icon" src={pkg.icon} alt={`Icon for ${pkg.title} integration`} loading="lazy" />}
+        <span class="title" set:html={pkg.title} />
+    </div>
+    <div class="body">
+        <div class="desc">{pkg.description}</div>
+        {
+            (pkg.tags?.length ?? 0) > 0 && (
+                <ul class="badges">
+                    {pkg.tags!.map((tag: string) => (
+                        <Badge text={tag} size="small" />
+                    ))}
+                </ul>
+            )
+        }
+        <div class="flex">
+            <div class="downloads">
+                <Icon name="download" size="2rem" />
+                <span class="count">{formatDownloads(pkg.downloads)}</span>
+            </div>
+            <div>Version: {pkg.version}</div>
+            <div>
+                <a href={pkg.href} target="_blank" rel="noopener noreferrer" class="link">
+                    Package
+                    <Icon name="right-arrow" size="2rem" />
+                    <span class="sr-only">Visit {pkg.title} package</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</article>
+
+<style>
+    .card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        box-shadow: var(--sl-shadow-sm);
+        background-color: var(--sl-color-white);
+    }
+    .card .flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .card .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 0.5em;
+    }
+    .card .icon {
+        height: 2.5rem !important;
+        width: 2.5rem !important;
+        object-fit: contain;
+        background: var(--sl-color-gray-5);
+        border-radius: 0.25rem;
+        padding: 0.2em;
+        margin: 0;
+    }
+    .card .title {
+        font-size: 1.2em;
+        font-weight: 600;
+        padding-bottom: 0;
+        margin: 0;
+        align-items: center;
+        display: flex;
+        color: var(--sl-color-text-accent);
+    }
+    .card .body {
+        min-height: 4em;
+    }
+    .card .desc {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 4.5em;
+        line-height: 1.5em;
+        margin-bottom: 0.5em;
+        color: var(--sl-color-gray-2);
+    }
+    .card .downloads {
+        display: flex;
+        align-items: center;
+        color: var(--sl-color-gray-3);
+        align-self: flex-end;
+    }
+    .card .downloads .count {
+        margin-left: 0.5em;
+    }
+    .card .link {
+        display: flex;
+        align-items: center;
+        align-self: flex-end;
+    }
+    .card .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3em;
+    }
+</style>

@@ -1,0 +1,59 @@
+---
+import { CardGrid } from "@astrojs/starlight/components";
+import IntegrationCard from "./IntegrationCard.astro";
+
+interface Props {
+    integrations: Integrations;
+}
+
+const { integrations } = Astro.props;
+
+interface Integration {
+    title: string;
+    href: string;
+    icon: string;
+    description: string;
+    downloads?: number;
+    version?: string;
+    tags?: string[];
+}
+
+type Integrations = Integration[];
+
+// Group integrations by tag
+const hostingIntegrations = integrations
+    .filter(
+        (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
+    )
+    .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+
+const clientIntegrations = integrations
+    .filter((pkg) => pkg.tags?.includes("client"))
+    .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+---
+
+{
+    hostingIntegrations.length > 0 && (
+        <section>
+            <h2>Hosting Integrations</h2>
+            <CardGrid>
+                {hostingIntegrations.map((pkg) => (
+                    <IntegrationCard pkg={pkg} />
+                ))}
+            </CardGrid>
+        </section>
+    )
+}
+
+{
+    clientIntegrations.length > 0 && (
+        <section>
+            <h2>Client Integrations</h2>
+            <CardGrid>
+                {clientIntegrations.map((pkg) => (
+                    <IntegrationCard pkg={pkg} />
+                ))}
+            </CardGrid>
+        </section>
+    )
+}

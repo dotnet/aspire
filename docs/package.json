@@ -7,7 +7,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "update-integrations": "node ./scripts/update-integrations.js"
   },
   "dependencies": {
     "@astro-community/astro-embed-youtube": "^0.5.6",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "astro-embed": "^0.9.0",
-    "astro-vtbot": "^2.1.3"
+    "astro-vtbot": "^2.1.3",
+    "node-fetch": "^3.3.2"
   }
 }

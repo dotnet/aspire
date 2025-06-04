@@ -22,6 +22,7 @@ hero:
       variant: secondary
 ---
 
+import LoopingVideo from '../../components/LoopingVideo.astro';
 import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astrojs/starlight/components';
 
 ## Why developers love Aspire
@@ -174,9 +175,9 @@ builder.Build().Run();
 
 Get deep insights into your app while you build it.
 
-<video autoplay loop muted>
-  <source src="https://github.com/IEvangelist/aspire/raw/refs/heads/docs/docs/src/assets/dashboard-graph.mp4" type="video/mp4" />
-</video>
+<LoopingVideo sources={[
+  { src: "https://github.com/IEvangelist/aspire/raw/refs/heads/docs/docs/src/assets/dashboard-graph.mp4", type: "video/mp4" }
+]} />
 
 ## Ready for liftoff?
 

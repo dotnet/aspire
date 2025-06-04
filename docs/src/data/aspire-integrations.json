@@ -1,0 +1,1135 @@
+[
+  {
+    "title": "Aspire.Hosting",
+    "description": "Core abstractions for the .NET Aspire application model.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting",
+    "tags": [
+      "aspire",
+      "hosting"
+    ],
+    "downloads": 3812501,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.StackExchange.Redis",
+    "description": "A generic Redis® client that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.stackexchange.redis/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.StackExchange.Redis",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "cache",
+      "caching",
+      "redis"
+    ],
+    "downloads": 977271,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL",
+    "description": "A PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.npgsql.entityframeworkcore.postgresql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "postgressql",
+      "postgres",
+      "npgsql",
+      "sql"
+    ],
+    "downloads": 878585,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure",
+    "description": "Azure resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure",
+    "tags": [
+      "aspire",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 928249,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Microsoft.EntityFrameworkCore.SqlServer",
+    "description": "A Microsoft SQL Server provider for Entity Framework Core that integrates with Aspire, including connection pooling, health check, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.microsoft.entityframeworkcore.sqlserver/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Microsoft.EntityFrameworkCore.SqlServer",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "sqlserver",
+      "sql"
+    ],
+    "downloads": 863274,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Testing",
+    "description": "Testing support for the .NET Aspire application model.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.testing/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Testing",
+    "tags": [
+      "aspire",
+      "testing"
+    ],
+    "downloads": 796039,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Redis",
+    "description": "Redis® support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.redis/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Redis",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "redis"
+    ],
+    "downloads": 789452,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.SqlServer",
+    "description": "Microsoft SQL Server support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.sqlserver/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.SqlServer",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "sqlserver",
+      "sql"
+    ],
+    "downloads": 725253,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.NodeJs",
+    "description": "Node.js support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.nodejs/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.NodeJs",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "Node",
+      "Nodejs"
+    ],
+    "downloads": 692066,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.PostgreSQL",
+    "description": "PostgreSQL® support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.postgresql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.PostgreSQL",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "postgresql",
+      "postgres",
+      "npgsql",
+      "sql"
+    ],
+    "downloads": 683316,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.Storage",
+    "description": "Azure Storage resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.storage/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Storage",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 527404,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Storage.Blobs",
+    "description": "A client for Azure Blob Storage that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.storage.blobs/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Storage.Blobs",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "storage",
+      "blobs",
+      "blob"
+    ],
+    "downloads": 536576,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.StackExchange.Redis.DistributedCaching",
+    "description": "A Redis® implementation for IDistributedCache that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.stackexchange.redis.distributedcaching/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.StackExchange.Redis.DistributedCaching",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "cache",
+      "caching",
+      "distributedcaching",
+      "distributedcache",
+      "redis"
+    ],
+    "downloads": 435413,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.RabbitMQ",
+    "description": "RabbitMQ support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.rabbitmq/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.RabbitMQ",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "rabbitmq"
+    ],
+    "downloads": 398177,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Npgsql",
+    "description": "A PostgreSQL® client that integrates with Aspire, including health checks, metrics, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.npgsql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Npgsql",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "postgresql",
+      "postgres",
+      "npgsql",
+      "sql"
+    ],
+    "downloads": 366686,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.RabbitMQ.Client",
+    "description": "A RabbitMQ client that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.rabbitmq.client/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.RabbitMQ.Client",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "rabbitmq",
+      "amqp"
+    ],
+    "downloads": 288698,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Messaging.ServiceBus",
+    "description": "A client for Azure Service Bus that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.messaging.servicebus/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Messaging.ServiceBus",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "servicebus",
+      "amqp"
+    ],
+    "downloads": 227222,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.StackExchange.Redis.OutputCaching",
+    "description": "A Redis® implementation for ASP.NET Core Output Caching that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.stackexchange.redis.outputcaching/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.StackExchange.Redis.OutputCaching",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "cache",
+      "caching",
+      "aspnetcore",
+      "outputcaching",
+      "outputcache",
+      "redis"
+    ],
+    "downloads": 235734,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Security.KeyVault",
+    "description": "A client for Azure Key Vault that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.security.keyvault/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Security.KeyVault",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "keyvault",
+      "secrets"
+    ],
+    "downloads": 220355,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.CognitiveServices",
+    "description": "Azure OpenAI resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.cognitiveservices/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.CognitiveServices",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure",
+      "openai",
+      "ai",
+      "cognitiveservices",
+      "cognitive",
+      "services"
+    ],
+    "downloads": 187976,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Microsoft.Azure.Cosmos",
+    "description": "A client for Azure Cosmos DB that integrates with Aspire, including logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.microsoft.azure.cosmos/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Microsoft.Azure.Cosmos",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "cosmos",
+      "cosmosdb",
+      "data",
+      "database",
+      "db"
+    ],
+    "downloads": 168132,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.KeyVault",
+    "description": "Azure resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.keyvault/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.KeyVault",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 172705,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Data.Tables",
+    "description": "A client for Azure Table Storage that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.data.tables/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Data.Tables",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "tables",
+      "table"
+    ],
+    "downloads": 149271,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.ApplicationInsights",
+    "description": "Azure Application Insights resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.applicationinsights/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.ApplicationInsights",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 150521,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.OperationalInsights",
+    "description": "Azure Log Analytics resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.operationalinsights/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.OperationalInsights",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 151959,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.CosmosDB",
+    "description": "Azure Cosmos DB resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.cosmosdb/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.CosmosDB",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 139104,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Storage.Queues",
+    "description": "A client for Azure Queue Storage that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.storage.queues/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Storage.Queues",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "storage",
+      "queue",
+      "queues"
+    ],
+    "downloads": 148255,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Microsoft.Data.SqlClient",
+    "description": "A Microsoft SQL Server client that integrates with Aspire, including health checks, metrics and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.microsoft.data.sqlclient/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Microsoft.Data.SqlClient",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "sqlserver",
+      "sql"
+    ],
+    "downloads": 144870,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.ServiceBus",
+    "description": "Azure Service Bus resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.servicebus/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.ServiceBus",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure",
+      "servicebus"
+    ],
+    "downloads": 125286,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.MongoDB",
+    "description": "MongoDB support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.mongodb/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.MongoDB",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "MongoDB"
+    ],
+    "downloads": 114350,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.MongoDB.Driver",
+    "description": "A generic MongoDB client that integrates with Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.mongodb.driver/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.MongoDB.Driver",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "MongoDB"
+    ],
+    "downloads": 108337,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Confluent.Kafka",
+    "description": "Confluent.Kafka based Kafka generic consumer and producer that integrates with Aspire, including healthchecks and metrics.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.confluent.kafka/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Confluent.Kafka",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "kafka"
+    ],
+    "downloads": 110430,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Orleans",
+    "description": "Orleans support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.orleans/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Orleans",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "orleans"
+    ],
+    "downloads": 107120,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.Sql",
+    "description": "Azure SQL Database resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.sql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Sql",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 99155,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Seq",
+    "description": "A Seq client that connects an Aspire project's telemetry to Seq.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.seq/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Seq",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "Seq"
+    ],
+    "downloads": 101482,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Kafka",
+    "description": "Kafka support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.kafka/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Kafka",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "kafka"
+    ],
+    "downloads": 97055,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.AWS",
+    "description": "Add support for provisioning AWS application resources and configuring the AWS SDK for .NET.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.aws/9.2.2/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.AWS",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "aws"
+    ],
+    "downloads": 73696,
+    "version": "9.2.2"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.PostgreSQL",
+    "description": "Azure PostgreSql Flexible Server resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.postgresql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.PostgreSQL",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 70320,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.Redis",
+    "description": "Azure Redis resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.redis/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Redis",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 70961,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Messaging.EventHubs",
+    "description": "A client for Azure Event Hubs that integrates with Aspire, including logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.messaging.eventhubs/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Messaging.EventHubs",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "eventhubs",
+      "amqp"
+    ],
+    "downloads": 59114,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.AppContainers",
+    "description": "Azure container apps resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.appcontainers/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.AppContainers",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 56601,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.MySql",
+    "description": "MySQL support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.mysql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.MySql",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "MySQL"
+    ],
+    "downloads": 54714,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.AppConfiguration",
+    "description": "Azure AppConfiguration resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.appconfiguration/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.AppConfiguration",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 54436,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Search.Documents",
+    "description": "A client for Azure AI Search that integrates with Aspire, including logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.search.documents/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Search.Documents",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "search"
+    ],
+    "downloads": 53541,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Microsoft.EntityFrameworkCore.Cosmos",
+    "description": "A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.microsoft.entityframeworkcore.cosmos/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Microsoft.EntityFrameworkCore.Cosmos",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "azure",
+      "cosmos",
+      "cosmosdb"
+    ],
+    "downloads": 49384,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Python",
+    "description": "Python support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.python/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Python",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "python"
+    ],
+    "downloads": 46243,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.Search",
+    "description": "Azure AI Search resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.search/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Search",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 45852,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Seq",
+    "description": "Seq support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.seq/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Seq",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "Seq"
+    ],
+    "downloads": 44190,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Qdrant",
+    "description": "Qdrant vector database support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.qdrant/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Qdrant",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "qdrant"
+    ],
+    "downloads": 34868,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.MySqlConnector",
+    "description": "A MySQL client that integrates with Aspire, including health checks, metrics, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.mysqlconnector/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.MySqlConnector",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "mysqlconnector",
+      "mysql",
+      "sql"
+    ],
+    "downloads": 32620,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.EventHubs",
+    "description": "Azure Event Hubs resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.eventhubs/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.EventHubs",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure",
+      "eventhubs"
+    ],
+    "downloads": 35345,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Pomelo.EntityFrameworkCore.MySql",
+    "description": "A MySQL provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.pomelo.entityframeworkcore.mysql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Pomelo.EntityFrameworkCore.MySql",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "pomelo",
+      "mysql",
+      "sql"
+    ],
+    "downloads": 34434,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Oracle.EntityFrameworkCore",
+    "description": "An Oracle Database provider for Entity Framework Core that integrates with Aspire, including connection pooling, health check, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.oracle.entityframeworkcore/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Oracle.EntityFrameworkCore",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "oracle",
+      "sql"
+    ],
+    "downloads": 31037,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Valkey",
+    "description": "Valkey® support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.valkey/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Valkey",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "valkey"
+    ],
+    "downloads": 26567,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.SignalR",
+    "description": "Azure SignalR resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.signalr/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.SignalR",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 27333,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.RabbitMQ.Client.v7",
+    "description": "A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.rabbitmq.client.v7/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.RabbitMQ.Client.v7",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "rabbitmq",
+      "amqp"
+    ],
+    "downloads": 19291,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Garnet",
+    "description": "Garnet® support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.garnet/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Garnet",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "garnet"
+    ],
+    "downloads": 20085,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Qdrant.Client",
+    "description": "A Qdrant client that integrates with Aspire, including logging.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.qdrant.client/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Qdrant.Client",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "qdrant"
+    ],
+    "downloads": 18411,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.NATS.Net",
+    "description": "A NATS client that integrates with Aspire, including health checks and logging.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.nats.net/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.NATS.Net",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "nats",
+      "messaging"
+    ],
+    "downloads": 17706,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Messaging.WebPubSub",
+    "description": "A service client for Azure Web PubSub that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.messaging.webpubsub/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Messaging.WebPubSub",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "webpubsub",
+      "websocket",
+      "pubsub"
+    ],
+    "downloads": 12112,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Nats",
+    "description": "NATS support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.nats/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Nats",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "NATS"
+    ],
+    "downloads": 12244,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Oracle",
+    "description": "Oracle Database support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.oracle/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Oracle",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "oracle",
+      "sql"
+    ],
+    "downloads": 10457,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.MongoDB.Driver.v3",
+    "description": "A generic MongoDB client that integrates with Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.mongodb.driver.v3/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.MongoDB.Driver.v3",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "MongoDB"
+    ],
+    "downloads": 9868,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.WebPubSub",
+    "description": "Azure WebPubSub resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.webpubsub/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.WebPubSub",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure",
+      "webpubsub",
+      "pubsub",
+      "websocket"
+    ],
+    "downloads": 8213,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL",
+    "description": "An Azure Database for PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.npgsql.entityframeworkcore.postgresql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "ef",
+      "efcore",
+      "entityframework",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "o/rm",
+      "postgresql",
+      "postgres",
+      "npgsql",
+      "sql"
+    ],
+    "downloads": 4725,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Azure.Npgsql",
+    "description": "A client for Azure Database for PostgreSQL® that integrates with Aspire, including health checks, logging and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.azure.npgsql/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Azure.Npgsql",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "azure",
+      "postgresql",
+      "postgres",
+      "npgsql",
+      "sql"
+    ],
+    "downloads": 3989,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Milvus",
+    "description": "Milvus vector database support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.milvus/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Milvus",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "milvus",
+      "database",
+      "vector",
+      "search"
+    ],
+    "downloads": 2730,
+    "version": "9.3.0"
+  }
+]
