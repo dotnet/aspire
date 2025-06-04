@@ -177,6 +177,7 @@ suite('RPC server auth tests', () => {
         stub.restore();
     });
 });
+*/
 
 async function getRpcServer() {
 	const extension = await getAndActivateExtension();
@@ -200,5 +201,3 @@ async function getRpcServer() {
 	connection.listen();
 	return { connection, rpcServerInfo, client };
 }
-
-*/
