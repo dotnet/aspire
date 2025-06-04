@@ -6,7 +6,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <AzureProvisiongVersion>1.0.0</AzureProvisiongVersion>
+    <AzureProvisionVersion>1.0.0</AzureProvisionVersion>
     <!-- The Npgsql version used when using Npgsql EF Core on net8. The major versions need to match between Npgsql and EF Core. -->
     <Npgsql8Version>8.0.6</Npgsql8Version>
   </PropertyGroup>
@@ -32,25 +32,25 @@
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.11.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.2.0" />
     <!-- Azure Management SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.AppContainers" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.AppService" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.ContainerRegistry" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.Redis" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.Search" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.SignalR" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.Sql" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.Storage" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.WebPubSub" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning" Version="1.0.1" />
+    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.AppContainers" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.AppService" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ContainerRegistry" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Redis" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Search" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.SignalR" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Sql" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Storage" Version="$(AzureProvisionVersion)" />
+    <PackageVersion Include="Azure.Provisioning.WebPubSub" Version="$(AzureProvisionVersion)" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.4" />
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.3.2" />
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.9.1" />
