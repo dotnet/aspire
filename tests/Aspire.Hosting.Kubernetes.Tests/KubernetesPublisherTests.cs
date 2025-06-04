@@ -97,11 +97,8 @@ public class KubernetesPublisherTests()
 
         // Assert
         var deploymentPath = Path.Combine(tempDir.Path, "templates/service/deployment.yaml");
-        Assert.True(File.Exists(deploymentPath));
 
-        var content = await File.ReadAllTextAsync(deploymentPath);
-
-        await Verify(content, "yaml");
+        await VerifyFile(deploymentPath);
     }
 
     private sealed class TestProject : IProjectMetadata
