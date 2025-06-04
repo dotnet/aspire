@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Aspire.Cli.Configuration;
 using Xunit;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -34,6 +35,8 @@ internal static class CliTestHelper
 
         services.AddMemoryCache();
 
+        services.AddSingleton<IConfigurationService, ConfigurationService>();
+
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractionServiceFactory);
@@ -49,6 +52,7 @@ internal static class CliTestHelper
         services.AddTransient<RunCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<PublishCommand>();
+        services.AddTransient<ConfigCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;

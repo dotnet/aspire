@@ -16,6 +16,7 @@ using Spectre.Console;
 using Microsoft.Extensions.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 #if DEBUG
@@ -123,6 +124,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
+        builder.Services.AddSingleton<IConfigurationService, ConfigurationService>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -139,6 +141,7 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
+        builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
