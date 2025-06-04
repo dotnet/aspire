@@ -86,7 +86,8 @@ export default defineConfig({
 				/* TODO: decide which themes we want
 				   https://expressive-code.com/guides/themes/#using-bundled-themes
 				*/
-				themes: ['dark-plus', 'light-plus'],
+				//themes: ['dark-plus', 'light-plus'],
+				themes: ['houston', 'slack-ochin'],
 				styleOverrides: { borderRadius: '0.5rem', codeFontSize: '1rem' },
 			},
 			sidebar: [
