@@ -2031,4 +2031,47 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceNetworkAnnotation"/> to the resource annotations to attach the resource to a network.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="network">A network the resource is attached to.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithNetwork</c> method is used to attach the resource to the specified network.
+    /// </para>
+    /// <example>
+    /// This example shows attaching resource's to networks.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var frontend = builder.AddNetwork("frontend");
+    /// var backend = builder.AddNetwork("backend");
+    ///
+    /// var database = builder
+    ///     .AddContainer("database", "test-database")
+    ///     .WithNetwork(backend);
+    /// 
+    /// var webapi = builder
+    ///     .AddProject&lt;Projects.WebApi&gt;("webapi")
+    ///     .WithNetwork(frontend)
+    ///     .WithNetwork(backend)
+    ///     .WithReference(database);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithNetwork<T>(
+        this IResourceBuilder<T> builder,
+        NetworkResource network) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(network);
+        
+        return builder.WithAnnotation(new ResourceNetworkAnnotation(network));
+    }
 }
