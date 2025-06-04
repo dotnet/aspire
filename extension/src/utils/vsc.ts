@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { errorMessage } from '../constants/strings';
 
-export const outputChannel = vscode.window.createOutputChannel('Aspire Extension');
+const outputChannel = vscode.window.createOutputChannel('Aspire Extension');
 
 export async function tryExecuteCommand(command: () => Promise<void>): Promise<void> {
     try {
@@ -9,5 +9,26 @@ export async function tryExecuteCommand(command: () => Promise<void>): Promise<v
     }
     catch (error) {
         vscode.window.showErrorMessage(errorMessage(error));
+    }
+}
+
+export interface IOutputChannelWriter {
+    appendLine(message: string): void;
+    append(message: string): void;
+}
+
+export class VSCOutputChannelWriter implements IOutputChannelWriter {
+    private _channel: vscode.OutputChannel;
+
+    constructor() {
+        this._channel = outputChannel;
+    }
+
+    appendLine(message: string): void {
+        this._channel.appendLine(message);
+    }
+
+    append(message: string): void {
+        this._channel.append(message);
     }
 }

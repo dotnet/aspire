@@ -1,10 +1,10 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { outputChannel } from '../utils/vsc';
+import { IOutputChannelWriter } from '../utils/vsc';
 import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard } from '../constants/strings';
-import { ICliRpcClient, RpcClient, ValidationResult } from './rpcClient';
+import { ICliRpcClient } from './rpcClient';
 
-interface IInteractionService {
+export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
@@ -31,7 +31,12 @@ type ConsoleLine = {
 };
 
 export class InteractionService implements IInteractionService {
+    private _outputChannelWriter: IOutputChannelWriter;
     private _statusBarItem: vscode.StatusBarItem | undefined;
+
+    constructor(_outputChannelWriter: IOutputChannelWriter) {
+        this._outputChannelWriter = _outputChannelWriter;
+    }
 
     showStatus(statusText: string | null) {
         if (!this._statusBarItem) {
@@ -49,7 +54,7 @@ export class InteractionService implements IInteractionService {
     async promptForString(promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage('Failed to show prompt, text was empty.');
-            outputChannel.appendLine('Failed to show prompt, text was empty.');
+            this._outputChannelWriter.appendLine('Failed to show prompt, text was empty.');
         }
 
         const input = await vscode.window.showInputBox({
@@ -113,45 +118,45 @@ export class InteractionService implements IInteractionService {
 
         errorLines.forEach(line => {
             vscode.window.showErrorMessage(line);
-            outputChannel.appendLine(line);
+            this._outputChannelWriter.appendLine(line);
         });
     }
 
     displayError(errorMessage: string) {
         vscode.window.showErrorMessage(errorMessage);
-        outputChannel.appendLine(errorMessage);
+        this._outputChannelWriter.appendLine(errorMessage);
     }
 
     displayMessage(emoji: string, message: string) {
         vscode.window.showInformationMessage(message);
-        outputChannel.appendLine(message);
+        this._outputChannelWriter.appendLine(message);
     }
 
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
         vscode.window.showInformationMessage(message);
-        outputChannel.appendLine(message);
+        this._outputChannelWriter.appendLine(message);
     }
 
     displaySubtleMessage(message: string) {
         vscode.window.setStatusBarMessage(message, 5000);
-        outputChannel.appendLine(message);
+        this._outputChannelWriter.appendLine(message);
     }
 
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
     displayEmptyLine() {
-        outputChannel.appendLine('');
+        this._outputChannelWriter.append('\n');
     }
 
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
-        outputChannel.appendLine('Dashboard:');
+        this._outputChannelWriter.appendLine('Dashboard:');
         if (dashboardUrls.codespacesUrlWithLoginToken) {
-            outputChannel.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
-            outputChannel.appendLine(`📈 ${codespacesUrl(dashboardUrls.codespacesUrlWithLoginToken)}`);
+            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
+            this._outputChannelWriter.appendLine(`📈 ${codespacesUrl(dashboardUrls.codespacesUrlWithLoginToken)}`);
         }
         else {
-            outputChannel.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
+            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
         }
 
         const actions: vscode.MessageItem[] = [
@@ -182,12 +187,12 @@ export class InteractionService implements IInteractionService {
     displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.line).join('\n');
         vscode.window.showInformationMessage(displayText);
-        lines.forEach(line => outputChannel.appendLine(line.line));
+        lines.forEach(line => this._outputChannelWriter.appendLine(line.line));
     }
 
     displayCancellationMessage(message: string) {
         vscode.window.showWarningMessage(message);
-        outputChannel.appendLine(message);
+        this._outputChannelWriter.appendLine(message);
     }
 }
 

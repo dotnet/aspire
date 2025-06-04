@@ -35,7 +35,7 @@ suite('RPC server auth tests', () => {
 	});
 });
 
-/*suite('InteractionService endpoints (real server)', () => {
+suite('InteractionService endpoints (real server)', () => {
 	let connection: MessageConnection, client: net.Socket;
 
 	setup(async () => {
@@ -51,7 +51,7 @@ suite('RPC server auth tests', () => {
 
     test('displayMessage endpoint', async () => {
         const spy = sinon.spy(vscode.window, 'showInformationMessage');
-        await connection.sendRequest('displayMessage', 'Test info message');
+        await connection.sendRequest('displayMessage', ":test_emoji:", 'Test info message');
         assert.ok(spy.calledWith('Test info message'));
         spy.restore();
     });
@@ -64,16 +64,17 @@ suite('RPC server auth tests', () => {
     });
 
     test('displaySubtleMessage endpoint', async () => {
-        const spy = sinon.spy(vscode.window, 'setStatusBarMessage');
+        const spy = sinon.spy(vscode.window, 'setStatusBarMessage',);
         await connection.sendRequest('displaySubtleMessage', 'Test subtle message');
-        assert.ok(spy.calledWith(sinon.match({ text: 'Test subtle message', hideAfterTimeout: 5000 })));
+        assert.ok(spy.calledWith('Test subtle message'));
         spy.restore();
     });
 
     test('displayEmptyLine endpoint', async () => {
-        const spy = sinon.spy(outputChannel, 'appendLine');
+		const channel = outputChannel;
+        const spy = sinon.spy(channel, 'append');
         await connection.sendRequest('displayEmptyLine');
-        assert.ok(spy.calledWith(''));
+        assert.ok(spy.calledWith('\n'));
         spy.restore();
     });
 
@@ -177,7 +178,7 @@ suite('RPC server auth tests', () => {
         stub.restore();
     });
 });
-*/
+
 
 async function getRpcServer() {
 	const extension = await getAndActivateExtension();
