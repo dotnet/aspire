@@ -86,8 +86,8 @@ export default defineConfig({
 				/* TODO: decide which themes we want
 				   https://expressive-code.com/guides/themes/#using-bundled-themes
 				*/
-				themes: ['catppuccin-mocha', 'catppuccin-latte'],
-				styleOverrides: { borderRadius: '0.5rem' },
+				themes: ['dark-plus', 'light-plus'],
+				styleOverrides: { borderRadius: '0.5rem', codeFontSize: '1rem' },
 			},
 			sidebar: [
 				{

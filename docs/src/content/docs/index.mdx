@@ -56,7 +56,6 @@ const postgres = builder.addPostgres("db").addDatabase("appdata");
 
 // Add API service and reference the database
 const api = builder.addProject("api", "../api/ApiService")
-  .withHttpEndpoint({ env: "API_URL" })
   .withReference(postgres);
 
 // Add frontend service and reference the API
@@ -78,7 +77,6 @@ postgres = builder.add_postgres("db").add_database("appdata")
 
 # Add API service and reference the database
 api = builder.add_project("api", "../api/api_service.py") \\
-       .with_http_endpoint(env="API_URL") \\
        .with_reference(postgres)
 
 # Add frontend service and reference the API
@@ -99,7 +97,6 @@ var postgres = builder.AddPostgres("db").AddDatabase("appdata");
 
 // Add API service and reference the database
 var api = builder.AddProject("api", "../api/ApiService.csproj")
-                 .WithHttpEndpoint(env: "API_URL")
                  .WithReference(postgres);
 
 // Add frontend service and reference the API
