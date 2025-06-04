@@ -7,6 +7,7 @@ using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Resources;
 using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
@@ -47,10 +48,13 @@ public static class AzureAIFoundryExtensions
                     {
                         CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                         PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                        // Disable local auth for CognitiveServices since managed identity is used
-                        // TODO: disable local auth for CognitiveServices
-                        //DisableLocalAuth = true
-                        DisableLocalAuth = false,
+                        DisableLocalAuth = true,
+                        // TODO: May need to enable project management (might require a custom CDK resource to set the property, and custom API version)
+                        // AllowProjectManagement = true,
+                    },
+                    Identity = new ManagedServiceIdentity()
+                    {
+                        ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
                     },
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
