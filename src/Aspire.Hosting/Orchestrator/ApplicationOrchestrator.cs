@@ -121,7 +121,9 @@ internal sealed class ApplicationOrchestrator
         {
             urls = resourceUrls.Select(url => new UrlSnapshot(Name: url.Endpoint?.EndpointName, Url: url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly)
             {
-                IsInactive = true,
+                // Endpoint URLs are inactive (hidden in the dashboard) when initialized. They will get activated later
+                // when the endpoint is considered active, e.g. for DCP controlled resources when the endpoint is listening.
+                IsInactive = url.Endpoint is not null,
                 DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0)
             });
         }
@@ -181,9 +183,9 @@ internal sealed class ApplicationOrchestrator
 
     private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
     {
-        // Project endpoints to URLS
         var urls = new List<ResourceUrlAnnotation>();
 
+        // Project endpoints to URLS
         if (resource.TryGetEndpoints(out var endpoints) && resource is IResourceWithEndpoints resourceWithEndpoints)
         {
             foreach (var endpoint in endpoints)
