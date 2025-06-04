@@ -15,6 +15,6 @@
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 	},
 	"include": [
-		"src/**/*.ts", "src/test/rpcServer.test.ts", "src/test/terminal.test.ts",
+		"src/**/*.ts", "src/test/rpc/**.test.ts"
 	],
 }
