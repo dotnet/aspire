@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { getAspireTerminal } from '../utils/terminal';
-import { noWorkspaceOpen } from '../constants/strings';
+import { isWorkspaceOpen } from '../utils/vsc';
 
 export async function runCommand() {
-    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-        vscode.window.showErrorMessage(noWorkspaceOpen);
+    if (!isWorkspaceOpen()) {
         return;
     }
 
