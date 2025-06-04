@@ -1,13 +1,9 @@
 <Project>
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
-  <Import Project="$(SharedDir)Workload.targets" />
-
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-
-    <_PublishOutputPath>$(DotNetOutputPath)Aspire.Cli/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish</_PublishOutputPath>
-    <!-- <CliPlatform Condition=" '$(CliPlatform)' == '' ">$([System.String]::Copy('$(CliRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</CliPlatform> -->
+    <_PublishOutputDirectory>$(ArtifactsBinDir)Aspire.Cli/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish/</_PublishOutputDirectory>
   </PropertyGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
@@ -27,7 +23,7 @@
     <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
 
     <ItemGroup>
-      <_PublishItems Include="$(_PublishOutputPath)/**/*" />
+      <_PublishItems Include="$(_PublishOutputDirectory)**/*" />
     </ItemGroup>
 
     <!-- Throw an error if _PublishItems is empty. -->
