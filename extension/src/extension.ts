@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
-import { tryExecuteCommand, outputChannel, VSCOutputChannelWriter } from './utils/vsc';
+import { tryExecuteCommand, vscOutputChannelWriter } from './utils/vsc';
 import { activated } from './constants/strings';
 import { RpcServerInformation, setupRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
@@ -16,11 +16,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand);
 
-	outputChannel.appendLine(activated);
+	vscOutputChannelWriter.appendLine(activated);
 
 	setupRpcServer(
-		connection => new InteractionService(new VSCOutputChannelWriter()),
+		connection => new InteractionService(vscOutputChannelWriter),
 		(connection, token) => new RpcClient(connection, token),
+		vscOutputChannelWriter
 	).then(info => {
 		rpcServerInfo = info;
 	});

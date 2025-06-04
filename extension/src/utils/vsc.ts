@@ -17,7 +17,7 @@ export interface IOutputChannelWriter {
     append(message: string): void;
 }
 
-export class VSCOutputChannelWriter implements IOutputChannelWriter {
+class VSCOutputChannelWriter implements IOutputChannelWriter {
     private _channel: vscode.OutputChannel;
 
     constructor() {
@@ -32,3 +32,5 @@ export class VSCOutputChannelWriter implements IOutputChannelWriter {
         this._channel.append(message);
     }
 }
+
+export const vscOutputChannelWriter: IOutputChannelWriter = new VSCOutputChannelWriter();

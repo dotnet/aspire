@@ -7,8 +7,6 @@ import * as sinon from 'sinon';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { getAndActivateExtension } from './common';
-import { RpcServerInformation } from '../extension';
-import { outputChannel } from '../utils/vsc';
 import { yesLabel } from '../constants/strings';
 
 suite('RPC server auth tests', () => {

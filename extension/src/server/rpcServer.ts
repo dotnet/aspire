@@ -2,11 +2,11 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { outputChannel } from '../utils/vsc';
 import { rpcServerListening, rpcServerAddressError } from '../constants/strings';
 import * as crypto from 'crypto';
-import { addInteractionServiceEndpoints, IInteractionService, InteractionService } from './interactionService';
+import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
+import { IOutputChannelWriter } from '../utils/vsc';
 
 export type RpcServerInformation = {
     port: number;
@@ -15,7 +15,7 @@ export type RpcServerInformation = {
     dispose: () => void;
 };
 
-export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerInformation> {
+export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
     const token = generateToken();
 
     function withAuthentication(callback: (params: any) => any) {
@@ -47,7 +47,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
         rpcServer.listen(0, () => {
             const address = rpcServer?.address();
             if (typeof address === 'object' && address?.port) {
-                outputChannel.appendLine(rpcServerListening(address.port));
+                outputChannelWriter.appendLine(rpcServerListening(address.port));
                 resolve({
                     port: address.port,
                     token,
@@ -56,7 +56,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 });
             }
             else {
-                outputChannel.appendLine(rpcServerAddressError);
+                outputChannelWriter.appendLine(rpcServerAddressError);
                 vscode.window.showErrorMessage(rpcServerAddressError);
                 reject(new Error(rpcServerAddressError));
             }
