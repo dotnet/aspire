@@ -61,7 +61,7 @@ export class InteractionService implements IInteractionService {
             prompt: promptText,
             value: defaultValue || '',
             validateInput: async (value: string) => {
-                const validationResult = await rpcClient.validatePromptInputString(promptText, value);
+                const validationResult = await rpcClient.validatePromptInputString(promptText, value, vscode.env.language);
                 if (validationResult) {
                     return validationResult.successful ? null : validationResult.message;
                 }

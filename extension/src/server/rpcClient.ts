@@ -2,7 +2,7 @@ import { MessageConnection } from 'vscode-jsonrpc';
 
 export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
-    validatePromptInputString(promptText: string, input: string): Promise<ValidationResult | null>;
+    validatePromptInputString(promptText: string, input: string, language: string): Promise<ValidationResult | null>;
 }
 
 export type ValidationResult = {
@@ -23,11 +23,12 @@ export class RpcClient implements ICliRpcClient {
         return await this._messageConnection.sendRequest<string>('getCliVersion', { token: this._token });
     }
 
-    async validatePromptInputString(promptText: string, input: string): Promise<ValidationResult | null> {
+    async validatePromptInputString(promptText: string, input: string, language: string): Promise<ValidationResult | null> {
         return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
             token: this._token,
             promptText,
-            input
+            input,
+            language
         });
     }
 }
