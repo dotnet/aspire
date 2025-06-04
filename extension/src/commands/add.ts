@@ -8,6 +8,6 @@ export async function addCommand() {
     }
 
     const terminal = getAspireTerminal();
-    terminal.sendText(`aspire add --language ${vscode.env.language}`);
+    terminal.sendText(`aspire --language ${vscode.env.language} add`);
     terminal.show();
 }

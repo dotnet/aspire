@@ -9,6 +9,6 @@ export async function runCommand() {
 
     const terminal = getAspireTerminal();
 
-    terminal.sendText(`aspire run --language ${vscode.env.language}`);
+    terminal.sendText(`aspire --language ${vscode.env.language} run`);
     terminal.show();
 };
