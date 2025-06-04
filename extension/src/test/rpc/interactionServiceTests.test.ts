@@ -9,52 +9,87 @@ import { IInteractionService, InteractionService } from '../../server/interactio
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 
 suite('InteractionService endpoints', () => {
+	let statusBarItem: vscode.StatusBarItem;
+	let createStatusBarItemStub: sinon.SinonStub;
+
+	setup(() => {
+		statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+		createStatusBarItemStub = sinon.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);
+	});
+
+	teardown(() => {
+		createStatusBarItemStub.restore();
+		statusBarItem.dispose();
+	});
+
 	// showStatus
 	test('Calling showStatus with new status should show that status', async () => {
 		const testInfo = await createRpcServer();
-		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-		sinon.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);
 		const showStub = sinon.stub(statusBarItem, 'show');
 
 		testInfo.interactionService.showStatus('Test status');
 		assert.strictEqual(statusBarItem.text, 'Test status');
 		assert.ok(showStub.called, 'show should be called on the status bar item');
-		statusBarItem.dispose();
 		showStub.restore();
 	});
 
 	test("Calling showStatus with existing status but null should hide the status bar item", async () => {
 		const testInfo = await createRpcServer();
-		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-		sinon.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);
 		const hideStub = sinon.stub(statusBarItem, 'hide');
 		testInfo.interactionService.showStatus("Status to hide");
 		testInfo.interactionService.showStatus(null);
 		assert.strictEqual(statusBarItem.text, 'Status to hide');
 		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		statusBarItem.dispose();
 		hideStub.restore();
 	});
 
 	test("Calling showStatus with null with no existing status should not throw an error", async () => {
 		const testInfo = await createRpcServer();
-		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-		sinon.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);	
 		const hideStub = sinon.stub(statusBarItem, 'hide');
 		testInfo.interactionService.showStatus(null);
 		assert.strictEqual(statusBarItem.text, '');
 		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		statusBarItem.dispose();
 		hideStub.restore();
 	});
 
 	// promptForString
+	test('promptForString calls validateInput and returns valid result', async () => {
+		const testInfo = await createRpcServer();
+		let validateInputCalled = false;
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+			if (options && typeof options.validateInput === 'function') {
+				validateInputCalled = true;
+				// Simulate valid input
+				const validationResult = await options.validateInput('valid');
+				assert.strictEqual(validationResult, null, 'Should return null for valid input');
+			}
+			return 'valid';
+		});
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		assert.strictEqual(result, 'valid');
+		assert.ok(validateInputCalled, 'validateInput should be called');
+		showInputBoxStub.restore();
+	});
 
-	// confirm
-
-	// promptForSelection
-
-	// displayIncompatibleVersionError
+	test('promptForString calls validateInput and returns invalid result', async () => {
+		const testInfo = await createRpcServer();
+		let validateInputCalled = false;
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+			if (options && typeof options.validateInput === 'function') {
+				validateInputCalled = true;
+				// Simulate invalid input
+				const validationResult = await options.validateInput('invalid');
+				assert.strictEqual(typeof validationResult, 'string', 'Should return error message for invalid input');
+			}
+			return 'invalid';
+		});
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		assert.strictEqual(result, 'invalid');
+		assert.ok(validateInputCalled, 'validateInput should be called');
+		showInputBoxStub.restore();
+	});
 
 	test('displayError endpoint', async () => {
 		const testInfo = await createRpcServer();
@@ -182,10 +217,10 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 
 	validatePromptInputString(promptText: string, input: string, language: string): Promise<ValidationResult | null> {
-		if (promptText === "valid") {
+		if (input === "valid") {
 			return Promise.resolve({ message: `Valid input: ${input} (${language})`, successful: true });
 		}
-		else if (promptText === "invalid") {
+		else if (input === "invalid") {
 			return Promise.resolve({ message: `Invalid input: ${input} (${language})`, successful: false });
 		}
 		else {
