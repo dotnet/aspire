@@ -1316,6 +1316,57 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
+    public async Task ContainerAppEnvironmentWithCustomWorkspace()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Create a custom Log Analytics Workspace
+        var workspace = builder.AddAzureLogAnalyticsWorkspace("customworkspace");
+
+        // Create a container app environment and associate it with the custom workspace
+        builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureLogAnalyticsWorkspace(workspace);
+
+        // Add a container that will use the environment
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify environment resource exists
+        var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        // Verify project resource exists
+        var project = Assert.Single(model.GetProjectResources());
+
+        // Get the bicep for the environment
+        var (envManifest, envBicep) = await GetManifestWithBicep(environment);
+
+        // Verify container has correct deployment target
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var projectResource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectResource);
+
+        // Get the bicep for the container
+        var (containerManifest, containerBicep) = await GetManifestWithBicep(projectResource);
+
+        // Verify the Azure Log Analytics Workspace resource manifest and bicep
+        var logAnalyticsWorkspace = Assert.Single(model.Resources.OfType<AzureLogAnalyticsWorkspaceResource>());
+        var (workspaceManifest, workspaceBicep) = await GetManifestWithBicep(logAnalyticsWorkspace);
+
+        await Verify(envManifest.ToString(), "json")
+              .AppendContentAsFile(envBicep, "bicep")
+              .AppendContentAsFile(containerManifest.ToString(), "json")
+              .AppendContentAsFile(containerBicep, "bicep")
+              .AppendContentAsFile(workspaceManifest.ToString(), "json")
+              .AppendContentAsFile(workspaceBicep, "bicep");
+    }
+
+    [Fact]
     public async Task CanReferenceContainerAppEnvironment()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -1386,11 +1437,50 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task UnknownManifestExpressionProviderIsHandledWithAllocateParameter()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var customProvider = new CustomManifestExpressionProvider();
+        
+        builder.AddContainer("api", "myimage")
+               .WithEnvironment(context =>
+               {
+                   context.EnvironmentVariables["CUSTOM_VALUE"] = customProvider;
+               })
+               .PublishAsAzureContainerApp((_, _) => { });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureBicepResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
+    }
+
+    private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
+    {
+        public string ValueExpression => "{customValue}";
     }
 }

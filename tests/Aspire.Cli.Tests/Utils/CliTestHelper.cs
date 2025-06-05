@@ -6,7 +6,10 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Templating;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -29,6 +32,8 @@ internal static class CliTestHelper
 
         services.AddLogging();
 
+        services.AddMemoryCache();
+
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractionServiceFactory);
@@ -38,6 +43,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
+        services.AddSingleton(options.TemplateProviderFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -107,7 +113,8 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        return new NuGetPackageCache(logger, runner);
+        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        return new NuGetPackageCache(logger, runner, cache);
     };
 
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -115,6 +122,17 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
         var rpcTarget = serviceProvider.GetService<CliRpcTarget>() ?? throw new InvalidOperationException("CliRpcTarget not registered");
         return new AppHostBackchannel(logger, rpcTarget);
+    };
+
+    public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var certificateService = serviceProvider.GetRequiredService<ICertificateService>();
+        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
+        var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, nuGetPackageCache, prompter);
+        return new TemplateProvider([factory]);
     };
 }
 

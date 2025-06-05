@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
+param account_kv_outputs_name string
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('account-${uniqueString(resourceGroup().id)}', 44)
@@ -37,7 +37,7 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: account_kv_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

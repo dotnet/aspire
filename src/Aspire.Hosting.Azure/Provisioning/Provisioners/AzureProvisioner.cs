@@ -90,6 +90,8 @@ internal sealed class AzureProvisioner(
                         childResources.Add(grandChild);
                     }
                 }
+
+                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
 

@@ -838,7 +838,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     {
         _resourcesInteropReference?.Dispose();
         _watchTaskCancellationTokenSource.Cancel();
-        _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
         TelemetryContext.Dispose();
 

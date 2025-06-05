@@ -102,4 +102,32 @@ public static class DockerComposeServiceExtensions
             source: parameter
         );
     }
+
+    internal static string AsContainerImagePlaceholder(this DockerComposeServiceResource dockerComposeService)
+    {
+        var resourceInstance = dockerComposeService.TargetResource;
+
+        var imageEnvName = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_IMAGE";
+
+        return dockerComposeService.Parent.AddEnvironmentVariable(
+             imageEnvName,
+             description: $"Container image name for {resourceInstance.Name}",
+             defaultValue: $"{resourceInstance.Name}:latest",
+             source: new ContainerImageReference(resourceInstance)
+        );
+    }
+
+    internal static string AsContainerPortPlaceholder(this DockerComposeServiceResource dockerComposeService)
+    {
+        var resourceInstance = dockerComposeService.TargetResource;
+
+        var containerPortEnv = $"{resourceInstance.Name.ToUpperInvariant().Replace("-", "_")}_PORT";
+
+        return dockerComposeService.Parent.AddEnvironmentVariable(
+             containerPortEnv,
+             description: $"Default container port for {resourceInstance.Name}",
+             defaultValue: "8080",
+             source: new ContainerPortReference(resourceInstance)
+        );
+    }
 }

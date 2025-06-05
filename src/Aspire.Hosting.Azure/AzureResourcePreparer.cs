@@ -448,6 +448,12 @@ internal sealed class AzureResourcePreparer(
             return;
         }
 
+        if (value is IManifestExpressionProvider)
+        {
+            // Unknown manifest expression providers don't have Azure references to track
+            return;
+        }
+
         throw new NotSupportedException("Unsupported value type " + value.GetType());
     }
     private static void AppendGlobalRoleAssignments(Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningResource azureResource, IEnumerable<RoleDefinition> newRoles)
