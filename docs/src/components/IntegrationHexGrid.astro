@@ -1,0 +1,135 @@
+---
+// const imageModules = import.meta.glob("../assets/icons/*.png", { eager: true });
+
+// const icons = Object.entries(imageModules).map(([path, mod]) => {
+//   const imageName = path.split("/").pop() || "icon.png";
+
+//   return {
+//     src: mod?.default || path,
+//     alt: imageName
+//   };
+// });
+
+import awsIcon from "../assets/icons/aws-icon.png";
+import azureIcon from "../assets/icons/azure-icon.png";
+import azureAppconfigIcon from "../assets/icons/azure-appconfig-icon.png";
+import azureAppinsightsIcon from "../assets/icons/azure-appinsights-icon.png";
+import azureBlobpagestorageIcon from "../assets/icons/azure-blobpagestorage-icon.png";
+import azureCacheredisIcon from "../assets/icons/azure-cacheredis-icon.png";
+import azureCosmosdbIcon from "../assets/icons/azure-cosmosdb-icon.png";
+import azureEventhubsIcon from "../assets/icons/azure-eventhubs-icon.png";
+import azureFunctionappsIcon from "../assets/icons/azure-functionapps-icon.png";
+import azureKeyvaultIcon from "../assets/icons/azure-keyvault-icon.png";
+import azureLoganalyticsIcon from "../assets/icons/azure-loganalytics-icon.png";
+import azureOpenaiIcon from "../assets/icons/azure-openai-icon.png";
+import azurePostgresqlIcon from "../assets/icons/azure-postgresql-icon.png";
+import azureSearchIcon from "../assets/icons/azure-search-icon.png";
+import azureServicebusIcon from "../assets/icons/azure-servicebus-icon.png";
+import azureSignalrIcon from "../assets/icons/azure-signalr-icon.png";
+import azureSqlserverIcon from "../assets/icons/azure-sqlserver-icon.png";
+import azureStoragecontainerIcon from "../assets/icons/azure-storagecontainer-icon.png";
+import azureStoragequeueIcon from "../assets/icons/azure-storagequeue-icon.png";
+import azureTableIcon from "../assets/icons/azure-table-icon.png";
+import azureWebpubsubIcon from "../assets/icons/azure-webpubsub-icon.png";
+import elasticIcon from "../assets/icons/elastic-icon.png";
+import garnetIcon from "../assets/icons/garnet-icon.png";
+import milvusIcon from "../assets/icons/milvus-icon.png";
+import mongodbIcon from "../assets/icons/mongodb-icon.png";
+import mysqlconnectorIcon from "../assets/icons/mysqlconnector-icon.png";
+import natsIcon from "../assets/icons/nats-icon.png";
+import postgresqlIcon from "../assets/icons/postgresql-icon.png";
+import qdrantIcon from "../assets/icons/qdrant-icon.png";
+import redisIcon from "../assets/icons/redis-icon.png";
+import seqIcon from "../assets/icons/seq-icon.png";
+import sqlIcon from "../assets/icons/sql-icon.png";
+import valkeyIcon from "../assets/icons/valkey-icon.png";
+
+const icons = [
+  { meta: awsIcon, alt: "aws-icon" },
+  { meta: azureIcon, alt: "azure-icon" },
+  { meta: azureAppconfigIcon, alt: "azure-appconfig-icon" },
+  { meta: azureAppinsightsIcon, alt: "azure-appinsights-icon" },
+  { meta: azureBlobpagestorageIcon, alt: "azure-blobpagestorage-icon" },
+  { meta: azureCacheredisIcon, alt: "azure-cacheredis-icon" },
+  { meta: azureCosmosdbIcon, alt: "azure-cosmosdb-icon" },
+  { meta: azureEventhubsIcon, alt: "azure-eventhubs-icon" },
+  { meta: azureFunctionappsIcon, alt: "azure-functionapps-icon" },
+  { meta: azureKeyvaultIcon, alt: "azure-keyvault-icon" },
+  { meta: azureLoganalyticsIcon, alt: "azure-loganalytics-icon" },
+  { meta: azureOpenaiIcon, alt: "azure-openai-icon" },
+  { meta: azurePostgresqlIcon, alt: "azure-postgresql-icon" },
+  { meta: azureSearchIcon, alt: "azure-search-icon" },
+  { meta: azureServicebusIcon, alt: "azure-servicebus-icon" },
+  { meta: azureSignalrIcon, alt: "azure-signalr-icon" },
+  { meta: azureSqlserverIcon, alt: "azure-sqlserver-icon" },
+  { meta: azureStoragecontainerIcon, alt: "azure-storagecontainer-icon" },
+  { meta: azureStoragequeueIcon, alt: "azure-storagequeue-icon" },
+  { meta: azureTableIcon, alt: "azure-table-icon" },
+  { meta: azureWebpubsubIcon, alt: "azure-webpubsub-icon" },
+  { meta: elasticIcon, alt: "elastic-icon" },
+  { meta: garnetIcon, alt: "garnet-icon" },
+  { meta: milvusIcon, alt: "milvus-icon" },
+  { meta: mongodbIcon, alt: "mongodb-icon" },
+  { meta: mysqlconnectorIcon, alt: "mysqlconnector-icon" },
+  { meta: natsIcon, alt: "nats-icon" },
+  { meta: postgresqlIcon, alt: "postgresql-icon" },
+  { meta: qdrantIcon, alt: "qdrant-icon" },
+  { meta: redisIcon, alt: "redis-icon" },
+  { meta: seqIcon, alt: "seq-icon" },
+  { meta: sqlIcon, alt: "sql-icon" },
+  { meta: valkeyIcon, alt: "valkey-icon" },
+];
+
+const randomizedIcons = icons.sort(() => Math.random() - 0.5);
+---
+
+<div class="hex-grid">
+  {
+    randomizedIcons.map(
+      (icon: { meta: ImageMetadata; alt: string }, i: number) => (
+        <a href="/aspire/integrations/gallery" class="img" title={`icon-${i || 0}`}>
+          <img src={icon.meta.src} alt={icon.alt} />
+        </a>
+      ),
+    )
+  }
+</div>
+
+<style>
+  .hex-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+  }
+
+  .img {
+    width: 8rem;
+    height: 8rem; /* Add this line */
+    display: flex; /* Add these lines to center the image */
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    background: var(--sl-color-backdrop-overlay);
+    border-radius: 0.5rem;
+    transition:
+      transform 0.3s ease,
+      filter 0.3s ease;
+    overflow: hidden;
+    margin-top: 0 !important;
+  }
+
+  .img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .img:hover {
+    cursor: pointer;
+    transform: scale(1.1);
+    filter: brightness(1.2);
+    z-index: 1;
+  }
+</style>

@@ -76,13 +76,13 @@ builder = create_builder()
 postgres = builder.add_postgres("db").add_database("appdata")
 
 # Add API service and reference the database
-api = builder.add_project("api", "../api/api_service.py") \\
+api = builder.add_project("api", "../api/api_service.py") //
        .with_reference(postgres)
 
 # Add frontend service and reference the API
-builder.add_npm_app("frontend", "../frontend") \\
-          .with_http_endpoint(env="PORT", target_port=3000) \\
-          .with_npm_package_installation() \\
+builder.add_npm_app("frontend", "../frontend") //
+          .with_http_endpoint(env="PORT", target_port=3000) //
+          .with_npm_package_installation() //
           .with_reference(api)
 
 # Launch your services into orbit
@@ -135,7 +135,7 @@ builder.Build().Run();
   
   <LinkCard href="/aspire/get-started/installation"
             title='Aspire CLI — run'
-            description='Learn how to run locally.' />
+            description='Run your entire stack locally—instantly orchestrated for development.' />
 
   </Card>
 
@@ -149,18 +149,26 @@ builder.Build().Run();
 
   <LinkCard href="/aspire/get-started/installation"
             title='Aspire CLI — deploy'
-            description='Learn how to deploy your apps.' />
+            description='Model your app once—deploy anywhere, from cloud to on-prem.' />
 
   </Card>
 </CardGrid>
 
-## Aspire Dashboard
+## Dashboard
 
-Get deep insights into your app while you build it.
+Get deep insights into your app while you build it—backed with OpenTelemetry, GitHub Copilot, D3.js resource graphs, and more.
 
 <LoopingVideo sources={[
   { src: "https://github.com/IEvangelist/aspire/raw/refs/heads/docs/docs/src/assets/dashboard-graph.mp4", type: "video/mp4" }
 ]} />
+
+## Integrations
+
+import IntegrationHexGrid from '../../components/IntegrationHexGrid.astro';
+
+Aspire integrates with your favorite platforms, services, databases, messaging systems, caching layers, programming languages, and more.
+
+<IntegrationHexGrid />
 
 ## Ready for liftoff?
 
