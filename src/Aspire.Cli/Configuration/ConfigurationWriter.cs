@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationWriter : IConfigurationWriter
+internal sealed class ConfigurationWriter(DirectoryInfo currentDirectory) : IConfigurationWriter
 {
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -74,7 +74,7 @@ internal sealed class ConfigurationWriter : IConfigurationWriter
         }
     }
 
-    private static string GetSettingsFilePath(bool isGlobal)
+    private string GetSettingsFilePath(bool isGlobal)
     {
         if (isGlobal)
         {
@@ -87,24 +87,24 @@ internal sealed class ConfigurationWriter : IConfigurationWriter
         }
     }
 
-    private static string FindNearestSettingsFile()
+    private string FindNearestSettingsFile()
     {
-        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        var searchDirectory = currentDirectory;
 
         // Walk up the directory tree to find existing settings file
-        while (currentDirectory is not null)
+        while (searchDirectory is not null)
         {
-            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-            
+            var settingsFilePath = Path.Combine(searchDirectory.FullName, ".aspire", "settings.json");
+
             if (File.Exists(settingsFilePath))
             {
                 return settingsFilePath;
             }
 
-            currentDirectory = currentDirectory.Parent;
+            searchDirectory = searchDirectory.Parent;
         }
 
         // If no existing settings file found, create one in current directory
-        return Path.Combine(Directory.GetCurrentDirectory(), ".aspire", "settings.json");
+        return Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
     }
 }

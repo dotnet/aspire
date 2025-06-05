@@ -128,7 +128,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
-        builder.Services.AddSingleton<IConfigurationWriter, ConfigurationWriter>();
+        builder.Services.AddSingleton(BuildConfigurationWriter);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -150,6 +150,11 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IConfigurationWriter BuildConfigurationWriter(IServiceProvider serviceProvider)
+    {
+        return new ConfigurationWriter(new DirectoryInfo(Environment.CurrentDirectory));
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)

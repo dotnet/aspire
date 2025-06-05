@@ -54,8 +54,6 @@ internal static class CliTestHelper
 
         services.AddMemoryCache();
 
-        services.AddSingleton<IConfigurationWriter, ConfigurationWriter>();
-
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.InteractionServiceFactory);
@@ -66,6 +64,7 @@ internal static class CliTestHelper
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
+        services.AddSingleton(options.ConfigurationWriterFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -81,17 +80,17 @@ internal static class CliTestHelper
 internal sealed class CliServiceCollectionTestOptions
 {
     private readonly ITestOutputHelper _outputHelper;
-    
+
     public CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
     {
         _outputHelper = outputHelper;
-        
+
         // Create a unique temporary directory for this test
         var tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(tempPath);
         WorkingDirectory = new DirectoryInfo(tempPath);
-        
-        ProjectLocatorFactory = CreateProjectLocator;
+        ProjectLocatorFactory = CreateDefaultProjectLocatorFactory;
+        ConfigurationWriterFactory = CreateDefaultConfigurationWriterFactory;
     }
 
     public string? LocalSettingsContent { get; set; }
@@ -129,9 +128,16 @@ internal sealed class CliServiceCollectionTestOptions
         return new PublishCommandPrompter(interactionService);
     };
 
+    public Func<IServiceProvider, IConfigurationWriter> ConfigurationWriterFactory { get; set; }
+
+    public IConfigurationWriter CreateDefaultConfigurationWriterFactory(IServiceProvider serviceProvider)
+    {
+        return new ConfigurationWriter(WorkingDirectory);
+    }
+
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }
 
-    public IProjectLocator CreateProjectLocator(IServiceProvider serviceProvider)
+    public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();

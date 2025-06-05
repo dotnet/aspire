@@ -236,9 +236,11 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigServiceGetAllConfiguration()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.WorkingDirectory = tempRepo.WorkspaceRoot;
+        });
         var provider = services.BuildServiceProvider();
 
         var configWriter = provider.GetRequiredService<IConfigurationWriter>();
@@ -253,7 +255,10 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         await configWriter.SetConfigurationAsync("key2", "value2");
 
         // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        {
+            options.WorkingDirectory = tempRepo.WorkspaceRoot;
+        });
         provider = services.BuildServiceProvider();
         configuration = provider.GetRequiredService<IConfiguration>();
 

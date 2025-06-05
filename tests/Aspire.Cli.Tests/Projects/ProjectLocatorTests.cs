@@ -238,7 +238,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         };
 
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
+        var configurationWriter = new ConfigurationWriter(workspace.WorkspaceRoot);
         var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
 
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
