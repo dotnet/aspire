@@ -21,7 +21,7 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/dotnet/aspire/edit/main/',
 			},
-			favicon: 'favicon.svg',
+			favicon: '/aspire/favicon.svg',
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: 'favicon-96x96.png', sizes: '96x96' } },
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/svg+xml', href: 'favicon.svg' } },

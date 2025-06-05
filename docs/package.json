@@ -4,9 +4,12 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "dev:host": "astro dev --host",
     "start": "astro dev",
+    "start:host": "astro dev --host",
     "build": "astro build",
     "preview": "astro preview",
+    "preview:host": "astro preview --host",
     "astro": "astro",
     "update-integrations": "node ./scripts/update-integrations.js"
   },
