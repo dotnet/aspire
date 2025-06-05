@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>10988975-8943-45bd-8598-a455ff9dd597</UserSecretsId>
   </PropertyGroup>
-
+TYPOE TO BREAK BUILD
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
