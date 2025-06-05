@@ -78,18 +78,34 @@ internal static class CliTestHelper
     }
 }
 
-internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
+internal sealed class CliServiceCollectionTestOptions
 {
+    private readonly ITestOutputHelper _outputHelper;
+    
+    public CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
+    {
+        _outputHelper = outputHelper;
+        
+        // Create a unique temporary directory for this test
+        var tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempPath);
+        WorkingDirectory = new DirectoryInfo(tempPath);
+        
+        ProjectLocatorFactory = CreateProjectLocator;
+    }
+
     public string? LocalSettingsContent { get; set; }
     public string? GlobalSettingsContent { get; set; }
-    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public DirectoryInfo WorkingDirectory { get; set; }
+    
+    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
+            Out = new AnsiConsoleOutput(new TestOutputTextWriter(_outputHelper))
         };
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
@@ -113,15 +129,16 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         return new PublishCommandPrompter(interactionService);
     };
 
-    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }
+
+    public IProjectLocator CreateProjectLocator(IServiceProvider serviceProvider)
+    {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
-        // Use temp directory for tests to avoid issues with current directory
-        var testDirectory = new DirectoryInfo(Path.GetTempPath());
-        return new ProjectLocator(logger, runner, testDirectory, interactionService, configurationWriter);
-    };
+        return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationWriter);
+    }
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
