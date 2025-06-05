@@ -26,6 +26,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
+        InnerResource?.ConnectionStringExpression ??
         ReferenceExpression.Create($"{ConnectionString}");
 
     /// <summary>
@@ -41,7 +42,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     }
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        ReferenceExpression.Create($"{ConnectionString};DeploymentId={deploymentName}");
+        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName}");
 
     internal AzureAIFoundryLocalResource? InnerResource { get; private set; }
 

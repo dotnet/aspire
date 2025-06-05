@@ -52,9 +52,11 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
         builder.Resource.SetInnerResource(resource);
 
+        // Move any existing deployments from this resource to the new Local Foundry one.
         var deployments = builder.ApplicationBuilder.Resources
             .OfType<AzureAIFoundryDeploymentResource>()
-            .Where(r => r.Parent == builder.Resource);
+            .Where(r => r.Parent == builder.Resource)
+            .ToArray();
 
         foreach (var deployment in deployments)
         {
