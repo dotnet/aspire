@@ -342,6 +342,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData("http", true)]
     [InlineData("https", false)]
     [InlineData("https", true)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9712")]
     public async Task CanOverrideLaunchProfileViaArgsAdHocBuilder(string launchProfileName, bool directArgs)
     {
         var arg = $"DOTNET_LAUNCH_PROFILE={launchProfileName}";
