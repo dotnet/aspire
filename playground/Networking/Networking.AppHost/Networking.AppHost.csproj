@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <RootNamespace>Networking.AppHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Networking.Echo\Networking.Echo.csproj" />
+    <ProjectReference Include="..\Networking.HttpClient\Networking.HttpClient.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+</Project>

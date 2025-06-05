@@ -189,6 +189,11 @@
     <Project Path="playground/nats/Nats.Backend/Nats.Backend.csproj" />
     <Project Path="playground/nats/Nats.Common/Nats.Common.csproj" />
   </Folder>
+  <Folder Name="/playground/Networking/">
+    <Project Path="playground/Networking/Networking.AppHost/Networking.AppHost.csproj" />
+    <Project Path="playground/Networking/Networking.Echo/Networking.Echo.csproj" />
+    <Project Path="playground/Networking/Networking.HttpClient/Networking.HttpClient.csproj" />
+  </Folder>
   <Folder Name="/playground/OpenAIEndToEnd/">
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.WebStory/OpenAIEndToEnd.WebStory.csproj" />
@@ -403,8 +408,8 @@
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
-    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
+    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />
