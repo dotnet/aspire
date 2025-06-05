@@ -107,7 +107,7 @@ export default defineConfig({
 				{
 					label: 'Integrations',
 					items: [
-						{ label: 'Marketplace', slug: 'integrations/marketplace' }
+						{ label: 'Gallery', slug: 'integrations/gallery' }
 					],
 				},
 				{
