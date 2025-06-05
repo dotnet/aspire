@@ -1219,11 +1219,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             {
                 var usePersistentNetwork = containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent);
 
-                var networkSuffix = usePersistentNetwork switch
-                {
-                    false => DcpNameGenerator.GetRandomNameSuffix(),
-                    _ => _nameGenerator.GetProjectHashSuffix(),
-                };
+                var networkSuffix = usePersistentNetwork ?
+                    DcpNameGenerator.GetRandomNameSuffix() :
+                    _nameGenerator.GetProjectHashSuffix();
 
                 var networkName = (string.IsNullOrWhiteSpace(networkSuffix), string.IsNullOrWhiteSpace(_options.Value.ResourceNameSuffix)) switch
                 {
