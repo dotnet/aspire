@@ -15,6 +15,8 @@ public partial class AspireMenuButton : FluentComponentBase
 
     private bool _visible;
     private Icon? _icon;
+    private IReadOnlyList<MenuButtonItem> _items = [];
+    private bool _disabled;
 
     [Parameter]
     public string? Text { get; set; }
@@ -49,6 +51,12 @@ public partial class AspireMenuButton : FluentComponentBase
     protected override void OnParametersSet()
     {
         _icon = Icon ?? s_defaultIcon;
+
+        if (Items != null && !_items.SequenceEqual(Items))
+        {
+            _items = Items.ToList();
+            _disabled = !_items.Where(i => !i.IsDivider).Any();
+        }
     }
 
     private void ToggleMenu()
