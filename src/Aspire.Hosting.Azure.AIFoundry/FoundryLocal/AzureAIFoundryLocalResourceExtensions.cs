@@ -50,7 +50,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
                 await rns.PublishUpdateAsync(resource, state => state with
                 {
-                    State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
+                    State = KnownResourceStates.Starting
                 }).ConfigureAwait(false);
 
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
