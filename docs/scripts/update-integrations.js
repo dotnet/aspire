@@ -27,7 +27,7 @@ async function fetchPackages() {
     description: pkg.description,
     icon: pkg.iconUrl || 'https://www.nuget.org/Content/gallery/img/default-package-icon.svg',
     href: `https://www.nuget.org/packages/${pkg.id}`,
-    tags: pkg.tags ?? [],
+    tags: pkg.tags?.map(tag => tag.toLowerCase()) ?? [],
     downloads: pkg.totalDownloads,
     version: pkg.version,
   }));

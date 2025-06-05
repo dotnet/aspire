@@ -22,18 +22,28 @@ type Integrations = Integration[];
 
 // Group integrations by tag
 const hostingIntegrations = integrations
-    .filter(
-        (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
-    )
+    .filter((pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"))
     .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+
+const hostingTags = Array.from(new Set(hostingIntegrations.flatMap((pkg) => pkg.tags || []))).sort();
 
 const clientIntegrations = integrations
     .filter((pkg) => pkg.tags?.includes("client"))
     .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+
+const clientTags = Array.from(new Set(clientIntegrations.flatMap((pkg) => pkg.tags || []))).sort();
 ---
 
 {
     hostingIntegrations.length > 0 && (
+
+        <input id="searchBox" type="text" class="filter" placeholder="Search integrations..." />
+        <div id="tagFilters">
+            {hostingTags.map(tag => (
+                <button type="button" class="badge tag" data-tag={tag}>{tag}</button>
+            ))}
+        </div>
+
         <section>
             <h2>Hosting Integrations</h2>
             <CardGrid>
@@ -57,3 +67,16 @@ const clientIntegrations = integrations
         </section>
     )
 }
+
+<style>
+    input.filter {
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: 0.5rem;
+        padding-inline-start: 0.75rem;
+        padding-inline-end: 0.5rem;
+        background-color: var(--sl-color-black);
+        color: var(--sl-color-gray-2);
+        font-size: var(--sl-text);
+        width: 100%;
+    }
+</style>

@@ -28,18 +28,18 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 ## Why developers love Aspire
 
 <CardGrid stagger>
-	<Card title="Code-First Control" icon="laptop">
-		Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
-	</Card>
-	<Card title="Modular and Extensible" icon="puzzle">
-		Orchestrate your existing stack—frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
-	</Card>
-	<Card title="Observability from the Start" icon="magnifier">
-		Logs, traces, health checks—all local, all wired up automatically. OpenTelemetry included with zero setup.
-	</Card>
-	<Card title="Flexible Deployments" icon="rocket">
-		Ship it how you want — to Kubernetes, your own infra, or managed services. Aspire adapts to your environment, not the other way around.
-	</Card>
+  <Card title="Code-First Control" icon="laptop">
+    Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
+  </Card>
+  <Card title="Modular and Extensible" icon="puzzle">
+    Orchestrate your existing stack—frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
+  </Card>
+  <Card title="Observability from the Start" icon="magnifier">
+    Logs, traces, health checks—all local, all wired up automatically. OpenTelemetry included with zero setup.
+  </Card>
+  <Card title="Flexible Deployments" icon="rocket">
+    Ship it how you want — to Kubernetes, your own infra, or managed services. Aspire adapts to your environment, not the other way around.
+  </Card>
 </CardGrid>
 
 ## Code-Centric Control
@@ -110,15 +110,15 @@ builder.Build().Run();
 
 <Tabs>
   <TabItem label="TypeScript" icon="seti:typescript">
-	  <Code code={ts} lang="ts" frame='terminal' title='index.ts' />
+    <Code code={ts} lang="ts" frame='terminal' title='index.ts' />
   </TabItem>
 
   <TabItem label="Python" icon="seti:python">
-	  <Code code={py} lang="python" frame='terminal' title='__main.py__' />
+    <Code code={py} lang="python" frame='terminal' title='__main.py__' />
   </TabItem>
 
-  <TabItem label="C-Sharp" icon="seti:c-sharp">
-	  <Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
+  <TabItem label="C#" icon="seti:c-sharp">
+    <Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
   </TabItem>
 </Tabs>
 
@@ -126,18 +126,22 @@ builder.Build().Run();
 
 <CardGrid>
   <Card title="Local Development" icon="laptop">
-    
-	- Runs Redis, Postgres, etc. with your local container runtime
-	- Dashboard available on `localhost`
-	- Uses dev secrets, volumes, dev-time config
-	
+
+  <Code code={'aspire run'} lang='bash' frame='none' />
+
+  - Runs with your local container runtime
+  - Dashboard available on `localhost`
+  - Uses dev secrets, volumes, dev-time config
+  
   </Card>
 
   <Card title="Production Deployment" icon="rocket">
-    
-	- Same app structure, deployed where you want
-	- Connects to cloud services (e.g., Azure Container Apps, Kubernetes)
-	- Works with your pipeline, no code changes required
+
+  <Code code={'aspire deploy'} lang='bash' frame='none' />
+
+  - Same app structure, deployed where you want
+  - Targets cloud (e.g., Azure Container Apps, Kubernetes)
+  - Works with your pipeline, no code changes required
 
   </Card>
 </CardGrid>
