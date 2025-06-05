@@ -1,0 +1,40 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <_PublishOutputDirectory>$(ArtifactsBinDir)Aspire.Cli/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish/</_PublishOutputDirectory>
+  </PropertyGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+  <Target Name="Build" />
+
+  <Target Name="BeforeBuild" BeforeTargets="Build">
+    <ItemGroup>
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="TargetFramework=$(TargetFramework)" />
+      <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
+      <AdditionalProperties Include="PublishSingleFile=true" />
+      <AdditionalProperties Include="SelfContained=true" />
+      <!-- <AdditionalProperties Include="GenerateDocumenationFile=false" /> -->
+    </ItemGroup>
+
+    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
+
+    <ItemGroup>
+      <_PublishItems Include="$(_PublishOutputDirectory)**/*" />
+    </ItemGroup>
+
+    <!-- Throw an error if _PublishItems is empty. -->
+    <Error Condition="'@(_PublishItems)' == ''"
+      Text="No files were found to pack. Ensure that the project $(MSBuildProjectFullPath) has a publish target defined." />
+
+    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
+    <ZipDirectory
+      SourceDirectory="$(_PublishOutputDirectory)"
+      DestinationFile="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)/aspire-Cli-$(CliRuntime).zip"
+      Overwrite="true" />
+  </Target>
+
+</Project>

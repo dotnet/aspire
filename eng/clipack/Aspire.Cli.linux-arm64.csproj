@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <CliRuntime>linux-arm64</CliRuntime>
+    <CliPlatformType>Unix</CliPlatformType>
+  </PropertyGroup>
+
+  <Import Project="Common.projitems" />
+
+</Project>
