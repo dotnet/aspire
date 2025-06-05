@@ -32,7 +32,7 @@ public class AzureAIFoundryLocalResource(string name, AzureAIFoundryResource par
     /// Gets the connection string expression for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create(
-        $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)}"
+        $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key=OPENAI_API_KEY"
       );
 
     /// <inheritdoc />
