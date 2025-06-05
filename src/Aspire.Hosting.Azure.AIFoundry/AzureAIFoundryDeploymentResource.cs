@@ -81,7 +81,10 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the connection string expression for the Azure Event Hub.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(DeploymentName);
+    public ReferenceExpression ConnectionStringExpression =>
+        InnerResource == null
+            ? Parent.GetConnectionString(DeploymentName)
+            : ReferenceExpression.Create($"{Parent.GetConnectionString(DeploymentName)};Model={InnerResource.Model}");
 
     internal AzureAIFoundryLocalModelResource? InnerResource { get; private set; }
 

@@ -204,8 +204,6 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                         {
                             State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
                         }).ConfigureAwait(false);
-
-                        modelResource.ModelId = modelInfo.ModelId;
                     }
                     else if (progress.IsCompleted && !string.IsNullOrEmpty(progress.ErrorMessage))
                     {
