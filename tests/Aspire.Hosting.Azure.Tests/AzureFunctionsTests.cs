@@ -319,9 +319,8 @@ public class AzureFunctionsTests
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(rolesManifest)
               .AppendContentAsFile(rolesBicep, "bicep");
-              
     }
 
     [Fact]
@@ -346,9 +345,8 @@ public class AzureFunctionsTests
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(rolesManifest)
               .AppendContentAsFile(rolesBicep, "bicep");
-              
     }
 
     [Fact]
@@ -374,9 +372,8 @@ public class AzureFunctionsTests
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(rolesManifest)
               .AppendContentAsFile(rolesBicep, "bicep");
-              
     }
 
     [Fact]
@@ -406,11 +403,10 @@ public class AzureFunctionsTests
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
         var (rolesManifest2, rolesBicep2) = await GetManifestWithBicep(projRolesStorage2);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(rolesManifest)
               .AppendContentAsFile(rolesBicep, "bicep")
               .AppendContentAsFile(rolesManifest2.ToString(), "json")
               .AppendContentAsFile(rolesBicep2, "bicep");
-              
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

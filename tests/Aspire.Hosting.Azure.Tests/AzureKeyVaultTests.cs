@@ -19,7 +19,7 @@ public class AzureKeyVaultTests
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(mykv.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
               
     }
@@ -37,7 +37,7 @@ public class AzureKeyVaultTests
         var kvRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "mykv-roles");
         var (kvRolesManifest, kvRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(kvRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(kvRolesBicep, "bicep")
               .AppendContentAsFile(kvRolesManifest.ToString(), "json");
@@ -109,7 +109,7 @@ public class AzureKeyVaultTests
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
               
     }
@@ -158,7 +158,7 @@ public class AzureKeyVaultTests
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -173,7 +173,7 @@ public class AzureKeyVaultTests
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -193,7 +193,7 @@ public class AzureKeyVaultTests
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(kv.Resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 

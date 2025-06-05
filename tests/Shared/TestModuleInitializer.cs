@@ -23,5 +23,8 @@ sealed class TestModuleInitializer
                 directory: Path.Combine(projectDirectory, target),
                 typeName: type.Name,
                 methodName: method.Name));
+
+        VerifierSettings.UseStrictJson();
+        VerifierSettings.InitializePlugins();
     }
 }

@@ -40,7 +40,7 @@ public class AzureRedisExtensionsTests
         var redisRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "redis-cache-roles");
         var (redisRolesManifest, redisRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(redisRoles, skipPreparer: true);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(redisRolesManifest.ToString(), "json")
               .AppendContentAsFile(redisRolesBicep, "bicep");

@@ -46,7 +46,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -67,7 +67,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -100,7 +100,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -135,7 +135,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -167,7 +167,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -203,7 +203,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
@@ -238,7 +238,7 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        await Verify(manifest.ToString(), "json")
+        await Verify(manifest)
               .AppendContentAsFile(bicep, "bicep");
     }
 
