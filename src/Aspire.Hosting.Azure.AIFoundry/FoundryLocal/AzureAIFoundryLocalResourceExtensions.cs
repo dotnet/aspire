@@ -45,7 +45,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
             .WithHttpEndpoint(env: "PORT", isProxied: false, port: 6914, name: AzureAIFoundryLocalResource.PrimaryEndpointName)
             .WithExternalHttpEndpoints()
             //.WithAIFoundryLocalDefaults()
-            .WithInitialiser()
+            .WithInitializer()
 
             // Ensure that when the DCP exits the Foundry Local service is stopped.
             .EnsureResourceStops();
@@ -65,7 +65,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
         return builder;
     }
 
-    private static IResourceBuilder<AzureAIFoundryLocalResource> WithInitialiser(this IResourceBuilder<AzureAIFoundryLocalResource> builder)
+    private static IResourceBuilder<AzureAIFoundryLocalResource> WithInitializer(this IResourceBuilder<AzureAIFoundryLocalResource> builder)
     {
         builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(builder.Resource, (@event, ct)
             => Task.Run(async () =>
