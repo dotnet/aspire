@@ -38,6 +38,13 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
+    /// Whether or not to use the default Azure Cosmos DB SKU. By default, this is set to false, and the Cosmos DB
+    /// account is created as a serverless account. If true, it will use the default Azure Cosmos DB SKU, which is
+    /// typically a provisioned throughput account.
+    /// </summary>
+    public bool UseDefaultAzureSku {  get; set; } // Default to false
+
+    /// <summary>
     /// Gets the "connectionString" secret reference from the key vault associated with this resource.
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
