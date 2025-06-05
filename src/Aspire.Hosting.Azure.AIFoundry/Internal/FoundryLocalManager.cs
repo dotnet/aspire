@@ -292,7 +292,13 @@ internal sealed partial class FoundryLocalManager : IDisposable, IAsyncDisposabl
             yield break;
         }
 
-        var modelInfo = await GetModelInfoAsync(aliasOrModelId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Model {aliasOrModelId} not found in catalog.");
+        var modelInfo = await GetModelInfoAsync(aliasOrModelId, ct).ConfigureAwait(false);
+        if (modelInfo is null)
+        {
+            yield return ModelDownloadProgress.Error($"Model '{aliasOrModelId}' was not found in the catalogue");
+            yield break;
+        }
+
         var localModels = await ListCachedModelsAsync(ct).ConfigureAwait(false);
         if (localModels.Any(m => m.ModelId == aliasOrModelId || m.Alias == aliasOrModelId) && !force.GetValueOrDefault(false))
         {

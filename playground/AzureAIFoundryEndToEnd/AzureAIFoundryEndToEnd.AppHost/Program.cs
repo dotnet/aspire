@@ -4,8 +4,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var chat = builder.AddAzureAIFoundry("foundry")
+    .RunAsFoundryLocal()
     // .AddDeployment("chat", "DeepSeek-R1", "1", "DeepSeek");
-    .AddDeployment("chat", "Phi-4-mini-instruct", "1", "Microsoft");
+    .AddDeployment("chat", "Phi-4", "1", "Microsoft");
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

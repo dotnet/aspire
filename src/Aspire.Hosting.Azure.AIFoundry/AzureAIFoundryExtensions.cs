@@ -134,9 +134,17 @@ public static class AzureAIFoundryExtensions
 
         var deployment = new AzureAIFoundryDeploymentResource(name, modelName, modelVersion, format, builder.Resource);
 
-        builder.Resource.AddDeployment(deployment);
+        if (builder.Resource.InnerResource is null)
+        {
+            builder.Resource.AddDeployment(deployment);
+            return builder.ApplicationBuilder.AddResource(deployment);
+        }
 
-        return builder.ApplicationBuilder.AddResource(deployment);
+        var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(builder.Resource.InnerResource);
+        var innerModel = innerBuilder.AddModel(name, modelName);
+        deployment.SetInnerResource(innerModel.Resource);
+
+        return builder.ApplicationBuilder.CreateResourceBuilder(deployment);
     }
 
     /// <summary>

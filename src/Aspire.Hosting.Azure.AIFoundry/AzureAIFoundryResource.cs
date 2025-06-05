@@ -42,4 +42,17 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
         ReferenceExpression.Create($"{ConnectionString};DeploymentId={deploymentName}");
+
+    internal AzureAIFoundryLocalResource? InnerResource { get; private set; }
+
+    internal void SetInnerResource(AzureAIFoundryLocalResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
 }

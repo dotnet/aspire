@@ -17,7 +17,7 @@ internal sealed class ModelHealthCheck(string model, FoundryLocalManager manager
 
         var loadedModels = await manager.ListLoadedModelsAsync(cancellationToken).ConfigureAwait(false);
 
-        if (!loadedModels.Any(lm => lm.Alias == model))
+        if (!loadedModels.Any(lm => lm.Alias.Equals(model, StringComparison.InvariantCultureIgnoreCase)))
         {
             return HealthCheckResult.Unhealthy("Model has not been loaded.");
         }

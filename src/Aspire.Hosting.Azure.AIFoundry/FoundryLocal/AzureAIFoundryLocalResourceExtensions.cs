@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.AIFoundry;
 using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -18,12 +19,15 @@ public static partial class AzureAIFoundryLocalResourceExtensions
     /// Adds an Azure AI Foundry local resource to the distributed application builder.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">The name of the resource.</param>
     /// <returns>A resource builder for the Azure AI Foundry local resource.</returns>
-    public static IResourceBuilder<AzureAIFoundryResource> RunAsFoundryLocal(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string? name)
+    public static IResourceBuilder<AzureAIFoundryResource> RunAsFoundryLocal(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
 
         if (builder.ApplicationBuilder.Resources.OfType<AzureAIFoundryLocalResource>().SingleOrDefault() is { } existingResource)
         {
@@ -33,18 +37,40 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
         builder.ApplicationBuilder.Services.AddSingleton<FoundryLocalManager>();
 
-        AzureAIFoundryLocalResource resource = new(name);
-        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+        builder.ApplicationBuilder.Resources.Remove(builder.Resource);
+
+        var name = builder.Resource.Name + "-local";
+        AzureAIFoundryLocalResource resource = new(name, builder.Resource);
+        var localBuilder = builder.ApplicationBuilder.AddResource(resource)
             .WithHttpEndpoint(env: "PORT", isProxied: false, port: 6914, name: AzureAIFoundryLocalResource.PrimaryEndpointName)
             .WithExternalHttpEndpoints()
-            .WithAIFoundryLocalDefaults()
+            //.WithAIFoundryLocalDefaults()
+            .WithInitialiser()
 
             // Ensure that when the DCP exits the Foundry Local service is stopped.
             .EnsureResourceStops();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>((@event, ct)
+        builder.Resource.SetInnerResource(resource);
+
+        var deployments = builder.ApplicationBuilder.Resources
+            .OfType<AzureAIFoundryDeploymentResource>()
+            .Where(r => r.Parent == builder.Resource);
+
+        foreach (var deployment in deployments)
+        {
+            builder.ApplicationBuilder.Resources.Remove(deployment);
+            localBuilder.AddModel(deployment.Name, deployment.ModelName);
+        }
+
+        return builder;
+    }
+
+    private static IResourceBuilder<AzureAIFoundryLocalResource> WithInitialiser(this IResourceBuilder<AzureAIFoundryLocalResource> builder)
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(builder.Resource, (@event, ct)
             => Task.Run(async () =>
             {
+                var resource = (AzureAIFoundryLocalResource)@event.Resource;
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
 
@@ -69,19 +95,30 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                     {
                         endpoint.AllocatedEndpoint = new AllocatedEndpoint(
                             new EndpointAnnotation(
-                                System.Net.Sockets.ProtocolType.Tcp, manager.Endpoint.Scheme, "http", "http", manager.Endpoint.Port, manager.Endpoint.Port, false, false), manager.Endpoint.ToString(), manager.Endpoint.Port);
+                                System.Net.Sockets.ProtocolType.Tcp,
+                                manager.Endpoint.Scheme,
+                                "http",
+                                "http",
+                                manager.Endpoint.Port,
+                                manager.Endpoint.Port,
+                                false,
+                                false),
+                            manager.Endpoint.ToString(),
+                            manager.Endpoint.Port);
                     }
 
                     await rns.PublishUpdateAsync(resource, state => state with
                     {
-                        State = KnownResourceStates.Running
+                        State = KnownResourceStates.Running,
+                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "Foundry Local")]
                     }).ConfigureAwait(false);
                 }
                 else
                 {
                     await rns.PublishUpdateAsync(resource, state => state with
                     {
-                        State = KnownResourceStates.Stopping
+                        State = KnownResourceStates.FailedToStart,
+                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "Foundry Local")]
                     }).ConfigureAwait(false);
                 }
 
@@ -178,9 +215,10 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                     }
                     else
                     {
+                        logger.LogInformation("Downloading model {model}: {progress.Percentage}%", model, progress.Percentage);
                         await rns.PublishUpdateAsync(modelResource, state => state with
                         {
-                            State = new ResourceStateSnapshot($"Downloading  model {model}: {progress.Percentage}%", KnownResourceStateStyles.Info)
+                            State = new ResourceStateSnapshot($"Downloading model {model}: {progress.Percentage}%", KnownResourceStateStyles.Info)
                         }).ConfigureAwait(false);
                     }
                 }
@@ -205,11 +243,11 @@ public static partial class AzureAIFoundryLocalResourceExtensions
             .WithHealthCheck(healthCheckKey);
     }
 
-    /// <summary>
-    /// Configures the resource builder with default settings for Azure AI Foundry local resources.
-    /// </summary>
-    /// <param name="resource">The resource builder for the Azure AI Foundry local resource.</param>
-    /// <returns>The updated resource builder.</returns>
-    private static IResourceBuilder<AzureAIFoundryLocalResource> WithAIFoundryLocalDefaults(this IResourceBuilder<AzureAIFoundryLocalResource> resource)
-        => resource.WithHttpHealthCheck("/openai/status");
+    ///// <summary>
+    ///// Configures the resource builder with default settings for Azure AI Foundry local resources.
+    ///// </summary>
+    ///// <param name="resource">The resource builder for the Azure AI Foundry local resource.</param>
+    ///// <returns>The updated resource builder.</returns>
+    //private static IResourceBuilder<AzureAIFoundryLocalResource> WithAIFoundryLocalDefaults(this IResourceBuilder<AzureAIFoundryLocalResource> resource)
+    //    => resource.WithHttpHealthCheck("/openai/status");
 }
