@@ -222,9 +222,6 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task ConfigDeleteNonExistentKey()
     {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
-
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
