@@ -28,38 +28,61 @@ internal static class CliTestHelper
 
         var services = new ServiceCollection();
 
-        // Build configuration similar to Program.cs but for testing
+        // Build configuration for testing
         var configBuilder = new ConfigurationBuilder();
         
-        // Find the nearest local settings file
-        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        FileInfo? localSettingsFile = null;
-
-        while (currentDirectory is not null)
+        // If explicit settings content is provided, use that instead of file discovery
+        if (!string.IsNullOrEmpty(options.LocalSettingsContent) || !string.IsNullOrEmpty(options.GlobalSettingsContent))
         {
-            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-
-            if (File.Exists(settingsFilePath))
+            // Add local settings first (if provided)
+            if (!string.IsNullOrEmpty(options.LocalSettingsContent))
             {
-                localSettingsFile = new FileInfo(settingsFilePath);
-                break;
+                var localBytes = Encoding.UTF8.GetBytes(options.LocalSettingsContent);
+                var localStream = new MemoryStream(localBytes);
+                configBuilder.AddJsonStream(localStream);
             }
 
-            currentDirectory = currentDirectory.Parent;
+            // Then add global settings (if provided) - this will override local settings
+            if (!string.IsNullOrEmpty(options.GlobalSettingsContent))
+            {
+                var globalBytes = Encoding.UTF8.GetBytes(options.GlobalSettingsContent);
+                var globalStream = new MemoryStream(globalBytes);
+                configBuilder.AddJsonStream(globalStream);
+            }
         }
-
-        // Add local settings first (if found)
-        if (localSettingsFile is not null)
+        else
         {
-            configBuilder.AddJsonFile(localSettingsFile.FullName, optional: true);
-        }
+            // Fallback to original file discovery behavior for backward compatibility
+            // Find the nearest local settings file
+            var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+            FileInfo? localSettingsFile = null;
 
-        // Then add global settings file (if it exists) - this will override local settings
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
-        if (File.Exists(globalSettingsPath))
-        {
-            configBuilder.AddJsonFile(globalSettingsPath, optional: true);
+            while (currentDirectory is not null)
+            {
+                var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+
+                if (File.Exists(settingsFilePath))
+                {
+                    localSettingsFile = new FileInfo(settingsFilePath);
+                    break;
+                }
+
+                currentDirectory = currentDirectory.Parent;
+            }
+
+            // Add local settings first (if found)
+            if (localSettingsFile is not null)
+            {
+                configBuilder.AddJsonFile(localSettingsFile.FullName, optional: true);
+            }
+
+            // Then add global settings file (if it exists) - this will override local settings
+            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+            if (File.Exists(globalSettingsPath))
+            {
+                configBuilder.AddJsonFile(globalSettingsPath, optional: true);
+            }
         }
         
         var configuration = configBuilder.Build();
@@ -95,6 +118,8 @@ internal static class CliTestHelper
 
 internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
 {
+    public string? LocalSettingsContent { get; set; }
+    public string? GlobalSettingsContent { get; set; }
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
