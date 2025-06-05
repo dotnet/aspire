@@ -38,7 +38,7 @@
 
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To then run tests, use a command similar to this `dotnet test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
 
 ## Quarantined tests
 
