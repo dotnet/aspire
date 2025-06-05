@@ -31,58 +31,20 @@ internal static class CliTestHelper
         // Build configuration for testing
         var configBuilder = new ConfigurationBuilder();
         
-        // If explicit settings content is provided, use that instead of file discovery
-        if (!string.IsNullOrEmpty(options.LocalSettingsContent) || !string.IsNullOrEmpty(options.GlobalSettingsContent))
+        // Add local settings first (if provided)
+        if (!string.IsNullOrEmpty(options.LocalSettingsContent))
         {
-            // Add local settings first (if provided)
-            if (!string.IsNullOrEmpty(options.LocalSettingsContent))
-            {
-                var localBytes = Encoding.UTF8.GetBytes(options.LocalSettingsContent);
-                var localStream = new MemoryStream(localBytes);
-                configBuilder.AddJsonStream(localStream);
-            }
-
-            // Then add global settings (if provided) - this will override local settings
-            if (!string.IsNullOrEmpty(options.GlobalSettingsContent))
-            {
-                var globalBytes = Encoding.UTF8.GetBytes(options.GlobalSettingsContent);
-                var globalStream = new MemoryStream(globalBytes);
-                configBuilder.AddJsonStream(globalStream);
-            }
+            var localBytes = Encoding.UTF8.GetBytes(options.LocalSettingsContent);
+            var localStream = new MemoryStream(localBytes);
+            configBuilder.AddJsonStream(localStream);
         }
-        else
+
+        // Then add global settings (if provided) - this will override local settings
+        if (!string.IsNullOrEmpty(options.GlobalSettingsContent))
         {
-            // Fallback to original file discovery behavior for backward compatibility
-            // Find the nearest local settings file
-            var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-            FileInfo? localSettingsFile = null;
-
-            while (currentDirectory is not null)
-            {
-                var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-
-                if (File.Exists(settingsFilePath))
-                {
-                    localSettingsFile = new FileInfo(settingsFilePath);
-                    break;
-                }
-
-                currentDirectory = currentDirectory.Parent;
-            }
-
-            // Add local settings first (if found)
-            if (localSettingsFile is not null)
-            {
-                configBuilder.AddJsonFile(localSettingsFile.FullName, optional: true);
-            }
-
-            // Then add global settings file (if it exists) - this will override local settings
-            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
-            if (File.Exists(globalSettingsPath))
-            {
-                configBuilder.AddJsonFile(globalSettingsPath, optional: true);
-            }
+            var globalBytes = Encoding.UTF8.GetBytes(options.GlobalSettingsContent);
+            var globalStream = new MemoryStream(globalBytes);
+            configBuilder.AddJsonStream(globalStream);
         }
         
         var configuration = configBuilder.Build();
