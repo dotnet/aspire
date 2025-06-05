@@ -23,9 +23,13 @@ internal sealed class ConfigCommand : BaseCommand
 
         var getCommand = new GetCommand(_configurationService, _interactionService);
         var setCommand = new SetCommand(_configurationService, _interactionService);
+        var listCommand = new ListCommand(_configurationService, _interactionService);
+        var deleteCommand = new DeleteCommand(_configurationService, _interactionService);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
+        Subcommands.Add(listCommand);
+        Subcommands.Add(deleteCommand);
     }
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -126,6 +130,87 @@ internal sealed class ConfigCommand : BaseCommand
             catch (Exception ex)
             {
                 _interactionService.DisplayError($"Error setting configuration: {ex.Message}");
+                return 1;
+            }
+        }
+    }
+
+    private sealed class ListCommand : BaseCommand
+    {
+        private readonly IConfigurationService _configurationService;
+        private readonly IInteractionService _interactionService;
+
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService)
+            : base("list", "List all configuration values.")
+        {
+            _configurationService = configurationService;
+            _interactionService = interactionService;
+        }
+
+        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            var allConfig = _configurationService.GetAllConfiguration();
+
+            if (allConfig.Count == 0)
+            {
+                _interactionService.DisplayMessage("ℹ️", "No configuration values found.");
+                return Task.FromResult(0);
+            }
+
+            foreach (var kvp in allConfig)
+            {
+                Console.WriteLine($"{kvp.Key}={kvp.Value}");
+            }
+
+            return Task.FromResult(0);
+        }
+    }
+
+    private sealed class DeleteCommand : BaseCommand
+    {
+        private readonly IConfigurationService _configurationService;
+        private readonly IInteractionService _interactionService;
+
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService)
+            : base("delete", "Delete a configuration value.")
+        {
+            _configurationService = configurationService;
+            _interactionService = interactionService;
+
+            var keyArgument = new Argument<string>("key")
+            {
+                Description = "The configuration key to delete."
+            };
+            Arguments.Add(keyArgument);
+        }
+
+        protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            var key = parseResult.GetValue<string>("key");
+            if (key is null)
+            {
+                _interactionService.DisplayError("Configuration key is required.");
+                return 1;
+            }
+
+            try
+            {
+                var deleted = await _configurationService.DeleteConfigurationAsync(key, cancellationToken);
+                
+                if (deleted)
+                {
+                    _interactionService.DisplaySuccess($"Configuration '{key}' deleted.");
+                    return 0;
+                }
+                else
+                {
+                    _interactionService.DisplayError($"Configuration key '{key}' not found.");
+                    return 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                _interactionService.DisplayError($"Error deleting configuration: {ex.Message}");
                 return 1;
             }
         }

@@ -18,7 +18,29 @@ internal sealed class ConfigurationService : IConfigurationService
 
     public string? GetConfiguration(string key)
     {
-        return _configuration[key];
+        var settingsFilePath = FindNearestSettingsFile();
+        
+        if (!File.Exists(settingsFilePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var content = File.ReadAllText(settingsFilePath);
+            var settings = JsonNode.Parse(content)?.AsObject();
+            
+            if (settings is null || !settings.TryGetPropertyValue(key, out var value))
+            {
+                return null;
+            }
+
+            return value?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task SetConfigurationAsync(string key, string value, CancellationToken cancellationToken = default)
@@ -51,6 +73,76 @@ internal sealed class ConfigurationService : IConfigurationService
         // Write the updated settings
         var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
+    }
+
+    public IReadOnlyDictionary<string, string> GetAllConfiguration()
+    {
+        var settingsFilePath = FindNearestSettingsFile();
+        
+        if (!File.Exists(settingsFilePath))
+        {
+            return new SortedDictionary<string, string>();
+        }
+
+        try
+        {
+            var content = File.ReadAllText(settingsFilePath);
+            var settings = JsonNode.Parse(content)?.AsObject();
+            
+            if (settings is null)
+            {
+                return new SortedDictionary<string, string>();
+            }
+
+            var result = new SortedDictionary<string, string>();
+            foreach (var kvp in settings)
+            {
+                if (kvp.Value is not null)
+                {
+                    result[kvp.Key] = kvp.Value.ToString();
+                }
+            }
+
+            return result;
+        }
+        catch
+        {
+            return new SortedDictionary<string, string>();
+        }
+    }
+
+    public async Task<bool> DeleteConfigurationAsync(string key, CancellationToken cancellationToken = default)
+    {
+        var settingsFilePath = FindNearestSettingsFile();
+        
+        if (!File.Exists(settingsFilePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var existingContent = await File.ReadAllTextAsync(settingsFilePath, cancellationToken);
+            var settings = JsonNode.Parse(existingContent)?.AsObject();
+            
+            if (settings is null || !settings.ContainsKey(key))
+            {
+                return false;
+            }
+
+            // Remove the key
+            settings.Remove(key);
+
+            // Write the updated settings
+            var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
+            await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
+            
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string FindNearestSettingsFile()

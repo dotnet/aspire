@@ -20,4 +20,18 @@ internal interface IConfigurationService
     /// <param name="value">The configuration value to set.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     Task SetConfigurationAsync(string key, string value, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all configuration key-value pairs from the nearest .aspire/settings.json file.
+    /// </summary>
+    /// <returns>A dictionary of configuration key-value pairs.</returns>
+    IReadOnlyDictionary<string, string> GetAllConfiguration();
+
+    /// <summary>
+    /// Deletes a configuration key from the nearest .aspire/settings.json file.
+    /// </summary>
+    /// <param name="key">The configuration key to delete.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>True if the key was found and deleted, false if the key was not found.</returns>
+    Task<bool> DeleteConfigurationAsync(string key, CancellationToken cancellationToken = default);
 }
