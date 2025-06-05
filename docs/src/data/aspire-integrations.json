@@ -8,7 +8,7 @@
       "aspire",
       "hosting"
     ],
-    "downloads": 3812501,
+    "downloads": 3860515,
     "version": "9.3.0"
   },
   {
@@ -26,7 +26,7 @@
       "caching",
       "redis"
     ],
-    "downloads": 977271,
+    "downloads": 987793,
     "version": "9.3.0"
   },
   {
@@ -53,7 +53,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 878585,
+    "downloads": 887994,
     "version": "9.3.0"
   },
   {
@@ -66,7 +66,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 928249,
+    "downloads": 938683,
     "version": "9.3.0"
   },
   {
@@ -91,7 +91,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 863274,
+    "downloads": 872803,
     "version": "9.3.0"
   },
   {
@@ -103,7 +103,7 @@
       "aspire",
       "testing"
     ],
-    "downloads": 796039,
+    "downloads": 806456,
     "version": "9.3.0"
   },
   {
@@ -117,7 +117,7 @@
       "hosting",
       "redis"
     ],
-    "downloads": 789452,
+    "downloads": 797577,
     "version": "9.3.0"
   },
   {
@@ -132,7 +132,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 725253,
+    "downloads": 734828,
     "version": "9.3.0"
   },
   {
@@ -144,10 +144,10 @@
       "aspire",
       "integration",
       "hosting",
-      "Node",
-      "Nodejs"
+      "node",
+      "nodejs"
     ],
-    "downloads": 692066,
+    "downloads": 699888,
     "version": "9.3.0"
   },
   {
@@ -164,7 +164,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 683316,
+    "downloads": 691337,
     "version": "9.3.0"
   },
   {
@@ -178,7 +178,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 527404,
+    "downloads": 534139,
     "version": "9.3.0"
   },
   {
@@ -197,7 +197,7 @@
       "blobs",
       "blob"
     ],
-    "downloads": 536576,
+    "downloads": 542813,
     "version": "9.3.0"
   },
   {
@@ -217,7 +217,7 @@
       "distributedcache",
       "redis"
     ],
-    "downloads": 435413,
+    "downloads": 441960,
     "version": "9.3.0"
   },
   {
@@ -231,7 +231,7 @@
       "hosting",
       "rabbitmq"
     ],
-    "downloads": 398177,
+    "downloads": 402333,
     "version": "9.3.0"
   },
   {
@@ -252,7 +252,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 366686,
+    "downloads": 370023,
     "version": "9.3.0"
   },
   {
@@ -271,7 +271,7 @@
       "rabbitmq",
       "amqp"
     ],
-    "downloads": 288698,
+    "downloads": 290537,
     "version": "9.3.0"
   },
   {
@@ -289,7 +289,7 @@
       "servicebus",
       "amqp"
     ],
-    "downloads": 227222,
+    "downloads": 229956,
     "version": "9.3.0"
   },
   {
@@ -310,7 +310,7 @@
       "outputcache",
       "redis"
     ],
-    "downloads": 235734,
+    "downloads": 237265,
     "version": "9.3.0"
   },
   {
@@ -328,7 +328,7 @@
       "keyvault",
       "secrets"
     ],
-    "downloads": 220355,
+    "downloads": 222634,
     "version": "9.3.0"
   },
   {
@@ -347,7 +347,7 @@
       "cognitive",
       "services"
     ],
-    "downloads": 187976,
+    "downloads": 189436,
     "version": "9.3.0"
   },
   {
@@ -368,7 +368,7 @@
       "database",
       "db"
     ],
-    "downloads": 168132,
+    "downloads": 169851,
     "version": "9.3.0"
   },
   {
@@ -382,7 +382,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 172705,
+    "downloads": 175748,
     "version": "9.3.0"
   },
   {
@@ -400,7 +400,7 @@
       "tables",
       "table"
     ],
-    "downloads": 149271,
+    "downloads": 150963,
     "version": "9.3.0"
   },
   {
@@ -414,7 +414,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 150521,
+    "downloads": 151609,
     "version": "9.3.0"
   },
   {
@@ -428,7 +428,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 151959,
+    "downloads": 153076,
     "version": "9.3.0"
   },
   {
@@ -442,7 +442,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 139104,
+    "downloads": 140735,
     "version": "9.3.0"
   },
   {
@@ -461,7 +461,7 @@
       "queue",
       "queues"
     ],
-    "downloads": 148255,
+    "downloads": 149712,
     "version": "9.3.0"
   },
   {
@@ -480,7 +480,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 144870,
+    "downloads": 146494,
     "version": "9.3.0"
   },
   {
@@ -495,7 +495,7 @@
       "azure",
       "servicebus"
     ],
-    "downloads": 125286,
+    "downloads": 126925,
     "version": "9.3.0"
   },
   {
@@ -507,9 +507,9 @@
       "aspire",
       "integration",
       "hosting",
-      "MongoDB"
+      "mongodb"
     ],
-    "downloads": 114350,
+    "downloads": 115703,
     "version": "9.3.0"
   },
   {
@@ -525,9 +525,9 @@
       "cloud",
       "data",
       "database",
-      "MongoDB"
+      "mongodb"
     ],
-    "downloads": 108337,
+    "downloads": 108906,
     "version": "9.3.0"
   },
   {
@@ -543,7 +543,7 @@
       "cloud",
       "kafka"
     ],
-    "downloads": 110430,
+    "downloads": 111976,
     "version": "9.3.0"
   },
   {
@@ -557,7 +557,7 @@
       "hosting",
       "orleans"
     ],
-    "downloads": 107120,
+    "downloads": 107545,
     "version": "9.3.0"
   },
   {
@@ -571,7 +571,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 99155,
+    "downloads": 100090,
     "version": "9.3.0"
   },
   {
@@ -585,9 +585,9 @@
       "client",
       "component",
       "cloud",
-      "Seq"
+      "seq"
     ],
-    "downloads": 101482,
+    "downloads": 102491,
     "version": "9.3.0"
   },
   {
@@ -601,7 +601,7 @@
       "hosting",
       "kafka"
     ],
-    "downloads": 97055,
+    "downloads": 98646,
     "version": "9.3.0"
   },
   {
@@ -615,7 +615,7 @@
       "hosting",
       "aws"
     ],
-    "downloads": 73696,
+    "downloads": 74409,
     "version": "9.2.2"
   },
   {
@@ -629,7 +629,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 70320,
+    "downloads": 71342,
     "version": "9.3.0"
   },
   {
@@ -643,7 +643,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 70961,
+    "downloads": 71711,
     "version": "9.3.0"
   },
   {
@@ -661,7 +661,7 @@
       "eventhubs",
       "amqp"
     ],
-    "downloads": 59114,
+    "downloads": 59850,
     "version": "9.3.0"
   },
   {
@@ -675,7 +675,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 56601,
+    "downloads": 57520,
     "version": "9.3.0"
   },
   {
@@ -687,9 +687,9 @@
       "aspire",
       "integration",
       "hosting",
-      "MySQL"
+      "mysql"
     ],
-    "downloads": 54714,
+    "downloads": 55167,
     "version": "9.3.0"
   },
   {
@@ -703,7 +703,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 54436,
+    "downloads": 54974,
     "version": "9.3.0"
   },
   {
@@ -720,7 +720,7 @@
       "azure",
       "search"
     ],
-    "downloads": 53541,
+    "downloads": 54493,
     "version": "9.3.0"
   },
   {
@@ -746,7 +746,7 @@
       "cosmos",
       "cosmosdb"
     ],
-    "downloads": 49384,
+    "downloads": 49743,
     "version": "9.3.0"
   },
   {
@@ -760,7 +760,7 @@
       "hosting",
       "python"
     ],
-    "downloads": 46243,
+    "downloads": 46616,
     "version": "9.3.0"
   },
   {
@@ -774,7 +774,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 45852,
+    "downloads": 46603,
     "version": "9.3.0"
   },
   {
@@ -786,9 +786,9 @@
       "aspire",
       "integration",
       "hosting",
-      "Seq"
+      "seq"
     ],
-    "downloads": 44190,
+    "downloads": 44679,
     "version": "9.3.0"
   },
   {
@@ -802,7 +802,22 @@
       "hosting",
       "qdrant"
     ],
-    "downloads": 34868,
+    "downloads": 35104,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.EventHubs",
+    "description": "Azure Event Hubs resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.eventhubs/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.EventHubs",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure",
+      "eventhubs"
+    ],
+    "downloads": 35837,
     "version": "9.3.0"
   },
   {
@@ -822,22 +837,7 @@
       "mysql",
       "sql"
     ],
-    "downloads": 32620,
-    "version": "9.3.0"
-  },
-  {
-    "title": "Aspire.Hosting.Azure.EventHubs",
-    "description": "Azure Event Hubs resource types for .NET Aspire.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.eventhubs/9.3.0/icon",
-    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.EventHubs",
-    "tags": [
-      "aspire",
-      "integration",
-      "hosting",
-      "azure",
-      "eventhubs"
-    ],
-    "downloads": 35345,
+    "downloads": 32713,
     "version": "9.3.0"
   },
   {
@@ -863,7 +863,7 @@
       "mysql",
       "sql"
     ],
-    "downloads": 34434,
+    "downloads": 34846,
     "version": "9.3.0"
   },
   {
@@ -888,7 +888,7 @@
       "oracle",
       "sql"
     ],
-    "downloads": 31037,
+    "downloads": 31194,
     "version": "9.3.0"
   },
   {
@@ -902,7 +902,7 @@
       "hosting",
       "valkey"
     ],
-    "downloads": 26567,
+    "downloads": 27327,
     "version": "9.3.0"
   },
   {
@@ -916,7 +916,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 27333,
+    "downloads": 27609,
     "version": "9.3.0"
   },
   {
@@ -935,7 +935,7 @@
       "rabbitmq",
       "amqp"
     ],
-    "downloads": 19291,
+    "downloads": 20477,
     "version": "9.3.0"
   },
   {
@@ -949,7 +949,7 @@
       "hosting",
       "garnet"
     ],
-    "downloads": 20085,
+    "downloads": 20107,
     "version": "9.3.0"
   },
   {
@@ -965,7 +965,7 @@
       "cloud",
       "qdrant"
     ],
-    "downloads": 18411,
+    "downloads": 18637,
     "version": "9.3.0"
   },
   {
@@ -982,7 +982,7 @@
       "nats",
       "messaging"
     ],
-    "downloads": 17706,
+    "downloads": 17934,
     "version": "9.3.0"
   },
   {
@@ -1001,7 +1001,7 @@
       "websocket",
       "pubsub"
     ],
-    "downloads": 12112,
+    "downloads": 12221,
     "version": "9.3.0"
   },
   {
@@ -1013,9 +1013,9 @@
       "aspire",
       "integration",
       "hosting",
-      "NATS"
+      "nats"
     ],
-    "downloads": 12244,
+    "downloads": 12302,
     "version": "9.3.0"
   },
   {
@@ -1030,7 +1030,7 @@
       "oracle",
       "sql"
     ],
-    "downloads": 10457,
+    "downloads": 10535,
     "version": "9.3.0"
   },
   {
@@ -1046,9 +1046,9 @@
       "cloud",
       "data",
       "database",
-      "MongoDB"
+      "mongodb"
     ],
-    "downloads": 9868,
+    "downloads": 10231,
     "version": "9.3.0"
   },
   {
@@ -1065,7 +1065,7 @@
       "pubsub",
       "websocket"
     ],
-    "downloads": 8213,
+    "downloads": 8290,
     "version": "9.3.0"
   },
   {
@@ -1092,7 +1092,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 4725,
+    "downloads": 5082,
     "version": "9.3.0"
   },
   {
@@ -1112,7 +1112,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 3989,
+    "downloads": 4213,
     "version": "9.3.0"
   },
   {
@@ -1129,7 +1129,7 @@
       "vector",
       "search"
     ],
-    "downloads": 2730,
+    "downloads": 2738,
     "version": "9.3.0"
   }
 ]

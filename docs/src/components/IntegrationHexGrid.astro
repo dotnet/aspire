@@ -1,15 +1,4 @@
 ---
-// const imageModules = import.meta.glob("../assets/icons/*.png", { eager: true });
-
-// const icons = Object.entries(imageModules).map(([path, mod]) => {
-//   const imageName = path.split("/").pop() || "icon.png";
-
-//   return {
-//     src: mod?.default || path,
-//     alt: imageName
-//   };
-// });
-
 import awsIcon from "../assets/icons/aws-icon.png";
 import azureIcon from "../assets/icons/azure-icon.png";
 import azureAppconfigIcon from "../assets/icons/azure-appconfig-icon.png";
@@ -111,7 +100,7 @@ const randomizedIcons = icons.sort(() => Math.random() - 0.5);
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
-    background: var(--sl-color-backdrop-overlay);
+    background: var(--sl-color-bg-nav);
     border-radius: 0.5rem;
     transition:
       transform 0.3s ease,

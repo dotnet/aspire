@@ -12,10 +12,22 @@ function formatDownloads(n?: number) {
     return n.toString();
 }
 
+interface Props {
+    pkg: {
+        title: string;
+        href: string;
+        icon?: string;
+        description: string;
+        downloads?: number;
+        version?: string;
+        tags?: string[];
+    };
+}
+
 const { pkg } = Astro.props;
 ---
 
-<article class="card">
+<article class="card" data-tags={pkg.tags.join(',')} data-title={pkg.title.toLowerCase()}>
     <div class="card-header">
         {pkg.icon && <img class="icon" src={pkg.icon} alt={`Icon for ${pkg.title} integration`} loading="lazy" />}
         <span class="title" set:html={pkg.title} />

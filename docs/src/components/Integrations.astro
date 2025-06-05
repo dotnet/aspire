@@ -22,28 +22,52 @@ type Integrations = Integration[];
 
 // Group integrations by tag
 const hostingIntegrations = integrations
-    .filter((pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"))
+    .filter(
+        (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
+    )
     .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
-
-const hostingTags = Array.from(new Set(hostingIntegrations.flatMap((pkg) => pkg.tags || []))).sort();
 
 const clientIntegrations = integrations
     .filter((pkg) => pkg.tags?.includes("client"))
     .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
 
-const clientTags = Array.from(new Set(clientIntegrations.flatMap((pkg) => pkg.tags || []))).sort();
+const tagCounts = new Map<string, number>();
+for (const pkg of integrations) {
+    for (const tag of pkg.tags ?? []) {
+        if (tag === "aspire") continue; // Ignore the 'aspire' tag
+        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+}
+
+const allTags = Array.from(tagCounts.entries())
+    .sort((a, b) => b[1] - a[1]) // Sort by count descending
+    .map(([tag, count]) => ({ tag, count }));
 ---
+
+<div class="sl-mb-4 sl-flex sl-items-center sl-gap-2">
+    <input
+        id="searchBox"
+        autocomplete="off"
+        type="text"
+        class="filter"
+        placeholder="Search integrations..."
+    />
+</div>
+
+<!-- 
+<div id="tagFilters" class="sl-mb-4 sl-flex sl-gap-2 sl-flex-wrap">
+    {
+        allTags.map(({ tag, count }) => (
+            <button type="button" class="tag badge" data-tag={tag}>
+                {tag} ({count})
+            </button>
+        ))
+    }
+    <button type="button" id="clearFilters" class="tag clear">Clear</button>
+</div> -->
 
 {
     hostingIntegrations.length > 0 && (
-
-        // <input id="searchBox" type="text" class="filter" placeholder="Search integrations..." />
-        // <div id="tagFilters">
-        //     {hostingTags.map(tag => (
-        //         <button type="button" class="badge tag" data-tag={tag}>{tag}</button>
-        //     ))}
-        // </div>
-
         <section>
             <h2>Hosting Integrations</h2>
             <CardGrid>
@@ -51,6 +75,14 @@ const clientTags = Array.from(new Set(clientIntegrations.flatMap((pkg) => pkg.ta
                     <IntegrationCard pkg={pkg} />
                 ))}
             </CardGrid>
+
+            <p
+                id="noResults"
+                class="sl-text-center sl-mt-6"
+                style="display: none;"
+            >
+                😕 No hosting integrations matched your filters.
+            </p>
         </section>
     )
 }
@@ -70,13 +102,119 @@ const clientTags = Array.from(new Set(clientIntegrations.flatMap((pkg) => pkg.ta
 
 <style>
     input.filter {
-        border: 1px solid var(--sl-color-gray-5);
-        border-radius: 0.5rem;
         padding-inline-start: 0.75rem;
         padding-inline-end: 0.5rem;
         background-color: var(--sl-color-black);
         color: var(--sl-color-gray-2);
         font-size: var(--sl-text);
         width: 100%;
+        height: 2.5rem;
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: 0.5rem;
+        font-size: calc(21px * var(--pagefind-ui-scale));
+        position: relative;
+        display: flex;
+        box-sizing: border-box;
     }
 </style>
+
+<script type="module" is:inline>
+    const searchBox = document.getElementById("searchBox");
+    const cards = document.querySelectorAll(".card");
+
+    let activeTags = new Set();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    //const initialTags = urlParams.get("tags")?.split(",").filter(Boolean) || [];
+    const initialSearch = urlParams.get("search") || "";
+
+    if (initialSearch) {
+        searchBox.value = initialSearch;
+    }
+
+    // initialTags.forEach((tag) => {
+    //     const btn = document.querySelector(`.tag[data-tag="${tag}"]`);
+    //     if (btn) {
+    //         activeTags.add(tag);
+    //         btn.classList.add("active");
+    //     }
+    // });
+
+    function updateURL() {
+        const params = new URLSearchParams();
+        if (activeTags.size > 0) params.set("tags", [...activeTags].join(","));
+        if (searchBox.value.trim())
+            params.set("search", searchBox.value.trim());
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        history.pushState({}, "", newUrl);
+    }
+
+    function filterCards(updateUrl = true) {
+        const searchTerm = searchBox.value.toLowerCase();
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+            const cardTags = card.dataset.tags.split(",");
+            const cardTitle = card.dataset.title;
+            const matchesTags = [...activeTags].every((tag) =>
+                cardTags.includes(tag),
+            );
+            const matchesSearch = cardTitle.includes(searchTerm);
+            const visible = matchesTags && matchesSearch;
+            card.style.display = visible ? "" : "none";
+            if (visible) visibleCount++;
+        });
+
+        const noResults = document.getElementById("noResults");
+        noResults.style.display = visibleCount === 0 ? "block" : "none";
+
+        if (updateUrl) updateURL();
+    }
+
+    // tagButtons.forEach((btn) => {
+    //     btn.addEventListener("click", () => {
+    //         const tag = btn.dataset.tag;
+    //         if (activeTags.has(tag)) {
+    //             activeTags.delete(tag);
+    //             btn.classList.remove("active");
+    //         } else {
+    //             activeTags.add(tag);
+    //             btn.classList.add("active");
+    //         }
+    //         filterCards();
+    //     });
+    // });
+
+    // clearButton.addEventListener("click", () => {
+    //     activeTags.clear();
+    //     tagButtons.forEach((btn) => btn.classList.remove("active"));
+    //     searchBox.value = "";
+    //     filterCards();
+    // });
+
+    searchBox.addEventListener("input", () => {
+        filterCards();
+    });
+
+    window.addEventListener("popstate", () => {
+        //activeTags.clear();
+        tagButtons.forEach((btn) => btn.classList.remove("active"));
+
+        const urlParams = new URLSearchParams(window.location.search);
+        //const tags = urlParams.get("tags")?.split(",").filter(Boolean) || [];
+        const search = urlParams.get("search") || "";
+
+        // tags.forEach((tag) => {
+        //     const btn = document.querySelector(`.tag[data-tag="${tag}"]`);
+        //     if (btn) {
+        //         activeTags.add(tag);
+        //         btn.classList.add("active");
+        //     }
+        // });
+
+        searchBox.value = search;
+        filterCards(false);
+    });
+
+    filterCards(); // Initial render
+</script>
