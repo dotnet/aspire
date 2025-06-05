@@ -337,4 +337,41 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task ConfigSetThenAppHostPathPreservesExistingConfig()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        
+        // First, set some configuration value (simulating user doing `aspire config set foo bar`)
+        await configWriter.SetConfigurationAsync("foo", "bar");
+        
+        // Then simulate what happens when aspire run finds an apphost and sets the appHostPath
+        await configWriter.SetConfigurationAsync("appHostPath", "./TestProject.AppHost.csproj");
+        
+        // Verify both values are preserved by rebuilding service provider
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        var configuration = provider.GetRequiredService<IConfiguration>();
+        
+        // Both values should be present
+        Assert.Equal("bar", configuration["foo"]);
+        Assert.Equal("./TestProject.AppHost.csproj", configuration["appHostPath"]);
+        
+        // Also verify the raw file content contains both values
+        var settingsPath = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        Assert.True(File.Exists(settingsPath));
+        
+        var fileContent = await File.ReadAllTextAsync(settingsPath);
+        Assert.Contains("\"foo\"", fileContent);
+        Assert.Contains("\"bar\"", fileContent);
+        Assert.Contains("\"appHostPath\"", fileContent);
+        Assert.Contains("./TestProject.AppHost.csproj", fileContent);
+    }
 }

@@ -117,7 +117,10 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()), interactionService);
+        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
+        // Use temp directory for tests to avoid issues with current directory
+        var testDirectory = new DirectoryInfo(Path.GetTempPath());
+        return new ProjectLocator(logger, runner, testDirectory, interactionService, configurationWriter);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {

@@ -177,7 +177,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService);
+        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationWriter);
     }
 
     public static async Task<int> Main(string[] args)
