@@ -22,6 +22,11 @@
 * Always use `is null` or `is not null` instead of `== null` or `!= null`.
 * Trust the C# null annotations and don't add null checks when the type system says a value cannot be null.
 
+### Building
+
+* Follow the instructions in the repo to build.
+* If temporarily introducing warnings during a refactoring, you can add the flag `/p:TreatWarningsAsErrors=false` to your build command to prevent the build from failing. However before you finish your work, you must strive to fix any warnings as well.
+
 ### Testing
 
 * We use xUnit SDK v3 with Microsoft.Testing.Platform (https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro)
@@ -33,7 +38,7 @@
 
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To then run tests, use a command similar to this `dotnet test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
 
 ## Quarantined tests
 
