@@ -67,12 +67,9 @@ public class DockerComposeTests(ITestOutputHelper output)
         app.Run();
 
         var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
-        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
 
-        var composeContent = File.ReadAllText(composeFile);
+        await VerifyFile(composeFile);
 
-        await Verify(composeContent, "yaml");
-        
         tempDir.Delete(recursive: true);
     }
 

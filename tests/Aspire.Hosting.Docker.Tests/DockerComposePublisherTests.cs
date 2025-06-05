@@ -154,9 +154,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        await Verify(File.ReadAllText(composePath), "yaml");
+        await VerifyFile(composePath);
     }
 
     [Theory]
@@ -331,11 +330,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        var composeFile = File.ReadAllText(composePath);
-
-        await Verify(composeFile);
+        await VerifyFile(composePath);
     }
 
     [Fact]
@@ -357,11 +353,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        var composeContent = File.ReadAllText(composePath);
-
-        await Verify(composeContent, "yaml");
+        await VerifyFile(composePath);
     }
 
     [Fact]
@@ -383,11 +376,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        var composeContent = File.ReadAllText(composePath);
-
-        await Verify(composeContent, "yaml");
+        await VerifyFile(composePath);
     }
 
     [Fact]
@@ -411,11 +401,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        var composeContent = File.ReadAllText(composePath);
-
-        await Verify(composeContent, "yaml");
+        await VerifyFile(composePath);
     }
 
     [Fact]
@@ -443,11 +430,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         app.Run();
 
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
 
-        var composeContent = File.ReadAllText(composePath);
-
-        await Verify(composeContent, "yaml");
+        await VerifyFile(composePath);
     }
 
     [Fact]

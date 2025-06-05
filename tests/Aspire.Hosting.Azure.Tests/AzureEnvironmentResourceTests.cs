@@ -69,10 +69,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         app.Run();
 
         var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.True(File.Exists(mainBicepPath));
-        var mainBicep = File.ReadAllText(mainBicepPath);
 
-        await Verify(mainBicep, "bicep");            
+        await VerifyFile(mainBicepPath);
 
         tempDir.Delete(recursive: true);
     }
@@ -121,10 +119,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         app.Run();
 
         var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.True(File.Exists(mainBicepPath));
-        var content = File.ReadAllText(mainBicepPath);
 
-        await Verify(content, extension: "bicep");
+        await VerifyFile(mainBicepPath);
     }
 
     [Fact]
