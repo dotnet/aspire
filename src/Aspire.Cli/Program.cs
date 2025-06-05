@@ -41,6 +41,16 @@ public class Program
     private static void SetupAppHostOptions(HostApplicationBuilder builder)
     {
         var settingsFiles = new List<FileInfo>();
+        
+        // First, add global settings file if it exists
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        if (File.Exists(globalSettingsPath))
+        {
+            settingsFiles.Add(new FileInfo(globalSettingsPath));
+        }
+        
+        // Then walk up the directory tree for local settings files
         var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
 
         while (true)
@@ -61,10 +71,11 @@ public class Program
             currentDirectory = currentDirectory.Parent;
         }
 
-        settingsFiles.Reverse();
+        // Add configuration sources in order: global first, then from root to leaf
+        // This gives local settings precedence over global settings
         foreach (var settingsFile in settingsFiles)
         {
-            builder.Configuration.AddJsonFile(settingsFile.FullName);
+            builder.Configuration.AddJsonFile(settingsFile.FullName, optional: true);
         }
     }
 
@@ -124,7 +135,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
-        builder.Services.AddSingleton<IConfigurationService, ConfigurationService>();
+        builder.Services.AddSingleton<IConfigurationWriter, ConfigurationWriter>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();

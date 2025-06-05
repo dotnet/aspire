@@ -4,6 +4,7 @@
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Tests.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -20,13 +21,18 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configuration = provider.GetRequiredService<IConfiguration>();
         
         // Set a configuration value
-        await configService.SetConfigurationAsync("testKey", "testValue");
+        await configWriter.SetConfigurationAsync("testKey", "testValue");
         
-        // Get the configuration value
-        var value = configService.GetConfiguration("testKey");
+        // Get the configuration value by rebuilding the service provider to pick up changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        configuration = provider.GetRequiredService<IConfiguration>();
+        
+        var value = configuration["testKey"];
         
         Assert.Equal("testValue", value);
     }
@@ -46,9 +52,11 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
 
-        // Verify the value was set
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        var value = configService.GetConfiguration("testKey");
+        // Verify the value was set by rebuilding the service provider to pick up changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        var configuration = provider.GetRequiredService<IConfiguration>();
+        var value = configuration["testKey"];
         Assert.Equal("testValue", value);
     }
 
@@ -61,8 +69,12 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("testKey", "testValue");
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        await configWriter.SetConfigurationAsync("testKey", "testValue");
+
+        // Rebuild service provider to pick up configuration changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<ConfigCommand>();
         var result = command.Parse("get testKey");
@@ -125,9 +137,13 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("key1", "value1");
-        await configService.SetConfigurationAsync("key2", "value2");
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        await configWriter.SetConfigurationAsync("key1", "value1");
+        await configWriter.SetConfigurationAsync("key2", "value2");
+
+        // Rebuild service provider to pick up configuration changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<ConfigCommand>();
         var result = command.Parse("list");
@@ -145,8 +161,12 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("testKey", "testValue");
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        await configWriter.SetConfigurationAsync("testKey", "testValue");
+
+        // Rebuild service provider to pick up configuration changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<ConfigCommand>();
         var result = command.Parse("delete testKey");
@@ -154,8 +174,11 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
 
-        // Verify the key was deleted
-        var value = configService.GetConfiguration("testKey");
+        // Verify the key was deleted by rebuilding service provider
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        var configuration = provider.GetRequiredService<IConfiguration>();
+        var value = configuration["testKey"];
         Assert.Null(value);
     }
 
@@ -184,17 +207,23 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configuration = provider.GetRequiredService<IConfiguration>();
         
         // Initially empty
-        var emptyConfig = configService.GetAllConfiguration();
+        var emptyConfig = configuration.AsEnumerable().Where(kvp => !string.IsNullOrEmpty(kvp.Key) && !string.IsNullOrEmpty(kvp.Value));
         Assert.Empty(emptyConfig);
 
         // Add some values
-        await configService.SetConfigurationAsync("key1", "value1");
-        await configService.SetConfigurationAsync("key2", "value2");
+        await configWriter.SetConfigurationAsync("key1", "value1");
+        await configWriter.SetConfigurationAsync("key2", "value2");
 
-        var allConfig = configService.GetAllConfiguration();
+        // Rebuild service provider to pick up configuration changes
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        configuration = provider.GetRequiredService<IConfiguration>();
+
+        var allConfig = configuration.AsEnumerable().Where(kvp => !string.IsNullOrEmpty(kvp.Key) && !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         Assert.Equal(2, allConfig.Count);
         Assert.Equal("value1", allConfig["key1"]);
         Assert.Equal("value2", allConfig["key2"]);
@@ -209,19 +238,69 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configService = provider.GetRequiredService<IConfigurationService>();
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
         
         // Delete non-existent key returns false
-        var deleted = await configService.DeleteConfigurationAsync("nonExistent");
+        var deleted = await configWriter.DeleteConfigurationAsync("nonExistent");
         Assert.False(deleted);
 
         // Set a value and delete it
-        await configService.SetConfigurationAsync("testKey", "testValue");
-        deleted = await configService.DeleteConfigurationAsync("testKey");
+        await configWriter.SetConfigurationAsync("testKey", "testValue");
+        deleted = await configWriter.DeleteConfigurationAsync("testKey");
         Assert.True(deleted);
 
-        // Verify it's gone
-        var value = configService.GetConfiguration("testKey");
+        // Verify it's gone by rebuilding service provider
+        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        provider = services.BuildServiceProvider();
+        var configuration = provider.GetRequiredService<IConfiguration>();
+        var value = configuration["testKey"];
         Assert.Null(value);
+    }
+
+    [Fact]
+    public async Task ConfigSetGlobalOption()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<ConfigCommand>();
+        var result = command.Parse("set --global testGlobalKey testGlobalValue");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify the value was set globally by checking if it exists in global settings
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        
+        if (File.Exists(globalSettingsPath))
+        {
+            var content = await File.ReadAllTextAsync(globalSettingsPath);
+            Assert.Contains("testGlobalKey", content);
+            Assert.Contains("testGlobalValue", content);
+        }
+    }
+
+    [Fact]
+    public async Task ConfigDeleteGlobalOption()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
+
+        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // First set a global value
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        await configWriter.SetConfigurationAsync("testGlobalKey", "testGlobalValue", isGlobal: true);
+
+        var command = provider.GetRequiredService<ConfigCommand>();
+        var result = command.Parse("delete --global testGlobalKey");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
     }
 }

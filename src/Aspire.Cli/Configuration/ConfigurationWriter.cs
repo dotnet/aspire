@@ -3,49 +3,14 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationService : IConfigurationService
+internal sealed class ConfigurationWriter : IConfigurationWriter
 {
-    private readonly IConfiguration _configuration;
-
-    public ConfigurationService(IConfiguration configuration)
+    public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
-        _configuration = configuration;
-    }
-
-    public string? GetConfiguration(string key)
-    {
-        var settingsFilePath = FindNearestSettingsFile();
-        
-        if (!File.Exists(settingsFilePath))
-        {
-            return null;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(settingsFilePath);
-            var settings = JsonNode.Parse(content)?.AsObject();
-            
-            if (settings is null || !settings.TryGetPropertyValue(key, out var value))
-            {
-                return null;
-            }
-
-            return value?.ToString();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task SetConfigurationAsync(string key, string value, CancellationToken cancellationToken = default)
-    {
-        var settingsFilePath = FindNearestSettingsFile();
+        var settingsFilePath = GetSettingsFilePath(isGlobal);
         
         JsonObject settings;
         
@@ -75,45 +40,9 @@ internal sealed class ConfigurationService : IConfigurationService
         await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
     }
 
-    public IReadOnlyDictionary<string, string> GetAllConfiguration()
+    public async Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
-        var settingsFilePath = FindNearestSettingsFile();
-        
-        if (!File.Exists(settingsFilePath))
-        {
-            return new SortedDictionary<string, string>();
-        }
-
-        try
-        {
-            var content = File.ReadAllText(settingsFilePath);
-            var settings = JsonNode.Parse(content)?.AsObject();
-            
-            if (settings is null)
-            {
-                return new SortedDictionary<string, string>();
-            }
-
-            var result = new SortedDictionary<string, string>();
-            foreach (var kvp in settings)
-            {
-                if (kvp.Value is not null)
-                {
-                    result[kvp.Key] = kvp.Value.ToString();
-                }
-            }
-
-            return result;
-        }
-        catch
-        {
-            return new SortedDictionary<string, string>();
-        }
-    }
-
-    public async Task<bool> DeleteConfigurationAsync(string key, CancellationToken cancellationToken = default)
-    {
-        var settingsFilePath = FindNearestSettingsFile();
+        var settingsFilePath = GetSettingsFilePath(isGlobal);
         
         if (!File.Exists(settingsFilePath))
         {
@@ -142,6 +71,19 @@ internal sealed class ConfigurationService : IConfigurationService
         catch
         {
             return false;
+        }
+    }
+
+    private static string GetSettingsFilePath(bool isGlobal)
+    {
+        if (isGlobal)
+        {
+            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return Path.Combine(homeDirectory, ".aspire", "settings.json");
+        }
+        else
+        {
+            return FindNearestSettingsFile();
         }
     }
 

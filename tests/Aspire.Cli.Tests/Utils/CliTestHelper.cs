@@ -28,14 +28,46 @@ internal static class CliTestHelper
 
         var services = new ServiceCollection();
 
-        var configuration = new ConfigurationBuilder().Build();
+        // Build configuration similar to Program.cs but for testing
+        var configBuilder = new ConfigurationBuilder();
+        
+        // Add global settings if exists
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        if (File.Exists(globalSettingsPath))
+        {
+            configBuilder.AddJsonFile(globalSettingsPath, optional: true);
+        }
+        
+        // Add local settings files by walking up directory tree
+        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        var settingsFiles = new List<FileInfo>();
+        
+        while (currentDirectory is not null)
+        {
+            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+            if (File.Exists(settingsFilePath))
+            {
+                settingsFiles.Add(new FileInfo(settingsFilePath));
+            }
+            currentDirectory = currentDirectory.Parent;
+        }
+        
+        // Add in reverse order so closer files take precedence
+        settingsFiles.Reverse();
+        foreach (var settingsFile in settingsFiles)
+        {
+            configBuilder.AddJsonFile(settingsFile.FullName, optional: true);
+        }
+        
+        var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
 
         services.AddLogging();
 
         services.AddMemoryCache();
 
-        services.AddSingleton<IConfigurationService, ConfigurationService>();
+        services.AddSingleton<IConfigurationWriter, ConfigurationWriter>();
 
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
