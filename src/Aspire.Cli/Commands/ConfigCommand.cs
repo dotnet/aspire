@@ -3,26 +3,26 @@
 
 using System.CommandLine;
 using Aspire.Cli.Configuration;
-using Spectre.Console;
+using Aspire.Cli.Interaction;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfigurationService _configurationService;
-    private readonly IAnsiConsole _ansiConsole;
+    private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfigurationService configurationService, IAnsiConsole ansiConsole)
+    public ConfigCommand(IConfigurationService configurationService, IInteractionService interactionService)
         : base("config", "Manage configuration settings.")
     {
         ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(interactionService);
 
         _configurationService = configurationService;
-        _ansiConsole = ansiConsole;
+        _interactionService = interactionService;
 
-        var getCommand = new GetCommand(_configurationService, _ansiConsole);
-        var setCommand = new SetCommand(_configurationService, _ansiConsole);
+        var getCommand = new GetCommand(_configurationService, _interactionService);
+        var setCommand = new SetCommand(_configurationService, _interactionService);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -30,21 +30,20 @@ internal sealed class ConfigCommand : BaseCommand
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // If no subcommand is provided, show help
-        _ansiConsole.WriteLine("Use 'aspire config --help' to see available commands.");
-        return Task.FromResult(1);
+        // When no subcommand is provided, the system will automatically show help and return 0
+        return Task.FromResult(0);
     }
 
     private sealed class GetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IAnsiConsole _ansiConsole;
+        private readonly IInteractionService _interactionService;
 
-        public GetCommand(IConfigurationService configurationService, IAnsiConsole ansiConsole)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("get", "Get a configuration value.")
         {
             _configurationService = configurationService;
-            _ansiConsole = ansiConsole;
+            _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -58,7 +57,7 @@ internal sealed class ConfigCommand : BaseCommand
             var key = parseResult.GetValue<string>("key");
             if (key is null)
             {
-                _ansiConsole.WriteLine("Configuration key is required.");
+                _interactionService.DisplayError("Configuration key is required.");
                 return Task.FromResult(1);
             }
 
@@ -66,12 +65,12 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (value is not null)
             {
-                _ansiConsole.WriteLine(value);
+                Console.WriteLine(value);
                 return Task.FromResult(0);
             }
             else
             {
-                _ansiConsole.WriteLine($"Configuration key '{key}' not found.");
+                _interactionService.DisplayError($"Configuration key '{key}' not found.");
                 return Task.FromResult(1);
             }
         }
@@ -80,13 +79,13 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class SetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IAnsiConsole _ansiConsole;
+        private readonly IInteractionService _interactionService;
 
-        public SetCommand(IConfigurationService configurationService, IAnsiConsole ansiConsole)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("set", "Set a configuration value.")
         {
             _configurationService = configurationService;
-            _ansiConsole = ansiConsole;
+            _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -108,25 +107,25 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (key is null)
             {
-                _ansiConsole.WriteLine("Configuration key is required.");
+                _interactionService.DisplayError("Configuration key is required.");
                 return 1;
             }
 
             if (value is null)
             {
-                _ansiConsole.WriteLine("Configuration value is required.");
+                _interactionService.DisplayError("Configuration value is required.");
                 return 1;
             }
 
             try
             {
                 await _configurationService.SetConfigurationAsync(key, value, cancellationToken);
-                _ansiConsole.WriteLine($"Configuration '{key}' set to '{value}'.");
+                _interactionService.DisplaySuccess($"Configuration '{key}' set to '{value}'.");
                 return 0;
             }
             catch (Exception ex)
             {
-                _ansiConsole.WriteLine($"Error setting configuration: {ex.Message}");
+                _interactionService.DisplayError($"Error setting configuration: {ex.Message}");
                 return 1;
             }
         }
