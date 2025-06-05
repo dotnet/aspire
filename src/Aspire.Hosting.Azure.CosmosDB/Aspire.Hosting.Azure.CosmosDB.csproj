@@ -23,6 +23,7 @@
     <PackageReference Include="Newtonsoft.Json" /> <!-- Required by Microsoft.Azure.Cosmos -->
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
+    <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
   <ItemGroup>

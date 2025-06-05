@@ -14,6 +14,8 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Polly;
 
 namespace Aspire.Hosting;
 
@@ -101,6 +103,8 @@ public static class AzureCosmosExtensions
             cosmosClient = CreateCosmosClient(connectionString);
         });
 
+        var creationState = HealthCheckResult.Unhealthy("Waiting for databases and containers to be created");
+
         builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
         {
             if (cosmosClient is null)
@@ -108,45 +112,45 @@ public static class AzureCosmosExtensions
                 throw new InvalidOperationException("CosmosClient is not initialized.");
             }
 
-            var databasesCreated = false;
-            while (!databasesCreated && !ct.IsCancellationRequested)
+            try
             {
-                try
+                await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+
+                foreach (var database in builder.Resource.Databases)
                 {
-                    await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
-        
-                    foreach (var database in builder.Resource.Databases)
+                    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
+
+                    foreach (var container in database.Containers)
                     {
-                        var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
-        
-                        foreach (var container in database.Containers)
+                        var containerProperties = new ContainerProperties
                         {
-                            var containerProperties = new ContainerProperties
-                            {
-                                Id = container.ContainerName,
-                                PartitionKeyPaths = container.PartitionKeyPaths
-                            };
-        
-                            await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
-                        }
+                            Id = container.ContainerName,
+                            PartitionKeyPaths = container.PartitionKeyPaths
+                        };
+
+                        await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                     }
-    
-                    databasesCreated = true;
                 }
-                catch (CosmosException)
-                {
-                    await Task.Delay(500, cancellationToken: ct).ConfigureAwait(false);
-                }
+                creationState = HealthCheckResult.Healthy();
+            }
+            catch (Exception ex)
+            {
+                creationState = HealthCheckResult.Degraded("Could not create databases and containers", ex);
+                throw;
             }
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
-            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
-            name: healthCheckKey
-            );
+        var creationHealthCheckKey = $"{builder.Resource.Name}_databases";
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+            .AddAzureCosmosDB(
+                sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+                name: healthCheckKey
+            )
+            .AddCheck(creationHealthCheckKey, () => creationState);
 
-        builder.WithHealthCheck(healthCheckKey);
+        builder.WithHealthCheck(healthCheckKey)
+            .WithHealthCheck(creationHealthCheckKey);
 
         if (configureContainer != null)
         {
@@ -172,10 +176,36 @@ public static class AzureCosmosExtensions
                 {
                     clientOptions.ConnectionMode = ConnectionMode.Gateway;
                     clientOptions.LimitToEndpoint = true;
+                    clientOptions.CustomHandlers.Add(new CosmosClientRetryHandler());
                 }
 
                 return new CosmosClient(connectionString, clientOptions);
             }
+        }
+
+    }
+    class CosmosClientRetryHandler : RequestHandler
+    {
+        private static ResiliencePipeline<ResponseMessage> Pipeline { get; }
+            = new ResiliencePipelineBuilder<ResponseMessage>()
+                .AddRetry(new()
+                {
+                    MaxRetryAttempts = 10,
+                    Delay = TimeSpan.FromMilliseconds(500),
+                    BackoffType = DelayBackoffType.Constant,
+                    ShouldHandle = new PredicateBuilder<ResponseMessage>()
+                        .Handle<CosmosException>()
+                        .HandleResult(static result => !result.IsSuccessStatusCode),
+                })
+                .Build();
+
+        public override async Task<ResponseMessage> SendAsync(
+            RequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            return await Pipeline
+                .ExecuteAsync(async ct => await base.SendAsync(request, ct).ConfigureAwait(false), cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
