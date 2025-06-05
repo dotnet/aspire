@@ -1,0 +1,69 @@
+---
+title: Get Aspire
+description: Download and install Aspire and start streamlining your development stack.
+lastUpdated: true
+---
+
+import { Aside, Icon, Code, CardGrid, Card, LinkCard, LinkButton, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Kbd } from 'starlight-kbd/components';
+
+## Ready to run? Use Aspire on any platform 💫
+
+Get Aspire from your package manager of choice:
+
+<Code title="macOS" code="brew install aspire" lang="bash" frame="terminal" />
+<Code title="Windows" code="winget install aspire" lang="bash" frame="terminal" />
+<Code title="Anywhere" code="curl -fsSL https://get.aspire.dev/install.sh" lang="bash" frame="terminal" />
+
+
+## Next Steps
+
+Navigate to your repo, then run `aspire init` - we'll take it from there.
+
+<CardGrid>
+  <LinkCard
+    title="Create Your First App"
+    description="Follow our quickstart guide to build your first Aspire application in minutes."
+    href="/aspire/get-started/first-app"
+  />
+  
+  <LinkCard
+    title="Explore Integrations"
+    description="Discover the growing gallery of Aspire integrations for popular services."
+    href="/aspire/integrations/gallery"
+  />
+  
+  <LinkCard
+    title="Join the Community"
+    description="Connect with other Aspire developers and get help when you need it."
+    href="https://aka.ms/aspire-discord"
+  />
+</CardGrid>
+
+## Need Help?
+
+<CardGrid>
+  <Card title="Documentation" icon="open-book">
+    Comprehensive guides and API reference documentation.
+    
+    <LinkButton href="/aspire/get-started/overview" variant="secondary" size="sm">
+      Browse Docs
+    </LinkButton>
+  </Card>
+  
+  <Card title="Community" icon="discord">
+    Join our Discord community for real-time help and discussions.
+    
+    <LinkButton href="https://aka.ms/aspire-discord" target="_blank" variant="secondary" size="sm">
+      Join Discord
+    </LinkButton>
+  </Card>
+  
+  <Card title="GitHub" icon="github">
+    Report issues, contribute, or browse the source code.
+    
+    <LinkButton href="https://github.com/dotnet/aspire" target="_blank" variant="secondary" size="sm">
+      View on GitHub
+    </LinkButton>
+  </Card>
+</CardGrid>

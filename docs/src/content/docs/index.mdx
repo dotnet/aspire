@@ -3,18 +3,18 @@ title: Aspire
 head:
   - tag: title
     content: Aspire 💫 Your stack, streamlined
-description: Your stack, streamlined.
+description: Add Aspire to your stack and streamline your development workflow with code-first control, modularity, and observability.
 template: splash
 editUrl: false
 next: false
 hero:
-  tagline: Your stack, streamlined — from local dev to liftoff 💫
+  tagline: Your stack, streamlined. 💫
   image:
     alt: Aspire logo
     file: ../../assets/dotnet-aspire-logo-256.svg
   actions:
     - text: Get Aspire
-      link: /aspire/get-started/first-app
+      link: /aspire/get
       icon: rocket
     - text: View Docs
       link: /aspire/get-started/overview
@@ -122,7 +122,7 @@ builder.Build().Run();
   </TabItem>
 </Tabs>
 
-## Same orbit. Different systems.
+## Same app. Different systems.
 
 <CardGrid>
   <Card title="Local Development" icon="laptop">
@@ -141,10 +141,10 @@ builder.Build().Run();
 
   <Card title="Production Deployment" icon="rocket">
 
-  <Code code={'aspire deploy'} lang='bash' frame='none' />
+  <Code code={'aspire publish'} lang='bash' frame='none' />
 
   - Same app structure, deployed where you want
-  - Targets cloud (e.g., Azure Container Apps, Kubernetes)
+  - Use managed cloud services or your own infra
   - Works with your pipeline, no code changes required
 
   <LinkCard href="/aspire/get-started/installation"

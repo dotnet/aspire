@@ -96,6 +96,10 @@ export default defineConfig({
 					link: '/'
 				},
 				{
+					label: 'Get Aspire',
+					link: '/get'
+				},
+				{
 					label: 'Welcome',
 					items: [
 						{ label: 'Overview', slug: 'get-started/overview' },
