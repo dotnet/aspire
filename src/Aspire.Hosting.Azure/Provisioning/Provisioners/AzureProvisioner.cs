@@ -3,8 +3,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.IO.Hashing;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -322,7 +320,7 @@ internal sealed class AzureProvisioner(
             return false;
         }
 
-        var currentCheckSum = await GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
+        var currentCheckSum = await BicepProvisioner.GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
         var configCheckSum = section["CheckSum"];
 
         if (currentCheckSum != configCheckSum)
@@ -454,9 +452,9 @@ internal sealed class AzureProvisioner(
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
-        await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await BicepProvisioner.SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
         var scope = new JsonObject();
-        await SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await BicepProvisioner.SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
 
@@ -544,7 +542,7 @@ internal sealed class AzureProvisioner(
         }
 
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = GetChecksum(resource, parameters, scope);
+        resourceConfig["CheckSum"] = BicepProvisioner.GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -613,125 +611,6 @@ internal sealed class AzureProvisioner(
 
         // Always specify the location
         resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
-    }
-
-    private static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope)
-    {
-        // TODO: PERF Inefficient
-
-        // Combine the parameter values with the bicep template to create a unique value
-        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
-        if (scope is not null)
-        {
-            input += scope.ToJsonString();
-        }
-
-        // Hash the contents
-        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
-
-        // Convert the hash to a string
-        return Convert.ToHexString(hashedContents).ToLowerInvariant();
-    }
-
-    private static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
-    {
-        // Fill in parameters from configuration
-        if (section["Parameters"] is not string jsonString)
-        {
-            return null;
-        }
-
-        try
-        {
-            var parameters = JsonNode.Parse(jsonString)?.AsObject();
-            var scope = section["Scope"] is string scopeString
-                ? JsonNode.Parse(scopeString)?.AsObject()
-                : null;
-
-            if (parameters is null)
-            {
-                return null;
-            }
-
-            // Now overwrite with live object values skipping known and generated values.
-            // This is important because the provisioner will fill in the known values and
-            // generated values would change every time, so they can't be part of the checksum.
-            await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (scope is not null)
-            {
-                await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
-            }
-
-            // Get the checksum of the new values
-            return GetChecksum(resource, parameters, scope);
-        }
-        catch
-        {
-            // Unable to parse the JSON, to treat it as not existing
-            return null;
-        }
-    }
-
-    // Known values since they will be filled in by the provisioner
-    private static readonly string[] s_knownParameterNames =
-    [
-        AzureBicepResource.KnownParameters.PrincipalName,
-        AzureBicepResource.KnownParameters.PrincipalId,
-        AzureBicepResource.KnownParameters.PrincipalType,
-        AzureBicepResource.KnownParameters.Location,
-    ];
-
-    // Converts the parameters to a JSON object compatible with the ARM template
-    private static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipDynamicValues = false, CancellationToken cancellationToken = default)
-    {
-        // Convert the parameters to a JSON object
-        foreach (var parameter in resource.Parameters)
-        {
-            if (skipDynamicValues &&
-                (s_knownParameterNames.Contains(parameter.Key) || IsParameterWithGeneratedValue(parameter.Value)))
-            {
-                continue;
-            }
-
-            // Execute parameter values which are deferred.
-            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
-
-            parameters[parameter.Key] = new JsonObject()
-            {
-                ["value"] = parameterValue switch
-                {
-                    string s => s,
-                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
-                    int i => i,
-                    bool b => b,
-                    Guid g => g.ToString(),
-                    JsonNode node => node,
-                    IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
-                }
-            };
-        }
-    }
-
-    private static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
-    {
-        // Resolve the scope from the AzureBicepResource if it has already been set
-        // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
-        var targetScope = GetExistingResourceGroup(resource);
-
-        scope["resourceGroup"] = targetScope switch
-        {
-            string s => s,
-            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
-            null => null,
-            _ => throw new NotSupportedException($"The scope value type {targetScope.GetType()} is not supported.")
-        };
-    }
-
-    private static bool IsParameterWithGeneratedValue(object? value)
-    {
-        return value is ParameterResource { Default: not null };
     }
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
