@@ -116,12 +116,6 @@ public static class AspireAzureAIInferenceExtensions
                 {
                     var endpoint = settings.Endpoint;
 
-                    // The inference client requires the endpoint to end with "/models".
-                    if (!endpoint.AbsoluteUri.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
-                    {
-                        endpoint = new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/models");
-                    }
-
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
