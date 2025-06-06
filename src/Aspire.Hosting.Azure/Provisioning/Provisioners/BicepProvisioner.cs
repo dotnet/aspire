@@ -21,12 +21,12 @@ internal sealed class BicepProvisioner(
     ResourceLoggerService loggerService,
     TokenCredentialHolder tokenCredentialHolder,
     IBicepCliExecutor bicepCliExecutor,
-    ISecretClientProvider secretClientProvider) : AzureResourceProvisioner<AzureBicepResource>
+    ISecretClientProvider secretClientProvider)
 {
-    public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
+    public static bool ShouldProvision(AzureBicepResource resource)
         => !resource.IsContainer();
 
-    public override async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+    public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
 
@@ -117,7 +117,7 @@ internal sealed class BicepProvisioner(
                 existingResource.ResourceGroup :
                 null);
 
-    public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    public async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var resourceGroup = context.ResourceGroup;
         var resourceLogger = loggerService.GetLogger(resource);

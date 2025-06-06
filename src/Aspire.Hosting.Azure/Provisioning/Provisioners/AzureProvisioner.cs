@@ -10,7 +10,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
@@ -21,6 +20,7 @@ internal sealed class AzureProvisioner(
     IConfiguration configuration,
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
+    BicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
@@ -221,42 +221,22 @@ internal sealed class AzureProvisioner(
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
-        IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
-        {
-            var type = resource.GetType();
-
-            while (type is not null)
-            {
-                var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(type);
-
-                if (provisioner is not null)
-                {
-                    return provisioner;
-                }
-
-                type = type.BaseType;
-            }
-
-            return null;
-        }
-
-        var provisioner = SelectProvisioner(resource.AzureResource);
-
         var resourceLogger = loggerService.GetLogger(resource.AzureResource);
 
-        if (provisioner is null)
+        // Only process AzureBicepResource resources
+        if (resource.AzureResource is not AzureBicepResource bicepResource)
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-            resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+            resourceLogger.LogInformation("Skipping {resourceName} because it is not a Bicep resource.", resource.AzureResource.Name);
+            return;
         }
-        else if (!provisioner.ShouldProvision(configuration, resource.AzureResource))
+
+        if (!BicepProvisioner.ShouldProvision(bicepResource))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
+        else if (await bicepProvisioner.ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);
@@ -277,8 +257,8 @@ internal sealed class AzureProvisioner(
             {
                 var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
 
-                await provisioner.GetOrCreateResourceAsync(
-                    resource.AzureResource,
+                await bicepProvisioner.GetOrCreateResourceAsync(
+                    bicepResource,
                     provisioningContext,
                     cancellationToken).ConfigureAwait(false);
 
