@@ -13,8 +13,8 @@ const { integrations } = Astro.props;
 const totalPackages = integrations.length;
 
 const uniqueTags = new Set<string>();
-integrations.forEach(integration => {
-    integration.tags?.forEach(tag => {
+integrations.forEach((integration) => {
+    integration.tags?.forEach((tag) => {
         uniqueTags.add(tag);
     });
 });
@@ -35,7 +35,13 @@ const totalDownloads = integrations.reduce((total, integration) => {
         <div class="total-label">Unique Tags</div>
     </div>
     <div class="total-card">
-        <div class="total-number" data-target={totalDownloads} data-format="true">0</div>
+        <div
+            class="total-number"
+            data-target={totalDownloads}
+            data-format="true"
+        >
+            0
+        </div>
         <div class="total-label">Total Downloads</div>
     </div>
 </div>
@@ -52,7 +58,7 @@ const totalDownloads = integrations.reduce((total, integration) => {
         .equal-columns :global(.card-grid) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        
+
         .integration-totals {
             display: flex; /* Show stats on larger screens */
         }
@@ -76,7 +82,7 @@ const totalDownloads = integrations.reduce((total, integration) => {
     }
 
     .total-label {
-        font-size: 1rem;        
+        font-size: 1rem;
         color: var(--sl-color-gray-2);
         margin-top: 0;
     }
@@ -85,7 +91,7 @@ const totalDownloads = integrations.reduce((total, integration) => {
         .integration-totals {
             flex-direction: column;
         }
-        
+
         .total-card {
             margin-bottom: 1rem;
         }
@@ -93,32 +99,45 @@ const totalDownloads = integrations.reduce((total, integration) => {
 </style>
 
 <script>
+    // Extend the Window interface to include animateIntegrationTotals
+    // @ts-ignore
+    declare global {
+        interface Window {
+            animateIntegrationTotals: () => void;
+        }
+    }
+
     function animateCountUp() {
-        const counters = document.querySelectorAll('.total-number');
-        
-        counters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-target') || '0');
-            const shouldFormat = counter.getAttribute('data-format') === 'true';
-            const duration = 2500; // ms for total animation
-            
+        const counters = document.querySelectorAll(".total-number");
+
+        counters.forEach((counter) => {
+            const target = parseInt(counter.getAttribute("data-target") || "0");
+            const shouldFormat = counter.getAttribute("data-format") === "true";
+            const duration = 1000; // Reduced duration for filter updates
+
             let startTime: number | null = null;
-            
+            const currentValue =
+                parseInt((counter.textContent ?? "0").replace(/,/g, "")) || 0;
+
             const updateCounter = (timestamp: number) => {
                 if (!startTime) startTime = timestamp;
                 const elapsed = timestamp - startTime;
-                
+
                 // Calculate progress with easeOutQuad easing function for deceleration
                 const progress = Math.min(elapsed / duration, 1);
                 const easedProgress = 1 - Math.pow(1 - progress, 2); // Ease out quad
-                
-                const currentValue = Math.floor(target * easedProgress);
-                
+
+                // Animate from current value to target
+                const newValue = Math.floor(
+                    currentValue + (target - currentValue) * easedProgress,
+                );
+
                 if (shouldFormat) {
-                    counter.textContent = currentValue.toLocaleString();
+                    counter.textContent = newValue.toLocaleString();
                 } else {
-                    counter.textContent = currentValue.toString();
+                    counter.textContent = newValue.toString();
                 }
-                
+
                 if (progress < 1) {
                     requestAnimationFrame(updateCounter);
                 } else {
@@ -130,25 +149,11 @@ const totalDownloads = integrations.reduce((total, integration) => {
                     }
                 }
             };
-            
+
             requestAnimationFrame(updateCounter);
         });
     }
 
-    // Run animation when component is in viewport
-    document.addEventListener('DOMContentLoaded', () => {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    animateCountUp();
-                    observer.disconnect();
-                }
-            });
-        }, { threshold: 0.1 });
-
-        const totalsElement = document.querySelector('.integration-totals');
-        if (totalsElement) {
-            observer.observe(totalsElement);
-        }
-    });
+    // Expose function globally so it can be called from Integrations.astro
+    window.animateIntegrationTotals = animateCountUp;
 </script>

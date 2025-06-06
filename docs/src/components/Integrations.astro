@@ -26,26 +26,6 @@ const sortedIntegrations = integrations.sort((a, b) => {
     const bDownloads = b.downloads ?? 0;
     return bDownloads - aDownloads; // Sort by downloads descending
 });
-
-// const hostingIntegrations = sortedIntegrations
-//     .filter(
-//         (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
-//     );
-
-// const clientIntegrations = sortedIntegrations
-//     .filter((pkg) => pkg.tags?.includes("client"));
-
-// const tagCounts = new Map<string, number>();
-// for (const pkg of integrations) {
-//     for (const tag of pkg.tags ?? []) {
-//         if (tag === "aspire") continue; // Ignore the 'aspire' tag
-//         tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
-//     }
-// }
-
-// const allTags = Array.from(tagCounts.entries())
-//     .sort((a, b) => b[1] - a[1]) // Sort by count descending
-//     .map(([tag, count]) => ({ tag, count }));
 ---
 
 <div class="sl-mb-4 search-wrapper">
@@ -119,7 +99,7 @@ const sortedIntegrations = integrations.sort((a, b) => {
         .equal-columns :global(.card-grid) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        
+
         .integration-stats {
             display: block; /* Show stats on larger screens */
         }
@@ -201,9 +181,62 @@ const sortedIntegrations = integrations.sort((a, b) => {
         searchBox.focus();
     }
 
+    function updateTotals(visibleCards) {
+        // Get the IntegrationTotals component
+        const totalsComponent = document.querySelector(".integration-totals");
+        if (!totalsComponent) return;
+
+        // Extract data from visible cards
+        const visibleIntegrations = Array.from(visibleCards).map((card) => ({
+            title: card.dataset.title || "",
+            downloads: parseInt(card.dataset.downloads || "0"),
+            tags: card.dataset.tags ? card.dataset.tags.split(",") : [],
+        }));
+
+        // Calculate new stats
+        const totalPackages = visibleIntegrations.length;
+
+        // Calculate unique tags from visible integrations
+        const uniqueTags = new Set();
+        visibleIntegrations.forEach((pkg) => {
+            if (pkg.tags) pkg.tags.forEach((tag) => uniqueTags.add(tag));
+        });
+        const totalTags = uniqueTags.size;
+
+        // Calculate total downloads from visible integrations
+        const totalDownloads = visibleIntegrations.reduce(
+            (sum, pkg) => sum + (pkg.downloads || 0),
+            0,
+        );
+
+        // Update the data-target attributes for each total card and reset content
+        const totalCards = totalsComponent.querySelectorAll(
+            ".total-card .total-number",
+        );
+        if (totalCards.length >= 3) {
+            // Update packages count
+            totalCards[0].setAttribute("data-target", totalPackages);
+            totalCards[0].textContent = totalPackages.toString();
+
+            // Update tags count
+            totalCards[1].setAttribute("data-target", totalTags);
+            totalCards[1].textContent = totalTags.toString();
+
+            // Update downloads count
+            totalCards[2].setAttribute("data-target", totalDownloads);
+            totalCards[2].textContent = totalDownloads.toLocaleString();
+        }
+
+        // After updating the values, trigger the animation
+        if (window.animateIntegrationTotals) {
+            window.animateIntegrationTotals();
+        }
+    }
+
     function filterCards(updateUrl = true) {
         const searchTerm = searchBox.value.toLowerCase();
         let visibleCount = 0;
+        const visibleCards = [];
 
         cards.forEach((card) => {
             const cardTags = card.dataset.tags
@@ -230,7 +263,11 @@ const sortedIntegrations = integrations.sort((a, b) => {
 
             const visible = matchesTags && matchesSearch;
             card.style.display = visible ? "" : "none";
-            if (visible) visibleCount++;
+
+            if (visible) {
+                visibleCount++;
+                visibleCards.push(card);
+            }
         });
 
         // Show/hide the no results message based on visible count
@@ -238,6 +275,11 @@ const sortedIntegrations = integrations.sort((a, b) => {
 
         // Show/hide the stats based on visible count
         statsSection.style.display = visibleCount === 0 ? "none" : "block";
+
+        // Update totals with visible cards
+        if (visibleCount > 0) {
+            updateTotals(visibleCards);
+        }
 
         if (updateUrl) updateURL();
     }
