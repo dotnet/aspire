@@ -42,10 +42,20 @@ const totalDownloads = integrations.reduce((total, integration) => {
 
 <style>
     .integration-totals {
-        display: flex;
         justify-content: space-between;
         gap: 1.5rem;
         margin-bottom: 1rem;
+        display: none;
+    }
+
+    @media (min-width: 768px) {
+        .equal-columns :global(.card-grid) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        
+        .integration-totals {
+            display: flex; /* Show stats on larger screens */
+        }
     }
 
     .total-card {

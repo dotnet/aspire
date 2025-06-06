@@ -95,21 +95,34 @@ const sortedIntegrations = integrations.sort((a, b) => {
 
     .integration-stats {
         margin-bottom: 1rem;
+        display: none; /* Hidden by default on mobile */
     }
 
     /* Force equal columns in the card grid */
     .equal-columns :global(.card-grid) {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr; /* Default to single column for mobile */
         width: 100%;
+        gap: 1rem; /* Ensure consistent spacing */
     }
 
-    /* Ensure each card takes exactly half the space */
+    /* Ensure each card takes full space in its column */
     .equal-columns :global(.card-grid > *) {
         width: 100%;
         box-sizing: border-box;
         min-width: 0;
         max-width: 100%;
+    }
+
+    /* Switch to two columns on larger screens and show stats */
+    @media (min-width: 768px) {
+        .equal-columns :global(.card-grid) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        
+        .integration-stats {
+            display: block; /* Show stats on larger screens */
+        }
     }
 
     .search-wrapper {
