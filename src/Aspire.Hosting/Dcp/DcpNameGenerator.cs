@@ -65,8 +65,7 @@ internal sealed class DcpNameGenerator
         var nameSuffix = container.GetContainerLifetimeType() switch
         {
             ContainerLifetime.Session => GetRandomNameSuffix(),
-            // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
-            _ => _configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
+            _ => GetProjectHashSuffix(),
         };
 
         return (GetObjectNameForResource(container, _options.Value, nameSuffix), nameSuffix);
@@ -106,10 +105,17 @@ internal sealed class DcpNameGenerator
         return uniqueName;
     }
 
-    private static string GetRandomNameSuffix()
+    public static string GetRandomNameSuffix()
     {
         // RandomNameSuffixLength of lowercase characters
         var suffix = PasswordGenerator.Generate(RandomNameSuffixLength, true, false, false, false, RandomNameSuffixLength, 0, 0, 0);
+        return suffix;
+    }
+
+    public string GetProjectHashSuffix()
+    {
+        // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
+        var suffix = _configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant();
         return suffix;
     }
 
