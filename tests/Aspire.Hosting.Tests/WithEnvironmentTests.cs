@@ -464,6 +464,47 @@ public class WithEnvironmentTests
         public string ValueExpression => _manifestExpression;
     }
 
+    [Fact]
+    public async Task GenericWithEnvironmentWorksWithEndpointProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("container1", "image")
+                               .WithHttpEndpoint(name: "primary", targetPort: 10005)
+                               .WithEndpoint("primary", ep =>
+                               {
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                               });
+
+        var endpoint = container.GetEndpoint("primary");
+        var portProperty = endpoint.Property(EndpointProperty.Port);
+
+        var projectA = builder.AddProject<ProjectA>("projectA")
+                              .WithEnvironment("ENDPOINT_PORT", portProperty);
+
+        // Call environment variable callbacks for runtime scenario
+        var runtimeConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource,
+            DistributedApplicationOperation.Run,
+            TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("90", runtimeConfig["ENDPOINT_PORT"]);
+
+        // Call environment variable callbacks for manifest scenario
+        var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource,
+            DistributedApplicationOperation.Publish,
+            TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("{container1.bindings.primary.port}", manifestConfig["ENDPOINT_PORT"]);
+
+        // Verify that the resource relationship was established
+        Assert.True(projectA.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        var relationship = relationships.Single();
+        Assert.Equal("Reference", relationship.Type);
+        Assert.Same(container.Resource, relationship.Resource);
+    }
+
     private sealed class TestValueWithReferences : IValueProvider, IManifestExpressionProvider, IValueWithReferences
     {
         private readonly string _value;
