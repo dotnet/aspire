@@ -7,6 +7,8 @@ interface Props {
     }[];
 }
 
+import { Icon } from '@astrojs/starlight/components';
+
 const { integrations } = Astro.props;
 
 // Calculate totals
@@ -27,22 +29,43 @@ const totalDownloads = integrations.reduce((total, integration) => {
 
 <div class="integration-totals">
     <div class="total-card">
-        <div class="total-number" data-target={totalPackages}>0</div>
-        <div class="total-label">Total Packages</div>
-    </div>
-    <div class="total-card">
-        <div class="total-number" data-target={totalTags}>0</div>
-        <div class="total-label">Unique Tags</div>
-    </div>
-    <div class="total-card">
-        <div
-            class="total-number"
-            data-target={totalDownloads}
-            data-format="true"
-        >
-            0
+        <div class="card-content">
+            <div class="icon-container">
+                <Icon name="seti:css" size="2rem" />
+            </div>
+            <div class="number-container">
+                <div class="total-number" data-target={totalPackages}>0</div>
+                <div class="total-label">Number of Integrations</div>
+            </div>
         </div>
-        <div class="total-label">Total Downloads</div>
+    </div>
+    <div class="total-card">
+        <div class="card-content">
+            <div class="icon-container">
+                <Icon name="information" size="2rem" />
+            </div>
+            <div class="number-container">
+                <div class="total-number" data-target={totalTags}>0</div>
+                <div class="total-label">Unique Tags</div>
+            </div>
+        </div>
+    </div>
+    <div class="total-card">
+        <div class="card-content">
+            <div class="icon-container">
+                <Icon name="download" size="2rem" />
+            </div>
+            <div class="number-container">
+                <div 
+                    class="total-number"
+                    data-target={totalDownloads}
+                    data-format="true"
+                >
+                    0
+                </div>
+                <div class="total-label">Total Downloads</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -75,10 +98,32 @@ const totalDownloads = integrations.reduce((total, integration) => {
         margin-top: 0;
     }
 
+    .card-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .icon-container {
+        display: flex;
+        align-items: center;
+        color: var(--sl-color-text-accent);
+    }
+
+    .number-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        flex: 1;
+    }
+
     .total-number {
         font-size: 2.5rem;
         font-weight: bold;
         color: var(--sl-color-text-accent);
+        line-height: 1;
+        margin-bottom: 0.25rem;
     }
 
     .total-label {
@@ -130,11 +175,11 @@ const totalDownloads = integrations.reduce((total, integration) => {
 
             // Otherwise proceed with animation as before
             const duration = 1000; // Reduced duration for filter updates
-            let startTime = null;
+            let startTime: number | null = null;
             const currentValue =
                 parseInt((counter.textContent ?? "0").replace(/,/g, "")) || 0;
 
-            const updateCounter = (timestamp) => {
+            const updateCounter = (timestamp: number) => {
                 if (!startTime) startTime = timestamp;
                 const elapsed = timestamp - startTime;
 
