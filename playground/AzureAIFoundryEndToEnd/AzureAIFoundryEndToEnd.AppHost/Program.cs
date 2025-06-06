@@ -10,7 +10,8 @@ var chat = builder.AddAzureAIFoundry("foundry")
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
-       .WithReference(chat);
+       .WithReference(chat)
+       .WaitFor(chat);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

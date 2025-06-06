@@ -32,11 +32,16 @@ public class AzureAIFoundryLocalResource(string name, AzureAIFoundryResource par
     /// Gets the connection string expression for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create(
-        $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key=OPENAI_API_KEY"
+        $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey}"
       );
 
     /// <inheritdoc />
     public AzureAIFoundryResource Parent => parent;
+
+    /// <summary>
+    /// The API key to access Foundry Local
+    /// </summary>
+    public string? ApiKey { get; internal set; }
 
     /// <summary>
     /// Adds a model resource to the list of models.

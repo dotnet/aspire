@@ -81,15 +81,9 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                     State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
                 }).ConfigureAwait(false);
 
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                try
-                {
-                    await manager.StartServiceAsync(cts.Token).ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    await manager.StartServiceAsync(ct).ConfigureAwait(false);
-                }
+                await manager.StartServiceAsync(ct).ConfigureAwait(false);
+
+                resource.ApiKey = manager.ApiKey;
 
                 if (manager.IsServiceRunning)
                 {
@@ -190,7 +184,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        var modelInfo = progress.ModelInfo;
+                        modelResource.ModelInfo = progress.ModelInfo;
                         logger.LogInformation("Model {Model} downloaded successfully.", model);
 
                         await rns.PublishUpdateAsync(modelResource, state => state with
@@ -198,7 +192,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                             State = new ResourceStateSnapshot("Loading model", KnownResourceStateStyles.Info)
                         }).ConfigureAwait(false);
 
-                        _ = await manager.LoadModelAsync(modelInfo.ModelId, ct: ct).ConfigureAwait(false);
+                        _ = await manager.LoadModelAsync(modelResource.ModelInfo.ModelId, ct: ct).ConfigureAwait(false);
 
                         await rns.PublishUpdateAsync(modelResource, state => state with
                         {
