@@ -40,6 +40,7 @@
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
+    <MicrosoftExtensionsFileProvidersEmbeddedVersion>8.0.15</MicrosoftExtensionsFileProvidersEmbeddedVersion>
     <!-- when updating this, also update cgmanifest.json as it is consumed in templates -->
     <MicrosoftExtensionsHttpResilienceVersion>9.4.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.4.0</MicrosoftExtensionsDiagnosticsTestingVersion>

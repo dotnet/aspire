@@ -19,6 +19,8 @@
     <RollForward>Major</RollForward>
 
     <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
+
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -37,7 +39,7 @@
       <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
 
-    <EmbeddedResource Include="Embedded\blazor.web.js" />
+    <EmbeddedResource Include="Embedded\blazor.web.js" LogicalName="_aspire/blazor.web.js" />
   </ItemGroup>
 
   <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
@@ -48,6 +50,7 @@
     <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>

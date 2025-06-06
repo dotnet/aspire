@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -9,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
@@ -18,33 +19,41 @@ public static class DashboardEndpointsBuilder
 {
     public static void MapDashboardBlazor(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/_aspire/blazor.web.js", async context =>
+        var options = new StaticFileOptions
         {
-            using var stream = typeof(DashboardWebApplication).Assembly.GetManifestResourceStream("Aspire.Dashboard.Embedded.blazor.web.js");
-            if (stream == null)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                return;
-            }
+            FileProvider = new ManifestEmbeddedFileProvider(typeof(DashboardEndpointsBuilder).Assembly),
+            OnPrepareResponse = SetCacheHeaders
+        };
 
-            context.Response.ContentType = "application/javascript";
-            var headers = context.Response.GetTypedHeaders();
+        var app = endpoints.CreateApplicationBuilder();
+        app.Use(next => context =>
+        {
+            // Set endpoint to null so the static files middleware will handle the request.
+            context.SetEndpoint(null);
+
+            return next(context);
+        });
+        app.UseStaticFiles(options);
+
+        endpoints.MapGet("/_aspire/blazor.web.js", app.Build());
+
+        static void SetCacheHeaders(StaticFileResponseContext ctx)
+        {
+            // By setting "Cache-Control: no-cache", we're allowing the browser to store
+            // a cached copy of the response, but telling it that it must check with the
+            // server for modifications (based on Etag) before using that cached copy.
+            // Longer term, we should generate URLs based on content hashes (at least
+            // for published apps) so that the browser doesn't need to make any requests
+            // for unchanged files.
+            var headers = ctx.Context.Response.GetTypedHeaders();
             if (headers.CacheControl == null)
             {
-                // By setting "Cache-Control: no-cache", we're allowing the browser to store
-                // a cached copy of the response, but telling it that it must check with the
-                // server for modifications (based on Etag) before using that cached copy.
-                // Longer term, we should generate URLs based on content hashes (at least
-                // for published apps) so that the browser doesn't need to make any requests
-                // for unchanged files.
                 headers.CacheControl = new CacheControlHeaderValue
                 {
                     NoCache = true
                 };
             }
-
-            await stream.CopyToAsync(context.Response.Body).ConfigureAwait(false);
-        });
+        }
     }
 
     public static void MapDashboardHealthChecks(this IEndpointRouteBuilder endpoints)
