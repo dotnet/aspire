@@ -36,6 +36,8 @@
       <Access>Internal</Access>
       <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
+
+    <EmbeddedResource Include="Embedded\blazor.web.js" />
   </ItemGroup>
 
   <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
