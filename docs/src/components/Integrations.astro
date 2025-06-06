@@ -1,5 +1,5 @@
 ---
-import { CardGrid } from "@astrojs/starlight/components";
+import { CardGrid, Card } from "@astrojs/starlight/components";
 import IntegrationCard from "./IntegrationCard.astro";
 
 interface Props {
@@ -20,92 +20,104 @@ interface Integration {
 
 type Integrations = Integration[];
 
-// Group integrations by tag
-const hostingIntegrations = integrations
-    .filter(
-        (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
-    )
-    .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+const sortedIntegrations = integrations.sort((a, b) => {
+    const aDownloads = a.downloads ?? 0;
+    const bDownloads = b.downloads ?? 0;
+    return bDownloads - aDownloads; // Sort by downloads descending
+});
 
-const clientIntegrations = integrations
-    .filter((pkg) => pkg.tags?.includes("client"))
-    .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+// const hostingIntegrations = sortedIntegrations
+//     .filter(
+//         (pkg) => pkg.tags?.includes("hosting") || pkg.tags?.includes("testing"),
+//     );
 
-const tagCounts = new Map<string, number>();
-for (const pkg of integrations) {
-    for (const tag of pkg.tags ?? []) {
-        if (tag === "aspire") continue; // Ignore the 'aspire' tag
-        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
-    }
-}
+// const clientIntegrations = sortedIntegrations
+//     .filter((pkg) => pkg.tags?.includes("client"));
 
-const allTags = Array.from(tagCounts.entries())
-    .sort((a, b) => b[1] - a[1]) // Sort by count descending
-    .map(([tag, count]) => ({ tag, count }));
+// const tagCounts = new Map<string, number>();
+// for (const pkg of integrations) {
+//     for (const tag of pkg.tags ?? []) {
+//         if (tag === "aspire") continue; // Ignore the 'aspire' tag
+//         tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+//     }
+// }
+
+// const allTags = Array.from(tagCounts.entries())
+//     .sort((a, b) => b[1] - a[1]) // Sort by count descending
+//     .map(([tag, count]) => ({ tag, count }));
 ---
 
-<div class="sl-mb-4 sl-flex sl-items-center sl-gap-2">
-    <input
-        id="searchBox"
-        autocomplete="off"
-        type="text"
-        class="filter"
-        placeholder="Search integrations..."
-    />
+<div class="sl-mb-4 search-wrapper">
+    <div class="search-container">
+        <input
+            autocomplete="off"
+            type="text"
+            class="search-box filter"
+            placeholder="Search integrations..."
+        />
+    </div>
+    <button class="clear-button" aria-label="Clear search" type="button">Clear</button>
 </div>
 
-<!-- 
-<div id="tagFilters" class="sl-mb-4 sl-flex sl-gap-2 sl-flex-wrap">
-    {
-        allTags.map(({ tag, count }) => (
-            <button type="button" class="tag badge" data-tag={tag}>
-                {tag} ({count})
-            </button>
-        ))
-    }
-    <button type="button" id="clearFilters" class="tag clear">Clear</button>
-</div> -->
-
 {
-    hostingIntegrations.length > 0 && (
+    sortedIntegrations.length > 0 && (
         <section>
-            <h2>Hosting Integrations</h2>
-            <CardGrid>
-                {hostingIntegrations.map((pkg) => (
-                    <IntegrationCard pkg={pkg} />
-                ))}
-            </CardGrid>
+            <div class="equal-columns">
+                <CardGrid>
+                    {sortedIntegrations.map((pkg) => (
+                        <IntegrationCard pkg={pkg} />
+                    ))}
+                </CardGrid>
+            </div>
 
-            <p
-                id="noResults"
-                class="sl-text-center sl-mt-6"
-                style="display: none;"
-            >
-                😕 No hosting integrations matched your filters.
-            </p>
-        </section>
-    )
-}
-
-{
-    clientIntegrations.length > 0 && (
-        <section>
-            <h2>Client Integrations</h2>
-            <CardGrid>
-                {clientIntegrations.map((pkg) => (
-                    <IntegrationCard pkg={pkg} />
-                ))}
-            </CardGrid>
+            <div class="no-results">
+                <Card title="No integrations found" icon="magnifier">
+                    Try searching for things like <strong>"SQL"</strong>,
+                    <strong>"Cache"</strong>, or <strong>"Testing"</strong> to
+                    discover integrations!
+                </Card>
+            </div>
         </section>
     )
 }
 
 <style>
+    .no-results {
+        margin-top: 0;
+        display: none; /* Hidden by default */
+    }
+
+    /* Force equal columns in the card grid */
+    .equal-columns :global(.card-grid) {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    /* Ensure each card takes exactly half the space */
+    .equal-columns :global(.card-grid > *) {
+        width: 100%;
+        box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .search-wrapper {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        width: 100%;
+    }
+
+    .search-container {
+        flex-grow: 1;
+        position: relative;
+    }
+
     input.filter {
-        padding-inline-start: 0.75rem;
-        padding-inline-end: 0.5rem;
+        padding-inline: 0.75rem;
         background-color: var(--sl-color-black);
-        color: var(--sl-color-gray-2);
+        color: var(--sl-color-text);
         font-size: var(--sl-text);
         width: 100%;
         height: 2.5rem;
@@ -116,29 +128,39 @@ const allTags = Array.from(tagCounts.entries())
         display: flex;
         box-sizing: border-box;
     }
+
+    .clear-button {
+        background-color: var(--sl-color-gray-6);
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: 0.375rem;
+        color: var(--sl-color-white);
+        cursor: pointer;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        height: 2.5rem;
+        margin-top: 0;
+        transition: background-color 0.2s ease;
+    }
+
+    .clear-button:hover {
+        background-color: var(--sl-color-gray-5);
+    }
 </style>
 
 <script type="module" is:inline>
-    const searchBox = document.getElementById("searchBox");
-    const cards = document.querySelectorAll(".card");
+    const searchBox = document.querySelector(".search-box");
+    const clearButton = document.querySelector(".clear-button");
+    const cards = document.querySelectorAll(".card-grid .card");
+    const noResults = document.querySelector(".no-results");
 
     let activeTags = new Set();
 
     const urlParams = new URLSearchParams(window.location.search);
-    //const initialTags = urlParams.get("tags")?.split(",").filter(Boolean) || [];
     const initialSearch = urlParams.get("search") || "";
 
     if (initialSearch) {
         searchBox.value = initialSearch;
     }
-
-    // initialTags.forEach((tag) => {
-    //     const btn = document.querySelector(`.tag[data-tag="${tag}"]`);
-    //     if (btn) {
-    //         activeTags.add(tag);
-    //         btn.classList.add("active");
-    //     }
-    // });
 
     function updateURL() {
         const params = new URLSearchParams();
@@ -149,68 +171,59 @@ const allTags = Array.from(tagCounts.entries())
         history.pushState({}, "", newUrl);
     }
 
+    function clearSearch() {
+        searchBox.value = "";
+        filterCards();
+        searchBox.focus();
+    }
+
     function filterCards(updateUrl = true) {
         const searchTerm = searchBox.value.toLowerCase();
         let visibleCount = 0;
 
         cards.forEach((card) => {
-            const cardTags = card.dataset.tags.split(",");
-            const cardTitle = card.dataset.title;
+            const cardTags = card.dataset.tags ? card.dataset.tags.split(",") : [];
+            const cardTitle = card.dataset.title ? card.dataset.title.toLowerCase() : "";
+            const cardDescription = card.dataset.description ? card.dataset.description.toLowerCase() : "";
+            
+            // Match against tags
             const matchesTags = [...activeTags].every((tag) =>
-                cardTags.includes(tag),
+                cardTags.includes(tag)
             );
-            const matchesSearch = cardTitle.includes(searchTerm);
+            
+            // Check if search term appears in title, tags, or description
+            const matchesSearch = !searchTerm || 
+                cardTitle.includes(searchTerm) || 
+                cardDescription.includes(searchTerm) ||
+                cardTags.some(tag => tag.toLowerCase().includes(searchTerm));
+                
             const visible = matchesTags && matchesSearch;
             card.style.display = visible ? "" : "none";
             if (visible) visibleCount++;
         });
 
-        const noResults = document.getElementById("noResults");
+        // Show/hide the no results message based on visible count
         noResults.style.display = visibleCount === 0 ? "block" : "none";
 
         if (updateUrl) updateURL();
     }
 
-    // tagButtons.forEach((btn) => {
-    //     btn.addEventListener("click", () => {
-    //         const tag = btn.dataset.tag;
-    //         if (activeTags.has(tag)) {
-    //             activeTags.delete(tag);
-    //             btn.classList.remove("active");
-    //         } else {
-    //             activeTags.add(tag);
-    //             btn.classList.add("active");
-    //         }
-    //         filterCards();
-    //     });
-    // });
-
-    // clearButton.addEventListener("click", () => {
-    //     activeTags.clear();
-    //     tagButtons.forEach((btn) => btn.classList.remove("active"));
-    //     searchBox.value = "";
-    //     filterCards();
-    // });
-
     searchBox.addEventListener("input", () => {
         filterCards();
     });
 
+    clearButton.addEventListener("click", clearSearch);
+
+    // Also clear when user presses Escape in the search box
+    searchBox.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            clearSearch();
+        }
+    });
+
     window.addEventListener("popstate", () => {
-        //activeTags.clear();
-        tagButtons.forEach((btn) => btn.classList.remove("active"));
-
         const urlParams = new URLSearchParams(window.location.search);
-        //const tags = urlParams.get("tags")?.split(",").filter(Boolean) || [];
         const search = urlParams.get("search") || "";
-
-        // tags.forEach((tag) => {
-        //     const btn = document.querySelector(`.tag[data-tag="${tag}"]`);
-        //     if (btn) {
-        //         activeTags.add(tag);
-        //         btn.classList.add("active");
-        //     }
-        // });
 
         searchBox.value = search;
         filterCards(false);
