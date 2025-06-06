@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 /// <summary>
 /// Utility methods for working with Bicep resources.
 /// </summary>
-internal static class BicepProvisioner
+internal static class BicepUtilities
 {
     // Known values since they will be filled in by the provisioner
     private static readonly string[] s_knownParameterNames =
