@@ -27,6 +27,8 @@
 * Follow the instructions in the repo to build.
 * If temporarily introducing warnings during a refactoring, you can add the flag `/p:TreatWarningsAsErrors=false` to your build command to prevent the build from failing. However before you finish your work, you must strive to fix any warnings as well.
 
+In building and testing, never use `dotnet` without extension. Use `dotnet.sh` on Unix, `dotnet.cmd` on Windows.
+
 ### Testing
 
 * We use xUnit SDK v3 with Microsoft.Testing.Platform (https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro)
@@ -39,6 +41,10 @@
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
 (3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+
+Note that tests for a project can be executed without first building from the root.
+
+(4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --logger "console;verbosity=detailed" -- --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
 
 ## Quarantined tests
 
