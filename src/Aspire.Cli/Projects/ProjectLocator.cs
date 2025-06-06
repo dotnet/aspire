@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -21,7 +23,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
     {
         using var activity = _activitySource.StartActivity();
 
-        return await interactionService.ShowStatusAsync("Searching", async () =>
+        return await interactionService.ShowStatusAsync(Strings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
@@ -31,7 +33,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 IgnoreInaccessible = true
             };
 
-            interactionService.DisplayMessage("magnifying_glass_tilted_left", "Finding app hosts...");
+            interactionService.DisplayMessage("magnifying_glass_tilted_left", Strings.FindingAppHosts);
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
@@ -92,7 +94,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     }
                     else
                     {
-                        throw new ProjectLocatorException($"AppHost file was specified in '{settingsFile.FullName}' but it does not exist.");
+                        throw new ProjectLocatorException(string.Format(CultureInfo.CurrentCulture, Strings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName));
                     }
                 }
             }
@@ -118,7 +120,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             if (!projectFile.Exists)
             {
                 logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
-                throw new ProjectLocatorException($"Project file does not exist.");
+                throw new ProjectLocatorException(Strings.ProjectFileDoesntExist);
             }
 
             logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
@@ -151,7 +153,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         else if (appHostProjects.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
-                "Select app host to run",
+                Strings.SelectAppHostToRun,
                 appHostProjects,
                 projectFile => $"{projectFile.Name} ({Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
@@ -184,9 +186,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         using var stream = settingsFile.OpenWrite();
         await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
-        
+
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage("file_cabinet", $"Created settings file at [bold]'{relativeSettingsFilePath}'[/].");
+        interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, Strings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
 }
 

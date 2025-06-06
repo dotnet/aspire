@@ -87,9 +87,51 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string _ {
+        public static string FailedToRetrieveCachedTemplatePackages {
             get {
-                return ResourceManager.GetString("", resourceCulture);
+                return ResourceManager.GetString("FailedToRetrieveCachedTemplatePackages", resourceCulture);
+            }
+        }
+        
+        public static string FailedToSearchForPackages {
+            get {
+                return ResourceManager.GetString("FailedToSearchForPackages", resourceCulture);
+            }
+        }
+        
+        public static string SearchingProjects {
+            get {
+                return ResourceManager.GetString("SearchingProjects", resourceCulture);
+            }
+        }
+        
+        public static string FindingAppHosts {
+            get {
+                return ResourceManager.GetString("FindingAppHosts", resourceCulture);
+            }
+        }
+        
+        public static string AppHostWasSpecifiedButDoesntExist {
+            get {
+                return ResourceManager.GetString("AppHostWasSpecifiedButDoesntExist", resourceCulture);
+            }
+        }
+        
+        public static string ProjectFileDoesntExist {
+            get {
+                return ResourceManager.GetString("ProjectFileDoesntExist", resourceCulture);
+            }
+        }
+        
+        public static string SelectAppHostToRun {
+            get {
+                return ResourceManager.GetString("SelectAppHostToRun", resourceCulture);
+            }
+        }
+        
+        public static string CreatedSettingsFile {
+            get {
+                return ResourceManager.GetString("CreatedSettingsFile", resourceCulture);
             }
         }
     }

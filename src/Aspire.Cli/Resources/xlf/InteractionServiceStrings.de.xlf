@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../InteractionServiceStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
+        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
+        <target state="new">The app host is not compatible. Consider upgrading the app host or Aspire CLI.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireCLIVersion">
+        <source>Aspire CLI Version</source>
+        <target state="new">Aspire CLI Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireHostingSDKVersion">
+        <source>Aspire Hosting SDK Version</source>
+        <target state="new">Aspire Hosting SDK Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CodespacesLink">
+        <source>Codespaces</source>
+        <target state="new">Codespaces</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="new">Dashboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectLink">
+        <source>Direct</source>
+        <target state="new">Direct</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="NoItemsAvailableForSelection">
+        <source>No items available for selection: {0}</source>
+        <target state="new">No items available for selection: {0}</target>
+        <note>{0} is the original selection prompt text.</note>
+      </trans-unit>
+      <trans-unit id="RequiredCapability">
+        <source>Required Capability</source>
+        <target state="new">Required Capability</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingAspire">
+        <source>Stopping Aspire.</source>
+        <target state="new">Stopping Aspire.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

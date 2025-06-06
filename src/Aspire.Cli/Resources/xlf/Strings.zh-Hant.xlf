@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Strings.resx">
+    <body>
+      <trans-unit id="AlreadyConnectedToBackchannel">
+        <source>Already connected to AppHost backchannel.</source>
+        <target state="new">Already connected to AppHost backchannel.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostIncompatibleWithCli">
+        <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
+        <target state="new">AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostWasSpecifiedButDoesntExist">
+        <source>AppHost file was specified in {0} but it does not exist.</source>
+        <target state="new">AppHost file was specified in {0} but it does not exist.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="CertificatesMayNotBeFullyTrusted">
+        <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
+        <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingCertificates">
+        <source>Checking certificates...</source>
+        <target state="new">Checking certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatedSettingsFile">
+        <source>Created settings file at {0}.</source>
+        <target state="new">Created settings file at {0}.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedTemplatePackages">
+        <source>Failed to retrieve template packages via cache.</source>
+        <target state="new">Failed to retrieve template packages via cache.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToSearchForPackages">
+        <source>Failed to search for packages. Exit code: {0}.</source>
+        <target state="new">Failed to search for packages. Exit code: {0}.</target>
+        <note>{0} is a number</note>
+      </trans-unit>
+      <trans-unit id="FindingAppHosts">
+        <source>Finding app hosts...</source>
+        <target state="new">Finding app hosts...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidLocaleProvided">
+        <source>Invalid locale {0} provided will not be used.</source>
+        <target state="new">Invalid locale {0} provided will not be used.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileDoesntExist">
+        <source>Project file does not exist.</source>
+        <target state="new">Project file does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingProjects">
+        <source>Searching...</source>
+        <target state="new">Searching...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHostToRun">
+        <source>Select app host to run</source>
+        <target state="new">Select app host to run</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TrustingCertificates">
+        <source>Trusting certificates...</source>
+        <target state="new">Trusting certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedLocaleProvided">
+        <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
+        <target state="new">Unsupported locale {0} provided will not be used. Supported locales are: {1}.</target>
+        <note>{1} is a comma-separated list of locales.</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
