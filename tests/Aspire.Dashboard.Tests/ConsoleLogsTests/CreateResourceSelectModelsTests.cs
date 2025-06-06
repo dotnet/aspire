@@ -101,12 +101,12 @@ public class CreateResourceSelectModelsTests
     }
 
     [Fact]
-    public void GetViewModels_SingleResource_PlacesResourceFirst()
+    public void GetViewModels_SingleResource_KeepsNoneFirstButMakesSingleResourceSelectable()
     {
         // Arrange
         var applications = new List<ResourceViewModel>
         {
-            // Single resource - should be placed first instead of noSelection
+            // Single resource - "[none]" should still be first, but the logic elsewhere should auto-select this resource
             ModelTestHelpers.CreateResource(appName: "SingleApp", state: KnownResourceState.Running)
         };
 
@@ -122,13 +122,13 @@ public class CreateResourceSelectModelsTests
         // Assert
         Assert.Equal(2, viewModels.Count);
         
-        // The single resource should come first (making it the default)
-        Assert.NotNull(viewModels[0].Id);
-        Assert.Equal(OtlpApplicationType.Singleton, viewModels[0].Id!.Type);
-        Assert.Equal("SingleApp", viewModels[0].Id!.InstanceId);
-        Assert.Equal("SingleApp", viewModels[0].Name);
+        // "[none]" should always be first
+        Assert.Equal(noSelectionViewModel, viewModels[0]);
         
-        // The no selection option should come last
-        Assert.Equal(noSelectionViewModel, viewModels[1]);
+        // The single resource should come second
+        Assert.NotNull(viewModels[1].Id);
+        Assert.Equal(OtlpApplicationType.Singleton, viewModels[1].Id!.Type);
+        Assert.Equal("SingleApp", viewModels[1].Id!.InstanceId);
+        Assert.Equal("SingleApp", viewModels[1].Name);
     }
 }

@@ -11,7 +11,6 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
@@ -203,8 +202,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             else
             {
-                Logger.LogDebug("No resource selected.");
-                loadingTcs.TrySetResult();
+                // If no specific resource was requested, but there's exactly one resource,
+                // auto-select it instead of leaving "[none]" selected
+                var singleResource = TryGetSingleResource();
+                if (singleResource != null)
+                {
+                    SetSelectedResourceOption(singleResource);
+                    Logger.LogDebug("Auto-selected single resource {ResourceName}.", singleResource.Name);
+                }
+                else
+                {
+                    Logger.LogDebug("No resource selected.");
+                    loadingTcs.TrySetResult();
+                }
             }
 
             _resourceSubscriptionTask = Task.Run(async () =>
@@ -240,10 +250,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            PageViewModel.SelectedOption = GetSelectedOption();
+            PageViewModel.SelectedOption = GetSelectedOption(resource);
             PageViewModel.SelectedResource = resource;
 
-            Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
+            Logger.LogDebug("Selected console resource from name {ResourceName}.", resource.Name);
             loadingTcs.TrySetResult();
         }
     }
@@ -252,6 +262,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         Debug.Assert(_resources is not null);
         return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
+    }
+
+    private SelectViewModel<ResourceTypeDetails> GetSelectedOption(ResourceViewModel resource)
+    {
+        Debug.Assert(_resources is not null);
+        return _resources.GetApplication(Logger, resource.Name, canSelectGrouping: false, fallback: _noSelection);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -423,21 +439,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        // If there's exactly one resource (not counting application groupings), 
-        // put it first so it's selected by default instead of "[none]"
-        var actualResources = builder.Where(r => r.Id?.Type != OtlpApplicationType.ResourceGrouping).ToList();
-        if (actualResources.Count == 1)
-        {
-            // Don't insert the "none" option first when there's only one resource
-            // The single resource will be the default selection
-            builder.Insert(builder.Count, noSelectionViewModel);
-        }
-        else
-        {
-            // Multiple resources or no resources - insert "none" first as before
-            builder.Insert(0, noSelectionViewModel);
-        }
-        
+        builder.Insert(0, noSelectionViewModel);
         return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
@@ -472,6 +474,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
+
+    private ResourceViewModel? TryGetSingleResource()
+    {
+        // Count actual resources (excluding application groupings)
+        var actualResources = _resourceByName.Values
+            .Where(r => !string.IsNullOrEmpty(r.Name)) // Ensure valid resources
+            .ToList();
+        
+        return actualResources.Count == 1 ? actualResources[0] : null;
+    }
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -593,6 +605,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 PageViewModel.SelectedResource = resource;
+            }
+            // If no resource is currently selected and we now have exactly one resource,
+            // auto-select it (this handles the case where resources are loaded after initial page load)
+            else if (PageViewModel.SelectedResource == null && ResourceName == null)
+            {
+                var singleResource = TryGetSingleResource();
+                if (singleResource != null)
+                {
+                    PageViewModel.SelectedOption = GetSelectedOption(singleResource);
+                    PageViewModel.SelectedResource = singleResource;
+                    Logger.LogDebug("Auto-selected single resource {ResourceName} after resource update.", singleResource.Name);
+                }
             }
         }
         else if (changeType == ResourceViewModelChangeType.Delete)
