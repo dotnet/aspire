@@ -202,6 +202,62 @@ public sealed class ApplicationsSelectHelpersTests
         Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
     }
 
+    [Fact]
+    public void GetApplication_CustomServiceName_ReproducesBug()
+    {
+        // This test reproduces the issue in #9632:
+        // When users configure OpenTelemetry with custom service names using
+        // .ConfigureResource(b => b.AddService(builder.Environment.ApplicationName)),
+        // the dashboard filtering fails to match resources correctly.
+        
+        // Arrange - Create an application with custom service name
+        var customServiceName = "MyCustomService";
+        var instanceId = "instance1";
+        var originalAppName = "myapp"; // This would be the original app name from app host
+        
+        var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
+        {
+            CreateOtlpApplicationWithCustomServiceName(customServiceName, instanceId)
+        });
+
+        Assert.Single(appVMs);
+        Assert.Equal(customServiceName, appVMs[0].Name);
+        Assert.Equal(OtlpApplicationType.Singleton, appVMs[0].Id!.Type);
+        Assert.Equal($"{customServiceName}-{instanceId}", appVMs[0].Id!.InstanceId);
+
+        // Act - Try to get application using original app name (this reproduces the bug scenario)
+        var fallback = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = "All" };
+        var appByOriginalName = appVMs.GetApplication(NullLogger.Instance, originalAppName, canSelectGrouping: false, fallback);
+
+        // Assert - With the fix, when there's only one application and no exact match is found,
+        // it should return that single application instead of falling back to "All"
+        Assert.NotEqual(fallback, appByOriginalName);
+        Assert.Equal(customServiceName, appByOriginalName.Name);
+    }
+
+    [Fact]
+    public void GetApplication_CustomServiceName_MultipleApps_ShouldReturnFallback()
+    {
+        // This test ensures that when there are multiple applications and no exact match,
+        // we still return the fallback to avoid false positives
+        
+        // Arrange - Create multiple applications with custom service names
+        var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
+        {
+            CreateOtlpApplicationWithCustomServiceName("ServiceA", "instance1"),
+            CreateOtlpApplicationWithCustomServiceName("ServiceB", "instance2")
+        });
+
+        Assert.Equal(2, appVMs.Count);
+
+        // Act - Try to get application using an unmatched name
+        var fallback = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = "All" };
+        var appByUnmatchedName = appVMs.GetApplication(NullLogger.Instance, "UnmatchedService", canSelectGrouping: false, fallback);
+
+        // Assert - Should return fallback when multiple apps exist and no match is found
+        Assert.Equal(fallback, appByUnmatchedName);
+    }
+
     private static OtlpApplication CreateOtlpApplication(string name, string instanceId)
     {
         var resource = new Resource
@@ -209,6 +265,21 @@ public sealed class ApplicationsSelectHelpersTests
             Attributes =
                 {
                     new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name } },
+                    new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } }
+                }
+        };
+        var applicationKey = OtlpHelpers.GetApplicationKey(resource);
+
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, uninstrumentedPeer: false, TelemetryTestHelpers.CreateContext());
+    }
+    
+    private static OtlpApplication CreateOtlpApplicationWithCustomServiceName(string customServiceName, string instanceId)
+    {
+        var resource = new Resource
+        {
+            Attributes =
+                {
+                    new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = customServiceName } },
                     new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } }
                 }
         };
