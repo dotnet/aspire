@@ -484,6 +484,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, string? value)
             where T : ApplicationModel.IResourceWithEnvironment { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T, TValue>(this ApplicationModel.IResourceBuilder<T> builder, string name, TValue value)
+            where T : ApplicationModel.IResourceWithEnvironment
+            where TValue : ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithExplicitStart<T>(this ApplicationModel.IResourceBuilder<T> builder)
             where T : ApplicationModel.IResource { throw null; }
 

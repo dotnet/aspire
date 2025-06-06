@@ -372,4 +372,116 @@ public class WithEnvironmentTests
         public string ProjectPath => "projectB";
         public LaunchSettings LaunchSettings { get; } = new();
     }
+
+    [Fact]
+    public async Task GenericWithEnvironmentWorksWithValueAndManifestProvider()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var testValue = new TestValueAndManifestProvider("test-runtime-value", "test-manifest-expression");
+        var projectA = builder.AddProject<ProjectA>("projectA")
+                              .WithEnvironment("TEST_VAR", testValue);
+
+        // Call environment variable callbacks for runtime scenario
+        var runtimeConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource, 
+            DistributedApplicationOperation.Run, 
+            TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("test-runtime-value", runtimeConfig["TEST_VAR"]);
+
+        // Call environment variable callbacks for manifest scenario  
+        var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource, 
+            DistributedApplicationOperation.Publish,
+            TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("test-manifest-expression", manifestConfig["TEST_VAR"]);
+    }
+
+    [Fact]
+    public async Task GenericWithEnvironmentHandlesResourceReferences()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var resourceA = builder.AddContainer("containerA", "imageA");
+        var testValue = new TestValueWithReferences("test-value", resourceA.Resource);
+        
+        var projectA = builder.AddProject<ProjectA>("projectA")
+                              .WithEnvironment("TEST_VAR", testValue);
+
+        // Verify that the resource relationship was established
+        Assert.True(projectA.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        var relationship = relationships.Single();
+        Assert.Equal("Reference", relationship.Type);
+        Assert.Same(resourceA.Resource, relationship.Resource);
+
+        // Verify the environment variable is set correctly
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource,
+            DistributedApplicationOperation.Run,
+            TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("test-value", config["TEST_VAR"]);
+    }
+
+    [Fact]
+    public void GenericWithEnvironmentValidatesArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var projectA = builder.AddProject<ProjectA>("projectA");
+        var testValue = new TestValueAndManifestProvider("value", "expression");
+
+        // Test null builder
+        Assert.Throws<ArgumentNullException>(() => 
+            ResourceBuilderExtensions.WithEnvironment<ProjectResource, TestValueAndManifestProvider>(null!, "TEST_VAR", testValue));
+
+        // Test null name
+        Assert.Throws<ArgumentNullException>(() => 
+            projectA.WithEnvironment<ProjectResource, TestValueAndManifestProvider>(null!, testValue));
+
+        // Test null value
+        Assert.Throws<ArgumentNullException>(() => 
+            projectA.WithEnvironment("TEST_VAR", (TestValueAndManifestProvider)null!));
+    }
+
+    private sealed class TestValueAndManifestProvider : IValueProvider, IManifestExpressionProvider
+    {
+        private readonly string _runtimeValue;
+        private readonly string _manifestExpression;
+
+        public TestValueAndManifestProvider(string runtimeValue, string manifestExpression)
+        {
+            _runtimeValue = runtimeValue;
+            _manifestExpression = manifestExpression;
+        }
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<string?>(_runtimeValue);
+        }
+
+        public string ValueExpression => _manifestExpression;
+    }
+
+    private sealed class TestValueWithReferences : IValueProvider, IManifestExpressionProvider, IValueWithReferences
+    {
+        private readonly string _value;
+        private readonly IResource _referencedResource;
+
+        public TestValueWithReferences(string value, IResource referencedResource)
+        {
+            _value = value;
+            _referencedResource = referencedResource;
+        }
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<string?>(_value);
+        }
+
+        public string ValueExpression => _value;
+
+        public IEnumerable<object> References => [_referencedResource];
+    }
 }
