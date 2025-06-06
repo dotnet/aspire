@@ -16,7 +16,8 @@ export function getAspireTerminal(): vscode.Terminal {
             ...process.env, 
             ASPIRE_EXTENSION_ENDPOINT_URL: rpcServerInfo.fullAddress,
             ASPIRE_EXTENSION_TOKEN: rpcServerInfo.token,
-            ASPIRE_EXTENSION_PROMPT_ENABLED: 'true'
+            ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
+            ASPIRE_LOCALE_OVERRIDE: vscode.env.language
          };
 
         return vscode.window.createTerminal({

@@ -49,7 +49,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 outputChannelWriter.appendLine(rpcServerListening(addressInfo.port));
-                const fullAddress = `http://localhost:${addressInfo.port}`;
+                const fullAddress = `localhost:${addressInfo.port}`;
                 resolve({
                     port: addressInfo.port,
                     token,
