@@ -209,25 +209,22 @@ const sortedIntegrations = integrations.sort((a, b) => {
             0,
         );
 
-        // Update the data-target attributes for each total card and reset content
+        // Update the data-target attributes for each total card
         const totalCards = totalsComponent.querySelectorAll(
             ".total-card .total-number",
         );
         if (totalCards.length >= 3) {
             // Update packages count
             totalCards[0].setAttribute("data-target", totalPackages);
-            totalCards[0].textContent = totalPackages.toString();
 
             // Update tags count
             totalCards[1].setAttribute("data-target", totalTags);
-            totalCards[1].textContent = totalTags.toString();
 
             // Update downloads count
             totalCards[2].setAttribute("data-target", totalDownloads);
-            totalCards[2].textContent = totalDownloads.toLocaleString();
         }
 
-        // After updating the values, trigger the animation
+        // After updating the data-target attributes, trigger the animation
         if (window.animateIntegrationTotals) {
             window.animateIntegrationTotals();
         }

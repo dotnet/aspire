@@ -108,18 +108,33 @@ const totalDownloads = integrations.reduce((total, integration) => {
     }
 
     function animateCountUp() {
+        // Check if user prefers reduced motion
+        const prefersReducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        ).matches;
         const counters = document.querySelectorAll(".total-number");
 
         counters.forEach((counter) => {
             const target = parseInt(counter.getAttribute("data-target") || "0");
             const shouldFormat = counter.getAttribute("data-format") === "true";
-            const duration = 1000; // Reduced duration for filter updates
 
-            let startTime: number | null = null;
+            if (prefersReducedMotion) {
+                // If user prefers reduced motion, update numbers immediately without animation
+                if (shouldFormat) {
+                    counter.textContent = target.toLocaleString();
+                } else {
+                    counter.textContent = target.toString();
+                }
+                return;
+            }
+
+            // Otherwise proceed with animation as before
+            const duration = 1000; // Reduced duration for filter updates
+            let startTime = null;
             const currentValue =
                 parseInt((counter.textContent ?? "0").replace(/,/g, "")) || 0;
 
-            const updateCounter = (timestamp: number) => {
+            const updateCounter = (timestamp) => {
                 if (!startTime) startTime = timestamp;
                 const elapsed = timestamp - startTime;
 
