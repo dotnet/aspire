@@ -17,6 +17,16 @@
         <target state="new">Aspire Hosting SDK Version</target>
         <note />
       </trans-unit>
+      <trans-unit id="BuildingAppHost">
+        <source>Building app host...</source>
+        <target state="new">Building app host...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingProjectType">
+        <source>Checking project type...</source>
+        <target state="new">Checking project type...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CodespacesLink">
         <source>Codespaces</source>
         <target state="new">Codespaces</target>

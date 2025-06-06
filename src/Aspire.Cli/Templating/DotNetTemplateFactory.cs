@@ -6,6 +6,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Semver;
 
@@ -17,7 +18,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     {
         yield return new CallbackTemplate(
             "aspire-starter",
-            "Aspire Starter App",
+            TemplatingStrings.AspireStarter_Description,
             projectName => $"./{projectName}",
             ApplyExtraAspireStarterOptions,
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
@@ -25,7 +26,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire",
-            "Aspire Empty App",
+            TemplatingStrings.Aspire_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
@@ -33,7 +34,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire-apphost",
-            "Aspire App Host",
+            TemplatingStrings.AspireAppHost_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
@@ -41,7 +42,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire-servicedefaults",
-            "Aspire Service Defaults",
+            TemplatingStrings.AspireServiceDefaults_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
@@ -49,7 +50,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire-mstest",
-            "Aspire Test Project (MSTest)",
+            TemplatingStrings.AspireMSTest_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
@@ -57,7 +58,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire-nunit",
-            "Aspire Test Project (NUnit)",
+            TemplatingStrings.AspireNUnit_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
@@ -65,7 +66,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             
         yield return new CallbackTemplate(
             "aspire-xunit",
-            "Aspire Test Project (xUnit)",
+            TemplatingStrings.AspireXUnit_Description,
             projectName => $"./{projectName}",
             _ => { },
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)

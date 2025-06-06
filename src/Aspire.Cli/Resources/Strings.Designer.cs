@@ -164,5 +164,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UnableToRetrieveAssemblyVersion", resourceCulture);
             }
         }
+        
+        public static string CantUseBothWatchAndNoBuild {
+            get {
+                return ResourceManager.GetString("CantUseBothWatchAndNoBuild", resourceCulture);
+            }
+        }
+        
+        public static string FailedToParseTemplateVersionFromStdout {
+            get {
+                return ResourceManager.GetString("FailedToParseTemplateVersionFromStdout", resourceCulture);
+            }
+        }
     }
 }

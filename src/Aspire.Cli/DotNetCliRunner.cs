@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Resources;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -103,7 +104,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     public async Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
-        
+
         string[] cliArgs = [
             "msbuild",
             $"-getProperty:{string.Join(",", properties)}",
@@ -160,7 +161,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (watch && noBuild)
         {
-            var ex = new InvalidOperationException("Cannot use --watch and --no-build at the same time.");
+            var ex = new InvalidOperationException(Strings.CantUseBothWatchAndNoBuild);
             backchannelCompletionSource?.SetException(ex);
             throw ex;
         }
@@ -271,7 +272,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
             // NOTE: This parsing logic is hopefully temporary and in the future we'll
             //       have structured output:
-            //       
+            //
             //       See: https://github.com/dotnet/sdk/issues/46345
             //
             if (!TryParsePackageVersionFromStdout(stdout, out var parsedVersion))
@@ -279,9 +280,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogError("Failed to parse template version from stdout.");
 
                 // Throwing here because this should never happen - we don't want to return
-                // the zero exit code if we can't parse the version because its possibly a 
+                // the zero exit code if we can't parse the version because its possibly a
                 // signal that the .NET SDK has changed.
-                throw new InvalidOperationException("Failed to parse template version from stdout.");
+                throw new InvalidOperationException(Strings.FailedToParseTemplateVersionFromStdout);
             }
 
             return (exitCode, parsedVersion);
@@ -298,7 +299,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             version = null;
             return false;
         }
-        
+
         var templateVersion = successLine.Split(" ") switch { // Break up the success line.
             { Length: > 2 } chunks => chunks[1].Split("::") switch { // Break up the template+version string
                 { Length: 2 } versionChunks => versionChunks[1], // The version in the second chunk
@@ -567,7 +568,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             "--version",
             packageVersion
         };
-        
+
         if (!string.IsNullOrEmpty(nugetSource))
         {
             cliArgsList.Add("--source");

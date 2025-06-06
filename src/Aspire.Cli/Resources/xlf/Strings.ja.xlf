@@ -17,6 +17,16 @@
         <target state="new">AppHost file was specified in {0} but it does not exist.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AspireSDKVersionNotSupported">
+        <source>The Aspire SDK version {0} is not supported. Please update to the latest version.</source>
+        <target state="new">The Aspire SDK version {0} is not supported. Please update to the latest version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CantUseBothWatchAndNoBuild">
+        <source>Cannot use --watch and --no-build at the same time.</source>
+        <target state="new">Cannot use --watch and --no-build at the same time.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
         <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
@@ -27,10 +37,20 @@
         <target state="new">Checking certificates...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotParseAspireSDKVersion">
+        <source>Could not parse Aspire SDK version.</source>
+        <target state="new">Could not parse Aspire SDK version.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
         <target state="new">Created settings file at {0}.</target>
         <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="FailedToParseTemplateVersionFromStdout">
+        <source>Failed to parse template version from stdout.</source>
+        <target state="new">Failed to parse template version from stdout.</target>
+        <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
@@ -52,9 +72,19 @@
         <target state="new">Invalid locale {0} provided will not be used.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectCouldNotBeAnalyzed">
+        <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
+        <target state="new">The project could not be analyzed due to a build error. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="new">Project file does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectIsNotAppHost">
+        <source>The project is not an Aspire app host project.</source>
+        <target state="new">The project is not an Aspire app host project.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingProjects">
@@ -70,6 +100,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="new">Trusting certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToRetrieveAssemblyVersion">
+        <source>Unable to retrieve the assembly version.</source>
+        <target state="new">Unable to retrieve the assembly version.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedLocaleProvided">
