@@ -1,45 +1,43 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
-using System.Security.Cryptography;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.IO.Hashing;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    IOptions<AzureProvisionerOptions> options,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
-    IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
-    TokenCredentialHolder tokenCredentialHolder
+    TokenCredentialHolder tokenCredentialHolder,
+    IProvisioningContextProvider provisioningContextProvider,
+    IUserSecretsManager userSecretsManager,
+    IBicepCliExecutor bicepCliExecutor,
+    ISecretClientProvider secretClientProvider
     ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
-
-    private readonly AzureProvisionerOptions _options = options.Value;
 
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
@@ -179,42 +177,17 @@ internal sealed class AzureProvisioner(
             cancellationToken), cancellationToken);
     }
 
-    private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
-    {
-        var jsonDocumentOptions = new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
-
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
-                documentOptions: jsonDocumentOptions)!.AsObject()
-            : [];
-        return userSecrets;
-    }
-
     private async Task ProvisionAzureResources(
         IConfiguration configuration,
         ILogger<AzureProvisioner> logger,
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Try to find the user secrets path so that provisioners can persist connection information.
-        static string? GetUserSecretsPath()
-        {
-            return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
-            {
-                null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
-                string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
-            };
-        }
-
-        var userSecretsPath = GetUserSecretsPath();
-        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
+        var userSecretsPath = userSecretsManager.GetUserSecretsPath();
+        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => userSecretsManager.LoadUserSecretsAsync(userSecretsPath, cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -234,10 +207,7 @@ internal sealed class AzureProvisioner(
             try
             {
                 var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
-
-                // Ensure directory exists before attempting to create secrets file
-                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+                await userSecretsManager.SaveUserSecretsAsync(userSecretsPath, userSecrets, cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
@@ -259,66 +229,43 @@ internal sealed class AzureProvisioner(
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
-        IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
-        {
-            var type = resource.GetType();
-
-            while (type is not null)
-            {
-                var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(type);
-
-                if (provisioner is not null)
-                {
-                    return provisioner;
-                }
-
-                type = type.BaseType;
-            }
-
-            return null;
-        }
-
-        var provisioner = SelectProvisioner(resource.AzureResource);
-
         var resourceLogger = loggerService.GetLogger(resource.AzureResource);
 
-        if (provisioner is null)
+        // Only handle AzureBicepResource directly
+        if (resource.AzureResource is not AzureBicepResource bicepResource)
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-            resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+            resourceLogger.LogWarning("Only Bicep resources are supported. Skipping {resourceType}.", resource.AzureResource.GetType().Name);
+            return;
         }
-        else if (!provisioner.ShouldProvision(configuration, resource.AzureResource))
-        {
-            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
 
-            resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
-        }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
+        if (!ShouldProvision(bicepResource))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-            resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);
+            resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", bicepResource.Name);
+        }
+        else if (await ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
+        {
+            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
+            resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", bicepResource.Name);
             await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
         }
         else
         {
-            if (resource.AzureResource.IsExisting())
+            if (bicepResource.IsExisting())
             {
-                resourceLogger.LogInformation("Resolving {resourceName} as existing resource...", resource.AzureResource.Name);
+                resourceLogger.LogInformation("Resolving {resourceName} as existing resource...", bicepResource.Name);
             }
             else
             {
-                resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
+                resourceLogger.LogInformation("Provisioning {resourceName}...", bicepResource.Name);
             }
 
             try
             {
                 var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
 
-                await provisioner.GetOrCreateResourceAsync(
-                    resource.AzureResource,
-                    provisioningContext,
-                    cancellationToken).ConfigureAwait(false);
+                await GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
 
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
                 await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
@@ -335,13 +282,13 @@ internal sealed class AzureProvisioner(
             }
             catch (JsonException ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.AzureResource.Name);
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", bicepResource.Name);
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (Exception ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.AzureResource.Name);
-                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.AzureResource.Name}"));
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", bicepResource.Name);
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {bicepResource.Name}"));
             }
         }
 
@@ -361,193 +308,450 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(TokenCredentialHolder holder, Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
+    // Bicep provisioning methods integrated from BicepProvisioner
+
+    private static bool ShouldProvision(AzureBicepResource resource)
+        => !resource.IsContainer();
+
+    private async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
 
-        var credential = holder.Credential;
-
-        holder.LogCredentialType();
-
-        var armClient = new ArmClient(credential, subscriptionId);
-
-        logger.LogInformation("Getting default subscription...");
-
-        var subscriptionResource = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
-
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Id);
-
-        logger.LogInformation("Getting tenant...");
-
-        TenantResource? tenantResource = null;
-
-        await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+        if (!section.Exists())
         {
-            if (tenant.Data.TenantId == subscriptionResource.Data.TenantId)
+            return false;
+        }
+
+        var currentCheckSum = await GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
+        var configCheckSum = section["CheckSum"];
+
+        if (currentCheckSum != configCheckSum)
+        {
+            return false;
+        }
+
+        if (section["Outputs"] is string outputJson)
+        {
+            JsonNode? outputObj = null;
+            try
             {
-                logger.LogInformation("Tenant: {tenantId}", tenant.Data.TenantId);
-                tenantResource = tenant;
-                break;
+                outputObj = JsonNode.Parse(outputJson);
+
+                if (outputObj is null)
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                // Unable to parse the JSON, to treat it as not existing
+                return false;
+            }
+
+            foreach (var item in outputObj.AsObject())
+            {
+                // TODO: Handle complex output types
+                // Populate the resource outputs
+                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
             }
         }
 
-        if (tenantResource is null)
+        if (resource is IAzureKeyVaultResource kvr)
         {
-            throw new InvalidOperationException($"Could not find tenant id {subscriptionResource.Data.TenantId} for subscription {subscriptionResource.Data.DisplayName}.");
+            ConfigureSecretResolver(kvr);
         }
 
-        if (string.IsNullOrEmpty(_options.Location))
+        // Populate secret outputs from key vault (if any)
+        foreach (var item in section.GetSection("SecretOutputs").GetChildren())
         {
-            throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
+            resource.SecretOutputs[item.Key] = item.Value;
         }
 
-        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
+        var portalUrls = new List<UrlSnapshot>();
 
-        string resourceGroupName;
-        bool createIfAbsent;
-
-        if (string.IsNullOrEmpty(_options.ResourceGroup))
+        if (section["Id"] is string deploymentId &&
+            ResourceIdentifier.TryParse(deploymentId, out var id) &&
+            id is not null)
         {
-            // Generate an resource group name since none was provided
+            portalUrls.Add(new(Name: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
+        }
 
-            var prefix = "rg-aspire";
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            ImmutableArray<ResourcePropertySnapshot> props = [
+                .. state.Properties,
+                    new("azure.subscription.id", configuration["Azure:SubscriptionId"]),
+                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!),
+                    new("azure.tenant.domain", configuration["Azure:Tenant"]),
+                    new("azure.location", configuration["Azure:Location"]),
+                    new(CustomResourceKnownProperties.Source, section["Id"])
+            ];
 
-            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+            return state with
             {
-                prefix = _options.ResourceGroupPrefix;
-            }
+                State = new("Provisioned", KnownResourceStateStyles.Success),
+                Urls = [.. portalUrls],
+                Properties = props
+            };
+        }).ConfigureAwait(false);
 
-            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+        return true;
+    }
 
-            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
+    private static object? GetExistingResourceGroup(AzureBicepResource resource) =>
+        resource.Scope?.ResourceGroup ??
+            (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
+                existingResource.ResourceGroup :
+                null);
 
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
-            if (normalizedApplicationName.Length > maxApplicationNameSize)
+    private async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    {
+        var resourceGroup = context.ResourceGroup;
+        var resourceLogger = loggerService.GetLogger(resource);
+
+        if (GetExistingResourceGroup(resource) is { } existingResourceGroup)
+        {
+            var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
+                ? parameterResource.Value
+                : (string)existingResourceGroup;
+            resourceGroup = await context.Subscription.GetResourceGroupAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
+        }
+
+        await notificationService.PublishUpdateAsync(resource, state => state with
+        {
+            ResourceType = resource.GetType().Name,
+            State = new("Starting", KnownResourceStateStyles.Info),
+            Properties = state.Properties.SetResourcePropertyRange([
+                new("azure.subscription.id", context.Subscription.Id.Name),
+                new("azure.resource.group", resourceGroup.Id.Name),
+                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
+                new("azure.location", context.Location.ToString()),
+            ])
+        }).ConfigureAwait(false);
+
+        var template = resource.GetBicepTemplateFile();
+        var path = template.Path;
+
+        // GetBicepTemplateFile may have added new well-known parameters, so we need
+        // to populate them only after calling GetBicepTemplateFile.
+        PopulateWellKnownParameters(resource, context);
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
             {
-                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
-            }
+                State = new("Compiling ARM template", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
 
-            // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
+        // Use the bicep CLI executor to compile the bicep file to ARM template
+        var armTemplateContents = await bicepCliExecutor.CompileBicepToArmAsync(path, cancellationToken).ConfigureAwait(false);
 
-            createIfAbsent = true;
+        var deployments = resourceGroup.GetArmDeployments();
 
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
+
+        // Convert the parameters to a JSON object
+        var parameters = new JsonObject();
+        await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var scope = new JsonObject();
+        await SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var sw = Stopwatch.StartNew();
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Creating ARM Deployment", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
+
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        {
+            Template = BinaryData.FromString(armTemplateContents),
+            Parameters = BinaryData.FromObjectAsJson(parameters),
+            DebugSettingDetailLevel = "ResponseContent"
+        }),
+        cancellationToken).ConfigureAwait(false);
+
+        // Resolve the deployment URL before waiting for the operation to complete
+        var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
+
+        resourceLogger.LogInformation("Deployment started: {Url}", url);
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
+                Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
+            };
+        })
+        .ConfigureAwait(false);
+
+        await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
+
+        sw.Stop();
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
+
+        var deployment = operation.Value;
+
+        var outputs = deployment.Data.Properties.Outputs;
+
+        if (deployment.Data.Properties.ProvisioningState == ResourcesProvisioningState.Succeeded)
+        {
+            template.Dispose();
         }
         else
         {
-            resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
-        var resourceGroups = subscriptionResource.GetResourceGroups();
+        // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
 
-        ResourceGroupResource? resourceGroup;
+        var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        AzureLocation location = new(_options.Location);
+        var az = context.UserSecrets.Prop("Azure");
+        az["Tenant"] = context.Tenant.Data.DefaultDomain;
+
+        var resourceConfig = context.UserSecrets
+            .Prop("Azure")
+            .Prop("Deployments")
+            .Prop(resource.Name);
+
+        // Clear the entire section
+        resourceConfig.AsObject().Clear();
+
+        // Save the deployment id to the configuration
+        resourceConfig["Id"] = deployment.Id.ToString();
+
+        // Stash all parameters as a single JSON string
+        resourceConfig["Parameters"] = parameters.ToJsonString();
+
+        if (outputObj is not null)
+        {
+            // Same for outputs
+            resourceConfig["Outputs"] = outputObj.ToJsonString();
+        }
+
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
+        }
+
+        // Save the checksum to the configuration
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters, scope);
+
+        if (outputObj is not null)
+        {
+            foreach (var item in outputObj.AsObject())
+            {
+                // TODO: Handle complex output types
+                // Populate the resource outputs
+                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+            }
+        }
+
+        // Populate secret outputs from key vault (if any)
+        if (resource is IAzureKeyVaultResource kvr)
+        {
+            ConfigureSecretResolver(kvr);
+        }
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            ImmutableArray<ResourcePropertySnapshot> properties = [
+                .. state.Properties,
+                new(CustomResourceKnownProperties.Source, deployment.Id.Name)
+            ];
+
+            return state with
+            {
+                State = new("Provisioned", KnownResourceStateStyles.Success),
+                CreationTimeStamp = DateTime.UtcNow,
+                Properties = properties
+            };
+        })
+        .ConfigureAwait(false);
+    }
+
+    private void ConfigureSecretResolver(IAzureKeyVaultResource kvr)
+    {
+        var resource = (AzureBicepResource)kvr;
+
+        var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
+
+        // Set the client for resolving secrets at runtime
+        var client = secretClientProvider.GetSecretClient(new(vaultUri), tokenCredentialHolder.Credential);
+        kvr.SecretResolver = async (secretRef, ct) =>
+        {
+            var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);
+            return secret.Value.Value;
+        };
+    }
+
+    private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
+    {
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalId, out var principalId) && principalId is null)
+        {
+            resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = context.Principal.Id;
+        }
+
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalName, out var principalName) && principalName is null)
+        {
+            resource.Parameters[AzureBicepResource.KnownParameters.PrincipalName] = context.Principal.Name;
+        }
+
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) && principalType is null)
+        {
+            resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "User";
+        }
+
+        // Always specify the location
+        resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
+    }
+
+    private static string GetChecksum(AzureBicepResource resource, JsonObject parameters, JsonObject? scope)
+    {
+        // TODO: PERF Inefficient
+
+        // Combine the parameter values with the bicep template to create a unique value
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+        if (scope is not null)
+        {
+            input += scope.ToJsonString();
+        }
+
+        // Hash the contents
+        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
+
+        // Convert the hash to a string
+        return Convert.ToHexString(hashedContents).ToLowerInvariant();
+    }
+
+    private static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
+    {
+        // Fill in parameters from configuration
+        if (section["Parameters"] is not string jsonString)
+        {
+            return null;
+        }
+
         try
         {
-            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-            resourceGroup = response.Value;
+            var parameters = JsonNode.Parse(jsonString)?.AsObject();
+            var scope = section["Scope"] is string scopeString
+                ? JsonNode.Parse(scopeString)?.AsObject()
+                : null;
 
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
-        }
-        catch (Exception)
-        {
-            if (!createIfAbsent)
+            if (parameters is null)
             {
-                throw;
+                return null;
             }
 
-            // REVIEW: Is it possible to do this without an exception?
+            // Now overwrite with live object values skipping known and generated values.
+            // This is important because the provisioner will fill in the known values and
+            // generated values would change every time, so they can't be part of the checksum.
+            await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (scope is not null)
+            {
+                await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
+            }
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
-
-            var rgData = new ResourceGroupData(location);
-            rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-            resourceGroup = operation.Value;
-
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
+            // Get the checksum of the new values
+            return GetChecksum(resource, parameters, scope);
         }
-
-        var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
-
-        var resourceMap = new Dictionary<string, ArmResource>();
-
-        return new ProvisioningContext(
-                    credential,
-                    armClient,
-                    subscriptionResource,
-                    resourceGroup,
-                    tenantResource,
-                    resourceMap,
-                    location,
-                    principal,
-                    userSecrets);
+        catch
+        {
+            // Unable to parse the JSON, to treat it as not existing
+            return null;
+        }
     }
 
-    internal static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
+    // Known values since they will be filled in by the provisioner
+    private static readonly string[] s_knownParameterNames =
+    [
+        AzureBicepResource.KnownParameters.PrincipalName,
+        AzureBicepResource.KnownParameters.PrincipalId,
+        AzureBicepResource.KnownParameters.PrincipalType,
+        AzureBicepResource.KnownParameters.Location,
+    ];
+
+    // Converts the parameters to a JSON object compatible with the ARM template
+    private static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipDynamicValues = false, CancellationToken cancellationToken = default)
     {
-        var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
-
-        static UserPrincipal ParseToken(in AccessToken response)
+        // Convert the parameters to a JSON object
+        foreach (var parameter in resource.Parameters)
         {
-            // Parse the access token to get the user's object id (this is their principal id)
-            var oid = string.Empty;
-            var upn = string.Empty;
-            var parts = response.Token.Split('.');
-            var part = parts[1];
-            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
-
-            switch (part.Length % 4)
+            if (skipDynamicValues &&
+                (s_knownParameterNames.Contains(parameter.Key) || IsParameterWithGeneratedValue(parameter.Value)))
             {
-                case 2:
-                    convertedToken += "==";
-                    break;
-                case 3:
-                    convertedToken += "=";
-                    break;
+                continue;
             }
-            var bytes = Convert.FromBase64String(convertedToken);
-            Utf8JsonReader reader = new(bytes);
-            while (reader.Read())
+
+            // Execute parameter values which are deferred.
+            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
+            parameters[parameter.Key] = new JsonObject()
             {
-                if (reader.TokenType == JsonTokenType.PropertyName)
+                ["value"] = parameterValue switch
                 {
-                    var header = reader.GetString();
-                    if (header == "oid")
-                    {
-                        reader.Read();
-                        oid = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(upn))
-                        {
-                            break;
-                        }
-                    }
-                    else if (header is "upn" or "email")
-                    {
-                        reader.Read();
-                        upn = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(oid))
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        reader.Read();
-                    }
+                    string s => s,
+                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
+                    int i => i,
+                    bool b => b,
+                    Guid g => g.ToString(),
+                    JsonNode node => node,
+                    IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
                 }
-            }
-            return new UserPrincipal(Guid.Parse(oid), upn);
+            };
         }
-
-        return ParseToken(response);
     }
 
-    sealed class MissingConfigurationException(string message) : Exception(message)
+    private static async Task SetScopeAsync(JsonObject scope, AzureBicepResource resource, CancellationToken cancellationToken = default)
     {
+        // Resolve the scope from the AzureBicepResource if it has already been set
+        // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
+        var targetScope = GetExistingResourceGroup(resource);
 
+        scope["resourceGroup"] = targetScope switch
+        {
+            string s => s,
+            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            null => null,
+            _ => throw new NotSupportedException($"The scope value type {targetScope.GetType()} is not supported.")
+        };
     }
+
+    private static bool IsParameterWithGeneratedValue(object? value)
+    {
+        return value is ParameterResource { Default: not null };
+    }
+
+    private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
+
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
+    {
+        var prefix = PortalDeploymentOverviewUrl;
+
+        var subId = provisioningContext.Subscription.Data.Id.ToString();
+        var rgName = resourceGroup.Data.Name;
+        var subAndRg = $"{subId}/resourceGroups/{rgName}";
+
+        var deployId = deploymentName;
+
+        var path = $"{subAndRg}/providers/Microsoft.Resources/deployments/{deployId}";
+        var encodedPath = Uri.EscapeDataString(path);
+
+        return $"{prefix}/{encodedPath}";
+    }
+
+    private static string GetDeploymentUrl(ResourceIdentifier deploymentId) =>
+        $"{PortalDeploymentOverviewUrl}/{Uri.EscapeDataString(deploymentId.ToString())}";
 }
