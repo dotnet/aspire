@@ -204,6 +204,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(null, false)] // Default method is POST
     [InlineData("get", true)]
     [InlineData("post", false)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9725")]
     [Theory]
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
