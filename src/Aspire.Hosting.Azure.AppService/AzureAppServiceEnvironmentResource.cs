@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    IComputeEnvironmentResource,
+    IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {

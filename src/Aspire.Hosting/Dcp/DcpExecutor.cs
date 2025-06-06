@@ -1217,8 +1217,17 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             // Create a custom container network for Aspire if there are container resources
             if (containerResources.Any())
             {
-                // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
-                tasks.Add(_kubernetesService.CreateAsync(ContainerNetwork.Create(DefaultAspireNetworkName), cancellationToken));
+                var network = ContainerNetwork.Create(DefaultAspireNetworkName);
+                if (containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent))
+                {
+                    // If we have any persistent container resources
+                    network.Spec.Persistent = true;
+                    // Persistent networks require a predictable name to be reused between runs.
+                    // Append the same project hash suffix used for persistent container names.
+                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+                }
+
+                tasks.Add(_kubernetesService.CreateAsync(network, cancellationToken));
             }
 
             foreach (var cr in containerResources)

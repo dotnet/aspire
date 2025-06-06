@@ -21,4 +21,6 @@ jobs:
         env:
           # prevent GitInfo errors
           CI: false
-        run: ./build.sh /p:PrepareForHelix=true
+        # a full build is too slow; also do not fail on errors, continue so that
+        # copilot can attempt to recover
+        run: ./build.sh -restore || true

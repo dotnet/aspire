@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.StackExchange.Redis.OutputCaching.Tests;
 

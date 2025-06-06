@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using OpenTelemetry;
 
-namespace Aspire.Components.Common.Tests;
+namespace Aspire.Components.Common.TestUtilities;
 
 /// <summary>
 /// An OpenTelemetry processor that can notify callers when it has processed an Activity.
