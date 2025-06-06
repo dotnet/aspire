@@ -159,7 +159,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(model, nameof(model));
 
-        var modelResource = new AzureAIFoundryLocalModelResource(name, model, builder.Resource);
+        var modelResource = new AzureAIFoundryLocalModelResource(name, builder.Resource);
 
         builder.Resource.AddModel(modelResource);
 
@@ -184,7 +184,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        modelResource.ModelInfo = progress.ModelInfo;
+                        modelResource.ModelId = progress.ModelInfo.ModelId;
                         logger.LogInformation("Model {Model} downloaded successfully.", model);
 
                         await rns.PublishUpdateAsync(modelResource, state => state with
@@ -192,7 +192,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                             State = new ResourceStateSnapshot("Loading model", KnownResourceStateStyles.Info)
                         }).ConfigureAwait(false);
 
-                        _ = await manager.LoadModelAsync(modelResource.ModelInfo.ModelId, ct: ct).ConfigureAwait(false);
+                        _ = await manager.LoadModelAsync(modelResource.ModelId, ct: ct).ConfigureAwait(false);
 
                         await rns.PublishUpdateAsync(modelResource, state => state with
                         {
@@ -209,7 +209,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                     }
                     else
                     {
-                        logger.LogInformation("Downloading model {model}: {progress.Percentage}%", model, progress.Percentage);
+                        logger.LogInformation("Downloading model {Model}: {Progress}%", model, progress.Percentage);
                         await rns.PublishUpdateAsync(modelResource, state => state with
                         {
                             State = new ResourceStateSnapshot($"Downloading model {model}: {progress.Percentage}%", KnownResourceStateStyles.Info)
