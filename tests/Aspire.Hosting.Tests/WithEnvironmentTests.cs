@@ -354,25 +354,6 @@ public class WithEnvironmentTests
             });
     }
 
-    private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
-    {
-        public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{connectionString}");
-    }
-
-    private sealed class ProjectA : IProjectMetadata
-    {
-        public string ProjectPath => "projectA";
-
-        public LaunchSettings LaunchSettings { get; } = new();
-    }
-
-    private sealed class ProjectB : IProjectMetadata
-    {
-        public string ProjectPath => "projectB";
-        public LaunchSettings LaunchSettings { get; } = new();
-    }
-
     [Fact]
     public async Task GenericWithEnvironmentWorksWithValueAndManifestProvider()
     {
@@ -445,25 +426,6 @@ public class WithEnvironmentTests
             projectA.WithEnvironment("TEST_VAR", (TestValueAndManifestProvider)null!));
     }
 
-    private sealed class TestValueAndManifestProvider : IValueProvider, IManifestExpressionProvider
-    {
-        private readonly string _runtimeValue;
-        private readonly string _manifestExpression;
-
-        public TestValueAndManifestProvider(string runtimeValue, string manifestExpression)
-        {
-            _runtimeValue = runtimeValue;
-            _manifestExpression = manifestExpression;
-        }
-
-        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
-        {
-            return ValueTask.FromResult<string?>(_runtimeValue);
-        }
-
-        public string ValueExpression => _manifestExpression;
-    }
-
     [Fact]
     public async Task GenericWithEnvironmentWorksWithEndpointProperty()
     {
@@ -524,5 +486,43 @@ public class WithEnvironmentTests
         public string ValueExpression => _value;
 
         public IEnumerable<object> References => [_referencedResource];
+    }
+
+    private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
+    {
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{connectionString}");
+    }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class ProjectB : IProjectMetadata
+    {
+        public string ProjectPath => "projectB";
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class TestValueAndManifestProvider : IValueProvider, IManifestExpressionProvider
+    {
+        private readonly string _runtimeValue;
+        private readonly string _manifestExpression;
+
+        public TestValueAndManifestProvider(string runtimeValue, string manifestExpression)
+        {
+            _runtimeValue = runtimeValue;
+            _manifestExpression = manifestExpression;
+        }
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<string?>(_runtimeValue);
+        }
+
+        public string ValueExpression => _manifestExpression;
     }
 }

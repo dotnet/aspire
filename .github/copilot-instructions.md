@@ -16,6 +16,7 @@
 * Ensure that the final return statement of a method is on its own line.
 * Use pattern matching and switch expressions wherever possible.
 * Use `nameof` instead of string literals when referring to member names.
+* Place private class declarations at the bottom of the file.
 
 ### Nullable Reference Types
 
