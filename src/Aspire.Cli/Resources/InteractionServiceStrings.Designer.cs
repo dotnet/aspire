@@ -98,5 +98,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StoppingAspire", resourceCulture);
             }
         }
+        
+        public static string CheckingProjectType {
+            get {
+                return ResourceManager.GetString("CheckingProjectType", resourceCulture);
+            }
+        }
+        
+        public static string BuildingAppHost {
+            get {
+                return ResourceManager.GetString("BuildingAppHost", resourceCulture);
+            }
+        }
     }
 }

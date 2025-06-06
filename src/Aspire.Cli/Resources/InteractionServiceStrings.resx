@@ -147,4 +147,10 @@
   <data name="StoppingAspire" xml:space="preserve">
     <value>Stopping Aspire.</value>
   </data>
+  <data name="CheckingProjectType" xml:space="preserve">
+    <value>Checking project type...</value>
+  </data>
+  <data name="BuildingAppHost" xml:space="preserve">
+    <value>Building app host...</value>
+  </data>
 </root>

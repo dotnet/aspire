@@ -4,6 +4,8 @@
 using Aspire.Cli.Interaction;
 using Semver;
 using System.Diagnostics;
+using System.Globalization;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Utils;
 
@@ -17,26 +19,26 @@ internal static class AppHostHelper
 
             if (appHostInformation.ExitCode != 0)
             {
-                interactionService.DisplayError("The project could not be analyzed due to a build error. For more information run with --debug switch.");
+                interactionService.DisplayError(Strings.ProjectCouldNotBeAnalyzed);
                 return (false, false, null);
             }
 
             if (!appHostInformation.IsAspireHost)
             {
-                interactionService.DisplayError($"The project is not an Aspire app host project.");
+                interactionService.DisplayError(Strings.ProjectIsNotAppHost);
                 return (false, false, null);
             }
 
             if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
             {
-                interactionService.DisplayError($"Could not parse Aspire SDK version.");
+                interactionService.DisplayError(Strings.CouldNotParseAspireSDKVersion);
                 return (false, false, null);
             }
 
             var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
             if (!aspireSdkVersion.Satisfies(compatibleRanges))
             {
-                interactionService.DisplayError($"The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.");
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, Strings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingSdkVersion));
                 return (false, false, appHostInformation.AspireHostingSdkVersion);
             }
             else
@@ -52,7 +54,7 @@ internal static class AppHostHelper
         using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
-            ":microscope: Checking project type...",
+            ":microscope: " + InteractionServiceStrings.CheckingProjectType,
             () => runner.GetAppHostInformationAsync(
                 projectFile,
                 new DotNetCliRunnerInvocationOptions(),
@@ -60,11 +62,11 @@ internal static class AppHostHelper
 
         return appHostInformationResult;
     }
-    
+
     internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
-            ":hammer_and_wrench:  Building app host...",
+            ":hammer_and_wrench:  " + InteractionServiceStrings.BuildingAppHost,
             () => runner.BuildAsync(
                 projectFile,
                 options,

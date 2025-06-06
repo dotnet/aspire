@@ -166,4 +166,19 @@
     <value>Created settings file at {0}.</value>
     <comment>{0} is a path</comment>
   </data>
+  <data name="ProjectCouldNotBeAnalyzed" xml:space="preserve">
+    <value>The project could not be analyzed due to a build error. For more information run with --debug switch.</value>
+  </data>
+  <data name="ProjectIsNotAppHost" xml:space="preserve">
+    <value>The project is not an Aspire app host project.</value>
+  </data>
+  <data name="CouldNotParseAspireSDKVersion" xml:space="preserve">
+    <value>Could not parse Aspire SDK version.</value>
+  </data>
+  <data name="AspireSDKVersionNotSupported" xml:space="preserve">
+    <value>The Aspire SDK version {0} is not supported. Please update to the latest version.</value>
+  </data>
+  <data name="UnableToRetrieveAssemblyVersion" xml:space="preserve">
+    <value>Unable to retrieve the assembly version.</value>
+  </data>
 </root>

@@ -134,5 +134,35 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CreatedSettingsFile", resourceCulture);
             }
         }
+        
+        public static string ProjectCouldNotBeAnalyzed {
+            get {
+                return ResourceManager.GetString("ProjectCouldNotBeAnalyzed", resourceCulture);
+            }
+        }
+        
+        public static string ProjectIsNotAppHost {
+            get {
+                return ResourceManager.GetString("ProjectIsNotAppHost", resourceCulture);
+            }
+        }
+        
+        public static string CouldNotParseAspireSDKVersion {
+            get {
+                return ResourceManager.GetString("CouldNotParseAspireSDKVersion", resourceCulture);
+            }
+        }
+        
+        public static string AspireSDKVersionNotSupported {
+            get {
+                return ResourceManager.GetString("AspireSDKVersionNotSupported", resourceCulture);
+            }
+        }
+        
+        public static string UnableToRetrieveAssemblyVersion {
+            get {
+                return ResourceManager.GetString("UnableToRetrieveAssemblyVersion", resourceCulture);
+            }
+        }
     }
 }
