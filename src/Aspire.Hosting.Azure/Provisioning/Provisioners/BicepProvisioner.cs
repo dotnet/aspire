@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
-using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -448,7 +447,7 @@ internal sealed class BicepProvisioner(
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
 
-    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, IResourceGroupResource resourceGroup, string deploymentName)
     {
         var prefix = PortalDeploymentOverviewUrl;
 

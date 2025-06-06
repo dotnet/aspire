@@ -13,6 +13,7 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Hosting;
@@ -123,7 +124,7 @@ internal sealed class DefaultBicepCliExecutor : IBicepCliExecutor
 /// </summary>
 internal sealed class DefaultUserSecretsManager : IUserSecretsManager
 {
-    public string? GetUserSecretsPath()
+    private static string? GetUserSecretsPath()
     {
         return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
         {
@@ -132,8 +133,10 @@ internal sealed class DefaultUserSecretsManager : IUserSecretsManager
         };
     }
 
-    public async Task<JsonObject> LoadUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken = default)
+    public async Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
     {
+        var userSecretsPath = GetUserSecretsPath();
+        
         var jsonDocumentOptions = new JsonDocumentOptions
         {
             CommentHandling = JsonCommentHandling.Skip,
@@ -147,8 +150,14 @@ internal sealed class DefaultUserSecretsManager : IUserSecretsManager
         return userSecrets;
     }
 
-    public async Task SaveUserSecretsAsync(string userSecretsPath, JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public async Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
+        var userSecretsPath = GetUserSecretsPath();
+        if (userSecretsPath is null)
+        {
+            throw new InvalidOperationException("User secrets path could not be determined.");
+        }
+        
         // Ensure directory exists before attempting to create secrets file
         Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
         await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
@@ -178,18 +187,19 @@ internal sealed class DefaultProvisioningContextProvider(
         tokenCredentialHolder.LogCredentialType();
 
         var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
+        var wrappedArmClient = new DefaultArmClient(armClient);
 
         logger.LogInformation("Getting default subscription...");
 
-        var subscriptionResource = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+        var subscriptionResource = await wrappedArmClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Id);
+        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Data.Id);
 
         logger.LogInformation("Getting tenant...");
 
-        TenantResource? tenantResource = null;
+        ITenantResource? tenantResource = null;
 
-        await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+        await foreach (var tenant in wrappedArmClient.GetTenantsAsync(cancellationToken).ConfigureAwait(false))
         {
             if (tenant.Data.TenantId == subscriptionResource.Data.TenantId)
             {
@@ -250,9 +260,9 @@ internal sealed class DefaultProvisioningContextProvider(
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
-        ResourceGroupResource? resourceGroup;
+        IResourceGroupResource? resourceGroup;
 
-        AzureLocation location = new(_options.Location);
+        IAzureLocation location = new DefaultAzureLocation(new(_options.Location));
         try
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
@@ -271,7 +281,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
             logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
-            var rgData = new ResourceGroupData(location);
+            var rgData = new ResourceGroupData(new AzureLocation(_options.Location));
             rgData.Tags.Add("aspire", "true");
             var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;
@@ -279,13 +289,13 @@ internal sealed class DefaultProvisioningContextProvider(
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
         }
 
-        var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
+        var principal = await GetUserPrincipalAsync(new DefaultTokenCredential(credential), cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
         return new ProvisioningContext(
-                    credential,
-                    armClient,
+                    new DefaultTokenCredential(credential),
+                    wrappedArmClient,
                     subscriptionResource,
                     resourceGroup,
                     tenantResource,
@@ -295,7 +305,7 @@ internal sealed class DefaultProvisioningContextProvider(
                     userSecrets);
     }
 
-    private static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
+    private static async Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken)
     {
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 
@@ -353,4 +363,168 @@ internal sealed class DefaultProvisioningContextProvider(
 
         return ParseToken(response);
     }
+}
+
+/// <summary>
+/// Default implementation of <see cref="ITokenCredential"/>.
+/// </summary>
+internal sealed class DefaultTokenCredential(TokenCredential credential) : ITokenCredential
+{
+    public async Task<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
+    {
+        return await credential.GetTokenAsync(requestContext, cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="IArmClient"/>.
+/// </summary>
+internal sealed class DefaultArmClient(ArmClient armClient) : IArmClient
+{
+    public async Task<ISubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default)
+    {
+        var subscription = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+        return new DefaultSubscriptionResource(subscription);
+    }
+
+    public async IAsyncEnumerable<ITenantResource> GetTenantsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+        {
+            yield return new DefaultTenantResource(tenant);
+        }
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="ISubscriptionResource"/>.
+/// </summary>
+internal sealed class DefaultSubscriptionResource(SubscriptionResource subscriptionResource) : ISubscriptionResource
+{
+    public ResourceIdentifier Id => subscriptionResource.Id;
+    public ISubscriptionData Data { get; } = new DefaultSubscriptionData(subscriptionResource.Data);
+
+    public async Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default)
+    {
+        var resourceGroup = await subscriptionResource.GetResourceGroupAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+        return new DefaultResourceGroupResource(resourceGroup.Value);
+    }
+
+    public IResourceGroupCollection GetResourceGroups()
+    {
+        return new DefaultResourceGroupCollection(subscriptionResource.GetResourceGroups());
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="ISubscriptionData"/>.
+/// </summary>
+internal sealed class DefaultSubscriptionData(SubscriptionData subscriptionData) : ISubscriptionData
+{
+    public ResourceIdentifier Id => subscriptionData.Id;
+    public string? DisplayName => subscriptionData.DisplayName;
+    public Guid? TenantId => subscriptionData.TenantId;
+}
+
+/// <summary>
+/// Default implementation of <see cref="IResourceGroupCollection"/>.
+/// </summary>
+internal sealed class DefaultResourceGroupCollection(ResourceGroupCollection resourceGroupCollection) : IResourceGroupCollection
+{
+    public async Task<Response<IResourceGroupResource>> GetAsync(string resourceGroupName, CancellationToken cancellationToken = default)
+    {
+        var response = await resourceGroupCollection.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+        return Response.FromValue<IResourceGroupResource>(new DefaultResourceGroupResource(response.Value), response.GetRawResponse());
+    }
+
+    public async Task<ArmOperation<IResourceGroupResource>> CreateOrUpdateAsync(WaitUntil waitUntil, string resourceGroupName, ResourceGroupData data, CancellationToken cancellationToken = default)
+    {
+        var operation = await resourceGroupCollection.CreateOrUpdateAsync(waitUntil, resourceGroupName, data, cancellationToken).ConfigureAwait(false);
+        var wrappedValue = new DefaultResourceGroupResource(operation.Value);
+        
+        // Create a wrapper for the ArmOperation that exposes the wrapped value
+        return new DefaultArmOperation<IResourceGroupResource>(operation, wrappedValue);
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="IResourceGroupResource"/>.
+/// </summary>
+internal sealed class DefaultResourceGroupResource(ResourceGroupResource resourceGroupResource) : IResourceGroupResource
+{
+    public ResourceIdentifier Id => resourceGroupResource.Id;
+    public IResourceGroupData Data { get; } = new DefaultResourceGroupData(resourceGroupResource.Data);
+
+    public IArmDeploymentCollection GetArmDeployments()
+    {
+        return new DefaultArmDeploymentCollection(resourceGroupResource.GetArmDeployments());
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="IResourceGroupData"/>.
+/// </summary>
+internal sealed class DefaultResourceGroupData(ResourceGroupData resourceGroupData) : IResourceGroupData
+{
+    public string Name => resourceGroupData.Name;
+}
+
+/// <summary>
+/// Default implementation of <see cref="IArmDeploymentCollection"/>.
+/// </summary>
+internal sealed class DefaultArmDeploymentCollection(ArmDeploymentCollection armDeploymentCollection) : IArmDeploymentCollection
+{
+    public Task<ArmOperation<ArmDeploymentResource>> CreateOrUpdateAsync(
+        WaitUntil waitUntil, 
+        string deploymentName, 
+        ArmDeploymentContent content, 
+        CancellationToken cancellationToken = default)
+    {
+        return armDeploymentCollection.CreateOrUpdateAsync(waitUntil, deploymentName, content, cancellationToken);
+    }
+}
+
+/// <summary>
+/// Default implementation of <see cref="ITenantResource"/>.
+/// </summary>
+internal sealed class DefaultTenantResource(TenantResource tenantResource) : ITenantResource
+{
+    public ITenantData Data { get; } = new DefaultTenantData(tenantResource.Data);
+}
+
+/// <summary>
+/// Default implementation of <see cref="ITenantData"/>.
+/// </summary>
+internal sealed class DefaultTenantData(TenantData tenantData) : ITenantData
+{
+    public Guid? TenantId => tenantData.TenantId;
+    public string? DefaultDomain => tenantData.DefaultDomain;
+}
+
+/// <summary>
+/// Default implementation of <see cref="IAzureLocation"/>.
+/// </summary>
+internal sealed class DefaultAzureLocation(AzureLocation azureLocation) : IAzureLocation
+{
+    public string Name => azureLocation.Name;
+
+    public override string ToString() => azureLocation.ToString();
+}
+
+/// <summary>
+/// Wrapper for ArmOperation that exposes wrapped values.
+/// </summary>
+internal sealed class DefaultArmOperation<T>(ArmOperation<ResourceGroupResource> operation, T wrappedValue) : ArmOperation<T>
+{
+    public override string Id => operation.Id;
+    public override T Value => wrappedValue;
+    public override bool HasCompleted => operation.HasCompleted;
+    public override bool HasValue => operation.HasValue;
+    public override Response GetRawResponse() => operation.GetRawResponse();
+    public override Response UpdateStatus(CancellationToken cancellationToken = default) => operation.UpdateStatus(cancellationToken);
+    public override ValueTask<Response> UpdateStatusAsync(CancellationToken cancellationToken = default) => operation.UpdateStatusAsync(cancellationToken);
+    public override ValueTask<Response<T>> WaitForCompletionAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public override ValueTask<Response<T>> WaitForCompletionAsync(TimeSpan pollingInterval, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public override Response<T> WaitForCompletion(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public override Response<T> WaitForCompletion(TimeSpan pollingInterval, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }

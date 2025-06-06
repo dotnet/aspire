@@ -175,8 +175,7 @@ internal sealed class AzureProvisioner(
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        var userSecretsPath = userSecretsManager.GetUserSecretsPath();
-        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => userSecretsManager.LoadUserSecretsAsync(userSecretsPath, cancellationToken));
+        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => userSecretsManager.LoadUserSecretsAsync(cancellationToken));
 
         // Make resources wait on the same provisioning context
         var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
@@ -194,19 +193,20 @@ internal sealed class AzureProvisioner(
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // If we created any resources then save the user secrets
-        if (userSecretsPath is not null)
+        try
         {
-            try
-            {
-                var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
-                await userSecretsManager.SaveUserSecretsAsync(userSecretsPath, userSecrets, cancellationToken).ConfigureAwait(false);
+            var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
+            await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-                logger.LogInformation("Azure resource connection strings saved to user secrets.");
-            }
-            catch (JsonException ex)
-            {
-                logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
-            }
+            logger.LogInformation("Azure resource connection strings saved to user secrets.");
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to save user secrets.");
         }
 
         // Set the completion source for all resources
