@@ -3,6 +3,8 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -16,6 +18,7 @@ using Spectre.Console;
 using Microsoft.Extensions.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 #if DEBUG
@@ -175,7 +178,15 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
-        System.Console.OutputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
+
+        if (Environment.GetEnvironmentVariable(KnownConfigNames.LocaleOverride) is { } localeOverride)
+        {
+            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
+            {
+                await Console.Error.WriteLineAsync(errorMessage);
+            }
+        }
 
         using var app = BuildApplication(args);
 
@@ -184,12 +195,37 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        
+
         using var activity = s_activitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
+    }
+
+    private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
+
+    private static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
+    {
+        try
+        {
+            var cultureInfo = new CultureInfo(localeOverride);
+            if (s_supportedLocales.Contains(cultureInfo.Name) || s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
+            {
+                CultureInfo.CurrentUICulture = cultureInfo;
+                CultureInfo.CurrentCulture = cultureInfo;
+                errorMessage = null;
+                return true;
+            }
+
+            errorMessage = $"Locale {localeOverride} provided is not supported and will not be used. Supported locales are: {string.Join(", ", s_supportedLocales)}.";
+            return false;
+        }
+        catch (CultureNotFoundException)
+        {
+            errorMessage = $"Invalid locale {localeOverride} provided will not be used.";
+            return false;
+        }
     }
 }
