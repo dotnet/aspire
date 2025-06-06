@@ -99,4 +99,36 @@ public class CreateResourceSelectModelsTests
                 Assert.Equal("App4", entry.Name);
             });
     }
+
+    [Fact]
+    public void GetViewModels_SingleResource_PlacesResourceFirst()
+    {
+        // Arrange
+        var applications = new List<ResourceViewModel>
+        {
+            // Single resource - should be placed first instead of noSelection
+            ModelTestHelpers.CreateResource(appName: "SingleApp", state: KnownResourceState.Running)
+        };
+
+        var resourcesByName = new ConcurrentDictionary<string, ResourceViewModel>(applications.ToDictionary(app => app.Name));
+
+        var unknownStateText = "unknown-state";
+        var selectAResourceText = "select-a-resource";
+        var noSelectionViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = selectAResourceText };
+
+        // Act
+        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText);
+
+        // Assert
+        Assert.Equal(2, viewModels.Count);
+        
+        // The single resource should come first (making it the default)
+        Assert.NotNull(viewModels[0].Id);
+        Assert.Equal(OtlpApplicationType.Singleton, viewModels[0].Id!.Type);
+        Assert.Equal("SingleApp", viewModels[0].Id!.InstanceId);
+        Assert.Equal("SingleApp", viewModels[0].Name);
+        
+        // The no selection option should come last
+        Assert.Equal(noSelectionViewModel, viewModels[1]);
+    }
 }

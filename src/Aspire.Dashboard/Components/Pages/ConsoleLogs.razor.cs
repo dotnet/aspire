@@ -11,6 +11,7 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
@@ -422,7 +423,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        builder.Insert(0, noSelectionViewModel);
+        // If there's exactly one resource (not counting application groupings), 
+        // put it first so it's selected by default instead of "[none]"
+        var actualResources = builder.Where(r => r.Id?.Type != OtlpApplicationType.ResourceGrouping).ToList();
+        if (actualResources.Count == 1)
+        {
+            // Don't insert the "none" option first when there's only one resource
+            // The single resource will be the default selection
+            builder.Insert(builder.Count, noSelectionViewModel);
+        }
+        else
+        {
+            // Multiple resources or no resources - insert "none" first as before
+            builder.Insert(0, noSelectionViewModel);
+        }
+        
         return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
