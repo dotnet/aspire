@@ -14,21 +14,21 @@ namespace Aspire.Cli.Resources {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Strings {
+    public class InteractionServiceStrings {
         
         private static System.Resources.ResourceManager resourceMan;
         
         private static System.Globalization.CultureInfo resourceCulture;
         
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Strings() {
+        internal InteractionServiceStrings() {
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.Strings", typeof(Strings).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.InteractionServiceStrings", typeof(InteractionServiceStrings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -45,51 +45,57 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string InvalidLocaleProvided {
+        public static string NoItemsAvailableForSelection {
             get {
-                return ResourceManager.GetString("InvalidLocaleProvided", resourceCulture);
+                return ResourceManager.GetString("NoItemsAvailableForSelection", resourceCulture);
             }
         }
         
-        public static string UnsupportedLocaleProvided {
+        public static string AppHostNotCompatibleConsiderUpgrading {
             get {
-                return ResourceManager.GetString("UnsupportedLocaleProvided", resourceCulture);
+                return ResourceManager.GetString("AppHostNotCompatibleConsiderUpgrading", resourceCulture);
             }
         }
         
-        public static string AlreadyConnectedToBackchannel {
+        public static string AspireHostingSDKVersion {
             get {
-                return ResourceManager.GetString("AlreadyConnectedToBackchannel", resourceCulture);
+                return ResourceManager.GetString("AspireHostingSDKVersion", resourceCulture);
             }
         }
         
-        public static string AppHostIncompatibleWithCli {
+        public static string AspireCLIVersion {
             get {
-                return ResourceManager.GetString("AppHostIncompatibleWithCli", resourceCulture);
+                return ResourceManager.GetString("AspireCLIVersion", resourceCulture);
             }
         }
         
-        public static string CheckingCertificates {
+        public static string RequiredCapability {
             get {
-                return ResourceManager.GetString("CheckingCertificates", resourceCulture);
+                return ResourceManager.GetString("RequiredCapability", resourceCulture);
             }
         }
         
-        public static string TrustingCertificates {
+        public static string Dashboard {
             get {
-                return ResourceManager.GetString("TrustingCertificates", resourceCulture);
+                return ResourceManager.GetString("Dashboard", resourceCulture);
             }
         }
         
-        public static string CertificatesMayNotBeFullyTrusted {
+        public static string DirectLink {
             get {
-                return ResourceManager.GetString("CertificatesMayNotBeFullyTrusted", resourceCulture);
+                return ResourceManager.GetString("DirectLink", resourceCulture);
             }
         }
         
-        public static string _ {
+        public static string CodespacesLink {
             get {
-                return ResourceManager.GetString("", resourceCulture);
+                return ResourceManager.GetString("CodespacesLink", resourceCulture);
+            }
+        }
+        
+        public static string StoppingAspire {
+            get {
+                return ResourceManager.GetString("StoppingAspire", resourceCulture);
             }
         }
     }

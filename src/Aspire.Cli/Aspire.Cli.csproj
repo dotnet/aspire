@@ -42,15 +42,20 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Compile Update="Resources\Strings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\InteractionServiceStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InteractionServiceStrings.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
-  
+
   <ItemGroup>
     <EmbeddedResource Update="Resources\Strings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
@@ -58,6 +63,13 @@
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\InteractionServiceStrings.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>InteractionServiceStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

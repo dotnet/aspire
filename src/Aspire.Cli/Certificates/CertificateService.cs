@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Certificates;
@@ -22,7 +24,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
 
         var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(
-            ":locked_with_key: Checking certificates...",
+            ":locked_with_key: " + Strings.CheckingCertificates,
             async () => {
                 var options = new DotNetCliRunnerInvocationOptions
                 {
@@ -44,7 +46,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
             };
 
             var trustExitCode = await interactionService.ShowStatusAsync(
-                ":locked_with_key: Trusting certificates...",
+                ":locked_with_key: " + Strings.TrustingCertificates,
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));
@@ -52,12 +54,10 @@ internal sealed class CertificateService(IInteractionService interactionService)
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                interactionService.DisplayMessage("warning", $"Developer certificates may not be fully trusted (trust exit code was: {trustExitCode})");
+                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, Strings.CertificatesMayNotBeFullyTrusted, trustExitCode));
             }
         }
     }
-
-    internal const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)

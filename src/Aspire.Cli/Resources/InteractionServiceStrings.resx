@@ -117,29 +117,34 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InvalidLocaleProvided" xml:space="preserve">
-    <value>Invalid locale {0} provided will not be used.</value>
+  <data name="NoItemsAvailableForSelection" xml:space="preserve">
+    <value>No items available for selection: {0}</value>
+    <comment>{0} is the original selection prompt text.</comment>
   </data>
-  <data name="UnsupportedLocaleProvided" xml:space="preserve">
-    <value>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</value>
-    <comment>{1} is a comma-separated list of locales.</comment>
+  <data name="AppHostNotCompatibleConsiderUpgrading" xml:space="preserve">
+    <value>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</value>
   </data>
-  <data name="AlreadyConnectedToBackchannel" xml:space="preserve">
-    <value>Already connected to AppHost backchannel.</value>
+  <data name="AspireHostingSDKVersion" xml:space="preserve">
+    <value>Aspire Hosting SDK Version</value>
   </data>
-  <data name="AppHostIncompatibleWithCli" xml:space="preserve">
-    <value>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</value>
+  <data name="AspireCLIVersion" xml:space="preserve">
+    <value>Aspire CLI Version</value>
   </data>
-  <data name="CheckingCertificates" xml:space="preserve">
-    <value>Checking certificates...</value>
+  <data name="RequiredCapability" xml:space="preserve">
+    <value>Required Capability</value>
   </data>
-  <data name="TrustingCertificates" xml:space="preserve">
-    <value>Trusting certificates...</value>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
   </data>
-  <data name="CertificatesMayNotBeFullyTrusted" xml:space="preserve">
-    <value>Developer certificates may not be fully trusted (trust exit code was: {0}).</value>
+  <data name="DirectLink" xml:space="preserve">
+    <value>Direct</value>
+    <comment>Represents a type of link</comment>
   </data>
-  <data name="" xml:space="preserve">
-    <value></value>
+  <data name="CodespacesLink" xml:space="preserve">
+    <value>Codespaces</value>
+    <comment>Represents a type of link</comment>
+  </data>
+  <data name="StoppingAspire" xml:space="preserve">
+    <value>Stopping Aspire.</value>
   </data>
 </root>
