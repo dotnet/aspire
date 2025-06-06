@@ -219,7 +219,3 @@
     top: 0.5rem;
     text-decoration: none;
 }
-
-#blazor-error-ui .reload {
-    color: var(--error-ui-accent-foreground-color);
-}
