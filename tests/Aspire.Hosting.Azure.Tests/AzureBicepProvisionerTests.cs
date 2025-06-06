@@ -297,4 +297,279 @@ public class AzureBicepProvisionerTests
         public ReferenceExpression ConnectionStringExpression =>
            ReferenceExpression.Create($"{connectionString}");
     }
+
+    [Fact]
+    public void ShouldProvision_ReturnsFalse_WhenResourceIsContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        
+        // Make the resource a container by adding the container annotation
+        bicep.Annotations.Add(new ContainerImageAnnotation { Image = "test-image" });
+
+        var result = BicepProvisioner.ShouldProvision(bicep);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ShouldProvision_ReturnsTrue_WhenResourceIsNotContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+
+        var result = BicepProvisioner.ShouldProvision(bicep);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void GetChecksum_ReturnsSameChecksum_ForSameInputs()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep1 = builder.AddBicepTemplateString("test1", "param name string").Resource;
+        var bicep2 = builder.AddBicepTemplateString("test2", "param name string").Resource;
+        
+        var parameters = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = "value1" }
+        };
+
+        // Act
+        var checksum1 = BicepUtilities.GetChecksum(bicep1, parameters, null);
+        var checksum2 = BicepUtilities.GetChecksum(bicep2, parameters, null);
+
+        // Assert
+        Assert.Equal(checksum1, checksum2);
+    }
+
+    [Fact]
+    public void GetChecksum_ReturnsDifferentChecksum_ForDifferentParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        
+        var parameters1 = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = "value1" }
+        };
+        
+        var parameters2 = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = "value2" }
+        };
+
+        // Act
+        var checksum1 = BicepUtilities.GetChecksum(bicep, parameters1, null);
+        var checksum2 = BicepUtilities.GetChecksum(bicep, parameters2, null);
+
+        // Assert
+        Assert.NotEqual(checksum1, checksum2);
+    }
+
+    [Fact]
+    public void GetChecksum_ReturnsDifferentChecksum_ForDifferentScope()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        
+        var parameters = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = "value1" }
+        };
+        
+        var scope1 = new JsonObject { ["resourceGroup"] = "rg1" };
+        var scope2 = new JsonObject { ["resourceGroup"] = "rg2" };
+
+        // Act
+        var checksum1 = BicepUtilities.GetChecksum(bicep, parameters, scope1);
+        var checksum2 = BicepUtilities.GetChecksum(bicep, parameters, scope2);
+
+        // Assert
+        Assert.NotEqual(checksum1, checksum2);
+    }
+
+    [Theory]
+    [InlineData("value1", "value1", true)]
+    [InlineData("value1", "value2", false)]
+    [InlineData(null, null, true)]
+    [InlineData("value1", null, false)]
+    [InlineData(null, "value1", false)]
+    public void GetChecksum_ConsistentBehavior_ForParameterComparisons(string? value1, string? value2, bool shouldEqual)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        
+        var parameters1 = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = value1 }
+        };
+        
+        var parameters2 = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = value2 }
+        };
+
+        // Act
+        var checksum1 = BicepUtilities.GetChecksum(bicep, parameters1, null);
+        var checksum2 = BicepUtilities.GetChecksum(bicep, parameters2, null);
+
+        // Assert
+        if (shouldEqual)
+        {
+            Assert.Equal(checksum1, checksum2);
+        }
+        else
+        {
+            Assert.NotEqual(checksum1, checksum2);
+        }
+    }
+
+    [Fact]
+    public async Task SetParametersAsync_SkipsKnownParametersWhenSkipDynamicValuesIsTrue()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        bicep.Parameters["normalParam"] = "normalValue";
+        bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = "someId";
+        bicep.Parameters[AzureBicepResource.KnownParameters.Location] = "someLocation";
+        
+        var parameters = new JsonObject();
+
+        // Act
+        await BicepUtilities.SetParametersAsync(parameters, bicep, skipDynamicValues: true);
+
+        // Assert
+        Assert.Single(parameters);
+        Assert.True(parameters.ContainsKey("normalParam"));
+        Assert.False(parameters.ContainsKey(AzureBicepResource.KnownParameters.PrincipalId));
+        Assert.False(parameters.ContainsKey(AzureBicepResource.KnownParameters.Location));
+    }
+
+    [Fact]
+    public async Task SetParametersAsync_IncludesAllParametersWhenSkipDynamicValuesIsFalse()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        bicep.Parameters["normalParam"] = "normalValue";
+        bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = "someId";
+        bicep.Parameters[AzureBicepResource.KnownParameters.Location] = "someLocation";
+        
+        var parameters = new JsonObject();
+
+        // Act
+        await BicepUtilities.SetParametersAsync(parameters, bicep, skipDynamicValues: false);
+
+        // Assert
+        Assert.Equal(3, parameters.Count);
+        Assert.True(parameters.ContainsKey("normalParam"));
+        Assert.True(parameters.ContainsKey(AzureBicepResource.KnownParameters.PrincipalId));
+        Assert.True(parameters.ContainsKey(AzureBicepResource.KnownParameters.Location));
+    }
+
+    [Fact]
+    public async Task SetScopeAsync_SetsResourceGroupFromScope()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        bicep.Scope = new("test-rg");
+        
+        var scope = new JsonObject();
+
+        // Act
+        await BicepUtilities.SetScopeAsync(scope, bicep);
+
+        // Assert
+        Assert.Single(scope);
+        Assert.Equal("test-rg", scope["resourceGroup"]?.ToString());
+    }
+
+    [Fact]
+    public async Task SetScopeAsync_SetsNullWhenNoScope()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        // No scope set
+        
+        var scope = new JsonObject();
+
+        // Act
+        await BicepUtilities.SetScopeAsync(scope, bicep);
+
+        // Assert
+        Assert.Single(scope);
+        Assert.Null(scope["resourceGroup"]?.AsValue().GetValue<object>());
+    }
+
+    [Fact]
+    public async Task GetCurrentChecksumAsync_ReturnsNullForMissingParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        var config = new ConfigurationBuilder().Build();
+
+        // Act
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetCurrentChecksumAsync_ReturnsNullForInvalidJson()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters"] = "invalid-json"
+        });
+        var config = configurationBuilder.Build();
+
+        // Act
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetCurrentChecksumAsync_ReturnsValidChecksumForValidParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
+        bicep.Parameters["param1"] = "value1";
+        
+        var parameters = new JsonObject
+        {
+            ["param1"] = new JsonObject { ["value"] = "value1" }
+        };
+        
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters"] = parameters.ToJsonString()
+        });
+        var config = configurationBuilder.Build();
+
+        // Act
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+    }
 }
