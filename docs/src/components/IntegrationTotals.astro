@@ -1,0 +1,144 @@
+---
+interface Props {
+    integrations: {
+        title: string;
+        downloads?: number;
+        tags?: string[];
+    }[];
+}
+
+const { integrations } = Astro.props;
+
+// Calculate totals
+const totalPackages = integrations.length;
+
+const uniqueTags = new Set<string>();
+integrations.forEach(integration => {
+    integration.tags?.forEach(tag => {
+        uniqueTags.add(tag);
+    });
+});
+const totalTags = uniqueTags.size;
+
+const totalDownloads = integrations.reduce((total, integration) => {
+    return total + (integration.downloads || 0);
+}, 0);
+---
+
+<div class="integration-totals">
+    <div class="total-card">
+        <div class="total-number" data-target={totalPackages}>0</div>
+        <div class="total-label">Total Packages</div>
+    </div>
+    <div class="total-card">
+        <div class="total-number" data-target={totalTags}>0</div>
+        <div class="total-label">Unique Tags</div>
+    </div>
+    <div class="total-card">
+        <div class="total-number" data-target={totalDownloads} data-format="true">0</div>
+        <div class="total-label">Total Downloads</div>
+    </div>
+</div>
+
+<style>
+    .integration-totals {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .total-card {
+        flex: 1;
+        background-color: var(--sl-color-gray-5);
+        border: 1px solid var(--sl-color-gray-4);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        transition: transform 0.2s ease;
+        margin-top: 0;
+    }
+
+    .total-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--sl-color-text-accent);
+    }
+
+    .total-label {
+        font-size: 1rem;        
+        color: var(--sl-color-gray-2);
+        margin-top: 0;
+    }
+
+    @media (max-width: 768px) {
+        .integration-totals {
+            flex-direction: column;
+        }
+        
+        .total-card {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<script>
+    function animateCountUp() {
+        const counters = document.querySelectorAll('.total-number');
+        
+        counters.forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-target') || '0');
+            const shouldFormat = counter.getAttribute('data-format') === 'true';
+            const duration = 2500; // ms for total animation
+            
+            let startTime: number | null = null;
+            
+            const updateCounter = (timestamp: number) => {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                
+                // Calculate progress with easeOutQuad easing function for deceleration
+                const progress = Math.min(elapsed / duration, 1);
+                const easedProgress = 1 - Math.pow(1 - progress, 2); // Ease out quad
+                
+                const currentValue = Math.floor(target * easedProgress);
+                
+                if (shouldFormat) {
+                    counter.textContent = currentValue.toLocaleString();
+                } else {
+                    counter.textContent = currentValue.toString();
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    // Ensure final number is exact
+                    if (shouldFormat) {
+                        counter.textContent = target.toLocaleString();
+                    } else {
+                        counter.textContent = target.toString();
+                    }
+                }
+            };
+            
+            requestAnimationFrame(updateCounter);
+        });
+    }
+
+    // Run animation when component is in viewport
+    document.addEventListener('DOMContentLoaded', () => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCountUp();
+                    observer.disconnect();
+                }
+            });
+        }, { threshold: 0.1 });
+
+        const totalsElement = document.querySelector('.integration-totals');
+        if (totalsElement) {
+            observer.observe(totalsElement);
+        }
+    });
+</script>

@@ -1,6 +1,7 @@
 ---
 import { CardGrid, Card } from "@astrojs/starlight/components";
 import IntegrationCard from "./IntegrationCard.astro";
+import IntegrationTotals from "./IntegrationTotals.astro";
 
 interface Props {
     integrations: Integrations;
@@ -56,12 +57,18 @@ const sortedIntegrations = integrations.sort((a, b) => {
             placeholder="Search integrations..."
         />
     </div>
-    <button class="clear-button" aria-label="Clear search" type="button">Clear</button>
+    <button class="clear-button" aria-label="Clear search" type="button"
+        >Clear</button
+    >
 </div>
 
 {
     sortedIntegrations.length > 0 && (
         <section>
+            <div class="integration-stats">
+                <IntegrationTotals integrations={sortedIntegrations} />
+            </div>
+
             <div class="equal-columns">
                 <CardGrid>
                     {sortedIntegrations.map((pkg) => (
@@ -80,11 +87,14 @@ const sortedIntegrations = integrations.sort((a, b) => {
         </section>
     )
 }
-
 <style>
     .no-results {
         margin-top: 0;
         display: none; /* Hidden by default */
+    }
+
+    .integration-stats {
+        margin-bottom: 1rem;
     }
 
     /* Force equal columns in the card grid */
@@ -152,6 +162,7 @@ const sortedIntegrations = integrations.sort((a, b) => {
     const clearButton = document.querySelector(".clear-button");
     const cards = document.querySelectorAll(".card-grid .card");
     const noResults = document.querySelector(".no-results");
+    const statsSection = document.querySelector(".integration-stats");
 
     let activeTags = new Set();
 
@@ -182,21 +193,28 @@ const sortedIntegrations = integrations.sort((a, b) => {
         let visibleCount = 0;
 
         cards.forEach((card) => {
-            const cardTags = card.dataset.tags ? card.dataset.tags.split(",") : [];
-            const cardTitle = card.dataset.title ? card.dataset.title.toLowerCase() : "";
-            const cardDescription = card.dataset.description ? card.dataset.description.toLowerCase() : "";
-            
+            const cardTags = card.dataset.tags
+                ? card.dataset.tags.split(",")
+                : [];
+            const cardTitle = card.dataset.title
+                ? card.dataset.title.toLowerCase()
+                : "";
+            const cardDescription = card.dataset.description
+                ? card.dataset.description.toLowerCase()
+                : "";
+
             // Match against tags
             const matchesTags = [...activeTags].every((tag) =>
-                cardTags.includes(tag)
+                cardTags.includes(tag),
             );
-            
+
             // Check if search term appears in title, tags, or description
-            const matchesSearch = !searchTerm || 
-                cardTitle.includes(searchTerm) || 
+            const matchesSearch =
+                !searchTerm ||
+                cardTitle.includes(searchTerm) ||
                 cardDescription.includes(searchTerm) ||
-                cardTags.some(tag => tag.toLowerCase().includes(searchTerm));
-                
+                cardTags.some((tag) => tag.toLowerCase().includes(searchTerm));
+
             const visible = matchesTags && matchesSearch;
             card.style.display = visible ? "" : "none";
             if (visible) visibleCount++;
@@ -204,6 +222,9 @@ const sortedIntegrations = integrations.sort((a, b) => {
 
         // Show/hide the no results message based on visible count
         noResults.style.display = visibleCount === 0 ? "block" : "none";
+
+        // Show/hide the stats based on visible count
+        statsSection.style.display = visibleCount === 0 ? "none" : "block";
 
         if (updateUrl) updateURL();
     }

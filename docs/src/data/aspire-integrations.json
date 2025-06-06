@@ -8,7 +8,7 @@
       "aspire",
       "hosting"
     ],
-    "downloads": 3860515,
+    "downloads": 3874446,
     "version": "9.3.0"
   },
   {
@@ -26,7 +26,7 @@
       "caching",
       "redis"
     ],
-    "downloads": 987793,
+    "downloads": 990987,
     "version": "9.3.0"
   },
   {
@@ -53,7 +53,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 887994,
+    "downloads": 890442,
     "version": "9.3.0"
   },
   {
@@ -66,7 +66,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 938683,
+    "downloads": 941749,
     "version": "9.3.0"
   },
   {
@@ -91,7 +91,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 872803,
+    "downloads": 876072,
     "version": "9.3.0"
   },
   {
@@ -103,7 +103,7 @@
       "aspire",
       "testing"
     ],
-    "downloads": 806456,
+    "downloads": 809001,
     "version": "9.3.0"
   },
   {
@@ -117,7 +117,7 @@
       "hosting",
       "redis"
     ],
-    "downloads": 797577,
+    "downloads": 799683,
     "version": "9.3.0"
   },
   {
@@ -132,7 +132,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 734828,
+    "downloads": 737728,
     "version": "9.3.0"
   },
   {
@@ -147,7 +147,7 @@
       "node",
       "nodejs"
     ],
-    "downloads": 699888,
+    "downloads": 702227,
     "version": "9.3.0"
   },
   {
@@ -164,7 +164,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 691337,
+    "downloads": 693205,
     "version": "9.3.0"
   },
   {
@@ -178,7 +178,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 534139,
+    "downloads": 535948,
     "version": "9.3.0"
   },
   {
@@ -197,7 +197,7 @@
       "blobs",
       "blob"
     ],
-    "downloads": 542813,
+    "downloads": 544799,
     "version": "9.3.0"
   },
   {
@@ -217,7 +217,7 @@
       "distributedcache",
       "redis"
     ],
-    "downloads": 441960,
+    "downloads": 444200,
     "version": "9.3.0"
   },
   {
@@ -231,7 +231,7 @@
       "hosting",
       "rabbitmq"
     ],
-    "downloads": 402333,
+    "downloads": 403563,
     "version": "9.3.0"
   },
   {
@@ -252,7 +252,7 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 370023,
+    "downloads": 370650,
     "version": "9.3.0"
   },
   {
@@ -271,7 +271,7 @@
       "rabbitmq",
       "amqp"
     ],
-    "downloads": 290537,
+    "downloads": 291030,
     "version": "9.3.0"
   },
   {
@@ -289,7 +289,7 @@
       "servicebus",
       "amqp"
     ],
-    "downloads": 229956,
+    "downloads": 231071,
     "version": "9.3.0"
   },
   {
@@ -310,7 +310,7 @@
       "outputcache",
       "redis"
     ],
-    "downloads": 237265,
+    "downloads": 237658,
     "version": "9.3.0"
   },
   {
@@ -328,7 +328,7 @@
       "keyvault",
       "secrets"
     ],
-    "downloads": 222634,
+    "downloads": 223329,
     "version": "9.3.0"
   },
   {
@@ -347,7 +347,7 @@
       "cognitive",
       "services"
     ],
-    "downloads": 189436,
+    "downloads": 189944,
     "version": "9.3.0"
   },
   {
@@ -368,7 +368,7 @@
       "database",
       "db"
     ],
-    "downloads": 169851,
+    "downloads": 170457,
     "version": "9.3.0"
   },
   {
@@ -382,7 +382,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 175748,
+    "downloads": 176578,
     "version": "9.3.0"
   },
   {
@@ -400,7 +400,7 @@
       "tables",
       "table"
     ],
-    "downloads": 150963,
+    "downloads": 151473,
     "version": "9.3.0"
   },
   {
@@ -414,7 +414,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 151609,
+    "downloads": 152019,
     "version": "9.3.0"
   },
   {
@@ -428,7 +428,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 153076,
+    "downloads": 153488,
     "version": "9.3.0"
   },
   {
@@ -442,7 +442,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 140735,
+    "downloads": 141106,
     "version": "9.3.0"
   },
   {
@@ -461,7 +461,7 @@
       "queue",
       "queues"
     ],
-    "downloads": 149712,
+    "downloads": 150276,
     "version": "9.3.0"
   },
   {
@@ -480,7 +480,7 @@
       "sqlserver",
       "sql"
     ],
-    "downloads": 146494,
+    "downloads": 147129,
     "version": "9.3.0"
   },
   {
@@ -495,7 +495,7 @@
       "azure",
       "servicebus"
     ],
-    "downloads": 126925,
+    "downloads": 127391,
     "version": "9.3.0"
   },
   {
@@ -509,7 +509,7 @@
       "hosting",
       "mongodb"
     ],
-    "downloads": 115703,
+    "downloads": 116094,
     "version": "9.3.0"
   },
   {
@@ -527,7 +527,7 @@
       "database",
       "mongodb"
     ],
-    "downloads": 108906,
+    "downloads": 109102,
     "version": "9.3.0"
   },
   {
@@ -543,7 +543,7 @@
       "cloud",
       "kafka"
     ],
-    "downloads": 111976,
+    "downloads": 112391,
     "version": "9.3.0"
   },
   {
@@ -557,7 +557,7 @@
       "hosting",
       "orleans"
     ],
-    "downloads": 107545,
+    "downloads": 107626,
     "version": "9.3.0"
   },
   {
@@ -571,7 +571,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 100090,
+    "downloads": 100423,
     "version": "9.3.0"
   },
   {
@@ -587,7 +587,7 @@
       "cloud",
       "seq"
     ],
-    "downloads": 102491,
+    "downloads": 102848,
     "version": "9.3.0"
   },
   {
@@ -601,7 +601,7 @@
       "hosting",
       "kafka"
     ],
-    "downloads": 98646,
+    "downloads": 99082,
     "version": "9.3.0"
   },
   {
@@ -615,7 +615,7 @@
       "hosting",
       "aws"
     ],
-    "downloads": 74409,
+    "downloads": 74622,
     "version": "9.2.2"
   },
   {
@@ -629,7 +629,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 71342,
+    "downloads": 71489,
     "version": "9.3.0"
   },
   {
@@ -643,7 +643,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 71711,
+    "downloads": 71952,
     "version": "9.3.0"
   },
   {
@@ -661,7 +661,7 @@
       "eventhubs",
       "amqp"
     ],
-    "downloads": 59850,
+    "downloads": 60104,
     "version": "9.3.0"
   },
   {
@@ -675,7 +675,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 57520,
+    "downloads": 57808,
     "version": "9.3.0"
   },
   {
@@ -689,7 +689,7 @@
       "hosting",
       "mysql"
     ],
-    "downloads": 55167,
+    "downloads": 55318,
     "version": "9.3.0"
   },
   {
@@ -703,7 +703,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 54974,
+    "downloads": 55106,
     "version": "9.3.0"
   },
   {
@@ -720,7 +720,21 @@
       "azure",
       "search"
     ],
-    "downloads": 54493,
+    "downloads": 54966,
+    "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.Hosting.Azure.Search",
+    "description": "Azure AI Search resource types for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.search/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Search",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "azure"
+    ],
+    "downloads": 47006,
     "version": "9.3.0"
   },
   {
@@ -746,7 +760,7 @@
       "cosmos",
       "cosmosdb"
     ],
-    "downloads": 49743,
+    "downloads": 49869,
     "version": "9.3.0"
   },
   {
@@ -760,21 +774,7 @@
       "hosting",
       "python"
     ],
-    "downloads": 46616,
-    "version": "9.3.0"
-  },
-  {
-    "title": "Aspire.Hosting.Azure.Search",
-    "description": "Azure AI Search resource types for .NET Aspire.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.azure.search/9.3.0/icon",
-    "href": "https://www.nuget.org/packages/Aspire.Hosting.Azure.Search",
-    "tags": [
-      "aspire",
-      "integration",
-      "hosting",
-      "azure"
-    ],
-    "downloads": 46603,
+    "downloads": 46687,
     "version": "9.3.0"
   },
   {
@@ -788,7 +788,7 @@
       "hosting",
       "seq"
     ],
-    "downloads": 44679,
+    "downloads": 44829,
     "version": "9.3.0"
   },
   {
@@ -802,7 +802,7 @@
       "hosting",
       "qdrant"
     ],
-    "downloads": 35104,
+    "downloads": 35136,
     "version": "9.3.0"
   },
   {
@@ -817,27 +817,7 @@
       "azure",
       "eventhubs"
     ],
-    "downloads": 35837,
-    "version": "9.3.0"
-  },
-  {
-    "title": "Aspire.MySqlConnector",
-    "description": "A MySQL client that integrates with Aspire, including health checks, metrics, logging, and telemetry.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.mysqlconnector/9.3.0/icon",
-    "href": "https://www.nuget.org/packages/Aspire.MySqlConnector",
-    "tags": [
-      "aspire",
-      "integration",
-      "client",
-      "component",
-      "cloud",
-      "data",
-      "database",
-      "mysqlconnector",
-      "mysql",
-      "sql"
-    ],
-    "downloads": 32713,
+    "downloads": 35926,
     "version": "9.3.0"
   },
   {
@@ -863,8 +843,83 @@
       "mysql",
       "sql"
     ],
-    "downloads": 34846,
+    "downloads": 34994,
     "version": "9.3.0"
+  },
+  {
+    "title": "Aspire.MySqlConnector",
+    "description": "A MySQL client that integrates with Aspire, including health checks, metrics, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.mysqlconnector/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.MySqlConnector",
+    "tags": [
+      "aspire",
+      "integration",
+      "client",
+      "component",
+      "cloud",
+      "data",
+      "database",
+      "mysqlconnector",
+      "mysql",
+      "sql"
+    ],
+    "downloads": 32741,
+    "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Ollama",
+    "description": "An Aspire integration leveraging the Ollama container with support for downloading a model on startup.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.ollama/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Ollama",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "ollama",
+      "ai"
+    ],
+    "downloads": 62414,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.NodeJS.Extensions",
+    "description": "A .NET Aspire for hosting NodeJS apps using Vite, Yarn, PNPM, or NPM.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.nodejs.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.NodeJS.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "nodejs",
+      "vite",
+      "yarn",
+      "pnpm",
+      "npm"
+    ],
+    "downloads": 61546,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.OllamaSharp",
+    "description": "A .NET Aspire client integration for the OllamaSharp library.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.ollamasharp/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.OllamaSharp",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "ollama",
+      "ai",
+      "ollamasharp",
+      "client"
+    ],
+    "downloads": 58374,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Oracle.EntityFrameworkCore",
@@ -888,7 +943,7 @@
       "oracle",
       "sql"
     ],
-    "downloads": 31194,
+    "downloads": 31243,
     "version": "9.3.0"
   },
   {
@@ -902,7 +957,7 @@
       "hosting",
       "valkey"
     ],
-    "downloads": 27327,
+    "downloads": 27697,
     "version": "9.3.0"
   },
   {
@@ -916,7 +971,7 @@
       "hosting",
       "azure"
     ],
-    "downloads": 27609,
+    "downloads": 27689,
     "version": "9.3.0"
   },
   {
@@ -935,8 +990,24 @@
       "rabbitmq",
       "amqp"
     ],
-    "downloads": 20477,
+    "downloads": 21088,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Dapr",
+    "description": "Dapr support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.dapr/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Dapr",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "dapr"
+    ],
+    "downloads": 41646,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Hosting.Garnet",
@@ -949,7 +1020,7 @@
       "hosting",
       "garnet"
     ],
-    "downloads": 20107,
+    "downloads": 20138,
     "version": "9.3.0"
   },
   {
@@ -965,7 +1036,7 @@
       "cloud",
       "qdrant"
     ],
-    "downloads": 18637,
+    "downloads": 18666,
     "version": "9.3.0"
   },
   {
@@ -982,8 +1053,25 @@
       "nats",
       "messaging"
     ],
-    "downloads": 17934,
+    "downloads": 18048,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.SqlDatabaseProjects",
+    "description": "An Aspire hosting integration capable of deploying SQL Server Database Projects as part of your AppHost.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.sqldatabaseprojects/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.SqlDatabaseProjects",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "sql",
+      "sqlproj"
+    ],
+    "downloads": 28701,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Azure.Messaging.WebPubSub",
@@ -1001,7 +1089,7 @@
       "websocket",
       "pubsub"
     ],
-    "downloads": 12221,
+    "downloads": 12240,
     "version": "9.3.0"
   },
   {
@@ -1015,7 +1103,7 @@
       "hosting",
       "nats"
     ],
-    "downloads": 12302,
+    "downloads": 12351,
     "version": "9.3.0"
   },
   {
@@ -1030,8 +1118,24 @@
       "oracle",
       "sql"
     ],
-    "downloads": 10535,
+    "downloads": 10560,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Meilisearch",
+    "description": "A Meilisearch client that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.meilisearch/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Meilisearch",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "meilisearch",
+      "client"
+    ],
+    "downloads": 21540,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.MongoDB.Driver.v3",
@@ -1048,8 +1152,73 @@
       "database",
       "mongodb"
     ],
-    "downloads": 10231,
+    "downloads": 10414,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Meilisearch",
+    "description": "Meilisearch support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.meilisearch/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Meilisearch",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "meilisearch"
+    ],
+    "downloads": 20168,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Java",
+    "description": "A .NET Aspire for hosting Java apps using either the Java executable or container image.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.java/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Java",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "java"
+    ],
+    "downloads": 18898,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Azure.StaticWebApps",
+    "description": "A hosting package that wraps endpoints with the Azure Static Web Apps emulator.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.azure.staticwebapps/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Azure.StaticWebApps",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "azure",
+      "staticwebapps",
+      "hosting"
+    ],
+    "downloads": 18577,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Golang",
+    "description": "A .NET Aspire for hosting Golang apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.golang/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Golang",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "golang"
+    ],
+    "downloads": 19552,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Hosting.Azure.WebPubSub",
@@ -1065,8 +1234,411 @@
       "pubsub",
       "websocket"
     ],
-    "downloads": 8290,
+    "downloads": 8302,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.DbGate",
+    "description": "A .NET Aspire integration for dbgate hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.dbgate/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.DbGate",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "dbgate"
+    ],
+    "downloads": 17209,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Azure.DataApiBuilder",
+    "description": "An Aspire component leveraging the Data API Builder container.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.azure.dataapibuilder/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Azure.DataApiBuilder",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "api",
+      "dataapibuilder",
+      "hosting"
+    ],
+    "downloads": 18304,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Microsoft.EntityFrameworkCore.Sqlite",
+    "description": "An Aspire client integration for the Microsoft.EntityFrameworkCore.Sqlite package.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.microsoft.entityframeworkcore.sqlite/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Microsoft.EntityFrameworkCore.Sqlite",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "client",
+      "sqlite",
+      "data",
+      "entityframeworkcore",
+      "entity-framework-core",
+      "ef",
+      "orm"
+    ],
+    "downloads": 16424,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Deno",
+    "description": "A .NET Aspire for hosting Deno apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.deno/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Deno",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "deno"
+    ],
+    "downloads": 17598,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.MassTransit.RabbitMQ",
+    "description": "A .NET Aspire client integration for MassTransit RabbitMQ.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.masstransit.rabbitmq/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.MassTransit.RabbitMQ",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "client",
+      "masstransit",
+      "rabbitmq"
+    ],
+    "downloads": 16800,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.EventStore",
+    "description": "An EventStore client that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.eventstore/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.EventStore",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "eventstore",
+      "client"
+    ],
+    "downloads": 15968,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Sqlite",
+    "description": "An Aspire hosting integration for providing a Sqlite database connection.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.sqlite/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Sqlite",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "sql",
+      "sqlite"
+    ],
+    "downloads": 16324,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Bun",
+    "description": "A .NET Aspire integration for hosting Bun apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.bun/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Bun",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "bun",
+      "javascript"
+    ],
+    "downloads": 17185,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Rust",
+    "description": "A .NET Aspire integration for hosting Rust apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.rust/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Rust",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "rust"
+    ],
+    "downloads": 16243,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.EventStore",
+    "description": "EventStore support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.eventstore/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.EventStore",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "eventstore"
+    ],
+    "downloads": 15667,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.ActiveMQ",
+    "description": "A .NET Aspire hosting package for hosting ActiveMQ.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.activemq/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.ActiveMQ",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "activemq"
+    ],
+    "downloads": 16023,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Python.Extensions",
+    "description": "A .NET Aspire integration for hosting Uvicorn apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.python.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Python.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "uvicorn",
+      "python"
+    ],
+    "downloads": 17071,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Microsoft.Data.Sqlite",
+    "description": "An Aspire client integration for the Microsoft.Data.Sqlite.Core package.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.microsoft.data.sqlite/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Microsoft.Data.Sqlite",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "client",
+      "sqlite",
+      "data",
+      "ado.net"
+    ],
+    "downloads": 14587,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.MailPit",
+    "description": "An Aspire component leveraging the MailPit container.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.mailpit/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.MailPit",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "mailpit",
+      "smtp",
+      "hosting"
+    ],
+    "downloads": 15241,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.RavenDB",
+    "description": "An Aspire integration leveraging the RavenDB container.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.ravendb/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.RavenDB",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "ravendb"
+    ],
+    "downloads": 14613,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.PostgreSQL.Extensions",
+    "description": "A .NET Aspire integration for extending postgres hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.postgresql.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.PostgreSQL.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "postgres",
+      "dbgate"
+    ],
+    "downloads": 14048,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Ngrok",
+    "description": "An Aspire integration for exposing hosted applications via secure, public URLs using ngrok.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.ngrok/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Ngrok",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "ngrok",
+      "tunnels"
+    ],
+    "downloads": 14519,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.MongoDB.Extensions",
+    "description": "A .NET Aspire integration for extending mongodb hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.mongodb.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.MongoDB.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "mongodb",
+      "dbgate"
+    ],
+    "downloads": 12829,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.SqlServer.Extensions",
+    "description": "A .NET Aspire integration for extending sqlserver hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.sqlserver.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.SqlServer.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "sqlserver",
+      "dbgate"
+    ],
+    "downloads": 13098,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.PapercutSmtp",
+    "description": "An Aspire component leveraging Papercut SMTP container.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.papercutsmtp/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.PapercutSmtp",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "papercut",
+      "smtp",
+      "hosting"
+    ],
+    "downloads": 12523,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.GoFeatureFlag",
+    "description": "A GO Feature Flag client that integrates with Aspire, including health checks, logging, and telemetry.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.gofeatureflag/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.GoFeatureFlag",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "gofeatureflag",
+      "client"
+    ],
+    "downloads": 12407,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.GoFeatureFlag",
+    "description": "GO Feature Flag support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.gofeatureflag/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.GoFeatureFlag",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "gofeatureflag"
+    ],
+    "downloads": 12359,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Redis.Extensions",
+    "description": "A .NET Aspire integration for extending redis hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.redis.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Redis.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "redis",
+      "dbgate"
+    ],
+    "downloads": 13309,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.RavenDB.Client",
+    "description": "A .NET Aspire client integration for the RavenDB.Client library.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.ravendb.client/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.RavenDB.Client",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "client",
+      "ravendb"
+    ],
+    "downloads": 12662,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL",
@@ -1092,8 +1664,24 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 5082,
+    "downloads": 5181,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.LavinMQ",
+    "description": "A .NET Aspire hosting package for hosting LavinMQ.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.lavinmq/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.LavinMQ",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "lavinmq"
+    ],
+    "downloads": 11065,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Azure.Npgsql",
@@ -1112,8 +1700,39 @@
       "npgsql",
       "sql"
     ],
-    "downloads": 4213,
+    "downloads": 4297,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Azure.Dapr",
+    "description": "Azure Dapr support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.azure.dapr/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Azure.Dapr",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "dapr",
+      "azure"
+    ],
+    "downloads": 9065,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Azure.Dapr.Redis",
+    "description": "Package Description",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.azure.dapr.redis/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Azure.Dapr.Redis",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit"
+    ],
+    "downloads": 8260,
+    "version": "9.5.0"
   },
   {
     "title": "Aspire.Hosting.Milvus",
@@ -1129,7 +1748,56 @@
       "vector",
       "search"
     ],
-    "downloads": 2738,
+    "downloads": 2740,
     "version": "9.3.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Adminer",
+    "description": "A .NET Aspire integration for adminer hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.adminer/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Adminer",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "adminer"
+    ],
+    "downloads": 4245,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.k6",
+    "description": "Granafa k6 support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.k6/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.k6",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "k6"
+    ],
+    "downloads": 4337,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.MySql.Extensions",
+    "description": "A .NET Aspire integration for extending mysql hosting.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.mysql.extensions/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.MySql.Extensions",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "mysql",
+      "dbgate"
+    ],
+    "downloads": 443,
+    "version": "9.5.0"
   }
 ]
