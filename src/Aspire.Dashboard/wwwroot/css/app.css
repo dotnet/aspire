@@ -820,7 +820,3 @@ fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
-
-.components-reconnect-dialog {
-    background-color: var(--neutral-layer-floating) !important;
-}
