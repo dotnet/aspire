@@ -738,6 +738,20 @@
     "version": "9.3.0"
   },
   {
+    "title": "Aspire.Hosting.Python",
+    "description": "Python support for .NET Aspire.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.python/9.3.0/icon",
+    "href": "https://www.nuget.org/packages/Aspire.Hosting.Python",
+    "tags": [
+      "aspire",
+      "integration",
+      "hosting",
+      "python"
+    ],
+    "downloads": 46687,
+    "version": "9.3.0"
+  },
+  {
     "title": "Aspire.Microsoft.EntityFrameworkCore.Cosmos",
     "description": "A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.",
     "icon": "https://api.nuget.org/v3-flatcontainer/aspire.microsoft.entityframeworkcore.cosmos/9.3.0/icon",
@@ -761,20 +775,6 @@
       "cosmosdb"
     ],
     "downloads": 49869,
-    "version": "9.3.0"
-  },
-  {
-    "title": "Aspire.Hosting.Python",
-    "description": "Python support for .NET Aspire.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.python/9.3.0/icon",
-    "href": "https://www.nuget.org/packages/Aspire.Hosting.Python",
-    "tags": [
-      "aspire",
-      "integration",
-      "hosting",
-      "python"
-    ],
-    "downloads": 46687,
     "version": "9.3.0"
   },
   {
@@ -1172,22 +1172,6 @@
     "version": "9.5.0"
   },
   {
-    "title": "CommunityToolkit.Aspire.Hosting.Java",
-    "description": "A .NET Aspire for hosting Java apps using either the Java executable or container image.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.java/9.5.0/icon",
-    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Java",
-    "tags": [
-      "aspire",
-      "integration",
-      "communitytoolkit",
-      "dotnetcommunitytoolkit",
-      "hosting",
-      "java"
-    ],
-    "downloads": 18898,
-    "version": "9.5.0"
-  },
-  {
     "title": "CommunityToolkit.Aspire.Hosting.Azure.StaticWebApps",
     "description": "A hosting package that wraps endpoints with the Azure Static Web Apps emulator.",
     "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.azure.staticwebapps/9.5.0/icon",
@@ -1202,6 +1186,22 @@
       "hosting"
     ],
     "downloads": 18577,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Java",
+    "description": "A .NET Aspire for hosting Java apps using either the Java executable or container image.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.java/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Java",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "java"
+    ],
+    "downloads": 18898,
     "version": "9.5.0"
   },
   {
@@ -1292,22 +1292,6 @@
     "version": "9.5.0"
   },
   {
-    "title": "CommunityToolkit.Aspire.Hosting.Deno",
-    "description": "A .NET Aspire for hosting Deno apps.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.deno/9.5.0/icon",
-    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Deno",
-    "tags": [
-      "aspire",
-      "integration",
-      "communitytoolkit",
-      "dotnetcommunitytoolkit",
-      "hosting",
-      "deno"
-    ],
-    "downloads": 17598,
-    "version": "9.5.0"
-  },
-  {
     "title": "CommunityToolkit.Aspire.MassTransit.RabbitMQ",
     "description": "A .NET Aspire client integration for MassTransit RabbitMQ.",
     "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.masstransit.rabbitmq/9.5.0/icon",
@@ -1322,6 +1306,22 @@
       "rabbitmq"
     ],
     "downloads": 16800,
+    "version": "9.5.0"
+  },
+  {
+    "title": "CommunityToolkit.Aspire.Hosting.Deno",
+    "description": "A .NET Aspire for hosting Deno apps.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.deno/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.Deno",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "deno"
+    ],
+    "downloads": 17598,
     "version": "9.5.0"
   },
   {

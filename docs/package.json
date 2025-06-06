@@ -7,11 +7,13 @@
     "dev:host": "astro dev --host",
     "start": "astro dev",
     "start:host": "astro dev --host",
-    "build": "astro build",
+    "build": "npm run update:all && astro build",
     "preview": "astro preview",
     "preview:host": "astro preview --host",
     "astro": "astro",
-    "update-integrations": "node ./scripts/update-integrations.js"
+    "update:all": "npm run update-integrations && npm run update-github-stats",
+    "update-integrations": "node ./scripts/update-integrations.js",
+    "update-github-stats": "node ./scripts/update-github-stats.js"
   },
   "dependencies": {
     "@astro-community/astro-embed-youtube": "^0.5.6",

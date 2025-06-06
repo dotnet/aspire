@@ -1,0 +1,65 @@
+---
+import FluidGrid from './FluidGrid.astro';
+import IconLinkCard from './IconLinkCard.astro';
+
+interface RepoStats {
+    name: string;
+    repo: string;
+    stars: number;
+    license: string;
+    licenseName: string;
+}
+
+interface Props {
+    /**
+     * The repository stats to display
+     * Can be a single repo stats object or an array of repo stats objects
+     */
+    stats: RepoStats | RepoStats[];
+    
+    /**
+     * Optional filter to select a specific repo by name
+     * Only used when stats is an array
+     */
+    repoName?: string;
+}
+
+const { stats, repoName } = Astro.props;
+
+// Handle both single repo stats and arrays
+let repoStats: RepoStats;
+
+if (Array.isArray(stats)) {
+    if (repoName) {
+        // Find the repo with the matching name
+        repoStats = stats.find(s => s.name === repoName) || stats[0];
+    } else {
+        // Use the first repo if no name provided
+        repoStats = stats[0];
+    }
+} else {
+    // Use the provided stats object directly
+    repoStats = stats;
+}
+---
+
+<FluidGrid>
+    <IconLinkCard
+        target={'_blank'}
+        title={`${repoStats.name || 'Repository'}`}
+        href={repoStats.repo}
+        icon="github" 
+    />
+    <IconLinkCard
+        target={'_blank'}
+        title={`Stars ${repoStats.stars.toLocaleString()}`}
+        href={repoStats.repo}
+        icon="star" 
+    />
+    <IconLinkCard
+        target={'_blank'}
+        title={repoStats.licenseName}
+        href={repoStats.license}
+        icon="seti:license" 
+    />
+</FluidGrid>
