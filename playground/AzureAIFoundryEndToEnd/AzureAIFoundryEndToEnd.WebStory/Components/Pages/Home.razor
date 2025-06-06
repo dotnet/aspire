@@ -4,10 +4,10 @@
 @inject ILogger<Home> logger
 
 <div class="storybox" style="margin: 25%">
-  @foreach (var message in chatMessages.Where(m => m.Role == ChatRole.Assistant))
-  {
-    <p style="font-size: 3em;">@message.Text</p>
-  }
+    @foreach (var message in chatMessages.Where(m => m.Role == ChatRole.Assistant))
+    {
+        <p style="font-size: 3em;">@message.Text</p>
+    }
 
     <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
 </div>
@@ -18,23 +18,20 @@
         new(ChatRole.System, "Pick a random topic and write a sentence of a fictional story about it.")
     };
 
-  private async Task GenerateNextParagraph()
-  {
-      if (chatMessages.Count > 1)
-      {
+    private async Task GenerateNextParagraph()
+    {
         chatMessages.Add(new ChatMessage(ChatRole.User, "Write the next sentence in the story."));
-      }
 
-      var response = await chatClient.GetResponseAsync(chatMessages);
+        var response = await chatClient.GetResponseAsync(chatMessages);
 
-      var content = response.Text;
+        var content = response.Text;
 
-      // Remove the text between <think> and </think> tags, if present
-      if (content.Contains("<think>") && content.Contains("</think>"))
-      {
-        content = content[..content.IndexOf("<think>")] + content[(content.IndexOf("</think>") + "</think>".Length)..].Trim();
-      }
-      chatMessages.AddMessages(new ChatResponse(new ChatMessage(ChatRole.Assistant, content)));
+        // Remove the text between <think> and </think> tags, if present
+        if (content.Contains("<think>") && content.Contains("</think>"))
+        {
+            content = content[..content.IndexOf("<think>")] + content[(content.IndexOf("</think>") + "</think>".Length)..].Trim();
+        }
+        chatMessages.AddMessages(new ChatResponse(new ChatMessage(ChatRole.Assistant, content)));
     }
 
     protected override async Task OnInitializedAsync()
