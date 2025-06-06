@@ -281,12 +281,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 }
             });
         }
-
-        if (DateTime.Now != DateTime.MinValue)
-        {
-            await Task.Delay(1000);
-            throw new InvalidOperationException("Test");
-        }
     }
 
     private bool UpdateFromResource(ResourceViewModel resource)
