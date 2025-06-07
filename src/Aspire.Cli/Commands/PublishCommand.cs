@@ -22,7 +22,7 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
 {    public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
-            Resources.PublishCommand_SelectPublisher,
+            CliStrings.PublishCommand_SelectPublisher,
             publishers,
             p => p,
             cancellationToken
@@ -37,7 +37,7 @@ internal sealed class PublishCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IPublishCommandPrompter _prompter;    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
-        : base("publish", Resources.PublishCommand_Description)
+        : base("publish", CliStrings.PublishCommand_Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -48,9 +48,9 @@ internal sealed class PublishCommand : BaseCommand
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = Resources.PublishCommand_ProjectOption_Description;
+        projectOption.Description = CliStrings.PublishCommand_ProjectOption_Description;
         Options.Add(projectOption);        var outputPath = new Option<string>("--output-path", "-o");
-        outputPath.Description = Resources.PublishCommand_OutputPathOption_Description;
+        outputPath.Description = CliStrings.PublishCommand_OutputPathOption_Description;
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
 

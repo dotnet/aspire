@@ -45,7 +45,7 @@ internal class CliStrings
         {
             if (object.ReferenceEquals(resourceMan, null))
             {
-                global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Cli.Resources.Resources", typeof(Resources).Assembly);
+                global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Cli.Resources.CliStrings", typeof(CliStrings).Assembly);
                 resourceMan = temp;
             }
             return resourceMan;
