@@ -63,7 +63,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerImageParam = AllocateContainerImageParameter();
         }
 
-        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(NormalizedContainerAppName))
+        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
         {
             Name = NormalizedContainerAppName
         };
