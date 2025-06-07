@@ -7,11 +7,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithDirectConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
-    private const string DefaultAuthenticationDatabase = "admin";
+    internal const string DefaultAuthenticationDatabase = "admin";
     private const string DefaultAuthenticationMechanism = "SCRAM-SHA-256";
 
     private EndpointReference? _primaryEndpoint;
@@ -37,7 +37,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; }
-        
+
     /// <summary>
     /// Gets the parameter that contains the MongoDb server username.
     /// </summary>
@@ -53,9 +53,19 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
-    internal ReferenceExpression BuildConnectionString(string? databaseName = null)
+    /// <summary>
+    /// Gets the direct connection string for the MongoDB server.
+    /// </summary>
+    /// <remarks>
+    /// This is useful to connect to the resource when replica sets are enabled. In those cases, the database will only
+    /// accept the registered name for the replica, which is only accessible from within the container network.
+    /// </remarks>
+    public ReferenceExpression DirectConnectionStringExpression => BuildConnectionString(directConnection: true);
+
+    internal ReferenceExpression BuildConnectionString(string? databaseName = null, bool directConnection = false)
     {
         var builder = new ReferenceExpressionBuilder();
+
         builder.AppendLiteral("mongodb://");
 
         if (PasswordParameter is not null)
@@ -65,17 +75,55 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 
         builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
-        if (databaseName is not null)
+        var slashAppended = false;
+        var queryAppended = false;
+
+        if (databaseName is { })
         {
-            builder.Append($"/{databaseName}");
+            EnsureSlash(builder, ref slashAppended);
+            builder.AppendFormatted(databaseName);
         }
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
+            EnsureQuery(builder, ref queryAppended);
+            builder.Append($"authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
+        }
+
+        if (Annotations.OfType<MongoDbReplicaSetAnnotation>().FirstOrDefault() is { ReplicaSetName: { } replicaSetName })
+        {
+            EnsureQuery(builder, ref queryAppended);
+            builder.Append($"{MongoDbReplicaSetAnnotation.QueryName}={replicaSetName}");
+        }
+
+        if (directConnection)
+        {
+            EnsureQuery(builder, ref queryAppended);
+            builder.AppendLiteral("directConnection=true");
         }
 
         return builder.Build();
+
+        static void EnsureQuery(ReferenceExpressionBuilder builder, ref bool queryAppended)
+        {
+            if (!queryAppended)
+            {
+                builder.AppendLiteral("?");
+                queryAppended = true;
+            }
+            else
+            {
+                builder.AppendLiteral("&");
+            }
+        }
+        static void EnsureSlash(ReferenceExpressionBuilder builder, ref bool slashAppended)
+        {
+            if (!slashAppended)
+            {
+                builder.AppendLiteral("/");
+                slashAppended = true;
+            }
+        }
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
