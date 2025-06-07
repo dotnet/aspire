@@ -36,10 +36,11 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
 /// <summary>
 /// Default implementation of <see cref="ISecretClientProvider"/>.
 /// </summary>
-internal sealed class DefaultSecretClientProvider : ISecretClientProvider
+internal sealed class DefaultSecretClientProvider(ITokenCredentialProvider tokenCredentialProvider) : ISecretClientProvider
 {
-    public SecretClient GetSecretClient(Uri vaultUri, TokenCredential credential)
+    public SecretClient GetSecretClient(Uri vaultUri)
     {
+        var credential = tokenCredentialProvider.GetTokenCredential();
         return new SecretClient(vaultUri, credential);
     }
 }
@@ -186,7 +187,7 @@ internal sealed class DefaultProvisioningContextProvider(
     ILogger<DefaultProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
-    TokenCredentialHolder tokenCredentialHolder) : IProvisioningContextProvider
+    ITokenCredentialProvider tokenCredentialProvider) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
@@ -194,9 +195,12 @@ internal sealed class DefaultProvisioningContextProvider(
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
-        var credential = tokenCredentialHolder.Credential;
+        var credential = tokenCredentialProvider.GetTokenCredential();
 
-        tokenCredentialHolder.LogCredentialType();
+        if (tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
+        {
+            defaultProvider.LogCredentialType();
+        }
 
         var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
         var wrappedArmClient = new DefaultArmClient(armClient);
@@ -299,7 +303,7 @@ internal sealed class DefaultProvisioningContextProvider(
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
         }
 
-        var principal = await userPrincipalProvider.GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
+        var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
@@ -454,10 +458,11 @@ internal sealed class DefaultAzureLocation(AzureLocation azureLocation) : IAzure
 /// <summary>
 /// Default implementation of <see cref="IUserPrincipalProvider"/>.
 /// </summary>
-internal sealed class DefaultUserPrincipalProvider : IUserPrincipalProvider
+internal sealed class DefaultUserPrincipalProvider(ITokenCredentialProvider tokenCredentialProvider) : IUserPrincipalProvider
 {
-    public async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default)
+    public async Task<UserPrincipal> GetUserPrincipalAsync(CancellationToken cancellationToken = default)
     {
+        var credential = tokenCredentialProvider.GetTokenCredential();
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 
         static UserPrincipal ParseToken(in AccessToken response)

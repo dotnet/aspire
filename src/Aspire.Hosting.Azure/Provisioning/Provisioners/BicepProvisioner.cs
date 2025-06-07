@@ -16,7 +16,6 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
-    TokenCredentialHolder tokenCredentialHolder,
     IBicepCliExecutor bicepCliExecutor,
     ISecretClientProvider secretClientProvider)
 {
@@ -289,7 +288,7 @@ internal sealed class BicepProvisioner(
         var vaultUri = resource.Outputs[kvr.VaultUriOutputReference.Name] as string ?? throw new InvalidOperationException($"{kvr.VaultUriOutputReference.Name} not found in outputs.");
 
         // Set the client for resolving secrets at runtime
-        var client = secretClientProvider.GetSecretClient(new(vaultUri), tokenCredentialHolder.Credential);
+        var client = secretClientProvider.GetSecretClient(new(vaultUri));
         kvr.SecretResolver = async (secretRef, ct) =>
         {
             var secret = await client.GetSecretAsync(secretRef.SecretName, cancellationToken: ct).ConfigureAwait(false);

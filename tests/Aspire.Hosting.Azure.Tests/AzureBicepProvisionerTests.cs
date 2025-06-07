@@ -9,8 +9,6 @@ using Aspire.Hosting.Utils;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -112,13 +110,12 @@ public class AzureBicepProvisionerTests
         
         var bicepExecutor = new TestBicepCliExecutor();
         var secretClientProvider = new TestSecretClientProvider();
-        var tokenCredentialHolder = new TestTokenCredentialHolder();
+        var tokenCredentialProvider = new TestTokenCredentialProvider();
         
         // Act
         var provisioner = new BicepProvisioner(
             services.GetRequiredService<ResourceNotificationService>(),
             services.GetRequiredService<ResourceLoggerService>(),
-            tokenCredentialHolder,
             bicepExecutor,
             secretClientProvider);
         
@@ -152,10 +149,9 @@ public class AzureBicepProvisionerTests
         // Arrange
         var secretClientProvider = new TestSecretClientProvider();
         var vaultUri = new Uri("https://test.vault.azure.net/");
-        var credential = new TestTokenCredential();
         
         // Act
-        var client = secretClientProvider.GetSecretClient(vaultUri, credential);
+        var client = secretClientProvider.GetSecretClient(vaultUri);
         
         // Assert
         Assert.True(secretClientProvider.GetSecretClientCalled);
@@ -169,7 +165,8 @@ public class AzureBicepProvisionerTests
         // Test the mock token credential behavior
         
         // Arrange
-        var credential = new TestTokenCredential();
+        var tokenProvider = new TestTokenCredentialProvider();
+        var credential = tokenProvider.GetTokenCredential();
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
         
         // Act
@@ -197,34 +194,18 @@ public class AzureBicepProvisionerTests
         Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
     }
 
-    private sealed class TestTokenCredentialHolder : TokenCredentialHolder
+    private sealed class TestTokenCredentialProvider : ITokenCredentialProvider
     {
-        public TestTokenCredentialHolder() : base(
-            new TestLogger(),
-            new TestOptions())
-        {
-        }
+        public TokenCredential GetTokenCredential() => new TestTokenCredential();
         
-        private sealed class TestLogger : ILogger<TokenCredentialHolder>
+        private sealed class TestTokenCredential : TokenCredential
         {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public bool IsEnabled(LogLevel logLevel) => false;
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
-        }
-        
-        private sealed class TestOptions : IOptions<AzureProvisionerOptions>
-        {
-            public AzureProvisionerOptions Value { get; } = new() { CredentialSource = "AzureCli" };
-        }
-    }
+            public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+                new("mock-token", DateTimeOffset.UtcNow.AddHours(1));
 
-    private sealed class TestTokenCredential : TokenCredential
-    {
-        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
-            new("mock-token", DateTimeOffset.UtcNow.AddHours(1));
-
-        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
-            ValueTask.FromResult(new AccessToken("mock-token", DateTimeOffset.UtcNow.AddHours(1)));
+            public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+                ValueTask.FromResult(new AccessToken("mock-token", DateTimeOffset.UtcNow.AddHours(1)));
+        }
     }
 
     private sealed class TestBicepCliExecutor : IBicepCliExecutor
@@ -245,7 +226,7 @@ public class AzureBicepProvisionerTests
     {
         public bool GetSecretClientCalled { get; private set; }
 
-        public SecretClient GetSecretClient(Uri vaultUri, TokenCredential credential)
+        public SecretClient GetSecretClient(Uri vaultUri)
         {
             GetSecretClientCalled = true;
             // Return null - this will fail in actual secret operations but allows testing the call

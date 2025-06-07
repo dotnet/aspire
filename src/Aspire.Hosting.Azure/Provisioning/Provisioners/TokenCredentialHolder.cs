@@ -1,18 +1,20 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Core;
 using Azure.Identity;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal class TokenCredentialHolder
+internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
 {
-    private readonly ILogger<TokenCredentialHolder> _logger;
+    private readonly ILogger<DefaultTokenCredentialProvider> _logger;
+    private readonly TokenCredential _credential;
 
-    public TokenCredentialHolder(ILogger<TokenCredentialHolder> logger, IOptions<AzureProvisionerOptions> options)
+    public DefaultTokenCredentialProvider(ILogger<DefaultTokenCredentialProvider> logger, IOptions<AzureProvisionerOptions> options)
     {
         _logger = logger;
 
@@ -36,14 +38,14 @@ internal class TokenCredentialHolder
             })
         };
 
-        Credential = credential;
+        _credential = credential;
     }
 
-    public TokenCredential Credential { get; }
+    public TokenCredential GetTokenCredential() => _credential;
 
     internal void LogCredentialType()
     {
-        if (Credential.GetType() == typeof(DefaultAzureCredential))
+        if (_credential.GetType() == typeof(DefaultAzureCredential))
         {
             _logger.LogInformation(
                 "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
@@ -51,7 +53,7 @@ internal class TokenCredentialHolder
         }
         else
         {
-            _logger.LogInformation("Using {credentialType} for provisioning.", Credential.GetType().Name);
+            _logger.LogInformation("Using {credentialType} for provisioning.", _credential.GetType().Name);
         }
     }
 }

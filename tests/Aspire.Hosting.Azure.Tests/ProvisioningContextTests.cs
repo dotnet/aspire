@@ -237,10 +237,9 @@ public class ProvisioningServicesTests
     {
         // Arrange
         var provider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var credential = TestProvisioningServices.CreateTokenCredential();
 
         // Act
-        var principal = await provider.GetUserPrincipalAsync(credential);
+        var principal = await provider.GetUserPrincipalAsync();
 
         // Assert
         Assert.NotNull(principal);

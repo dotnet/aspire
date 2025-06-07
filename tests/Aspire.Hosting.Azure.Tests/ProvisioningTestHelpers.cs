@@ -260,7 +260,8 @@ internal sealed class MockResponse(int status) : Response
 internal static class TestProvisioningServices
 {
     public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
-    public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider();
+    public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
+    public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCliExecutor CreateBicepCliExecutor() => new TestBicepCliExecutor();
     public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
@@ -276,10 +277,11 @@ internal sealed class TestArmClientProvider : IArmClientProvider
     }
 }
 
-internal sealed class TestSecretClientProvider : ISecretClientProvider
+internal sealed class TestSecretClientProvider(ITokenCredentialProvider tokenCredentialProvider) : ISecretClientProvider
 {
-    public SecretClient GetSecretClient(Uri vaultUri, TokenCredential credential)
+    public SecretClient GetSecretClient(Uri vaultUri)
     {
+        var credential = tokenCredentialProvider.GetTokenCredential();
         return new SecretClient(vaultUri, credential);
     }
 }
@@ -315,9 +317,14 @@ internal sealed class TestUserSecretsManager : IUserSecretsManager
 
 internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
 {
-    public Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default)
+    public Task<UserPrincipal> GetUserPrincipalAsync(CancellationToken cancellationToken = default)
     {
         var principal = new UserPrincipal(Guid.Parse("11111111-2222-3333-4444-555555555555"), "test@example.com");
         return Task.FromResult(principal);
     }
+}
+
+internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
+{
+    public TokenCredential GetTokenCredential() => new TestTokenCredential();
 }

@@ -30,7 +30,7 @@ internal interface ISecretClientProvider
     /// <summary>
     /// Gets a secret client for the specified vault URI.
     /// </summary>
-    SecretClient GetSecretClient(Uri vaultUri, TokenCredential credential);
+    SecretClient GetSecretClient(Uri vaultUri);
 }
 
 /// <summary>
@@ -246,7 +246,18 @@ internal interface IAzureLocation
 internal interface IUserPrincipalProvider
 {
     /// <summary>
-    /// Gets the user principal from the provided token credential.
+    /// Gets the user principal.
     /// </summary>
-    Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default);
+    Task<UserPrincipal> GetUserPrincipalAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Provides access to Azure token credentials.
+/// </summary>
+internal interface ITokenCredentialProvider
+{
+    /// <summary>
+    /// Gets the token credential for Azure authentication.
+    /// </summary>
+    TokenCredential GetTokenCredential();
 }
