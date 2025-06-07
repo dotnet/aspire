@@ -12,6 +12,7 @@ namespace Aspire.Hosting
     {
         public AzureCosmosDBResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        [System.Obsolete("BicepSecretOutputReference is no longer supported. Use ConnectionStringOutput instead.")]
         public Azure.BicepSecretOutputReference ConnectionString { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
@@ -19,6 +20,8 @@ namespace Aspire.Hosting
         public Azure.BicepOutputReference ConnectionStringOutput { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
+
+        public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
@@ -33,6 +36,8 @@ namespace Aspire.Hosting
     public static partial class AzureCosmosExtensions
     {
         public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBContainerResource> AddContainer(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBDatabaseResource> builder, string name, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, string? containerName = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBContainerResource> AddContainer(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBDatabaseResource> builder, string name, string partitionKeyPath, string? containerName = null) { throw null; }
 
@@ -65,6 +70,9 @@ namespace Aspire.Hosting.Azure
 {
     public partial class AzureCosmosDBContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBDatabaseResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
+        public AzureCosmosDBContainerResource(string name, string containerName, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(default!) { }
+
+        [System.Obsolete("Use the overload that supports the hierarchical partition keys instead.")]
         public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent) : base(default!) { }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
@@ -73,7 +81,10 @@ namespace Aspire.Hosting.Azure
 
         public AzureCosmosDBDatabaseResource Parent { get { throw null; } }
 
+        [System.Obsolete("Use PartitionKeyPaths instead.")]
         public string PartitionKeyPath { get { throw null; } set { } }
+
+        public System.Collections.Generic.IReadOnlyList<string> PartitionKeyPaths { get { throw null; } }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
