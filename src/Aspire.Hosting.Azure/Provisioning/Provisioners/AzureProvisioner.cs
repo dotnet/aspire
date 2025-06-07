@@ -287,15 +287,26 @@ internal sealed class AzureProvisioner(
 
         async Task PublishConnectionStringAvailableEventAsync()
         {
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource.Resource, serviceProvider);
-            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+            await PublishConnectionStringAvailableEventRecursiveAsync(resource.Resource).ConfigureAwait(false);
+        }
 
-            if (_parentChildLookup![resource.Resource] is { } children)
+        async Task PublishConnectionStringAvailableEventRecursiveAsync(IResource targetResource)
+        {
+            // If the resource itself has a connection string then publish that the connection string is available.
+            if (targetResource is IResourceWithConnectionString)
             {
-                foreach (var child in children.OfType<IResourceWithConnectionString>())
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(targetResource, serviceProvider);
+                await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Sometimes the container/executable itself does not have a connection string, and in those cases
+            // we need to dispatch the event for the children.
+            if (_parentChildLookup![targetResource] is { } children)
+            {
+                // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
+                foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
                 {
-                    var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
-                    await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                    await PublishConnectionStringAvailableEventRecursiveAsync(child).ConfigureAwait(false);
                 }
             }
         }
