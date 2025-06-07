@@ -320,6 +320,17 @@ public static class AzureCosmosExtensions
     }
 
     /// <summary>
+    /// Configures the Azure Cosmos DB resource to be deployed use the default SKU provided by Azure.
+    /// </summary>
+    /// <param name="builder">The builder for the Azure Cosmos DB resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> WithDefaultAzureSku(this IResourceBuilder<AzureCosmosDBResource> builder)
+    {
+        builder.Resource.UseDefaultAzureSku = true;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures the Azure Cosmos DB preview emulator to expose the Data Explorer endpoint.
     /// </summary>
     /// <param name="builder">Builder for the Cosmos emulator container</param>
@@ -440,6 +451,10 @@ public static class AzureCosmosExtensions
             (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                Capabilities = azureResource.UseDefaultAzureSku ? [] : new BicepList<CosmosDBAccountCapability>
+                {
+                    new CosmosDBAccountCapability { Name = CosmosConstants.EnableServerlessCapability }
+                },
                 ConsistencyPolicy = new ConsistencyPolicy()
                 {
                     DefaultConsistencyLevel = DefaultConsistencyLevel.Session
