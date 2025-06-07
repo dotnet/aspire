@@ -17,7 +17,6 @@ namespace Aspire.Hosting.Azure;
 internal sealed class AzureProvisioner(
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
-    ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
     BicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
@@ -162,14 +161,12 @@ internal sealed class AzureProvisioner(
         // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
             configuration,
-            logger,
             azureResources,
             cancellationToken), cancellationToken);
     }
 
     private async Task ProvisionAzureResources(
         IConfiguration configuration,
-        ILogger<AzureProvisioner> logger,
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
@@ -191,21 +188,8 @@ internal sealed class AzureProvisioner(
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // If we created any resources then save the user secrets
-        try
-        {
-            var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
-            await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
-
-            logger.LogInformation("Azure resource connection strings saved to user secrets.");
-        }
-        catch (JsonException ex)
-        {
-            logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to save user secrets.");
-        }
+        var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
+        await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)

@@ -122,7 +122,7 @@ internal sealed class DefaultBicepCliExecutor : IBicepCliExecutor
 /// <summary>
 /// Default implementation of <see cref="IUserSecretsManager"/>.
 /// </summary>
-internal sealed class DefaultUserSecretsManager : IUserSecretsManager
+internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManager> logger) : IUserSecretsManager
 {
     private static string? GetUserSecretsPath()
     {
@@ -152,15 +152,30 @@ internal sealed class DefaultUserSecretsManager : IUserSecretsManager
 
     public async Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        var userSecretsPath = GetUserSecretsPath();
-        if (userSecretsPath is null)
+        try
         {
-            throw new InvalidOperationException("User secrets path could not be determined.");
+            var userSecretsPath = GetUserSecretsPath();
+            if (userSecretsPath is null)
+            {
+                throw new InvalidOperationException("User secrets path could not be determined.");
+            }
+            
+            // Ensure directory exists before attempting to create secrets file
+            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
+            await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+
+            logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
-        
-        // Ensure directory exists before attempting to create secrets file
-        Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-        await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to save user secrets.");
+            throw;
+        }
     }
 }
 
