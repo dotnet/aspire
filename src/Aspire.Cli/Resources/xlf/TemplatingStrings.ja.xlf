@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../TemplatingStrings.resx">
+    <body>
+      <trans-unit id="AspireAppHost_Description">
+        <source>Aspire App Host</source>
+        <target state="new">Aspire App Host</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireMSTest_Description">
+        <source>Aspire Test Project (MSTest)</source>
+        <target state="new">Aspire Test Project (MSTest)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireNUnit_Description">
+        <source>Aspire Test Project (NUnit)</source>
+        <target state="new">Aspire Test Project (NUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireServiceDefaults_Description">
+        <source>Aspire Service Defaults</source>
+        <target state="new">Aspire Service Defaults</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireStarter_Description">
+        <source>Aspire Starter App</source>
+        <target state="new">Aspire Starter App</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireXUnit_Description">
+        <source>Aspire Test Project (xUnit)</source>
+        <target state="new">Aspire Test Project (xUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Aspire_Description">
+        <source>Aspire Empty App</source>
+        <target state="new">Aspire Empty App</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
+        <source>At least one template factory must be provided.</source>
+        <target state="new">At least one template factory must be provided.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

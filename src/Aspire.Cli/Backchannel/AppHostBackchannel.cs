@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
@@ -106,7 +108,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
             if (_rpcTaskCompletionSource.Task.IsCompleted)
             {
-                throw new InvalidOperationException("Already connected to AppHost backchannel.");
+                throw new InvalidOperationException(Strings.AlreadyConnectedToBackchannel);
             }
 
             logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
@@ -126,7 +128,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             if (!capabilities.Any(s => s == BaselineCapability))
             {
                 throw new AppHostIncompatibleException(
-                    $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                    string.Format(CultureInfo.CurrentCulture, Strings.AppHostIncompatibleWithCli, BaselineCapability),
                     BaselineCapability
                     );
             }
@@ -137,7 +139,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         {
             logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the {BaselineCapability} capability.", BaselineCapability);
             throw new AppHostIncompatibleException(
-                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                string.Format(CultureInfo.CurrentCulture, Strings.AppHostIncompatibleWithCli, BaselineCapability),
                 BaselineCapability
                 );
         }
