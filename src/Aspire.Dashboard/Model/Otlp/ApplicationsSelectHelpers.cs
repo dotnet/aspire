@@ -33,6 +33,16 @@ public static class ApplicationsSelectHelpers
             }
             else if (replicaSetMatches.Count == 0)
             {
+                // No matches found. As a last resort, if there's only one application available,
+                // return it. This handles the case where users have customized the OpenTelemetry
+                // service name (e.g., via .ConfigureResource(b => b.AddService(...))), causing
+                // a mismatch between the resource name in the URL and the telemetry application name.
+                // See https://github.com/dotnet/aspire/issues/9632
+                if (allowedMatches.Count == 1)
+                {
+                    return allowedMatches[0];
+                }
+                
                 // No matches found so return the passed in fallback.
                 return fallback;
             }
