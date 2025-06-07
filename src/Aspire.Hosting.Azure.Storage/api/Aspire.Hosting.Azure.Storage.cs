@@ -91,6 +91,8 @@ namespace Aspire.Hosting.Azure
 
         public bool IsEmulator { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public BicepOutputReference QueueEndpoint { get { throw null; } }
 
         public BicepOutputReference TableEndpoint { get { throw null; } }
