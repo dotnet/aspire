@@ -1515,14 +1515,8 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        // The Bicep content should show lowercase name for the Container App resource
-        Assert.Contains("webfrontend", bicep);
-        
-        // Should not contain the original uppercase name in the resource definition
-        Assert.DoesNotContain("WebFrontEnd", bicep);
-        
-        // The Container App name property should be lowercase
-        Assert.Contains("name: 'webfrontend'", bicep);
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
