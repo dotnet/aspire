@@ -5,8 +5,8 @@ param env_outputs_azure_container_apps_environment_default_domain string
 
 param env_outputs_azure_container_apps_environment_id string
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'api'
+resource WebFrontEnd 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'webfrontend'
   location: location
   properties: {
     configuration: {
@@ -17,7 +17,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           image: 'myimage:latest'
-          name: 'api'
+          name: 'webfrontend'
         }
       ]
       scale: {

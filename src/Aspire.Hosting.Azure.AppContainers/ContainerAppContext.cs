@@ -17,6 +17,13 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
     public IResource Resource => resource;
 
+    /// <summary>
+    /// The normalized container app name (lowercase) that will be used consistently 
+    /// throughout the container app creation process for both the resource identifier 
+    /// and endpoint mapping host names.
+    /// </summary>
+    public string NormalizedContainerAppName => resource.Name.ToLowerInvariant();
+
     // Endpoint state after processing
     record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
     private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
@@ -58,7 +65,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
         {
-            Name = resource.Name.ToLowerInvariant()
+            Name = NormalizedContainerAppName
         };
 
         BicepValue<string>? containerAppIdentityId = null;
@@ -101,7 +108,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         template.Containers = [containerAppContainer];
 
         containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
-        containerAppContainer.Name = resource.Name;
+        containerAppContainer.Name = NormalizedContainerAppName;
 
         SetEntryPoint(containerAppContainer);
         AddEnvironmentVariablesAndCommandLineArgs(
@@ -353,7 +360,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 // For the http ingress port is always 80 or 443
                 var port = e.UriScheme is "http" ? 80 : 443;
 
-                _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, true, httpIngress.External);
+                _endpointMapping[e.Name] = new(e.UriScheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
             }
         }
 
@@ -373,7 +380,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
             foreach (var e in g.Endpoints)
             {
-                _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
+                _endpointMapping[e.Name] = new(e.UriScheme, NormalizedContainerAppName, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
             }
         }
     }
