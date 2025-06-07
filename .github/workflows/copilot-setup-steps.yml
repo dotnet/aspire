@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      # Install verify tool for snapshot testing
+      - name: Install verify tool
+        run: dotnet tool install -g verify.tool
+
         # Include PrepareForHelix to maximise what is downloaded here
       - name: Build solution
         env:
