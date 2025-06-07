@@ -188,14 +188,12 @@ internal sealed class DefaultProvisioningContextProvider(
     ILogger<DefaultProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
-    TokenCredentialHolder tokenCredentialHolder,
-    IUserSecretsManager userSecretsManager) : IProvisioningContextProvider
+    TokenCredentialHolder tokenCredentialHolder) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    public async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
+    public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = tokenCredentialHolder.Credential;

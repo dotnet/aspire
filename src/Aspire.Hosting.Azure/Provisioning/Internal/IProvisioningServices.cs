@@ -68,7 +68,7 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
+    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -170,10 +168,11 @@ internal sealed class AzureProvisioner(
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => userSecretsManager.LoadUserSecretsAsync(cancellationToken));
+        // Load user secrets first so they can be passed to the provisioning context
+        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -255,11 +254,6 @@ internal sealed class AzureProvisioner(
             catch (MissingConfigurationException ex)
             {
                 resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
-                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-            }
-            catch (JsonException ex)
-            {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.AzureResource.Name);
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (Exception ex)
