@@ -18,7 +18,7 @@ jobs:
 
       # Install verify tool for snapshot testing
       - name: Install verify tool
-        run: dotnet tool install -g verify.tool
+        run: dotnet tool install --global Verify.Tool --version 0.6.0
 
         # Include PrepareForHelix to maximise what is downloaded here
       - name: Build solution
