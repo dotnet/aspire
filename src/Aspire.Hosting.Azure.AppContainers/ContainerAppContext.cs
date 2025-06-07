@@ -56,7 +56,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerImageParam = AllocateContainerImageParameter();
         }
 
-        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
+        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name.ToLowerInvariant()))
         {
             Name = resource.Name.ToLowerInvariant()
         };
@@ -101,7 +101,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         template.Containers = [containerAppContainer];
 
         containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
-        containerAppContainer.Name = resource.Name;
+        containerAppContainer.Name = resource.Name.ToLowerInvariant();
 
         SetEntryPoint(containerAppContainer);
         AddEnvironmentVariablesAndCommandLineArgs(
