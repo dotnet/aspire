@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- NewCommand strings -->
+  <data name="NewCommand_Description" xml:space="preserve">
+    <value>Create a new Aspire sample project.</value>
+  </data>
+  <data name="NewCommand_NameOption_Description" xml:space="preserve">
+    <value>The name of the project to create.</value>
+  </data>
+  <data name="NewCommand_OutputOption_Description" xml:space="preserve">
+    <value>The output path for the project.</value>
+  </data>
+  <data name="NewCommand_SourceOption_Description" xml:space="preserve">
+    <value>The NuGet source to use for the project templates.</value>
+  </data>
+  <data name="NewCommand_VersionOption_Description" xml:space="preserve">
+    <value>The version of the project templates to use.</value>
+  </data>
+  <data name="NewCommand_SelectTemplateVersion" xml:space="preserve">
+    <value>Select a template version:</value>
+  </data>
+  <data name="NewCommand_EnterOutputPath" xml:space="preserve">
+    <value>Enter the output path:</value>
+  </data>
+  <data name="NewCommand_EnterProjectName" xml:space="preserve">
+    <value>Enter the project name:</value>
+  </data>
+  <data name="NewCommand_InvalidProjectName" xml:space="preserve">
+    <value>Invalid project name.</value>
+  </data>
+  <data name="NewCommand_SelectProjectTemplate" xml:space="preserve">
+    <value>Select a project template:</value>
+  </data>
+  <!-- AddCommand strings -->
+  <data name="AddCommand_Description" xml:space="preserve">
+    <value>Add an integration to the Aspire project.</value>
+  </data>
+  <data name="AddCommand_IntegrationArgument_Description" xml:space="preserve">
+    <value>The name of the integration to add (e.g. redis, postgres).</value>
+  </data>
+  <data name="AddCommand_ProjectOption_Description" xml:space="preserve">
+    <value>The path to the project file to add the integration to.</value>
+  </data>
+  <data name="AddCommand_VersionOption_Description" xml:space="preserve">
+    <value>The version of the integration to add.</value>
+  </data>
+  <data name="AddCommand_SourceOption_Description" xml:space="preserve">
+    <value>The NuGet source to use for the integration.</value>
+  </data>
+  <data name="AddCommand_SearchingPackages" xml:space="preserve">
+    <value>Searching for Aspire packages...</value>
+  </data>
+  <data name="AddCommand_NoPackagesFound" xml:space="preserve">
+    <value>No integration packages were found. Please check your internet connection or NuGet source configuration.</value>
+  </data>
+  <data name="AddCommand_NoPackagesFoundShort" xml:space="preserve">
+    <value>No packages found.</value>
+  </data>
+  <data name="AddCommand_AddingIntegration" xml:space="preserve">
+    <value>Adding Aspire integration...</value>
+  </data>
+  <data name="AddCommand_InstallationFailed" xml:space="preserve">
+    <value>The package installation failed with exit code {0}. For more information run with --debug switch.</value>
+  </data>
+  <data name="AddCommand_PackageAddedSuccessfully" xml:space="preserve">
+    <value>The package {0}::{1} was added successfully.</value>
+  </data>
+  <data name="AddCommand_ProjectNotFound" xml:space="preserve">
+    <value>The --project option specified a project that does not exist.</value>
+  </data>
+  <data name="AddCommand_MultipleProjectsFound" xml:space="preserve">
+    <value>The --project option was not specified and multiple app host project files were detected.</value>
+  </data>
+  <data name="AddCommand_NoProjectFiles" xml:space="preserve">
+    <value>The project argument was not specified and no *.csproj files were detected.</value>
+  </data>
+  <data name="AddCommand_SelectVersion" xml:space="preserve">
+    <value>Select a version of the {0}:</value>
+  </data>
+  <data name="AddCommand_SelectIntegration" xml:space="preserve">
+    <value>Select an integration to add:</value>
+  </data>
+  <!-- RunCommand strings -->
+  <data name="RunCommand_Description" xml:space="preserve">
+    <value>Run an Aspire app host in development mode.</value>
+  </data>
+  <data name="RunCommand_ProjectOption_Description" xml:space="preserve">
+    <value>The path to the Aspire app host project file.</value>
+  </data>
+  <data name="RunCommand_WatchOption_Description" xml:space="preserve">
+    <value>Start project resources in watch mode.</value>
+  </data>
+  <!-- InteractionService strings -->
+  <data name="InteractionService_NoItemsAvailable" xml:space="preserve">
+    <value>No items available for selection: {0}</value>
+  </data>
+  <data name="InteractionService_AppHostNotCompatible" xml:space="preserve">
+    <value>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</value>
+  </data>
+  <data name="InteractionService_AspireHostingSdkVersion" xml:space="preserve">
+    <value>Aspire Hosting SDK Version</value>
+  </data>
+  <data name="InteractionService_AspireCliVersion" xml:space="preserve">
+    <value>Aspire CLI Version</value>
+  </data>
+  <data name="InteractionService_RequiredCapability" xml:space="preserve">
+    <value>Required Capability</value>
+  </data>
+  <data name="InteractionService_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="InteractionService_StoppingAspire" xml:space="preserve">
+    <value>Stopping Aspire.</value>
+  </data>
+  <!-- CertificateService strings -->
+  <data name="CertificateService_CheckingCertificates" xml:space="preserve">
+    <value>Checking certificates...</value>
+  </data>
+  <data name="CertificateService_TrustingCertificates" xml:space="preserve">
+    <value>Trusting certificates...</value>
+  </data>
+  <data name="CertificateService_DeveloperCertificatesNotTrusted" xml:space="preserve">
+    <value>Developer certificates may not be fully trusted (trust exit code was: {0})</value>
+  </data>
+  <data name="CertificateService_DevCertsPartialTrustMessage" xml:space="preserve">
+    <value>There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.</value>
+  </data>
+  <!-- Backchannel strings -->
+  <data name="Backchannel_AlreadyConnected" xml:space="preserve">
+    <value>Already connected to AppHost backchannel.</value>
+  </data>
+  <data name="Backchannel_AppHostIncompatible" xml:space="preserve">
+    <value>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</value>
+  </data>
+  <!-- Common error strings -->
+  <data name="Error_UnexpectedPackageCount" xml:space="preserve">
+    <value>Unexpected number of packages found.</value>
+  </data>
+  <data name="Error_AddingPackage" xml:space="preserve">
+    <value>An error occurred while adding the package: {0}</value>
+  </data>
+  <data name="Error_ProjectFileNotExist" xml:space="preserve">
+    <value>Project file does not exist.</value>
+  </data>
+  <data name="Error_MultipleProjectFiles" xml:space="preserve">
+    <value>Multiple project files found.</value>
+  </data>  <data name="Error_NoProjectFile" xml:space="preserve">
+    <value>No project file</value>
+  </data>
+  <!-- RootCommand strings -->
+  <data name="RootCommand_Description" xml:space="preserve">
+    <value>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</value>
+  </data>
+  <data name="RootCommand_DebugOption_Description" xml:space="preserve">
+    <value>Enable debug logging to the console.</value>
+  </data>
+  <data name="RootCommand_WaitForDebuggerOption_Description" xml:space="preserve">
+    <value>Wait for a debugger to attach before executing the command.</value>
+  </data>
+  <data name="RootCommand_WaitingForDebugger" xml:space="preserve">
+    <value>:bug:  Waiting for debugger to attach to CLI process ID: {0}</value>
+  </data>
+  <!-- PublishCommand strings -->
+  <data name="PublishCommand_Description" xml:space="preserve">
+    <value>Generates deployment artifacts for an Aspire app host project.</value>
+  </data>
+  <data name="PublishCommand_ProjectOption_Description" xml:space="preserve">
+    <value>The path to the Aspire app host project file.</value>
+  </data>
+  <data name="PublishCommand_OutputPathOption_Description" xml:space="preserve">
+    <value>The output path for the generated artifacts.</value>
+  </data>
+  <data name="PublishCommand_SelectPublisher" xml:space="preserve">
+    <value>Select a publisher:</value>
+  </data>
+</root>

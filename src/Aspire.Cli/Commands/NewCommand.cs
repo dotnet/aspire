@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
@@ -19,10 +20,8 @@ internal sealed class NewCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
-    private readonly IEnumerable<ITemplate> _templates;
-
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider)
-        : base("new", "Create a new Aspire sample project.")
+    private readonly IEnumerable<ITemplate> _templates;    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider)
+        : base("new", CliStrings.NewCommand_Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
@@ -35,25 +34,17 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _interactionService = interactionService;
-
-        var nameOption = new Option<string>("--name", "-n");
-        nameOption.Description = "The name of the project to create.";
+        _interactionService = interactionService;        var nameOption = new Option<string>("--name", "-n");
+        nameOption.Description = CliStrings.NewCommand_NameOption_Description;
         nameOption.Recursive = true;
-        Options.Add(nameOption);
-
-        var outputOption = new Option<string?>("--output", "-o");
-        outputOption.Description = "The output path for the project.";
+        Options.Add(nameOption);        var outputOption = new Option<string?>("--output", "-o");
+        outputOption.Description = CliStrings.NewCommand_OutputOption_Description;
         outputOption.Recursive = true;
-        Options.Add(outputOption);
-
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = "The NuGet source to use for the project templates.";
+        Options.Add(outputOption);        var sourceOption = new Option<string?>("--source", "-s");
+        sourceOption.Description = CliStrings.NewCommand_SourceOption_Description;
         sourceOption.Recursive = true;
-        Options.Add(sourceOption);
-
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = "The version of the project templates to use.";
+        Options.Add(sourceOption);        var templateVersionOption = new Option<string?>("--version", "-v");
+        templateVersionOption.Description = CliStrings.NewCommand_VersionOption_Description;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
 
@@ -103,9 +94,8 @@ internal interface INewCommandPrompter
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
-    {
-        return await interactionService.PromptForSelectionAsync(
-            "Select a template version:",
+    {        return await interactionService.PromptForSelectionAsync(
+            CliStrings.NewCommand_SelectTemplateVersion,
             candidatePackages,
             (p) => $"{p.Version} ({p.Source})",
             cancellationToken
@@ -113,31 +103,28 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     }
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
-    {
-        return await interactionService.PromptForStringAsync(
-            "Enter the output path:",
+    {        return await interactionService.PromptForStringAsync(
+            CliStrings.NewCommand_EnterOutputPath,
             defaultValue: path,
             cancellationToken: cancellationToken
             );
     }
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
-    {
-        return await interactionService.PromptForStringAsync(
-            "Enter the project name:",
+    {        return await interactionService.PromptForStringAsync(
+            CliStrings.NewCommand_EnterProjectName,
             defaultValue: defaultName,
             validator: (name) => {
                 return ProjectNameValidator.IsProjectNameValid(name)
                     ? ValidationResult.Success()
-                    : ValidationResult.Error("Invalid project name.");
+                    : ValidationResult.Error(CliStrings.NewCommand_InvalidProjectName);
             },
             cancellationToken: cancellationToken);
     }
 
     public virtual async Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
-    {
-        return await interactionService.PromptForSelectionAsync(
-            "Select a project template:",
+    {        return await interactionService.PromptForSelectionAsync(
+            CliStrings.NewCommand_SelectProjectTemplate,
             validTemplates,
             t => $"{t.Name} ({t.Description})",
             cancellationToken

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -18,11 +19,10 @@ internal interface IPublishCommandPrompter
 }
 
 internal class PublishCommandPrompter(IInteractionService interactionService) : IPublishCommandPrompter
-{
-    public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
+{    public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
-            "Select a publisher:",
+            Resources.PublishCommand_SelectPublisher,
             publishers,
             p => p,
             cancellationToken
@@ -36,10 +36,8 @@ internal sealed class PublishCommand : BaseCommand
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
-    private readonly IPublishCommandPrompter _prompter;
-
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
-        : base("publish", "Generates deployment artifacts for an Aspire app host project.")
+    private readonly IPublishCommandPrompter _prompter;    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
+        : base("publish", Resources.PublishCommand_Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -49,14 +47,10 @@ internal sealed class PublishCommand : BaseCommand
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
-        _prompter = prompter;
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = "The path to the Aspire app host project file.";
-        Options.Add(projectOption);
-
-        var outputPath = new Option<string>("--output-path", "-o");
-        outputPath.Description = "The output path for the generated artifacts.";
+        _prompter = prompter;        var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = Resources.PublishCommand_ProjectOption_Description;
+        Options.Add(projectOption);        var outputPath = new Option<string>("--output-path", "-o");
+        outputPath.Description = Resources.PublishCommand_OutputPathOption_Description;
         outputPath.DefaultValueFactory = (result) => Path.Combine(Environment.CurrentDirectory);
         Options.Add(outputPath);
 

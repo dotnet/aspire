@@ -1,0 +1,282 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../CliStrings.resx">
+    <body>
+      <trans-unit id="AddCommand_AddingIntegration">
+        <source>Adding Aspire integration...</source>
+        <target state="new">Adding Aspire integration...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_Description">
+        <source>Add an integration to the Aspire project.</source>
+        <target state="new">Add an integration to the Aspire project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_InstallationFailed">
+        <source>The package installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="new">The package installation failed with exit code {0}. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_IntegrationArgument_Description">
+        <source>The name of the integration to add (e.g. redis, postgres).</source>
+        <target state="new">The name of the integration to add (e.g. redis, postgres).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_MultipleProjectsFound">
+        <source>The --project option was not specified and multiple app host project files were detected.</source>
+        <target state="new">The --project option was not specified and multiple app host project files were detected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_NoPackagesFound">
+        <source>No integration packages were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="new">No integration packages were found. Please check your internet connection or NuGet source configuration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_NoPackagesFoundShort">
+        <source>No packages found.</source>
+        <target state="new">No packages found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_NoProjectFiles">
+        <source>The project argument was not specified and no *.csproj files were detected.</source>
+        <target state="new">The project argument was not specified and no *.csproj files were detected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_PackageAddedSuccessfully">
+        <source>The package {0}::{1} was added successfully.</source>
+        <target state="new">The package {0}::{1} was added successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_ProjectNotFound">
+        <source>The --project option specified a project that does not exist.</source>
+        <target state="new">The --project option specified a project that does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_ProjectOption_Description">
+        <source>The path to the project file to add the integration to.</source>
+        <target state="new">The path to the project file to add the integration to.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_SearchingPackages">
+        <source>Searching for Aspire packages...</source>
+        <target state="new">Searching for Aspire packages...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_SelectIntegration">
+        <source>Select an integration to add:</source>
+        <target state="new">Select an integration to add:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_SelectVersion">
+        <source>Select a version of the {0}:</source>
+        <target state="new">Select a version of the {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_SourceOption_Description">
+        <source>The NuGet source to use for the integration.</source>
+        <target state="new">The NuGet source to use for the integration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_VersionOption_Description">
+        <source>The version of the integration to add.</source>
+        <target state="new">The version of the integration to add.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Backchannel_AlreadyConnected">
+        <source>Already connected to AppHost backchannel.</source>
+        <target state="new">Already connected to AppHost backchannel.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Backchannel_AppHostIncompatible">
+        <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
+        <target state="new">AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateService_CheckingCertificates">
+        <source>Checking certificates...</source>
+        <target state="new">Checking certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateService_DevCertsPartialTrustMessage">
+        <source>There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.</source>
+        <target state="new">There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateService_DeveloperCertificatesNotTrusted">
+        <source>Developer certificates may not be fully trusted (trust exit code was: {0})</source>
+        <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0})</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateService_TrustingCertificates">
+        <source>Trusting certificates...</source>
+        <target state="new">Trusting certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_AddingPackage">
+        <source>An error occurred while adding the package: {0}</source>
+        <target state="new">An error occurred while adding the package: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_MultipleProjectFiles">
+        <source>Multiple project files found.</source>
+        <target state="new">Multiple project files found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_NoProjectFile">
+        <source>No project file</source>
+        <target state="new">No project file</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_ProjectFileNotExist">
+        <source>Project file does not exist.</source>
+        <target state="new">Project file does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Error_UnexpectedPackageCount">
+        <source>Unexpected number of packages found.</source>
+        <target state="new">Unexpected number of packages found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_AppHostNotCompatible">
+        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
+        <target state="new">The app host is not compatible. Consider upgrading the app host or Aspire CLI.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_AspireCliVersion">
+        <source>Aspire CLI Version</source>
+        <target state="new">Aspire CLI Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_AspireHostingSdkVersion">
+        <source>Aspire Hosting SDK Version</source>
+        <target state="new">Aspire Hosting SDK Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_Dashboard">
+        <source>Dashboard</source>
+        <target state="new">Dashboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_NoItemsAvailable">
+        <source>No items available for selection: {0}</source>
+        <target state="new">No items available for selection: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_RequiredCapability">
+        <source>Required Capability</source>
+        <target state="new">Required Capability</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionService_StoppingAspire">
+        <source>Stopping Aspire.</source>
+        <target state="new">Stopping Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_Description">
+        <source>Create a new Aspire sample project.</source>
+        <target state="new">Create a new Aspire sample project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_EnterOutputPath">
+        <source>Enter the output path:</source>
+        <target state="new">Enter the output path:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_EnterProjectName">
+        <source>Enter the project name:</source>
+        <target state="new">Enter the project name:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_InvalidProjectName">
+        <source>Invalid project name.</source>
+        <target state="new">Invalid project name.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_NameOption_Description">
+        <source>The name of the project to create.</source>
+        <target state="new">The name of the project to create.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_OutputOption_Description">
+        <source>The output path for the project.</source>
+        <target state="new">The output path for the project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_SelectProjectTemplate">
+        <source>Select a project template:</source>
+        <target state="new">Select a project template:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_SelectTemplateVersion">
+        <source>Select a template version:</source>
+        <target state="new">Select a template version:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_SourceOption_Description">
+        <source>The NuGet source to use for the project templates.</source>
+        <target state="new">The NuGet source to use for the project templates.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_VersionOption_Description">
+        <source>The version of the project templates to use.</source>
+        <target state="new">The version of the project templates to use.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishCommand_Description">
+        <source>Generates deployment artifacts for an Aspire app host project.</source>
+        <target state="new">Generates deployment artifacts for an Aspire app host project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishCommand_OutputPathOption_Description">
+        <source>The output path for the generated artifacts.</source>
+        <target state="new">The output path for the generated artifacts.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishCommand_ProjectOption_Description">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="new">The path to the Aspire app host project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishCommand_SelectPublisher">
+        <source>Select a publisher:</source>
+        <target state="new">Select a publisher:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RootCommand_DebugOption_Description">
+        <source>Enable debug logging to the console.</source>
+        <target state="new">Enable debug logging to the console.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RootCommand_Description">
+        <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
+        <target state="new">The Aspire CLI can be used to create, run, and publish Aspire-based applications.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RootCommand_WaitForDebuggerOption_Description">
+        <source>Wait for a debugger to attach before executing the command.</source>
+        <target state="new">Wait for a debugger to attach before executing the command.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RootCommand_WaitingForDebugger">
+        <source>:bug:  Waiting for debugger to attach to CLI process ID: {0}</source>
+        <target state="new">:bug:  Waiting for debugger to attach to CLI process ID: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommand_Description">
+        <source>Run an Aspire app host in development mode.</source>
+        <target state="new">Run an Aspire app host in development mode.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommand_ProjectOption_Description">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="new">The path to the Aspire app host project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommand_WatchOption_Description">
+        <source>Start project resources in watch mode.</source>
+        <target state="new">Start project resources in watch mode.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
