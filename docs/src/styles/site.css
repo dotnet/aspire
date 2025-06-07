@@ -115,6 +115,12 @@
 	.hero .sl-link-button:hover {
 		transform: translateY(-10%);
 	}
+
+	.hero > img {
+        max-width: 100%;
+        max-height: 17rem;
+        height: auto;
+    }
 }
 
 :root[data-has-hero] {
