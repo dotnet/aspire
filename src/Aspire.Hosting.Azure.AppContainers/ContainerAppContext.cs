@@ -108,6 +108,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         template.Containers = [containerAppContainer];
 
         containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
+        containerAppContainer.Name = NormalizedContainerAppName;
 
         SetEntryPoint(containerAppContainer);
         AddEnvironmentVariablesAndCommandLineArgs(
