@@ -16,6 +16,7 @@ using Spectre.Console;
 using Microsoft.Extensions.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 #if DEBUG
@@ -33,37 +34,41 @@ public class Program
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
     /// <summary>
-    /// This method walks up the directory tree looking for the .aspire/settings.json files
-    /// and then adds them to the host as a configuration source. This means that the settings
-    /// architecture for the CLI will just be standard .NET configuraiton.
+    /// Sets up the application configuration by loading settings from .aspire/settings.json files.
+    /// Loads the nearest local settings file and global settings from $HOME/.aspire/settings.json,
+    /// with global settings taking precedence over local settings.
     /// </summary>
     private static void SetupAppHostOptions(HostApplicationBuilder builder)
     {
-        var settingsFiles = new List<FileInfo>();
+        // Find the nearest local settings file
         var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        FileInfo? localSettingsFile = null;
 
-        while (true)
+        while (currentDirectory is not null)
         {
             var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
 
             if (File.Exists(settingsFilePath))
             {
-                var settingsFile = new FileInfo(settingsFilePath);
-                settingsFiles.Add(settingsFile);
-            }
-
-            if (currentDirectory.Parent is null)
-            {
+                localSettingsFile = new FileInfo(settingsFilePath);
                 break;
             }
 
             currentDirectory = currentDirectory.Parent;
         }
 
-        settingsFiles.Reverse();
-        foreach (var settingsFile in settingsFiles)
+        // Add local settings first (if found)
+        if (localSettingsFile is not null)
         {
-            builder.Configuration.AddJsonFile(settingsFile.FullName);
+            builder.Configuration.AddJsonFile(localSettingsFile.FullName, optional: true);
+        }
+
+        // Then add global settings file (if it exists) - this will override local settings
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        if (File.Exists(globalSettingsPath))
+        {
+            builder.Configuration.AddJsonFile(globalSettingsPath, optional: true);
         }
     }
 
@@ -123,6 +128,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
+        builder.Services.AddSingleton(BuildConfigurationWriter);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -139,10 +145,16 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
+        builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IConfigurationWriter BuildConfigurationWriter(IServiceProvider serviceProvider)
+    {
+        return new ConfigurationWriter(new DirectoryInfo(Environment.CurrentDirectory));
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
@@ -170,7 +182,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService);
+        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationWriter);
     }
 
     public static async Task<int> Main(string[] args)

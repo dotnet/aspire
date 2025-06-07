@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Aspire.Cli.Configuration;
 using Xunit;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -27,7 +28,26 @@ internal static class CliTestHelper
 
         var services = new ServiceCollection();
 
-        var configuration = new ConfigurationBuilder().Build();
+        // Build configuration for testing
+        var configBuilder = new ConfigurationBuilder();
+        
+        // Add local settings first (if provided)
+        if (!string.IsNullOrEmpty(options.LocalSettingsContent))
+        {
+            var localBytes = Encoding.UTF8.GetBytes(options.LocalSettingsContent);
+            var localStream = new MemoryStream(localBytes);
+            configBuilder.AddJsonStream(localStream);
+        }
+
+        // Then add global settings (if provided) - this will override local settings
+        if (!string.IsNullOrEmpty(options.GlobalSettingsContent))
+        {
+            var globalBytes = Encoding.UTF8.GetBytes(options.GlobalSettingsContent);
+            var globalStream = new MemoryStream(globalBytes);
+            configBuilder.AddJsonStream(globalStream);
+        }
+        
+        var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
 
         services.AddLogging();
@@ -44,27 +64,47 @@ internal static class CliTestHelper
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
+        services.AddSingleton(options.ConfigurationWriterFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<PublishCommand>();
+        services.AddTransient<ConfigCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
     }
 }
 
-internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
+internal sealed class CliServiceCollectionTestOptions
 {
-    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    private readonly ITestOutputHelper _outputHelper;
+
+    public CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
+    {
+        _outputHelper = outputHelper;
+
+        // Create a unique temporary directory for this test
+        var tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempPath);
+        WorkingDirectory = new DirectoryInfo(tempPath);
+        ProjectLocatorFactory = CreateDefaultProjectLocatorFactory;
+        ConfigurationWriterFactory = CreateDefaultConfigurationWriterFactory;
+    }
+
+    public string? LocalSettingsContent { get; set; }
+    public string? GlobalSettingsContent { get; set; }
+    public DirectoryInfo WorkingDirectory { get; set; }
+    
+    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(outputHelper))
+            Out = new AnsiConsoleOutput(new TestOutputTextWriter(_outputHelper))
         };
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
@@ -88,12 +128,23 @@ internal sealed class CliServiceCollectionTestOptions(ITestOutputHelper outputHe
         return new PublishCommandPrompter(interactionService);
     };
 
-    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, IConfigurationWriter> ConfigurationWriterFactory { get; set; }
+
+    public IConfigurationWriter CreateDefaultConfigurationWriterFactory(IServiceProvider serviceProvider)
+    {
+        return new ConfigurationWriter(WorkingDirectory);
+    }
+
+    public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }
+
+    public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
+    {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Directory.GetCurrentDirectory()), interactionService);
-    };
+        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
+        return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationWriter);
+    }
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
