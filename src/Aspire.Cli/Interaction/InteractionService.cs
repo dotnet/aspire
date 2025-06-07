@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -61,7 +62,7 @@ internal class InteractionService : IInteractionService
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
-            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+            throw new EmptyChoicesException(string.Format(System.Globalization.CultureInfo.InvariantCulture, CliStrings.InteractionService_NoItemsAvailable, promptText));
         }
 
         var prompt = new SelectionPrompt<T>()
@@ -77,13 +78,11 @@ internal class InteractionService : IInteractionService
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
-
-        DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
+        var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();        DisplayError(CliStrings.InteractionService_AppHostNotCompatible);
         Console.WriteLine();
-        _ansiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
+        _ansiConsole.MarkupLine($"\t[bold]{CliStrings.InteractionService_AspireHostingSdkVersion}[/]: {appHostHostingSdkVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{CliStrings.InteractionService_AspireCliVersion}[/]: {cliInformationalVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{CliStrings.InteractionService_RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -106,7 +105,7 @@ internal class InteractionService : IInteractionService
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+        _ansiConsole.MarkupLine($"[green bold]{CliStrings.InteractionService_Dashboard}[/]:");
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
             _ansiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
@@ -132,13 +131,11 @@ internal class InteractionService : IInteractionService
                 _ansiConsole.MarkupLineInterpolated($"[red]{line}[/]");
             }
         }
-    }
-
-    public void DisplayCancellationMessage()
+    }    public void DisplayCancellationMessage()
     {
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
-        DisplayMessage("stop_sign", "[teal bold]Stopping Aspire.[/]");
+        DisplayMessage("stop_sign", $"[teal bold]{CliStrings.InteractionService_StoppingAspire}[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)

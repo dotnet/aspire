@@ -7,6 +7,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -22,10 +23,8 @@ internal sealed class RunCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
-    private readonly IAnsiConsole _ansiConsole;
-
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
-        : base("run", "Run an Aspire app host in development mode.")
+    private readonly IAnsiConsole _ansiConsole;    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
+        : base("run", CliStrings.RunCommand_Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -37,14 +36,10 @@ internal sealed class RunCommand : BaseCommand
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
-        _ansiConsole = ansiConsole;
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = "The path to the Aspire app host project file.";
-        Options.Add(projectOption);
-
-        var watchOption = new Option<bool>("--watch", "-w");
-        watchOption.Description = "Start project resources in watch mode.";
+        _ansiConsole = ansiConsole;        var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = CliStrings.RunCommand_ProjectOption_Description;
+        Options.Add(projectOption);        var watchOption = new Option<bool>("--watch", "-w");
+        watchOption.Description = CliStrings.RunCommand_WatchOption_Description;
         Options.Add(watchOption);
 
         TreatUnmatchedTokensAsErrors = false;
