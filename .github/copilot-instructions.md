@@ -6,6 +6,7 @@
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
 * Never change global.json unless explicitly asked to.
+* Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
 
 ## Formatting
 
@@ -15,6 +16,7 @@
 * Ensure that the final return statement of a method is on its own line.
 * Use pattern matching and switch expressions wherever possible.
 * Use `nameof` instead of string literals when referring to member names.
+* Place private class declarations at the bottom of the file.
 
 ### Nullable Reference Types
 
