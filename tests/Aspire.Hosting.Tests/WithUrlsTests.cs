@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -396,50 +397,143 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task UrlsAreInExepctedActiveStateWhenInitialized()
+    public async Task UrlsAreInExepctedStateForResourcesGivenTheirLifecycle()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.AddProject<Projects.ServiceA>("servicea")
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com/project");
 
         var custom = builder.AddResource(new CustomResource("custom"))
             .WithHttpEndpoint()
-            .WithUrl("https://example.com/custom");
+            .WithUrl("https://example.com/custom")
+            .WithInitialState(new()
+            {
+                ResourceType = "Custom",
+                CreationTimeStamp = DateTime.UtcNow,
+                State = KnownResourceStates.NotStarted,
+                Properties = []
+            });
 
-        builder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(custom.Resource, (e, ct) =>
+        builder.Eventing.Subscribe<InitializeResourceEvent>(custom.Resource, async (e, ct) =>
         {
             // Mark all the endpoints on custom resource as allocated so that the URLs are initialized
             if (custom.Resource.TryGetEndpoints(out var endpoints))
             {
+                var startingPort = 1234;
                 foreach (var endpoint in endpoints)
                 {
-                    endpoint.AllocatedEndpoint = new(endpoint, endpoint.TargetHost, endpoint.Port ?? endpoint.TargetPort ?? 0);
+                    endpoint.AllocatedEndpoint = new(endpoint, endpoint.TargetHost, endpoint.Port ?? endpoint.TargetPort ?? startingPort++);
                 }
             }
-            return Task.CompletedTask;
+
+            // Publish the ResourceEndpointsAllocatedEvent for the resource
+            await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(custom.Resource, e.Services), EventDispatchBehavior.BlockingConcurrent, ct);
+
+            // Publish the BeforeResourceStartedEvent for the resource
+            await e.Eventing.PublishAsync(new BeforeResourceStartedEvent(custom.Resource, e.Services), EventDispatchBehavior.BlockingSequential, ct);
+
+            // Mark all the endpoint URLs as active (this makes them visible in the dashboard)
+            await e.Notifications.PublishUpdateAsync(custom.Resource, s => s with
+            {
+                Urls = [.. s.Urls.Select(u => u with { IsInactive = false })]
+            });
+
+            // Move resource to the running state
+            await e.Services.GetRequiredService<ResourceNotificationService>()
+                .PublishUpdateAsync(e.Resource, s => s with
+                {
+                    StartTimeStamp = DateTime.UtcNow,
+                    State = KnownResourceStates.Running
+                });
         });
 
         var app = await builder.BuildAsync();
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        ImmutableArray<UrlSnapshot> projectUrlSnapshot = default;
-        ImmutableArray<UrlSnapshot> customUrlSnapshot = default;
+        var projectInitialized = false;
+        var projectEndpointsAllocated = false;
+        var projectRunning = false;
+        var customInitialized = false;
+        var customEndpointsAllocated = false;
+        var customRunning = false;
         var cts = new CancellationTokenSource();
         var watchTask = Task.Run(async () =>
         {
             await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
             {
-                if (notification.Resource.Name == "servicea" && notification.Snapshot.Urls.Length > 0 && projectUrlSnapshot.IsDefault)
+                if (notification.Resource == servicea.Resource && notification.Snapshot.Urls.Length > 0)
                 {
-                    projectUrlSnapshot = notification.Snapshot.Urls;
+                    if (!projectInitialized)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        // Endpoint URL should not be present yet, just the static URL
+                        var url = Assert.Single(urls);
+                        Assert.False(url.IsInactive);
+                        Assert.Null(url.Name);
+                        Assert.Equal("https://example.com/project", url.Url);
+                        projectInitialized = true;
+                    }
+                    else if (!projectEndpointsAllocated)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        Assert.Collection(urls,
+                            // Endpoint URL should be inactive initially
+                            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+                            // Non-endpoint URL should be active
+                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+                        );
+                        projectEndpointsAllocated = true;
+                    }
+                    else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        Assert.Collection(urls,
+                            // Endpoint URL should be active now
+                            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+                            // Non-endpoint URL should still be active
+                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+                        );
+                        projectRunning = true;
+                    }
                 }
-                else if (notification.Resource.Name == "custom" && notification.Snapshot.Urls.Length > 0 && customUrlSnapshot.IsDefault)
+                else if (notification.Resource == custom.Resource && notification.Snapshot.Urls.Length > 0)
                 {
-                    customUrlSnapshot = notification.Snapshot.Urls;
+                    if (!customInitialized)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        // Endpoint URL should not be present yet, just the static URL
+                        var url = Assert.Single(urls);
+                        Assert.False(url.IsInactive);
+                        Assert.Null(url.Name);
+                        Assert.Equal("https://example.com/custom", url.Url);
+                        customInitialized = true;
+                    }
+                    else if (!customEndpointsAllocated && notification.Snapshot.Urls.Length == 2)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        Assert.Collection(urls,
+                            // Endpoint URL should be inactive initially
+                            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+                            // Non-endpoint URL should be active
+                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
+                        );
+                        customEndpointsAllocated = true;
+                    }
+                    else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running)
+                    {
+                        var urls = notification.Snapshot.Urls;
+                        Assert.Collection(urls,
+                            // Endpoint URL should be active now
+                            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+                            // Non-endpoint URL should be active
+                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
+                        );
+                        customRunning = true;
+                    }
                 }
 
-                if (!projectUrlSnapshot.IsDefault && !customUrlSnapshot.IsDefault)
+                if (projectRunning && customRunning)
                 {
                     break;
                 }
@@ -447,26 +541,14 @@ public class WithUrlsTests
         });
 
         await app.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        await app.ResourceNotifications.WaitForResourceAsync(custom.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
         await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         cts.Cancel();
 
         await app.StopAsync();
-
-        Assert.False(projectUrlSnapshot.IsDefault);
-        Assert.Collection(projectUrlSnapshot,
-            // Endpoint URL should be inactive initially
-            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-            // Non-endpoint URL should be active
-            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
-        );
-
-        Assert.False(customUrlSnapshot.IsDefault);
-        Assert.Collection(customUrlSnapshot,
-            // Endpoint URL should be inactive initially
-            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-            // Non-endpoint URL should be active
-            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
-        );
     }
 
     [Fact]

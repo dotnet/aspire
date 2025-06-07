@@ -814,7 +814,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
 
-        return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, DisplayText = displayText })));
+        //return builder.WithAnnotation(new ResourceUrlsCallbackAnnotation(c => c.Urls.Add(new() { Url = url, DisplayText = displayText })));
+        return builder.WithAnnotation(new ResourceUrlAnnotation { Url = url, DisplayText = displayText });
     }
 
     /// <summary>

@@ -53,7 +53,7 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
         _eventing.Subscribe<AfterEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishInitialResourceUrls);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishResourceEndpointUrls);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
     }
@@ -101,34 +101,34 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, context.CancellationToken).ConfigureAwait(false);
         }
-
-        // Fire the endpoints allocated event for all resources.
-        foreach (var resource in _model.Resources)
-        {
-            await _eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, _serviceProvider), EventDispatchBehavior.NonBlockingConcurrent, context.CancellationToken).ConfigureAwait(false);
-        }
     }
 
-    private async Task PublishInitialResourceUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    private async Task PublishResourceEndpointUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         var resource = @event.Resource;
 
         // Process URLs for the resource.
-        await ProcessUrls(resource, cancellationToken).ConfigureAwait(false);
+        await ProcessResourceUrlCallbacks(resource, cancellationToken).ConfigureAwait(false);
 
+        // Publish update with URLs.
+        var urls = GetResourceUrls(resource);
+        await _notificationService.PublishUpdateAsync(resource, s => s with { Urls = [.. urls] }).ConfigureAwait(false);
+    }
+
+    private static IEnumerable<UrlSnapshot> GetResourceUrls(IResource resource)
+    {
         IEnumerable<UrlSnapshot> urls = [];
         if (resource.TryGetUrls(out var resourceUrls))
         {
             urls = resourceUrls.Select(url => new UrlSnapshot(Name: url.Endpoint?.EndpointName, Url: url.Url, IsInternal: url.DisplayLocation == UrlDisplayLocation.DetailsOnly)
             {
-                // Endpoint URLs are inactive (hidden in the dashboard) when initialized. They will get activated later
-                // when the endpoint is considered active, e.g. for DCP controlled resources when the endpoint is listening.
+                // Endpoint URLs are inactive (hidden in the dashboard) when published here. It is assumed they will get activated later when the endpoint is considered active
+                // by whatever allocated the endpoint in the first place, e.g. for resources controlled by DCP, when DCP detects the endpoint is listening.
                 IsInactive = url.Endpoint is not null,
                 DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0)
             });
         }
-
-        await _notificationService.PublishUpdateAsync(resource, s => s with { Urls = [.. urls] }).ConfigureAwait(false);
+        return urls;
     }
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
@@ -181,7 +181,7 @@ internal sealed class ApplicationOrchestrator
         await PublishResourcesInitialStateAsync(context.CancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
+    private async Task ProcessResourceUrlCallbacks(IResource resource, CancellationToken cancellationToken)
     {
         var urls = new List<ResourceUrlAnnotation>();
 
@@ -191,12 +191,19 @@ internal sealed class ApplicationOrchestrator
             foreach (var endpoint in endpoints)
             {
                 // Create a URL for each endpoint
+                Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
                 if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
                     urls.Add(url);
                 }
             }
+        }
+
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
+            urls.AddRange(existingUrls);
         }
 
         // Run the URL callbacks
@@ -213,7 +220,7 @@ internal sealed class ApplicationOrchestrator
         }
 
         // Clear existing URLs
-        if (resource.TryGetUrls(out var existingUrls))
+        if (existingUrls is not null)
         {
             var existing = existingUrls.ToArray();
             for (var i = existing.Length - 1; i >= 0; i--)
@@ -395,12 +402,14 @@ internal sealed class ApplicationOrchestrator
             var parent = resource is IResourceWithParent hasParent
                 ? hasParent.Parent
                 : resource.Annotations.OfType<ResourceRelationshipAnnotation>().LastOrDefault(r => r.Type == KnownRelationshipTypes.Parent)?.Resource;
+            var urls = GetResourceUrls(resource);
 
             await _notificationService.PublishUpdateAsync(resource, s =>
             {
                 return s with
                 {
                     Relationships = relationships,
+                    Urls = [.. urls],
                     Properties = parent is null ? s.Properties : s.Properties.SetResourceProperty(KnownProperties.Resource.ParentName, parent.GetResolvedResourceNames()[0]),
                     HealthReports = GetInitialHealthReports(resource)
                 };
