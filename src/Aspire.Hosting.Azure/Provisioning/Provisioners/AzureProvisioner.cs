@@ -187,7 +187,7 @@ internal sealed class AzureProvisioner(
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets , cancellationToken).ConfigureAwait(false);
+        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)

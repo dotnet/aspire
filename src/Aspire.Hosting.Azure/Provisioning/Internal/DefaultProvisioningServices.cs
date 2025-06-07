@@ -169,12 +169,10 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         catch (JsonException ex)
         {
             logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
-            throw;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save user secrets.");
-            throw;
         }
     }
 }
