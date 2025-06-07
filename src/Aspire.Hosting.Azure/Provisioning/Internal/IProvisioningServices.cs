@@ -253,3 +253,14 @@ internal interface IAzureLocation
     /// </summary>
     string ToString();
 }
+
+/// <summary>
+/// Provides user principal retrieval functionality.
+/// </summary>
+internal interface IUserPrincipalProvider
+{
+    /// <summary>
+    /// Gets the user principal from the provided token credential.
+    /// </summary>
+    Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default);
+}

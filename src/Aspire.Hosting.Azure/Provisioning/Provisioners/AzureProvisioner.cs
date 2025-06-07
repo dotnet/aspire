@@ -8,7 +8,6 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -301,69 +300,5 @@ internal sealed class AzureProvisioner(
                 }
             }
         }
-    }
-
-    internal static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
-    {
-        var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
-
-        static UserPrincipal ParseToken(in AccessToken response)
-        {
-            // Parse the access token to get the user's object id (this is their principal id)
-            var oid = string.Empty;
-            var upn = string.Empty;
-            var parts = response.Token.Split('.');
-            var part = parts[1];
-            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
-
-            switch (part.Length % 4)
-            {
-                case 2:
-                    convertedToken += "==";
-                    break;
-                case 3:
-                    convertedToken += "=";
-                    break;
-            }
-            var bytes = Convert.FromBase64String(convertedToken);
-            Utf8JsonReader reader = new(bytes);
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName)
-                {
-                    var header = reader.GetString();
-                    if (header == "oid")
-                    {
-                        reader.Read();
-                        oid = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(upn))
-                        {
-                            break;
-                        }
-                    }
-                    else if (header is "upn" or "email")
-                    {
-                        reader.Read();
-                        upn = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(oid))
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        reader.Read();
-                    }
-                }
-            }
-            return new UserPrincipal(Guid.Parse(oid), upn);
-        }
-
-        return ParseToken(response);
-    }
-
-    sealed class MissingConfigurationException(string message) : Exception(message)
-    {
-
     }
 }

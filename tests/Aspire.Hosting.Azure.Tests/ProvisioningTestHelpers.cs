@@ -258,6 +258,8 @@ internal static class TestProvisioningServices
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider();
     public static IBicepCliExecutor CreateBicepCliExecutor() => new TestBicepCliExecutor();
     public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
+    public static ITokenCredential CreateTokenCredential() => new TestTokenCredential();
 }
 
 internal sealed class TestArmClientProvider : IArmClientProvider
@@ -303,5 +305,14 @@ internal sealed class TestUserSecretsManager : IUserSecretsManager
     {
         _userSecrets = userSecrets;
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
+{
+    public Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default)
+    {
+        var principal = new UserPrincipal(Guid.Parse("11111111-2222-3333-4444-555555555555"), "test@example.com");
+        return Task.FromResult(principal);
     }
 }

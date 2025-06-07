@@ -171,7 +171,8 @@ internal sealed class DefaultProvisioningContextProvider(
     IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
     ILogger<DefaultProvisioningContextProvider> logger,
-    IArmClientProvider armClientProvider) : IProvisioningContextProvider
+    IArmClientProvider armClientProvider,
+    IUserPrincipalProvider userPrincipalProvider) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
@@ -289,7 +290,7 @@ internal sealed class DefaultProvisioningContextProvider(
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
         }
 
-        var principal = await GetUserPrincipalAsync(new DefaultTokenCredential(credential), cancellationToken).ConfigureAwait(false);
+        var principal = await userPrincipalProvider.GetUserPrincipalAsync(new DefaultTokenCredential(credential), cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
@@ -305,64 +306,6 @@ internal sealed class DefaultProvisioningContextProvider(
                     userSecrets);
     }
 
-    private static async Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken)
-    {
-        var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
-
-        static UserPrincipal ParseToken(in AccessToken response)
-        {
-            // Parse the access token to get the user's object id (this is their principal id)
-            var oid = string.Empty;
-            var upn = string.Empty;
-            var parts = response.Token.Split('.');
-            var part = parts[1];
-            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
-
-            switch (part.Length % 4)
-            {
-                case 2:
-                    convertedToken += "==";
-                    break;
-                case 3:
-                    convertedToken += "=";
-                    break;
-            }
-            var bytes = Convert.FromBase64String(convertedToken);
-            Utf8JsonReader reader = new(bytes);
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName)
-                {
-                    var header = reader.GetString();
-                    if (header == "oid")
-                    {
-                        reader.Read();
-                        oid = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(upn))
-                        {
-                            break;
-                        }
-                    }
-                    else if (header is "upn" or "email")
-                    {
-                        reader.Read();
-                        upn = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(oid))
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        reader.Read();
-                    }
-                }
-            }
-            return new UserPrincipal(Guid.Parse(oid), upn);
-        }
-
-        return ParseToken(response);
-    }
 }
 
 /// <summary>
@@ -509,6 +452,71 @@ internal sealed class DefaultAzureLocation(AzureLocation azureLocation) : IAzure
     public string Name => azureLocation.Name;
 
     public override string ToString() => azureLocation.ToString();
+}
+
+/// <summary>
+/// Default implementation of <see cref="IUserPrincipalProvider"/>.
+/// </summary>
+internal sealed class DefaultUserPrincipalProvider : IUserPrincipalProvider
+{
+    public async Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default)
+    {
+        var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
+
+        static UserPrincipal ParseToken(in AccessToken response)
+        {
+            // Parse the access token to get the user's object id (this is their principal id)
+            var oid = string.Empty;
+            var upn = string.Empty;
+            var parts = response.Token.Split('.');
+            var part = parts[1];
+            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
+
+            switch (part.Length % 4)
+            {
+                case 2:
+                    convertedToken += "==";
+                    break;
+                case 3:
+                    convertedToken += "=";
+                    break;
+            }
+            var bytes = Convert.FromBase64String(convertedToken);
+            Utf8JsonReader reader = new(bytes);
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    var header = reader.GetString();
+                    if (header == "oid")
+                    {
+                        reader.Read();
+                        oid = reader.GetString()!;
+                        if (!string.IsNullOrEmpty(upn))
+                        {
+                            break;
+                        }
+                    }
+                    else if (header is "upn" or "email")
+                    {
+                        reader.Read();
+                        upn = reader.GetString()!;
+                        if (!string.IsNullOrEmpty(oid))
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        reader.Read();
+                    }
+                }
+            }
+            return new UserPrincipal(Guid.Parse(oid), upn);
+        }
+
+        return ParseToken(response);
+    }
 }
 
 /// <summary>

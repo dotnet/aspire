@@ -231,4 +231,20 @@ public class ProvisioningServicesTests
         Assert.NotNull(loaded);
         Assert.Equal("test-id", loaded["Azure"]?["SubscriptionId"]?.ToString());
     }
+
+    [Fact]
+    public async Task TestUserPrincipalProvider_CanGetUserPrincipal()
+    {
+        // Arrange
+        var provider = TestProvisioningServices.CreateUserPrincipalProvider();
+        var credential = TestProvisioningServices.CreateTokenCredential();
+
+        // Act
+        var principal = await provider.GetUserPrincipalAsync(credential);
+
+        // Assert
+        Assert.NotNull(principal);
+        Assert.NotEqual(Guid.Empty, principal.Id);
+        Assert.False(string.IsNullOrEmpty(principal.Name));
+    }
 }
