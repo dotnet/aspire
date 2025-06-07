@@ -23,7 +23,7 @@ internal static class ProvisioningTestHelpers
     /// Creates a test-friendly ProvisioningContext.
     /// </summary>
     public static ProvisioningContext CreateTestProvisioningContext(
-        ITokenCredential? credential = null,
+        TokenCredential? credential = null,
         IArmClient? armClient = null,
         ISubscriptionResource? subscription = null,
         IResourceGroupResource? resourceGroup = null,
@@ -47,13 +47,18 @@ internal static class ProvisioningTestHelpers
 }
 
 /// <summary>
-/// Test implementation of <see cref="ITokenCredential"/>.
+/// Test implementation of <see cref="TokenCredential"/>.
 /// </summary>
-internal sealed class TestTokenCredential : ITokenCredential
+internal sealed class TestTokenCredential : TokenCredential
 {
-    public Task<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
+    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(new AccessToken("test-token", DateTimeOffset.UtcNow.AddHours(1)));
+        return new AccessToken("test-token", DateTimeOffset.UtcNow.AddHours(1));
+    }
+
+    public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
+    {
+        return ValueTask.FromResult(new AccessToken("test-token", DateTimeOffset.UtcNow.AddHours(1)));
     }
 }
 
@@ -259,7 +264,7 @@ internal static class TestProvisioningServices
     public static IBicepCliExecutor CreateBicepCliExecutor() => new TestBicepCliExecutor();
     public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
-    public static ITokenCredential CreateTokenCredential() => new TestTokenCredential();
+    public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 }
 
 internal sealed class TestArmClientProvider : IArmClientProvider
@@ -310,7 +315,7 @@ internal sealed class TestUserSecretsManager : IUserSecretsManager
 
 internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
 {
-    public Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default)
+    public Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default)
     {
         var principal = new UserPrincipal(Guid.Parse("11111111-2222-3333-4444-555555555555"), "test@example.com");
         return Task.FromResult(principal);

@@ -172,15 +172,15 @@ internal sealed class DefaultProvisioningContextProvider(
     IHostEnvironment environment,
     ILogger<DefaultProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
-    IUserPrincipalProvider userPrincipalProvider) : IProvisioningContextProvider
+    IUserPrincipalProvider userPrincipalProvider,
+    TokenCredentialHolder tokenCredentialHolder,
+    IUserSecretsManager userSecretsManager) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    public async Task<ProvisioningContext> CreateProvisioningContextAsync(
-        TokenCredentialHolder tokenCredentialHolder,
-        Lazy<Task<JsonObject>> userSecretsLazy,
-        CancellationToken cancellationToken = default)
+    public async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
+        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = tokenCredentialHolder.Credential;
@@ -219,8 +219,6 @@ internal sealed class DefaultProvisioningContextProvider(
         {
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
-
-        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
         string resourceGroupName;
         bool createIfAbsent;
@@ -290,12 +288,12 @@ internal sealed class DefaultProvisioningContextProvider(
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
         }
 
-        var principal = await userPrincipalProvider.GetUserPrincipalAsync(new DefaultTokenCredential(credential), cancellationToken).ConfigureAwait(false);
+        var principal = await userPrincipalProvider.GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
         return new ProvisioningContext(
-                    new DefaultTokenCredential(credential),
+                    credential,
                     wrappedArmClient,
                     subscriptionResource,
                     resourceGroup,
@@ -304,18 +302,6 @@ internal sealed class DefaultProvisioningContextProvider(
                     location,
                     principal,
                     userSecrets);
-    }
-
-}
-
-/// <summary>
-/// Default implementation of <see cref="ITokenCredential"/>.
-/// </summary>
-internal sealed class DefaultTokenCredential(TokenCredential credential) : ITokenCredential
-{
-    public async Task<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
-    {
-        return await credential.GetTokenAsync(requestContext, cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -459,7 +445,7 @@ internal sealed class DefaultAzureLocation(AzureLocation azureLocation) : IAzure
 /// </summary>
 internal sealed class DefaultUserPrincipalProvider : IUserPrincipalProvider
 {
-    public async Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default)
+    public async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default)
     {
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 

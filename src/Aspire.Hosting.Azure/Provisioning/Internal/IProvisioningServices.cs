@@ -68,21 +68,7 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(
-        TokenCredentialHolder tokenCredentialHolder,
-        Lazy<Task<JsonObject>> userSecretsLazy,
-        CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Abstraction for Azure TokenCredential.
-/// </summary>
-internal interface ITokenCredential
-{
-    /// <summary>
-    /// Gets an access token for the specified scopes.
-    /// </summary>
-    Task<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default);
+    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -262,5 +248,5 @@ internal interface IUserPrincipalProvider
     /// <summary>
     /// Gets the user principal from the provided token credential.
     /// </summary>
-    Task<UserPrincipal> GetUserPrincipalAsync(ITokenCredential credential, CancellationToken cancellationToken = default);
+    Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken = default);
 }

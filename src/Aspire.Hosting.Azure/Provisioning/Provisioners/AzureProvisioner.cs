@@ -23,7 +23,6 @@ internal sealed class AzureProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
-    TokenCredentialHolder tokenCredentialHolder,
     IProvisioningContextProvider provisioningContextProvider,
     IUserSecretsManager userSecretsManager
     ) : IDistributedApplicationLifecycleHook
@@ -177,7 +176,7 @@ internal sealed class AzureProvisioner(
         var userSecretsLazy = new Lazy<Task<JsonObject>>(() => userSecretsManager.LoadUserSecretsAsync(cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -194,8 +193,8 @@ internal sealed class AzureProvisioner(
         // If we created any resources then save the user secrets
         try
         {
-            var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
-            await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+            var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
+            await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }

@@ -84,7 +84,7 @@ public class ProvisioningContextTests
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
 
         // Act
-        var token = await context.Credential.GetTokenAsync(requestContext);
+        var token = await context.Credential.GetTokenAsync(requestContext, CancellationToken.None);
 
         // Assert
         Assert.NotNull(token.Token);

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Azure.Core;
 using Azure.ResourceManager;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 
@@ -10,7 +11,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal sealed record UserPrincipal(Guid Id, string Name);
 
 internal sealed class ProvisioningContext(
-    ITokenCredential credential,
+    TokenCredential credential,
     IArmClient armClient,
     ISubscriptionResource subscription,
     IResourceGroupResource resourceGroup,
@@ -20,7 +21,7 @@ internal sealed class ProvisioningContext(
     UserPrincipal principal,
     JsonObject userSecrets)
 {
-    public ITokenCredential Credential => credential;
+    public TokenCredential Credential => credential;
     public IArmClient ArmClient => armClient;
     public ISubscriptionResource Subscription => subscription;
     public ITenantResource Tenant => tenant;

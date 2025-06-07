@@ -139,7 +139,7 @@ internal static class BicepUtilities
         }
     }
 
-    private static object? GetExistingResourceGroup(AzureBicepResource resource) =>
+    internal static object? GetExistingResourceGroup(AzureBicepResource resource) =>
         resource.Scope?.ResourceGroup ??
             (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
                 existingResource.ResourceGroup :
