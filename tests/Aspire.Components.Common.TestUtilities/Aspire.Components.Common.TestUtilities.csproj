@@ -7,7 +7,6 @@
       Whilst this looks like a test project, it is not... https://github.com/dotnet/aspire/pull/8498/files#r2029349258
       -->
     <IsTestUtilityProject>true</IsTestUtilityProject>
-    <SkipTests>true</SkipTests>
     <DeployOutsideOfRepoSupportFiles>false</DeployOutsideOfRepoSupportFiles>
   </PropertyGroup>
 
@@ -16,6 +15,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+    <PackageReference Include="xunit.v3.assert" />
   </ItemGroup>
 
 </Project>

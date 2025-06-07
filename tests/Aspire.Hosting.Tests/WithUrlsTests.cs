@@ -54,7 +54,7 @@ public class WithUrlsTests
             .WithUrls(c => called = true);
 
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        builder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(projectA.Resource, (e, ct) =>
         {
             // Should not be called at this point
             Assert.False(called);
