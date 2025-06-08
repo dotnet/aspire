@@ -184,7 +184,7 @@ public class AzureBicepProvisionerTests
         }
     }
 
-    private sealed class TestBicepCliExecutor : IBicepCliExecutor
+    private sealed class TestBicepCliExecutor : IBicepCompiler
     {
         public bool CompileBicepToArmAsyncCalled { get; private set; }
         public string? LastCompiledPath { get; private set; }

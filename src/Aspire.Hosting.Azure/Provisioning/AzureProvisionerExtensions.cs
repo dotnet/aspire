@@ -42,7 +42,7 @@ public static class AzureProvisionerExtensions
         // Register the new internal services for testability
         builder.Services.AddSingleton<IArmClientProvider, DefaultArmClientProvider>();
         builder.Services.AddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
-        builder.Services.AddSingleton<IBicepCliExecutor, DefaultBicepCliExecutor>();
+        builder.Services.AddSingleton<IBicepCompiler, BicepCliCompiler>();
         builder.Services.AddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
         builder.Services.AddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
         builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();

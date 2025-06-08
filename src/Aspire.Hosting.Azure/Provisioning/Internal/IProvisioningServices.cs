@@ -36,7 +36,7 @@ internal interface ISecretClientProvider
 /// <summary>
 /// Provides bicep CLI execution functionality.
 /// </summary>
-internal interface IBicepCliExecutor
+internal interface IBicepCompiler
 {
     /// <summary>
     /// Compiles a bicep file to ARM template JSON.

@@ -296,7 +296,7 @@ internal static class TestProvisioningServices
     public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
-    public static IBicepCliExecutor CreateBicepCliExecutor() => new TestBicepCliExecutor();
+    public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
     public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
@@ -319,7 +319,7 @@ internal sealed class TestSecretClientProvider(ITokenCredentialProvider tokenCre
     }
 }
 
-internal sealed class TestBicepCliExecutor : IBicepCliExecutor
+internal sealed class TestBicepCompiler : IBicepCompiler
 {
     public Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {

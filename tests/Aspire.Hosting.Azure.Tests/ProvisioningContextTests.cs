@@ -184,7 +184,7 @@ public class ProvisioningServicesTests
         // Arrange & Act
         var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
         var secretClientProvider = TestProvisioningServices.CreateSecretClientProvider();
-        var bicepCliExecutor = TestProvisioningServices.CreateBicepCliExecutor();
+        var bicepCliExecutor = TestProvisioningServices.CreateBicepCompiler();
         var userSecretsManager = TestProvisioningServices.CreateUserSecretsManager();
 
         // Assert
@@ -198,7 +198,7 @@ public class ProvisioningServicesTests
     public async Task TestBicepCliExecutor_ReturnsValidJson()
     {
         // Arrange
-        var executor = TestProvisioningServices.CreateBicepCliExecutor();
+        var executor = TestProvisioningServices.CreateBicepCompiler();
 
         // Act
         var result = await executor.CompileBicepToArmAsync("test.bicep");

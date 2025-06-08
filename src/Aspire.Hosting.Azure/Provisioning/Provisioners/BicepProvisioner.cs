@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
-    IBicepCliExecutor bicepCliExecutor,
+    IBicepCompiler bicepCompiler,
     ISecretClientProvider secretClientProvider)
 {
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
@@ -139,7 +139,7 @@ internal sealed class BicepProvisioner(
         })
         .ConfigureAwait(false);
 
-        var armTemplateContents = await bicepCliExecutor.CompileBicepToArmAsync(path, cancellationToken).ConfigureAwait(false);
+        var armTemplateContents = await bicepCompiler.CompileBicepToArmAsync(path, cancellationToken).ConfigureAwait(false);
 
         var deployments = resourceGroup.GetArmDeployments();
 

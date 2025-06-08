@@ -8,9 +8,9 @@ using Aspire.Hosting.Dcp.Process;
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
 /// <summary>
-/// Default implementation of <see cref="IBicepCliExecutor"/>.
+/// Default implementation of <see cref="IBicepCompiler"/>.
 /// </summary>
-internal sealed class DefaultBicepCliExecutor : IBicepCliExecutor
+internal sealed class BicepCliCompiler : IBicepCompiler
 {
     public async Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {
