@@ -70,12 +70,6 @@ internal sealed class BicepProvisioner(
             ConfigureSecretResolver(kvr);
         }
 
-        // Populate secret outputs from key vault (if any)
-        foreach (var item in section.GetSection("SecretOutputs").GetChildren())
-        {
-            resource.SecretOutputs[item.Key] = item.Value;
-        }
-
         var portalUrls = new List<UrlSnapshot>();
 
         if (section["Id"] is string deploymentId &&
