@@ -80,7 +80,7 @@ internal interface IArmClient
     /// Gets the default subscription.
     /// </summary>
     Task<ISubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets all tenants.
     /// </summary>
@@ -96,17 +96,17 @@ internal interface ISubscriptionResource
     /// Gets the subscription resource identifier.
     /// </summary>
     ResourceIdentifier Id { get; }
-    
+
     /// <summary>
     /// Gets subscription data.
     /// </summary>
     ISubscriptionData Data { get; }
-    
+
     /// <summary>
     /// Gets a resource group.
     /// </summary>
     Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets resource groups collection.
     /// </summary>
@@ -122,12 +122,12 @@ internal interface ISubscriptionData
     /// Gets the subscription ID.
     /// </summary>
     ResourceIdentifier Id { get; }
-    
+
     /// <summary>
     /// Gets the subscription display name.
     /// </summary>
     string? DisplayName { get; }
-    
+
     /// <summary>
     /// Gets the tenant ID.
     /// </summary>
@@ -143,7 +143,7 @@ internal interface IResourceGroupCollection
     /// Gets a resource group.
     /// </summary>
     Task<Response<IResourceGroupResource>> GetAsync(string resourceGroupName, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Creates or updates a resource group.
     /// </summary>
@@ -159,12 +159,12 @@ internal interface IResourceGroupResource
     /// Gets the resource group resource identifier.
     /// </summary>
     ResourceIdentifier Id { get; }
-    
+
     /// <summary>
     /// Gets resource group data.
     /// </summary>
     IResourceGroupData Data { get; }
-    
+
     /// <summary>
     /// Gets ARM deployments collection.
     /// </summary>
@@ -191,9 +191,9 @@ internal interface IArmDeploymentCollection
     /// Creates or updates a deployment.
     /// </summary>
     Task<ArmOperation<ArmDeploymentResource>> CreateOrUpdateAsync(
-        WaitUntil waitUntil, 
-        string deploymentName, 
-        ArmDeploymentContent content, 
+        WaitUntil waitUntil,
+        string deploymentName,
+        ArmDeploymentContent content,
         CancellationToken cancellationToken = default);
 }
 
@@ -217,7 +217,7 @@ internal interface ITenantData
     /// Gets the tenant ID.
     /// </summary>
     Guid? TenantId { get; }
-    
+
     /// <summary>
     /// Gets the default domain.
     /// </summary>
@@ -233,7 +233,7 @@ internal interface IAzureLocation
     /// Gets the location name.
     /// </summary>
     string Name { get; }
-    
+
     /// <summary>
     /// Returns the string representation of the location.
     /// </summary>

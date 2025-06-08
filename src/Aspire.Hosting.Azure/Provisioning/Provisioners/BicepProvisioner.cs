@@ -141,13 +141,10 @@ internal sealed class BicepProvisioner(
 
         var armTemplateContents = await bicepCompiler.CompileBicepToArmAsync(path, cancellationToken).ConfigureAwait(false);
 
-        var deployments = resourceGroup.GetArmDeployments();
-
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
-
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
         await BicepUtilities.SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+
         var scope = new JsonObject();
         await BicepUtilities.SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -161,6 +158,10 @@ internal sealed class BicepProvisioner(
             };
         })
         .ConfigureAwait(false);
+
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
+
+        var deployments = resourceGroup.GetArmDeployments();
 
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
