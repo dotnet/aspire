@@ -183,7 +183,8 @@ public class AzureBicepProvisionerTests
         // Test the mock token credential async behavior
         
         // Arrange
-        var credential = new TestTokenCredential();
+        var provider = new TestTokenCredentialProvider();
+        var credential = provider.GetTokenCredential();
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
         
         // Act
@@ -196,9 +197,9 @@ public class AzureBicepProvisionerTests
 
     private sealed class TestTokenCredentialProvider : ITokenCredentialProvider
     {
-        public TokenCredential GetTokenCredential() => new TestTokenCredential();
+        public TokenCredential GetTokenCredential() => new MockTokenCredential();
         
-        private sealed class TestTokenCredential : TokenCredential
+        private sealed class MockTokenCredential : TokenCredential
         {
             public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
                 new("mock-token", DateTimeOffset.UtcNow.AddHours(1));

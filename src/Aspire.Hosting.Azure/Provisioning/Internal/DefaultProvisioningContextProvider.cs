@@ -8,6 +8,7 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
+
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
