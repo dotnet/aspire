@@ -477,6 +477,7 @@ public class WithUrlsTests
                     else if (!projectEndpointsAllocated)
                     {
                         var urls = notification.Snapshot.Urls;
+                        Assert.Equal(2, urls.Length);
                         Assert.Collection(urls,
                             // Endpoint URL should be inactive initially
                             s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
@@ -488,6 +489,7 @@ public class WithUrlsTests
                     else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running)
                     {
                         var urls = notification.Snapshot.Urls;
+                        Assert.Equal(2, urls.Length);
                         Assert.Collection(urls,
                             // Endpoint URL should be active now
                             s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
@@ -512,6 +514,7 @@ public class WithUrlsTests
                     else if (!customEndpointsAllocated && notification.Snapshot.Urls.Length == 2)
                     {
                         var urls = notification.Snapshot.Urls;
+                        Assert.Equal(2, urls.Length);
                         Assert.Collection(urls,
                             // Endpoint URL should be inactive initially
                             s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
@@ -523,6 +526,7 @@ public class WithUrlsTests
                     else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running)
                     {
                         var urls = notification.Snapshot.Urls;
+                        Assert.Equal(2, urls.Length);
                         Assert.Collection(urls,
                             // Endpoint URL should be active now
                             s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },

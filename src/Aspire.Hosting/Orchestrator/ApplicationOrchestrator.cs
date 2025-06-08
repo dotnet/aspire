@@ -52,9 +52,7 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceStartingContext>(OnResourceStarting);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(ProcessResourcesWithoutLifetime);
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(PublishResourceEndpointUrls);
-
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocated);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
     }
@@ -106,10 +104,8 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task PublishResourceEndpointUrls(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    private async Task PublishResourceEndpointUrls(IResource resource, CancellationToken cancellationToken)
     {
-        var resource = @event.Resource;
-
         // Process URLs for the resource.
         await ProcessResourceUrlCallbacks(resource, cancellationToken).ConfigureAwait(false);
 
@@ -252,34 +248,36 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task ProcessResourcesWithoutLifetime(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        if (@event.Resource is not IResourceWithoutLifetime resource)
-        {
-            return;
-        }
+        await ProcessResourceWithoutLifetime(@event.Resource, cancellationToken).ConfigureAwait(false);
+        await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
+    }
 
-        if (resource is not IValueProvider valueProvider)
+    private async Task ProcessResourceWithoutLifetime(IResource resource, CancellationToken cancellationToken)
+    {
+        if (resource is not IResourceWithoutLifetime resourceWithoutLifetime
+            || resourceWithoutLifetime is not IValueProvider valueProvider)
         {
             return;
         }
 
         try
         {
-            var value = await valueProvider.GetValueAsync(default).ConfigureAwait(false);
+            var value = await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
-            await _notificationService.PublishUpdateAsync(resource, s =>
+            await _notificationService.PublishUpdateAsync(resourceWithoutLifetime, s =>
             {
                 return s with
                 {
-                    Properties = s.Properties.SetResourceProperty("Value", value ?? "", resource is ParameterResource p && p.Secret)
+                    Properties = s.Properties.SetResourceProperty("Value", value ?? "", resourceWithoutLifetime is ParameterResource p && p.Secret)
                 };
             })
             .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            await _notificationService.PublishUpdateAsync(resource, s =>
+            await _notificationService.PublishUpdateAsync(resourceWithoutLifetime, s =>
             {
                 return s with
                 {
@@ -289,7 +287,7 @@ internal sealed class ApplicationOrchestrator
             })
             .ConfigureAwait(false);
 
-            _loggerService.GetLogger(resource.Name).LogError("{Message}", ex.Message);
+            _loggerService.GetLogger(resourceWithoutLifetime.Name).LogError("{Message}", ex.Message);
         }
     }
 
