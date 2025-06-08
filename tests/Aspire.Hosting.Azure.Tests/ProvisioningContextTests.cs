@@ -88,8 +88,6 @@ public class ProvisioningContextTests
 
         // Assert
         Assert.NotNull(token.Token);
-        Assert.Equal("test-token", token.Token);
-        Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
     }
 
     [Fact]

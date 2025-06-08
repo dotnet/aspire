@@ -14,11 +14,7 @@ internal sealed class DefaultBicepCliExecutor : IBicepCliExecutor
 {
     public async Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {
-        var azPath = FindFullPathFromPath("az");
-        if (azPath is null)
-        {
-            throw new AzureCliNotOnPathException();
-        }
+        var azPath = FindFullPathFromPath("az") ?? throw new AzureCliNotOnPathException();
 
         var armTemplateContents = new StringBuilder();
         var templateSpec = new ProcessSpec(azPath)

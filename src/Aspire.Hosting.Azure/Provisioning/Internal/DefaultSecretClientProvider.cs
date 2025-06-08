@@ -10,9 +10,6 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal sealed class DefaultSecretClientProvider(ITokenCredentialProvider tokenCredentialProvider) : ISecretClientProvider
 {
-    public SecretClient GetSecretClient(Uri vaultUri)
-    {
-        var credential = tokenCredentialProvider.GetTokenCredential();
-        return new SecretClient(vaultUri, credential);
-    }
+    public SecretClient GetSecretClient(Uri vaultUri) =>
+        new(vaultUri, tokenCredentialProvider.TokenCredential);
 }

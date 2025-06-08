@@ -13,7 +13,7 @@ internal sealed class DefaultUserPrincipalProvider(ITokenCredentialProvider toke
 {
     public async Task<UserPrincipal> GetUserPrincipalAsync(CancellationToken cancellationToken = default)
     {
-        var credential = tokenCredentialProvider.GetTokenCredential();
+        var credential = tokenCredentialProvider.TokenCredential;
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 
         static UserPrincipal ParseToken(in AccessToken response)

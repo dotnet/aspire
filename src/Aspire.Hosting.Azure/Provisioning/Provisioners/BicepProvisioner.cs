@@ -19,9 +19,6 @@ internal sealed class BicepProvisioner(
     IBicepCliExecutor bicepCliExecutor,
     ISecretClientProvider secretClientProvider)
 {
-    public static bool ShouldProvision(AzureBicepResource resource)
-        => !resource.IsContainer();
-
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");

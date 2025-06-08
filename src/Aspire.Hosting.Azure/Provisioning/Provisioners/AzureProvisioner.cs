@@ -211,7 +211,7 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        if (!BicepProvisioner.ShouldProvision(bicepResource))
+        if (bicepResource.IsContainer())
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);

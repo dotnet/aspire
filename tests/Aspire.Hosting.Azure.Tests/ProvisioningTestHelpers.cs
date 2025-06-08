@@ -316,7 +316,7 @@ internal sealed class TestSecretClientProvider(ITokenCredentialProvider tokenCre
 {
     public SecretClient GetSecretClient(Uri vaultUri)
     {
-        var credential = tokenCredentialProvider.GetTokenCredential();
+        var credential = tokenCredentialProvider.TokenCredential;
         return new SecretClient(vaultUri, credential);
     }
 }
@@ -361,5 +361,5 @@ internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
 
 internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
 {
-    public TokenCredential GetTokenCredential() => new TestTokenCredential();
+    public TokenCredential TokenCredential => new TestTokenCredential();
 }

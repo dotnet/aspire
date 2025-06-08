@@ -41,7 +41,7 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
         _credential = credential;
     }
 
-    public TokenCredential GetTokenCredential() => _credential;
+    public TokenCredential TokenCredential => _credential;
 
     internal void LogCredentialType()
     {

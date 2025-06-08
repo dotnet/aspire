@@ -141,7 +141,7 @@ public class DefaultUserPrincipalProviderTests
 
     private sealed class TestTokenCredentialProviderWithCustomToken(string token) : ITokenCredentialProvider
     {
-        public TokenCredential GetTokenCredential() => new TestTokenCredentialWithCustomToken(token);
+        public TokenCredential TokenCredential => new TestTokenCredentialWithCustomToken(token);
     }
 
     private sealed class TestTokenCredentialWithCustomToken(string token) : TokenCredential
@@ -160,7 +160,7 @@ public class DefaultUserPrincipalProviderTests
 
     private sealed class TestTokenCredentialProviderWithCredential(TestTokenCredential tokenCredential) : ITokenCredentialProvider
     {
-        public TokenCredential GetTokenCredential() => tokenCredential;
+        public TokenCredential TokenCredential => tokenCredential;
     }
 
     private sealed class TestTokenCredential : TokenCredential

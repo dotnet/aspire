@@ -75,31 +75,6 @@ public class AzureBicepProvisionerTests
     }
 
     [Fact]
-    public void ShouldProvision_ReturnsFalse_WhenResourceIsContainer()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        
-        // Make the resource a container by adding the container annotation
-        bicep.Annotations.Add(new ContainerImageAnnotation { Image = "test-image" });
-
-        var result = BicepProvisioner.ShouldProvision(bicep);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void ShouldProvision_ReturnsTrue_WhenResourceIsNotContainer()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-
-        var result = BicepProvisioner.ShouldProvision(bicep);
-
-        Assert.True(result);
-    }
-
-    [Fact]
     public void BicepProvisioner_CanBeInstantiated()
     {
         // Test that BicepProvisioner can be instantiated with required dependencies
@@ -166,7 +141,7 @@ public class AzureBicepProvisionerTests
         
         // Arrange
         var tokenProvider = new TestTokenCredentialProvider();
-        var credential = tokenProvider.GetTokenCredential();
+        var credential = tokenProvider.TokenCredential;
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
         
         // Act
@@ -184,7 +159,7 @@ public class AzureBicepProvisionerTests
         
         // Arrange
         var provider = new TestTokenCredentialProvider();
-        var credential = provider.GetTokenCredential();
+        var credential = provider.TokenCredential;
         var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
         
         // Act
@@ -197,8 +172,8 @@ public class AzureBicepProvisionerTests
 
     private sealed class TestTokenCredentialProvider : ITokenCredentialProvider
     {
-        public TokenCredential GetTokenCredential() => new MockTokenCredential();
-        
+        public TokenCredential TokenCredential => new MockTokenCredential();
+
         private sealed class MockTokenCredential : TokenCredential
         {
             public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 

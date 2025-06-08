@@ -259,5 +259,5 @@ internal interface ITokenCredentialProvider
     /// <summary>
     /// Gets the token credential for Azure authentication.
     /// </summary>
-    TokenCredential GetTokenCredential();
+    TokenCredential TokenCredential { get; }
 }

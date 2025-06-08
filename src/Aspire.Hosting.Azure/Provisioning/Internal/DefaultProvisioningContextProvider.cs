@@ -31,7 +31,7 @@ internal sealed class DefaultProvisioningContextProvider(
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
-        var credential = tokenCredentialProvider.GetTokenCredential();
+        var credential = tokenCredentialProvider.TokenCredential;
 
         if (tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
         {
