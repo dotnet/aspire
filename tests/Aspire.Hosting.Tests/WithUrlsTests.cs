@@ -486,7 +486,8 @@ public class WithUrlsTests
                         );
                         projectEndpointsAllocated = true;
                     }
-                    else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running)
+                    else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running &&
+                             notification.Snapshot.Urls[^1].IsInactive == false)
                     {
                         var urls = notification.Snapshot.Urls;
                         Assert.Equal(2, urls.Length);
@@ -523,7 +524,8 @@ public class WithUrlsTests
                         );
                         customEndpointsAllocated = true;
                     }
-                    else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running)
+                    else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running &&
+                             notification.Snapshot.Urls[^1].IsInactive == false)
                     {
                         var urls = notification.Snapshot.Urls;
                         Assert.Equal(2, urls.Length);
