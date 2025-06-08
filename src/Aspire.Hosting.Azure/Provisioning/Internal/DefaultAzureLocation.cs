@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Core;
-using Azure.ResourceManager.Resources.Models;
-
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 

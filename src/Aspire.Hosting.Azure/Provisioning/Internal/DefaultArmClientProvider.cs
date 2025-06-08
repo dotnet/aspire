@@ -11,8 +11,9 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal sealed class DefaultArmClientProvider : IArmClientProvider
 {
-    public ArmClient GetArmClient(TokenCredential credential, string subscriptionId)
+    public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
-        return new ArmClient(credential, subscriptionId);
+        var armClient = new ArmClient(credential, subscriptionId);
+        return new DefaultArmClient(armClient);
     }
 }

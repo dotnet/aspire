@@ -270,10 +270,9 @@ internal static class TestProvisioningServices
 
 internal sealed class TestArmClientProvider : IArmClientProvider
 {
-    public ArmClient GetArmClient(TokenCredential credential, string subscriptionId)
+    public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
-        // Return a mock ArmClient - in real tests you'd use a more sophisticated mock
-        return new ArmClient(credential, subscriptionId);
+        return new TestArmClient();
     }
 }
 

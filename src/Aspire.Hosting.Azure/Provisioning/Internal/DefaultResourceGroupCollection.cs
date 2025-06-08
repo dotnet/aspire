@@ -4,8 +4,6 @@
 using Azure;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Resources.Models;
-
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 

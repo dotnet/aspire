@@ -19,7 +19,7 @@ internal interface IArmClientProvider
     /// <summary>
     /// Gets the ARM client for Azure resource management.
     /// </summary>
-    ArmClient GetArmClient(TokenCredential credential, string subscriptionId);
+    IArmClient GetArmClient(TokenCredential credential, string subscriptionId);
 }
 
 /// <summary>

@@ -8,8 +8,6 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
-
-using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,11 +39,10 @@ internal sealed class DefaultProvisioningContextProvider(
         }
 
         var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
-        var wrappedArmClient = new DefaultArmClient(armClient);
 
         logger.LogInformation("Getting default subscription...");
 
-        var subscriptionResource = await wrappedArmClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+        var subscriptionResource = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Data.Id);
 
@@ -53,7 +50,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
         ITenantResource? tenantResource = null;
 
-        await foreach (var tenant in wrappedArmClient.GetTenantsAsync(cancellationToken).ConfigureAwait(false))
+        await foreach (var tenant in armClient.GetTenantsAsync(cancellationToken).ConfigureAwait(false))
         {
             if (tenant.Data.TenantId == subscriptionResource.Data.TenantId)
             {
@@ -147,7 +144,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
         return new ProvisioningContext(
                     credential,
-                    wrappedArmClient,
+                    armClient,
                     subscriptionResource,
                     resourceGroup,
                     tenantResource,
