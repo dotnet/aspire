@@ -3,7 +3,6 @@
 
 using System.Text.Json.Nodes;
 using Azure.Core;
-using Azure.ResourceManager;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 
 namespace Aspire.Hosting.Azure.Provisioning;
@@ -16,7 +15,6 @@ internal sealed class ProvisioningContext(
     ISubscriptionResource subscription,
     IResourceGroupResource resourceGroup,
     ITenantResource tenant,
-    IReadOnlyDictionary<string, ArmResource> resourceMap,
     IAzureLocation location,
     UserPrincipal principal,
     JsonObject userSecrets)
@@ -26,7 +24,6 @@ internal sealed class ProvisioningContext(
     public ISubscriptionResource Subscription => subscription;
     public ITenantResource Tenant => tenant;
     public IResourceGroupResource ResourceGroup => resourceGroup;
-    public IReadOnlyDictionary<string, ArmResource> ResourceMap => resourceMap;
     public IAzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;

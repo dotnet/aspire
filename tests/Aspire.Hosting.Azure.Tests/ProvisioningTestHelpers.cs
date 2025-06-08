@@ -30,7 +30,6 @@ internal static class ProvisioningTestHelpers
         ISubscriptionResource? subscription = null,
         IResourceGroupResource? resourceGroup = null,
         ITenantResource? tenant = null,
-        IReadOnlyDictionary<string, ArmResource>? resourceMap = null,
         IAzureLocation? location = null,
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null)
@@ -41,7 +40,6 @@ internal static class ProvisioningTestHelpers
             subscription ?? new TestSubscriptionResource(),
             resourceGroup ?? new TestResourceGroupResource(),
             tenant ?? new TestTenantResource(),
-            resourceMap ?? new Dictionary<string, ArmResource>(),
             location ?? new TestAzureLocation(),
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());

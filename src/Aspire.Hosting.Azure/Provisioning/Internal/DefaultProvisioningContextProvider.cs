@@ -6,7 +6,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Utils;
 using Azure;
 using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -140,15 +139,12 @@ internal sealed class DefaultProvisioningContextProvider(
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
-        var resourceMap = new Dictionary<string, ArmResource>();
-
         return new ProvisioningContext(
                     credential,
                     armClient,
                     subscriptionResource,
                     resourceGroup,
                     tenantResource,
-                    resourceMap,
                     location,
                     principal,
                     userSecrets);

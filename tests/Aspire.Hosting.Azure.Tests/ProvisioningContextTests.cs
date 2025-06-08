@@ -28,7 +28,6 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Location);
         Assert.NotNull(context.Principal);
         Assert.NotNull(context.UserSecrets);
-        Assert.NotNull(context.ResourceMap);
     }
 
     [Fact]
