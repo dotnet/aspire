@@ -7,6 +7,7 @@ using Aspire.Hosting.Azure.Provisioning.Internal;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -249,8 +250,7 @@ public class DefaultProvisioningContextProviderTests
 
     private static ILogger<DefaultProvisioningContextProvider> CreateLogger()
     {
-        using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        return loggerFactory.CreateLogger<DefaultProvisioningContextProvider>();
+        return NullLogger<DefaultProvisioningContextProvider>.Instance;
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

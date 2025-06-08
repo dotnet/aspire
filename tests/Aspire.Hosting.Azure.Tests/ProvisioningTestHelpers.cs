@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -53,12 +55,46 @@ internal sealed class TestTokenCredential : TokenCredential
 {
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
     {
-        return new AccessToken("test-token", DateTimeOffset.UtcNow.AddHours(1));
+        cancellationToken.ThrowIfCancellationRequested();
+        var token = CreateTestJwtToken();
+        return new AccessToken(token, DateTimeOffset.UtcNow.AddHours(1));
     }
 
     public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken = default)
     {
-        return ValueTask.FromResult(new AccessToken("test-token", DateTimeOffset.UtcNow.AddHours(1)));
+        cancellationToken.ThrowIfCancellationRequested();
+        var token = CreateTestJwtToken();
+        return ValueTask.FromResult(new AccessToken(token, DateTimeOffset.UtcNow.AddHours(1)));
+    }
+    
+    private static string CreateTestJwtToken()
+    {
+        var headerJson = JsonSerializer.Serialize(new { alg = "RS256", typ = "JWT" });
+        var headerBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(headerJson))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        
+        var payload = new
+        {
+            oid = "11111111-2222-3333-4444-555555555555",
+            upn = "test@example.com",
+            exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
+            iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        };
+        
+        var payloadJson = JsonSerializer.Serialize(payload);
+        var payloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payloadJson))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+
+        var signatureBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-signature"))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+
+        return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
     }
 }
 
