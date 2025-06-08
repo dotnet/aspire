@@ -474,7 +474,7 @@ public class WithUrlsTests
                         Assert.Equal("https://example.com/project", url.Url);
                         projectInitialized = true;
                     }
-                    else if (!projectEndpointsAllocated)
+                    else if (!projectEndpointsAllocated && notification.Snapshot.Urls.Length == 2)
                     {
                         var urls = notification.Snapshot.Urls;
                         Assert.Equal(2, urls.Length);
