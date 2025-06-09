@@ -141,4 +141,74 @@
   <data name="AspireXUnit_Description" xml:space="preserve">
     <value>Aspire Test Project (xUnit)</value>
   </data>
+  <data name="UseRedisCache_Prompt" xml:space="preserve">
+    <value>Use Redis Cache</value>
+  </data>
+  <data name="UseRedisCache_Description" xml:space="preserve">
+    <value>Configures whether to setup the application to use Redis for caching.</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="UseRedisCache_UnexpectedChoice" xml:space="preserve">
+    <value>Unexpected choice for Redis Cache option</value>
+  </data>
+  <data name="UseRedisCache_UsingRedisCache" xml:space="preserve">
+    <value>Using Redis Cache for caching.</value>
+  </data>
+  <data name="PromptForTFMOptions_Prompt" xml:space="preserve">
+    <value>Do you want to create a test project?</value>
+  </data>
+  <data name="PromptForTFMOptions_Description" xml:space="preserve">
+    <value>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</value>
+  </data>
+  <data name="PromptForTFM_Prompt" xml:space="preserve">
+    <value>Select a test framework</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="PromptForTFM_UsingForTesting" xml:space="preserve">
+    <value>Using {0} for testing.</value>
+  </data>
+  <data name="EnterXUnitVersion_Prompt" xml:space="preserve">
+    <value>Enter the xUnit.net version to use</value>
+  </data>
+  <data name="EnterXUnitVersion_Description" xml:space="preserve">
+    <value>The version of xUnit.net to use for the test project.</value>
+  </data>
+  <data name="GettingLatestTemplates" xml:space="preserve">
+    <value>Getting latest templates...</value>
+  </data>
+  <data name="TemplateInstallationFailed" xml:space="preserve">
+    <value>The template installation failed with exit code {0}. For more information run with --debug switch.</value>
+    <comment>{0} is a number, --debug should not be localized</comment>
+  </data>
+  <data name="UsingProjectTemplatesVersion" xml:space="preserve">
+    <value>Using project templates version: {0}</value>
+  </data>
+  <data name="CreatingNewProject" xml:space="preserve">
+    <value>Creating new Aspire project...</value>
+  </data>
+  <data name="ProjectCreationFailed" xml:space="preserve">
+    <value>Project creation failed with exit code {0}. For more information run with --debug switch.</value>
+    <comment>{0} is a number, --debug should not be localized</comment>
+  </data>
+  <data name="ProjectCreatedSuccessfully" xml:space="preserve">
+    <value>Project created successfully in {0}.</value>
+    <comment>{0} is a path</comment>
+  </data>
+  <data name="CertificateTrustError" xml:space="preserve">
+    <value>An error occurred while trusting the certificates: {0}</value>
+    <comment>{0} is an exception message</comment>
+  </data>
+  <data name="SearchingForAvailableTemplateVersions" xml:space="preserve">
+    <value>Searching for available project template versions...</value>
+  </data>
+  <data name="NoTemplateVersionsFound" xml:space="preserve">
+    <value>No template versions were found. Please check your internet connection or NuGet source configuration.</value>
+  </data>
 </root>

@@ -92,5 +92,137 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireXUnit_Description", resourceCulture);
             }
         }
+        
+        public static string UseRedisCache_Prompt {
+            get {
+                return ResourceManager.GetString("UseRedisCache_Prompt", resourceCulture);
+            }
+        }
+        
+        public static string UseRedisCache_Description {
+            get {
+                return ResourceManager.GetString("UseRedisCache_Description", resourceCulture);
+            }
+        }
+        
+        public static string Yes {
+            get {
+                return ResourceManager.GetString("Yes", resourceCulture);
+            }
+        }
+        
+        public static string No {
+            get {
+                return ResourceManager.GetString("No", resourceCulture);
+            }
+        }
+        
+        public static string UseRedisCache_UnexpectedChoice {
+            get {
+                return ResourceManager.GetString("UseRedisCache_UnexpectedChoice", resourceCulture);
+            }
+        }
+        
+        public static string UseRedisCache_UsingRedisCache {
+            get {
+                return ResourceManager.GetString("UseRedisCache_UsingRedisCache", resourceCulture);
+            }
+        }
+        
+        public static string PromptForTFMOptions_Prompt {
+            get {
+                return ResourceManager.GetString("PromptForTFMOptions_Prompt", resourceCulture);
+            }
+        }
+        
+        public static string PromptForTFMOptions_Description {
+            get {
+                return ResourceManager.GetString("PromptForTFMOptions_Description", resourceCulture);
+            }
+        }
+        
+        public static string PromptForTFM_Prompt {
+            get {
+                return ResourceManager.GetString("PromptForTFM_Prompt", resourceCulture);
+            }
+        }
+        
+        public static string None {
+            get {
+                return ResourceManager.GetString("None", resourceCulture);
+            }
+        }
+        
+        public static string PromptForTFM_UsingForTesting {
+            get {
+                return ResourceManager.GetString("PromptForTFM_UsingForTesting", resourceCulture);
+            }
+        }
+        
+        public static string EnterXUnitVersion_Prompt {
+            get {
+                return ResourceManager.GetString("EnterXUnitVersion_Prompt", resourceCulture);
+            }
+        }
+        
+        public static string EnterXUnitVersion_Description {
+            get {
+                return ResourceManager.GetString("EnterXUnitVersion_Description", resourceCulture);
+            }
+        }
+        
+        public static string GettingLatestTemplates {
+            get {
+                return ResourceManager.GetString("GettingLatestTemplates", resourceCulture);
+            }
+        }
+        
+        public static string TemplateInstallationFailed {
+            get {
+                return ResourceManager.GetString("TemplateInstallationFailed", resourceCulture);
+            }
+        }
+        
+        public static string UsingProjectTemplatesVersion {
+            get {
+                return ResourceManager.GetString("UsingProjectTemplatesVersion", resourceCulture);
+            }
+        }
+        
+        public static string CreatingNewProject {
+            get {
+                return ResourceManager.GetString("CreatingNewProject", resourceCulture);
+            }
+        }
+        
+        public static string ProjectCreationFailed {
+            get {
+                return ResourceManager.GetString("ProjectCreationFailed", resourceCulture);
+            }
+        }
+        
+        public static string ProjectCreatedSuccessfully {
+            get {
+                return ResourceManager.GetString("ProjectCreatedSuccessfully", resourceCulture);
+            }
+        }
+        
+        public static string CertificateTrustError {
+            get {
+                return ResourceManager.GetString("CertificateTrustError", resourceCulture);
+            }
+        }
+        
+        public static string SearchingForAvailableTemplateVersions {
+            get {
+                return ResourceManager.GetString("SearchingForAvailableTemplateVersions", resourceCulture);
+            }
+        }
+        
+        public static string NoTemplateVersionsFound {
+            get {
+                return ResourceManager.GetString("NoTemplateVersionsFound", resourceCulture);
+            }
+        }
     }
 }

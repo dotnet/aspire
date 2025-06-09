@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
@@ -23,7 +24,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyExtraAspireStarterOptions,
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
-            
+
         yield return new CallbackTemplate(
             "aspire",
             TemplatingStrings.Aspire_Description,
@@ -31,7 +32,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
-            
+
         yield return new CallbackTemplate(
             "aspire-apphost",
             TemplatingStrings.AspireAppHost_Description,
@@ -39,7 +40,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
-            
+
         yield return new CallbackTemplate(
             "aspire-servicedefaults",
             TemplatingStrings.AspireServiceDefaults_Description,
@@ -47,7 +48,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
-            
+
         yield return new CallbackTemplate(
             "aspire-mstest",
             TemplatingStrings.AspireMSTest_Description,
@@ -55,7 +56,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
-            
+
         yield return new CallbackTemplate(
             "aspire-nunit",
             TemplatingStrings.AspireNUnit_Description,
@@ -63,7 +64,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
-            
+
         yield return new CallbackTemplate(
             "aspire-xunit",
             TemplatingStrings.AspireXUnit_Description,
@@ -97,17 +98,17 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
         if (!useRedisCache.HasValue)
         {
-            useRedisCache = await interactionService.PromptForSelectionAsync("Use Redis Cache", ["Yes", "No"], choice => choice, cancellationToken) switch
+            useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
             {
-                "Yes" => true,
-                "No" => false,
-                _ => throw new InvalidOperationException("Unexpected choice for Redis Cache option.")
+                var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.PromptInput) => true,
+                var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.PromptInput) => false,
+                _ => throw new InvalidOperationException(TemplatingStrings.UseRedisCache_UnexpectedChoice)
             };
         }
 
         if (useRedisCache ?? false)
         {
-            interactionService.DisplayMessage("french_fries", "Using Redis Cache for caching.");
+            interactionService.DisplayMessage("french_fries", TemplatingStrings.UseRedisCache_UsingRedisCache);
             extraArgs.Add("--use-redis-cache");
         }
     }
@@ -119,12 +120,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         if (testFramework is null)
         {
             var createTestProject = await interactionService.PromptForSelectionAsync(
-                "Do you want to create a test project?",
-                ["Yes", "No"],
+                TemplatingStrings.PromptForTFMOptions_Prompt,
+                [TemplatingStrings.Yes, TemplatingStrings.No],
                 choice => choice,
                 cancellationToken);
 
-            if (createTestProject == "No")
+            if (string.Equals(createTestProject, TemplatingStrings.No, StringComparisons.PromptInput))
             {
                 return;
             }
@@ -133,20 +134,20 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         if (string.IsNullOrEmpty(testFramework))
         {
             testFramework = await interactionService.PromptForSelectionAsync(
-                "Select a test framework",
-                ["MSTest", "NUnit", "xUnit.net", "None"],
+                TemplatingStrings.PromptForTFM_Prompt,
+                ["MSTest", "NUnit", "xUnit.net", TemplatingStrings.None],
                 choice => choice,
                 cancellationToken);
         }
 
-        if (testFramework is { } && testFramework != "None")
+        if (testFramework is { } && !string.Equals(testFramework, TemplatingStrings.None, StringComparisons.PromptInput))
         {
             if (testFramework.ToLower() == "xunit.net")
             {
                 await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
             }
 
-            interactionService.DisplayMessage("french_fries", $"Using {testFramework} for testing.");
+            interactionService.DisplayMessage("french_fries", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
 
             extraArgs.Add("--test-framework");
             extraArgs.Add(testFramework);
@@ -159,7 +160,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         if (string.IsNullOrEmpty(xunitVersion))
         {
             xunitVersion = await interactionService.PromptForSelectionAsync(
-                "Enter the xUnit.net version to use",
+                TemplatingStrings.EnterXUnitVersion_Prompt,
                 ["v2", "v3", "v3mtp"],
                 choice => choice,
                 cancellationToken: cancellationToken);
@@ -172,16 +173,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     private static void ApplyExtraAspireStarterOptions(Command command)
     {
         var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
-        useRedisCacheOption.Description = "Configures whether to setup the application to use Redis for caching.";
+        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
         useRedisCacheOption.DefaultValueFactory = _ => false;
         command.Options.Add(useRedisCacheOption);
 
         var testFrameworkOption = new Option<string?>("--test-framework");
-        testFrameworkOption.Description = "Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.";
+        testFrameworkOption.Description = TemplatingStrings.PromptForTFMOptions_Description;
         command.Options.Add(testFrameworkOption);
 
         var xunitVersionOption = new Option<string?>("--xunit-version");
-        xunitVersionOption.Description = "The version of xUnit.net to use for the test project.";
+        xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
         command.Options.Add(xunitVersionOption);
     }
 
@@ -206,7 +207,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                ":ice:  Getting latest templates...",
+                ":ice:  " + TemplatingStrings.GettingLatestTemplates,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -222,15 +223,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             if (templateInstallResult.ExitCode != 0)
             {
                 interactionService.DisplayLines(templateInstallCollector.GetLines());
-                interactionService.DisplayError($"The template installation failed with exit code {templateInstallResult.ExitCode}. For more information run with --debug switch.");
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode));
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
 
-            interactionService.DisplayMessage($"package", $"Using project templates version: {templateInstallResult.TemplateVersion}");
+            interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
 
             var newProjectCollector = new OutputCollector();
             var newProjectExitCode = await interactionService.ShowStatusAsync(
-                ":rocket:  Creating new Aspire project...",
+                ":rocket:  " + TemplatingStrings.CreatingNewProject,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -238,7 +239,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                         StandardOutputCallback = newProjectCollector.AppendOutput,
                         StandardErrorCallback = newProjectCollector.AppendOutput,
                     };
-                    
+
                     var result = await runner.NewProjectAsync(
                                 template.Name,
                                 name,
@@ -253,13 +254,13 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             if (newProjectExitCode != 0)
             {
                 interactionService.DisplayLines(newProjectCollector.GetLines());
-                interactionService.DisplayError($"Project creation failed with exit code {newProjectExitCode}. For more information run with --debug switch.");
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
-            interactionService.DisplaySuccess($"Project created successfully in {outputPath}.");
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
             return ExitCodeConstants.Success;
         }
@@ -270,7 +271,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         }
         catch (CertificateServiceException ex)
         {
-            interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (EmptyChoicesException ex)
@@ -279,7 +280,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             return ExitCodeConstants.FailedToCreateNewProject;
         }
     }
-     
+
     private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
@@ -312,13 +313,13 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
 
             var candidatePackages = await interactionService.ShowStatusAsync(
-                "Searching for available project template versions...",
+                TemplatingStrings.SearchingForAvailableTemplateVersions,
                 () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
             if (!candidatePackages.Any())
             {
-                throw new EmptyChoicesException("No template versions were found. Please check your internet connection or NuGet source configuration.");
+                throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
             }
 
             var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
