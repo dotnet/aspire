@@ -45,7 +45,6 @@ resource entries 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@
           '/id'
         ]
         kind: 'Hash'
-        version: 2
       }
     }
   }
@@ -63,7 +62,6 @@ resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@20
           '/id'
         ]
         kind: 'Hash'
-        version: 2
       }
     }
   }

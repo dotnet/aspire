@@ -47,7 +47,6 @@ resource container1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containe
           'id'
         ]
         kind: 'Hash'
-        version: 2
       }
     }
   }

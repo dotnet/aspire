@@ -45,7 +45,6 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
           'mypartitionkeypath'
         ]
         kind: 'Hash'
-        version: 2
       }
     }
   }

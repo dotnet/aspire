@@ -479,10 +479,15 @@ public static class AzureCosmosExtensions
                         {
                             Paths = [.. container.PartitionKeyPaths],
                             Kind = container.PartitionKeyPaths.Count > 1 ? CosmosDBPartitionKind.MultiHash : CosmosDBPartitionKind.Hash,
-                            Version = (int)PartitionKeyDefinitionVersion.V2
                         }
                     }
                 };
+
+                if (container.ContainerProperties.PartitionKeyDefinitionVersion is { } version)
+                {
+                    cosmosContainer.Resource.PartitionKey.Version = (int)version;
+                }
+
                 infrastructure.Add(cosmosContainer);
             }
         }
