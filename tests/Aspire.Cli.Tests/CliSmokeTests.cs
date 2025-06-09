@@ -24,22 +24,19 @@ public class CliSmokeTests
     [InlineData("el", false)]
     public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
     {
-        var expectedErrorMessages = isValid ? 1 : 2;
-
-        RemoteExecutor.Invoke(async () =>
+        RemoteExecutor.Invoke(async (loc, validStr, envVar) =>
         {
+            var valid = bool.Parse(validStr);
+            var expectedErrorMessagesLocal = valid ? 1 : 2;
             await using var errorWriter = new StringWriter();
-
             var oldErrorOutput = Console.Error;
             Console.SetError(errorWriter);
-            Environment.SetEnvironmentVariable(environmentVariableName, locale);
+            Environment.SetEnvironmentVariable(envVar, loc);
             await Program.Main([]);
-            Environment.SetEnvironmentVariable(environmentVariableName, null);
-
+            Environment.SetEnvironmentVariable(envVar, null);
             var errorOutput = errorWriter.ToString().Trim();
-            Assert.Equal(expectedErrorMessages, errorOutput.Count(c => c == '\n') + 1);
-
+            Assert.Equal(expectedErrorMessagesLocal, errorOutput.Count(c => c == '\n') + 1);
             Console.SetError(oldErrorOutput);
-        }).Dispose();
+        }, locale, isValid.ToString(), environmentVariableName).Dispose();
     }
 }
