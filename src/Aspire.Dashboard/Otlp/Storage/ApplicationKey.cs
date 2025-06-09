@@ -20,6 +20,7 @@ public readonly record struct ApplicationKey(string Name, string? InstanceId) : 
 
         // Fall back to splitting based on a dash delimiter.
         // This could fail because there could be a dash in either the name or the instance id.
+        // At this point we're doing our best guess. It's better than throwing an error.
         var separator = instanceId.LastIndexOf('-');
         if (separator == -1)
         {
