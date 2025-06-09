@@ -6,17 +6,24 @@ using System.Diagnostics;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
-using Aspire.Cli.Templating;
+using Aspire.Cli.Projects;
 
 namespace Aspire.Cli.Commands;
 
 /// <summary>
 /// Is a universal type of command, that can be used to perform operation of different kinds against target resources.
-///
-/// <c>
-/// Example: aspire exec --resource MyAppUsingEf --command 'dotnet ef migrations add Initial'
-///          where target resource is app, which uses Entity Framework
-///          and the command is creation of a migration source
+/// <br/>
+/// 
+/// <c>--project</c> regulates which AppHost to use
+/// <c>--resource</c> regulates which resource (csproj?) to perform the operation against
+/// <c>--command</c> is the actual command to perform against the target resource
+/// <br/>
+/// 
+/// Example: <c>
+/// aspire exec
+///   --project MyAppHost
+///   --resource MyAppUsingEf
+///   --command 'dotnet ef migrations add Initial'
 /// </c> 
 /// </summary>
 internal class ExecCommand : BaseCommand
@@ -29,10 +36,12 @@ internal class ExecCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
+    private readonly IProjectLocator _projectLocator;
 #pragma warning restore IDE0051 // Remove unused private members
 #pragma warning restore CA1823 // Avoid unused private fields
 
     public ExecCommand(
+        IProjectLocator projectLocator,
         IDotNetCliRunner runner,
         INuGetPackageCache nuGetPackageCache,
         INewCommandPrompter prompter,
@@ -45,11 +54,18 @@ internal class ExecCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(projectLocator);
+
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
         _interactionService = interactionService;
+        _projectLocator = projectLocator;
+
+        var appHostProjectOption = new Option<FileInfo?>("--project");
+        appHostProjectOption.Description = "The path to the project file to add the integration to.";
+        Options.Add(appHostProjectOption);
 
         var targetResourceOption = new Option<string>("--resource", "-r");
         targetResourceOption.Description = "The target resource to perform an operation against.";
@@ -62,10 +78,30 @@ internal class ExecCommand : BaseCommand
         Options.Add(commandOption);
     }
 
-    protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
-        throw new NotImplementedException();
+        var resource = parseResult.GetValue<string?>("--resource");
+        if (string.IsNullOrEmpty(resource))
+        {
+            // target resource is required
+            return ExitCodeConstants.InvalidCommand;
+        }
+        var command = parseResult.GetValue<string?>("--command");
+        if (string.IsNullOrEmpty(command))
+        {
+            // command is required
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+        var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+        if (effectiveAppHostProjectFile is null)
+        {
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        return -1;
     }
 }
