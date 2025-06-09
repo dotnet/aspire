@@ -77,14 +77,9 @@ internal interface IProvisioningContextProvider
 internal interface IArmClient
 {
     /// <summary>
-    /// Gets the default subscription.
+    /// Gets the default subscription and its matching tenant.
     /// </summary>
-    Task<ISubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets all tenants.
-    /// </summary>
-    IAsyncEnumerable<ITenantResource> GetTenantsAsync(CancellationToken cancellationToken = default);
+    Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

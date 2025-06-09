@@ -39,30 +39,12 @@ internal sealed class DefaultProvisioningContextProvider(
 
         var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
 
-        logger.LogInformation("Getting default subscription...");
+        logger.LogInformation("Getting default subscription and tenant...");
 
-        var subscriptionResource = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+        var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Data.Id);
-
-        logger.LogInformation("Getting tenant...");
-
-        ITenantResource? tenantResource = null;
-
-        await foreach (var tenant in armClient.GetTenantsAsync(cancellationToken).ConfigureAwait(false))
-        {
-            if (tenant.Data.TenantId == subscriptionResource.Data.TenantId)
-            {
-                logger.LogInformation("Tenant: {tenantId}", tenant.Data.TenantId);
-                tenantResource = tenant;
-                break;
-            }
-        }
-
-        if (tenantResource is null)
-        {
-            throw new InvalidOperationException($"Could not find tenant id {subscriptionResource.Data.TenantId} for subscription {subscriptionResource.Data.DisplayName}.");
-        }
+        logger.LogInformation("Tenant: {tenantId}", tenantResource.Data.TenantId);
 
         if (string.IsNullOrEmpty(_options.Location))
         {

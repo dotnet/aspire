@@ -3,7 +3,6 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;
@@ -90,35 +89,19 @@ public class ProvisioningContextTests
     }
 
     [Fact]
-    public async Task ProvisioningContext_ArmClient_CanGetSubscription()
+    public async Task ProvisioningContext_ArmClient_CanGetSubscriptionAndTenant()
     {
         // Arrange
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext();
 
         // Act
-        var subscription = await context.ArmClient.GetDefaultSubscriptionAsync();
+        var (subscription, tenant) = await context.ArmClient.GetSubscriptionAndTenantAsync();
 
         // Assert
         Assert.NotNull(subscription);
         Assert.Equal("Test Subscription", subscription.Data.DisplayName);
-    }
-
-    [Fact]
-    public async Task ProvisioningContext_ArmClient_CanGetTenants()
-    {
-        // Arrange
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext();
-
-        // Act
-        var tenants = new List<ITenantResource>();
-        await foreach (var tenant in context.ArmClient.GetTenantsAsync())
-        {
-            tenants.Add(tenant);
-        }
-
-        // Assert
-        Assert.Single(tenants);
-        Assert.NotNull(tenants[0].Data.TenantId);
+        Assert.NotNull(tenant);
+        Assert.NotNull(tenant.Data.TenantId);
     }
 
     [Fact]

@@ -101,15 +101,11 @@ internal sealed class TestTokenCredential : TokenCredential
 /// </summary>
 internal sealed class TestArmClient : IArmClient
 {
-    public Task<ISubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default)
+    public Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<ISubscriptionResource>(new TestSubscriptionResource());
-    }
-
-    public async IAsyncEnumerable<ITenantResource> GetTenantsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        yield return new TestTenantResource();
-        await Task.CompletedTask;
+        var subscription = new TestSubscriptionResource();
+        var tenant = new TestTenantResource();
+        return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
     }
 }
 
