@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace Aspire.Cli.Tests;
@@ -21,21 +22,24 @@ public class CliSmokeTests
     [InlineData("fr", true)]
     [InlineData("fr", true, "DOTNET_CLI_UI_LANGUAGE")]
     [InlineData("el", false)]
-    public async Task LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
+    public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
     {
         var expectedErrorMessages = isValid ? 1 : 2;
 
-        await using var errorWriter = new StringWriter();
-        var oldErrorOutput = Console.Error;
-        Console.SetError(errorWriter);
+        RemoteExecutor.Invoke(async () =>
+        {
+            await using var errorWriter = new StringWriter();
 
-        Environment.SetEnvironmentVariable(environmentVariableName, locale);
-        await Program.Main([]);
-        Environment.SetEnvironmentVariable(environmentVariableName, null);
+            var oldErrorOutput = Console.Error;
+            Console.SetError(errorWriter);
+            Environment.SetEnvironmentVariable(environmentVariableName, locale);
+            await Program.Main([]);
+            Environment.SetEnvironmentVariable(environmentVariableName, null);
 
-        var errorOutput = errorWriter.ToString().Trim();
-        Assert.Equal(expectedErrorMessages, errorOutput.Count(c => c == '\n') + 1);
+            var errorOutput = errorWriter.ToString().Trim();
+            Assert.Equal(expectedErrorMessages, errorOutput.Count(c => c == '\n') + 1);
 
-        Console.SetError(oldErrorOutput);
+            Console.SetError(oldErrorOutput);
+        }).Dispose();
     }
 }
