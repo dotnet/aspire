@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -13,21 +14,60 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DashboardCommandExecutor
 {
     private readonly IServiceProvider _appHostServiceProvider;
+    private readonly ResourceLoggerService _resourceLoggerService;
 
-    public DashboardCommandExecutor(IServiceProvider appHostServiceProvider)
+    public DashboardCommandExecutor(ResourceLoggerService resourceLoggerService, IServiceProvider appHostServiceProvider)
     {
+        _resourceLoggerService = resourceLoggerService;
         _appHostServiceProvider = appHostServiceProvider;
     }
 
-    public async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, ResourceCommandAnnotation annotation, CancellationToken cancellationToken)
+    public async Task<(ExecuteCommandResultType result, string? errorMessage)> ExecuteCommandAsync(string resourceId, IResource resource, string type, CancellationToken cancellationToken)
     {
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceId,
-            ServiceProvider = _appHostServiceProvider,
-            CancellationToken = cancellationToken
-        };
+        var logger = _resourceLoggerService.GetLogger(resourceId);
 
-        return await annotation.ExecuteCommand(context).ConfigureAwait(false);
+        logger.LogInformation("Executing command '{Type}'.", type);
+
+        var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
+        if (annotation != null)
+        {
+            try
+            {
+                var context = new ExecuteCommandContext
+                {
+                    ResourceName = resourceId,
+                    ServiceProvider = _appHostServiceProvider,
+                    CancellationToken = cancellationToken
+                };
+
+                var result = await annotation.ExecuteCommand(context).ConfigureAwait(false);
+                if (result.Success)
+                {
+                    logger.LogInformation("Successfully executed command '{Type}'.", type);
+                    return (ExecuteCommandResultType.Success, null);
+                }
+                else
+                {
+                    logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
+                    return (ExecuteCommandResultType.Failure, result.ErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error executing command '{Type}'.", type);
+                return (ExecuteCommandResultType.Failure, "Unhandled exception thrown.");
+            }
+        }
+
+        logger.LogInformation("Command '{Type}' not available.", type);
+        return (ExecuteCommandResultType.Canceled, null);
+
     }
+}
+
+internal enum ExecuteCommandResultType
+{
+    Success,
+    Failure,
+    Canceled
 }

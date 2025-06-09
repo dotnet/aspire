@@ -86,47 +86,17 @@ internal sealed class DashboardServiceData : IDisposable
         _cts.Dispose();
     }
 
-    internal async Task<(ExecuteCommandResult result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
+    internal async Task<(ExecuteCommandResultType result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
     {
         var logger = _resourceLoggerService.GetLogger(resourceId);
 
-        logger.LogInformation("Executing command '{Type}'.", type);
         if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
-            if (annotation != null)
-            {
-                try
-                {
-                    var result = await _commandExecutor.ExecuteCommandAsync(resourceId, annotation, cancellationToken).ConfigureAwait(false);
-                    if (result.Success)
-                    {
-                        logger.LogInformation("Successfully executed command '{Type}'.", type);
-                        return (ExecuteCommandResult.Success, null);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
-                        return (ExecuteCommandResult.Failure, result.ErrorMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
-                }
-            }
+            return await _commandExecutor.ExecuteCommandAsync(resourceId, resource, type, cancellationToken).ConfigureAwait(false);
         }
 
-        logger.LogInformation("Command '{Type}' not available.", type);
-        return (ExecuteCommandResult.Canceled, null);
-    }
-
-    internal enum ExecuteCommandResult
-    {
-        Success,
-        Failure,
-        Canceled
+        logger.LogInformation("Unable to execute command '{Type}'. Resource '{ResourceId}' not available.", type, resourceId);
+        return (ExecuteCommandResultType.Canceled, null);
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()
