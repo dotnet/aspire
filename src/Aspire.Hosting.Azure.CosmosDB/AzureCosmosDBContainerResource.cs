@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Azure.Cosmos;
 
@@ -65,7 +67,7 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     public string ContainerName
     {
         get => ContainerProperties.Id;
-        set => ContainerProperties.Id = value;
+        set => ContainerProperties.Id = ThrowIfNullOrEmpty(value);
     }
 
     /// <summary>
@@ -74,7 +76,7 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     public string PartitionKeyPath
     {
         get => ContainerProperties.PartitionKeyPath;
-        set => ContainerProperties.PartitionKeyPath = value;
+        set => ContainerProperties.PartitionKeyPath = ThrowIfNullOrEmpty(value);
     }
 
     /// <summary>
@@ -83,7 +85,19 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     public IReadOnlyList<string> PartitionKeyPaths
     {
         get => ContainerProperties.PartitionKeyPaths;
-        set => ContainerProperties.PartitionKeyPaths = value;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Count == 0)
+            {
+                throw new ArgumentException("At least one partition key path should be provided.", nameof(value));
+            }
+            if (value.Any(string.IsNullOrEmpty))
+            {
+                throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(value));
+            }
+            ContainerProperties.PartitionKeyPaths = value;
+        }
     }
 
     /// <summary>
@@ -112,5 +126,11 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ContainerName"] = ContainerName;
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ContainerName"] = ContainerName;
         }
+    }
+
+    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
     }
 }
