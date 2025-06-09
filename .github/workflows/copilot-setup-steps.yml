@@ -16,7 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-        # Include PrepareForHelix to maximise what is downloaded here
       - name: Build solution
         env:
           # prevent GitInfo errors
@@ -24,3 +23,12 @@ jobs:
         # a full build is too slow; also do not fail on errors, continue so that
         # copilot can attempt to recover
         run: ./build.sh -restore || true
+
+      # Install verify tool for snapshot testing
+      - name: Install verify tool
+        run: ./dotnet.sh tool install --global Verify.Tool --version 0.6.0 || true
+
+      - name: Setup PATH
+        run:
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          echo "$PWD/.dotnet/" >> $GITHUB_PATH
