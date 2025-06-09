@@ -32,8 +32,8 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var client = CreateClient(seqUrl);
 
-        // Wait for the Seq server to be fully initialized and healthy before ingestion
-        await WaitForHealthyAsync(client, default);
+        // Wait for the Seq resource to be healthy
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(seq.Resource.Name, default);
 
         await CreateTestDataAsync(client, default);
     }
@@ -45,42 +45,6 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
             BaseAddress = new Uri(url)
         };
         return client;
-    }
-
-    private static async Task WaitForHealthyAsync(HttpClient client, CancellationToken token, int timeoutSeconds = 30)
-    {
-        var startTime = DateTime.UtcNow;
-        var timeoutTime = startTime.AddSeconds(timeoutSeconds);
-        var intervalMs = 500;
-        var attempt = 1;
-
-        while (DateTime.UtcNow < timeoutTime)
-        {
-            try
-            {
-                var response = await client.GetAsync("/health", token);
-                if (response.IsSuccessStatusCode)
-                {
-                    // Server is healthy and ready
-                    return;
-                }
-
-                // If we get here, the server returned a non-success status code
-                // Wait a bit before retrying
-            }
-            catch (Exception)
-            {
-                // Exception might occur if server is not ready yet
-                // Just continue with retry logic
-            }
-
-            // Exponential backoff with a cap
-            var delay = Math.Min(intervalMs * attempt, 3000);
-            await Task.Delay(delay, token);
-            attempt++;
-        }
-
-        throw new TimeoutException($"Seq server didn't become healthy within {timeoutSeconds} seconds");
     }
 
     private static async Task CreateTestDataAsync(HttpClient httpClient, CancellationToken token)
@@ -148,8 +112,8 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     var client = CreateClient(seqUrl);
 
-                    // Wait for the Seq server to be fully initialized and healthy before ingestion
-                    await WaitForHealthyAsync(client, default);
+                    // Wait for the Seq resource to be healthy
+                    await app.ResourceNotifications.WaitForResourceHealthyAsync(seq1.Resource.Name, default);
 
                     await CreateTestDataAsync(client, default);
                 }
@@ -187,8 +151,8 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     var client = CreateClient(seqUrl);
 
-                    // Wait for the Seq server to be fully initialized and healthy before ingestion
-                    await WaitForHealthyAsync(client, default);
+                    // Wait for the Seq resource to be healthy
+                    await app.ResourceNotifications.WaitForResourceHealthyAsync(seq2.Resource.Name, default);
 
                     await CreateTestDataAsync(client, default);
                 }
