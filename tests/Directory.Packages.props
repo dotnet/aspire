@@ -23,5 +23,7 @@
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Verify.XunitV3" Version="30.3.0" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="$(XunitV3Version)" />
+    <PackageVersion Include="xunit.v3.assert" Version="$(XunitV3Version)" />
   </ItemGroup>
 </Project>

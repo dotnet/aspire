@@ -178,7 +178,6 @@ h1 {
     #components-reconnect-modal {
          left: 15% !important;
          right: 15% !important;
-         height: 130px;
     }
 
     fluent-toolbar[orientation=horizontal].main-toolbar {
@@ -205,7 +204,6 @@ h1 {
     #components-reconnect-modal {
         left: 30% !important;
         right: 30% !important;
-        height: 105px;
     }
 
     fluent-toolbar[orientation=horizontal].main-toolbar {

@@ -148,6 +148,12 @@ internal sealed class AzureResourcePreparer(
                         .ToLookup(a => a.Target);
                 foreach (var azureReference in azureReferences.OfType<AzureProvisioningResource>())
                 {
+                    if (azureReference.IsContainer())
+                    {
+                        // Skip emulators
+                        continue;
+                    }
+
                     var roleAssignments = azureReferencesWithRoleAssignments[azureReference];
                     if (roleAssignments.Any())
                     {

@@ -338,6 +338,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9712")]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]

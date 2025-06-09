@@ -9,24 +9,78 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Bunit;
+using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
+using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
 public partial class StructuredLogsTests : DashboardTestContext
 {
+    [Fact]
+    public void Render_ResourceInstanceHasDashes_AppKeyResolvedCorrectly()
+    {
+        // Arrange
+        SetupStructureLogsServices();
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "TestApp", instanceId: "abc-def"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(name: "test-scope"),
+                        LogRecords =
+                        {
+                            CreateLogRecord()
+                        }
+                    }
+                }
+            }
+        });
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var uri = navigationManager.ToAbsoluteUri(DashboardUrls.StructuredLogsUrl(resource: "TestApp"));
+        navigationManager.NavigateTo(uri.OriginalString);
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<StructuredLogs>(builder =>
+        {
+            builder.Add(p => p.ApplicationName, "TestApp");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        // Assert
+        var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
+
+        Assert.NotNull(viewModel.ApplicationKey);
+        Assert.Equal("TestApp", viewModel.ApplicationKey.Value.Name);
+        Assert.Equal("abc-def", viewModel.ApplicationKey.Value.InstanceId);
+    }
+
     [Fact]
     public void Render_TraceIdAndSpanId_FilterAdded()
     {
