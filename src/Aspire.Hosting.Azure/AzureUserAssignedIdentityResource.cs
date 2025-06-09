@@ -33,6 +33,11 @@ public sealed class AzureUserAssignedIdentityResource(string name)
     /// </summary>
     public BicepOutputReference PrincipalName => new("principalName", this);
 
+    /// <summary>
+    /// The name of the user assigned identity.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
     private static void ConfigureAppIdentityInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var userAssignedIdentity = CreateExistingOrNewProvisionableResource(infrastructure,
@@ -55,6 +60,7 @@ public sealed class AzureUserAssignedIdentityResource(string name)
         infrastructure.Add(new ProvisioningOutput("clientId", typeof(string)) { Value = userAssignedIdentity.ClientId });
         infrastructure.Add(new ProvisioningOutput("principalId", typeof(string)) { Value = userAssignedIdentity.PrincipalId });
         infrastructure.Add(new ProvisioningOutput("principalName", typeof(string)) { Value = userAssignedIdentity.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = userAssignedIdentity.Name });
     }
 
     /// <inheritdoc/>

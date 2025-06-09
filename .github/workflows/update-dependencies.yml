@@ -32,7 +32,7 @@ jobs:
 
       - name: Update packages
         continue-on-error: true
-        run: dotnet outdated --no-restore -u ./Aspire.sln || echo "Some dependencies could not be updated, but continuing workflow."
+        run: dotnet outdated --no-restore -u ./Aspire.slnx || echo "Some dependencies could not be updated, but continuing workflow."
 
       - name: Revert all changes except Directory.Packages.props files
         run: |

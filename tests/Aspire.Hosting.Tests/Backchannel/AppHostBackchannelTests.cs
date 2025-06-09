@@ -119,7 +119,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
-        var resourceEvents = await rpc.InvokeAsync<IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)>>(
+        var resourceEvents = await rpc.InvokeAsync<IAsyncEnumerable<RpcResourceState>>(
             "GetResourceStatesAsync",
             Array.Empty<object>()
             ).WaitAsync(TimeSpan.FromSeconds(60));

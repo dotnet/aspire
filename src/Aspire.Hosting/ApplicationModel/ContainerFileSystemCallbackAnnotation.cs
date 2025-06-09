@@ -24,7 +24,7 @@ public abstract class ContainerFileSystemItem
 
             if (Path.GetDirectoryName(value) != string.Empty)
             {
-                throw new ArgumentException("Name must be a simple file or folder name and not include any path separators (eg, / or \\). To specify parent folders, use one or more ContainerDirectory entries.", nameof(value));
+                throw new ArgumentException($"Name '{value}' must be a simple file or folder name and not include any path separators (eg, / or \\). To specify parent folders, use one or more ContainerDirectory entries.", nameof(value));
             }
 
             _name = value;
@@ -52,10 +52,17 @@ public abstract class ContainerFileSystemItem
 /// </summary>
 public sealed class ContainerFile : ContainerFileSystemItem
 {
+
     /// <summary>
-    /// The contents of the file. If null, the file will be created as an empty file.
+    /// The contents of the file. Setting Contents is mutually exclusive with <see cref="SourcePath"/>. If both are set, an exception will be thrown.
     /// </summary>
     public string? Contents { get; set; }
+
+    /// <summary>
+    /// The path to a file on the host system to copy into the container. This path must be absolute and point to a file on the host system.
+    /// Setting SourcePath is mutually exclusive with <see cref="Contents"/>. If both are set, an exception will be thrown.
+    /// </summary>
+    public string? SourcePath { get; set; }
 }
 
 /// <summary>
@@ -67,6 +74,130 @@ public sealed class ContainerDirectory : ContainerFileSystemItem
     /// The contents of the directory to create in the container. Will create specified <see cref="ContainerFile"/> and <see cref="ContainerDirectory"/> entries in the directory.
     /// </summary>
     public IEnumerable<ContainerFileSystemItem> Entries { get; set; } = [];
+
+    private class FileTree : Dictionary<string, FileTree>
+    {
+        public required ContainerFileSystemItem Value { get; set; }
+
+        public static IEnumerable<ContainerFileSystemItem> GetItems(KeyValuePair<string, FileTree> node)
+        {
+            return node.Value.Value switch
+            {
+                ContainerDirectory dir => [
+                    new ContainerDirectory
+                    {
+                        Name = dir.Name,
+                        Entries = node.Value.SelectMany(GetItems),
+                    },
+                ],
+                ContainerFile file => [file],
+                _ => throw new InvalidOperationException($"Unknown file system item type: {node.Value.GetType().Name}"),
+            };
+        }
+    }
+
+    /// <summary>
+    /// Enumerates files from a specified directory and converts them to <see cref="ContainerFile"/> objects.
+    /// </summary>
+    /// <param name="path">The directory path to enumerate files from.</param>
+    /// <param name="searchPattern">The search pattern to control the items matched. Defaults to *.</param>
+    /// <param name="searchOptions">The search options to control the items matched. Defaults to SearchOption.TopDirectoryOnly.</param>
+    /// <param name="updateItem">An optional function to update each <see cref="ContainerFileSystemItem"/> before returning it. This can be used to set additional properties like Owner, Group, or Mode.</param>
+    /// <returns>
+    /// An enumerable collection of <see cref="ContainerFileSystemItem"/> objects.
+    /// </returns>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path does not exist.</exception>
+    public static IEnumerable<ContainerFileSystemItem> GetFileSystemItemsFromPath(string path, string searchPattern = "*", SearchOption searchOptions = SearchOption.TopDirectoryOnly, Action<ContainerFileSystemItem>? updateItem = null)
+    {
+        var fullPath = Path.GetFullPath(path);
+
+        if (Directory.Exists(fullPath))
+        {
+            // Build a tree of the directories and files found
+            FileTree root = new FileTree
+            {
+                Value = new ContainerDirectory
+                {
+                    Name = "root",
+                }
+            };
+
+            foreach (var file in Directory.GetFiles(path, searchPattern, searchOptions).Order(StringComparer.Ordinal))
+            {
+                var relativePath = file.Substring(fullPath.Length + 1);
+                var fileName = Path.GetFileName(relativePath);
+                var parts = relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+                var node = root;
+                foreach (var part in parts.SkipLast(1))
+                {
+                    if (node.TryGetValue(part, out var childNode))
+                    {
+                        node = childNode;
+                    }
+                    else
+                    {
+                        var newDirectory = new ContainerDirectory
+                        {
+                            Name = part,
+                        };
+
+                        if (updateItem is not null)
+                        {
+                            updateItem(newDirectory);
+                        }
+                        var newNode = new FileTree
+                        {
+                            Value = newDirectory,
+                        };
+
+                        node.Add(part, newNode);
+                        node = newNode;
+                    }
+                }
+
+                var newFile = new ContainerFile
+                {
+                    Name = fileName,
+                    SourcePath = file,
+                };
+
+                if (updateItem is not null)
+                {
+                    updateItem(newFile);
+                }
+
+                node.Add(fileName, new FileTree
+                {
+                    Value = newFile,
+                });
+            }
+
+            return root.SelectMany(FileTree.GetItems);
+        }
+
+        if (File.Exists(fullPath))
+        {
+            if (searchPattern != "*")
+            {
+                throw new ArgumentException($"A search pattern was specified, but the given path '{fullPath}' is a file. Search patterns are only valid for directories.", nameof(searchPattern));
+            }
+
+            var file = new ContainerFile
+            {
+                Name = Path.GetFileName(fullPath),
+                SourcePath = fullPath,
+            };
+
+            if (updateItem is not null)
+            {
+                updateItem(file);
+            }
+
+            return [file];
+        }
+
+        throw new InvalidOperationException($"The specified path '{fullPath}' does not exist.");
+    }
 }
 
 /// <summary>

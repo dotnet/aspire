@@ -27,6 +27,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private Subscription? _tracesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
+    private int _resourceCount;
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
@@ -65,6 +66,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
@@ -80,8 +83,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     // Internal to be used in unit tests
@@ -190,12 +191,24 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             Logger.LogInformation("Couldn't find trace '{TraceId}'.", TraceId);
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
+            _resourceCount = 0;
             return;
         }
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
+
+        var apps = new HashSet<OtlpApplication>();
+        foreach (var span in _trace.Spans)
+        {
+            apps.Add(span.Source.Application);
+            if (span.UninstrumentedPeer != null)
+            {
+                apps.Add(span.UninstrumentedPeer);
+            }
+        }
+        _resourceCount = apps.Count;
     }
 
     private async Task HandleAfterFilterBindAsync()

@@ -7,6 +7,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -24,7 +25,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
@@ -59,7 +61,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         writer.Close();
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
@@ -95,7 +98,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         writer.Close();
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
@@ -103,7 +107,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UseOrFindAppHostProjectFileThrowsTwoProjectFilesFound()
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9652")]
+    public async Task UseOrFindAppHostProjectFilePromptsWhenMultipleFilesFound()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
 
@@ -115,13 +120,12 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
-        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(null);
-        });
+        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
-        Assert.Equal("Multiple project files found.", ex.Message);
+        Assert.Equal(projectFile1.FullName, selectedProjectFile!.FullName);
     }
 
     [Fact]
@@ -148,7 +152,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             }
         };
 
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
@@ -158,9 +164,11 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
             await projectLocator.UseOrFindAppHostProjectFileAsync(null);
@@ -178,7 +186,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
 
@@ -194,7 +203,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
@@ -217,7 +228,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             return (0, true, VersionHelper.GetDefaultTemplateVersion());
         };
 
-        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot);
+        var interactionService = new TestInteractionService();
+        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService);
+
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
 
         var settingsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json"));

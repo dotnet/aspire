@@ -17,11 +17,6 @@
         <target state="translated">Yapılandırılmış günlükler</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">Bu kaynak için telemetri bulunamadı.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">İzlemeler</target>
@@ -50,16 +45,6 @@
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
         <target state="translated">Konsol günlüklerini görüntüle</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">Uç Nokta URL'si</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">Ara sunucu URL'si</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -172,11 +157,6 @@
         <target state="translated">Durdurma zamanı</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">Ortam</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
         <target state="translated">Filtreleri var</target>
@@ -232,19 +212,9 @@
         <target state="translated">Durum</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">{0} için ortam değişkenleri</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">Kaynaklar</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">Ortam değişkeni yok</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

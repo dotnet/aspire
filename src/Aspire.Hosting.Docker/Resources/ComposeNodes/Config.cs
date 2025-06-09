@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes;
 /// source file, external flag, custom name, and additional labels for the configuration.
 /// </remarks>
 [YamlSerializable]
-public sealed class Config
+public sealed class Config : NamedComposeMember
 {
     /// <summary>
     /// Gets or sets the path to the configuration file.
@@ -34,10 +34,12 @@ public sealed class Config
     public bool? External { get; set; }
 
     /// <summary>
-    /// Represents the name of the Docker configuration resource as defined in the Compose file.
+    /// Gets or sets the contents of the configuration file.
+    /// This property is used to specify the actual configuration data
+    /// that will be included in the Docker Compose file.
     /// </summary>
-    [YamlMember(Alias = "name")]
-    public string? Name { get; set; }
+    [YamlMember(Alias = "content")]
+    public string? Content { get; set;}
 
     /// <summary>
     /// Represents a collection of key-value pairs used as metadata

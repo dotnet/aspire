@@ -8,7 +8,6 @@ using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.OperationalInsights;
@@ -32,7 +31,7 @@ public static class AzureContainerAppExtensions
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) =>
         AddAzureContainerAppsInfrastructureCore(builder);
 
-    internal static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructureCore(this IDistributedApplicationBuilder builder)
+    private static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -70,8 +69,9 @@ public static class AzureContainerAppExtensions
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
-            var userPrincipalId = new ProvisioningParameter("userPrincipalId", typeof(string));
 
+            // This tells azd to avoid creating infrastructure
+            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string));
             infra.Add(userPrincipalId);
 
             var tags = new ProvisioningParameter("tags", typeof(object))
@@ -99,7 +99,9 @@ public static class AzureContainerAppExtensions
             infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             }
@@ -119,11 +121,21 @@ public static class AzureContainerAppExtensions
             pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
             infra.Add(pullRa);
 
-            var laWorkspace = new OperationalInsightsWorkspace(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_law"))
+            OperationalInsightsWorkspace? laWorkspace = null;
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            if (appEnvResource.TryGetLastAnnotation<AzureLogAnalyticsWorkspaceReferenceAnnotation>(out var logAnalyticsReferenceAnnotation) && logAnalyticsReferenceAnnotation.Workspace is AzureProvisioningResource workspace)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
-                Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
-                Tags = tags
-            };
+                laWorkspace = (OperationalInsightsWorkspace)workspace.AddAsExistingResource(infra);
+            }
+            else
+            {
+                laWorkspace = new OperationalInsightsWorkspace(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_law"))
+                {
+                    Sku = new() { Name = OperationalInsightsWorkspaceSkuName.PerGB2018 },
+                    Tags = tags
+                };
+            }
 
             infra.Add(laWorkspace);
 
@@ -150,23 +162,17 @@ public static class AzureContainerAppExtensions
 
             infra.Add(containerAppEnvironment);
 
-            var dashboard = new ContainerAppEnvironmentDotnetComponentResource("aspireDashboard", "2024-10-02-preview")
+            if (appEnvResource.EnableDashboard)
             {
-                Name = "aspire-dashboard",
-                ComponentType = "AspireDashboard",
-                Parent = containerAppEnvironment
-            };
+                var dashboard = new ContainerAppEnvironmentDotnetComponentResource("aspireDashboard", "2024-10-02-preview")
+                {
+                    Name = "aspire-dashboard",
+                    ComponentType = "AspireDashboard",
+                    Parent = containerAppEnvironment
+                };
 
-            infra.Add(dashboard);
-
-            var roleAssignment = containerAppEnvironment.CreateRoleAssignment(AppContainersBuiltInRole.Contributor,
-                RoleManagementPrincipalType.ServicePrincipal,
-                userPrincipalId);
-
-            // We need to set the principal type to null to let ARM infer the principal id
-            roleAssignment.PrincipalType.ClearValue();
-
-            infra.Add(roleAssignment);
+                infra.Add(dashboard);
+            }
 
             var managedStorages = new Dictionary<string, ContainerAppManagedEnvironmentStorage>();
 
@@ -284,16 +290,7 @@ public static class AzureContainerAppExtensions
                 }
             }
 
-            infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_NAME", typeof(string))
-            {
-                Value = identity.Name
-            });
-
-            infra.Add(new ProvisioningOutput("MANAGED_IDENTITY_PRINCIPAL_ID", typeof(string))
-            {
-                Value = identity.PrincipalId
-            });
-
+            // Exposed so that callers reference the LA workspace in other bicep modules
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_NAME", typeof(string))
             {
                 Value = laWorkspace.Name
@@ -304,6 +301,7 @@ public static class AzureContainerAppExtensions
                 Value = laWorkspace.Id
             });
 
+            // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
                 Value = containerRegistry.Name
@@ -314,6 +312,7 @@ public static class AzureContainerAppExtensions
                 Value = containerRegistry.LoginServer
             });
 
+            // Required by the IAzureContainerRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
                 Value = identity.Id
@@ -329,6 +328,7 @@ public static class AzureContainerAppExtensions
                 Value = containerAppEnvironment.Id
             });
 
+            // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
                 Value = containerAppEnvironment.DefaultDomain
@@ -359,6 +359,38 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
     {
         builder.Resource.UseAzdNamingConvention = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether the Aspire dashboard should be included in the container app environment.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithDashboard(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableDashboard = enable;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the container app environment resource to use the specified Log Analytics Workspace.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="workspaceBuilder">The resource builder for the <see cref="AzureLogAnalyticsWorkspaceResource"/> to use.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="workspaceBuilder"/> is null.</exception>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzureLogAnalyticsWorkspace(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, IResourceBuilder<AzureLogAnalyticsWorkspaceResource> workspaceBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(workspaceBuilder);
+
+        // Add a LogAnalyticsWorkspaceReferenceAnnotation to indicate that the resource is using a specific workspace
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         return builder;
     }
 }

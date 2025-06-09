@@ -71,7 +71,7 @@ public class KubernetesPublisherTests()
             }
         }
 
-        await settingsTask.UseHelixAwareDirectory();
+        await settingsTask;
     }
 
     [Fact]
@@ -101,21 +101,7 @@ public class KubernetesPublisherTests()
 
         var content = await File.ReadAllTextAsync(deploymentPath);
 
-        await Verify(content, "yaml")
-        .UseHelixAwareDirectory();
-    }
-
-    public sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = Directory.CreateTempSubdirectory(".aspire-kubernetes").FullName;
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Path))
-            {
-                Directory.Delete(Path, recursive: true);
-            }
-        }
+        await Verify(content, "yaml");
     }
 
     private sealed class TestProject : IProjectMetadata

@@ -77,6 +77,10 @@ public partial class AspireMenu : FluentComponentBase
                 .AddStyle("right", $"{right}px", right != 0)
                 .AddStyle("top", $"{top}px", top != 0)
                 .AddStyle("bottom", $"{bottom}px", bottom != 0)
+                // max-width and min-width values come from fluentui-blazor stylesheet
+                // explicitly set to override min-width: fit-content applied by library to some menus
+                .AddStyle("max-width", "368px")
+                .AddStyle("min-width", "64px")
                 .Build();
 
             Open = true;

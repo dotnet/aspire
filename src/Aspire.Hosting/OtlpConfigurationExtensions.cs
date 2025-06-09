@@ -29,6 +29,9 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(environment);
 
+        // Add annotation to mark this resource as having OTLP exporter configured
+        resource.Annotations.Add(new OtlpExporterAnnotation());
+
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
@@ -109,6 +112,7 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
+        
         return builder;
     }
 }

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Výchozí nastavení služby .NET Aspire",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "description": "Šablona projektu pro vytvoření výchozího projektu služby .NET Aspire.",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",
   "symbols/Framework/choices/net9.0/description": "Cílit na net9.0",

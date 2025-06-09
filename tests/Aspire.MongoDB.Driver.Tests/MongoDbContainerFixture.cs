@@ -5,7 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.MongoDB;
 using Testcontainers.MongoDb;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.MongoDB.Driver.Tests;
 

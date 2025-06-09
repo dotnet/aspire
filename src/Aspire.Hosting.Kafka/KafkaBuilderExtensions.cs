@@ -100,7 +100,7 @@ public static class KafkaBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-kafka-ui";
+            containerName ??= "kafka-ui";
 
             var kafkaUi = new KafkaUIContainerResource(containerName);
             var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
@@ -109,19 +109,16 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(kafkaUi, (e, ct) =>
             {
                 var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
 
                 int i = 0;
                 foreach (var kafkaResource in kafkaResources)
                 {
-                    if (kafkaResource.InternalEndpoint.IsAllocated)
-                    {
-                        var endpoint = kafkaResource.InternalEndpoint;
-                        int index = i;
-                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
-                    }
+                    var endpoint = kafkaResource.InternalEndpoint;
+                    int index = i;
+                    kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
 
                     i++;
                 }

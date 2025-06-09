@@ -29,11 +29,11 @@ internal sealed class AzureResourcePreparer(
         }
 
         var options = provisioningOptions.Value;
-        if (!EnvironmentSupportsTargetedRoleAssignments(options))
+        if (!EnvironmentSupportsIdentitiesAndAssignments(options))
         {
-            // If the app infrastructure does not support targeted role assignments, then we need to ensure that
-            // there are no role assignment annotations in the app model because they won't be honored otherwise.
-            EnsureNoRoleAssignmentAnnotations(appModel);
+            // If the app infrastructure does not support targeted identities and role assignments, then we need to ensure that
+            // there are no identity or role assignment annotations in the app model because they won't be honored otherwise.
+            EnsureNoIdentityOrRoleAssignmentAnnotations(appModel);
         }
 
         await BuildRoleAssignmentAnnotations(appModel, azureResources, options, cancellationToken).ConfigureAwait(false);
@@ -78,20 +78,25 @@ internal sealed class AzureResourcePreparer(
         return azureResources;
     }
 
-    private bool EnvironmentSupportsTargetedRoleAssignments(AzureProvisioningOptions options)
+    private bool EnvironmentSupportsIdentitiesAndAssignments(AzureProvisioningOptions options)
     {
         // run mode always supports targeted role assignments
         // publish mode only supports targeted role assignments if the environment supports it
         return executionContext.IsRunMode || options.SupportsTargetedRoleAssignments;
     }
 
-    private static void EnsureNoRoleAssignmentAnnotations(DistributedApplicationModel appModel)
+    private static void EnsureNoIdentityOrRoleAssignmentAnnotations(DistributedApplicationModel appModel)
     {
         foreach (var resource in appModel.Resources)
         {
             if (resource.HasAnnotationOfType<RoleAssignmentAnnotation>())
             {
                 throw new InvalidOperationException("The application model does not support role assignments. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
+            }
+
+            if (resource.HasAnnotationOfType<AppIdentityAnnotation>())
+            {
+                throw new InvalidOperationException("The application model does not support using explicit managed identities. Ensure you are using an environment that supports managed identities, for example AddAzureContainerAppEnvironment.");
             }
         }
     }
@@ -100,7 +105,7 @@ internal sealed class AzureResourcePreparer(
     {
         var globalRoleAssignments = new Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>>();
 
-        if (!EnvironmentSupportsTargetedRoleAssignments(options))
+        if (!EnvironmentSupportsIdentitiesAndAssignments(options))
         {
             // when the app infrastructure doesn't support targeted role assignments, just copy all the default role assignments to applied role assignments
             foreach (var resource in azureResources.Select(r => r.AzureResource).OfType<AzureProvisioningResource>())
@@ -143,6 +148,12 @@ internal sealed class AzureResourcePreparer(
                         .ToLookup(a => a.Target);
                 foreach (var azureReference in azureReferences.OfType<AzureProvisioningResource>())
                 {
+                    if (azureReference.IsContainer())
+                    {
+                        // Skip emulators
+                        continue;
+                    }
+
                     var roleAssignments = azureReferencesWithRoleAssignments[azureReference];
                     if (roleAssignments.Any())
                     {
@@ -180,11 +191,21 @@ internal sealed class AzureResourcePreparer(
 
                         if (resource != identityResource)
                         {
-                            // attach the identity resource to compute resource so it can be used by the compute environment
-                            resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
+                            // Only add the AppIdentityAnnotation if the resource doesn't already have one
+                            if (!resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var existingAppIdentityAnnotation) ||
+                                existingAppIdentityAnnotation.IdentityResource != identityResource)
+                            {
+                                resource.Annotations.Add(new AppIdentityAnnotation(identityResource));
+                            }
+
                             // add the identity resource to the resource collection so it can be provisioned
-                            appModel.Resources.Add(identityResource);
+                            // but only if it's not already there
+                            if (!appModel.Resources.Contains(identityResource))
+                            {
+                                appModel.Resources.Add(identityResource);
+                            }
                         }
+
                         foreach (var roleAssignmentResource in roleAssignmentResources)
                         {
                             appModel.Resources.Add(roleAssignmentResource);
@@ -239,12 +260,27 @@ internal sealed class AzureResourcePreparer(
         Dictionary<AzureProvisioningResource, IEnumerable<RoleDefinition>> roleAssignments,
         DistributedApplicationExecutionContext executionContext)
     {
-        var identityResource = resource is AzureUserAssignedIdentityResource existingIdentityResource
-            ? existingIdentityResource
-            : new AzureUserAssignedIdentityResource($"{resource.Name}-identity")
+        AzureUserAssignedIdentityResource identityResource;
+
+        // If we're currently targeting an AzureUserAssignedIdentityResource, we can use it as the identity resource
+        // for the role assignments. If we are targeting a compute resource that has an AppIdentityAnnotation, we can
+        // use the identity resource from that annotation. Otherwise, create a new identity resource to use for role assignments.
+        if (resource is AzureUserAssignedIdentityResource existingIdentityResource)
+        {
+            identityResource = existingIdentityResource;
+        }
+        else if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation) &&
+                appIdentityAnnotation.IdentityResource is AzureUserAssignedIdentityResource existingAppIdentity)
+        {
+            identityResource = existingAppIdentity;
+        }
+        else
+        {
+            identityResource = new AzureUserAssignedIdentityResource($"{resource.Name}-identity")
             {
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
             };
+        }
 
         var roleAssignmentResources = CreateRoleAssignmentsResources(provisioningOptions, resource, roleAssignments, identityResource, executionContext);
         return (identityResource, roleAssignmentResources);
@@ -287,7 +323,7 @@ internal sealed class AzureResourcePreparer(
         IEnumerable<RoleDefinition> roles,
         AzureUserAssignedIdentityResource appIdentityResource)
     {
-        
+
         var context = new AddRoleAssignmentsContext(
             infra,
             executionContext,
@@ -395,11 +431,13 @@ internal sealed class AzureResourcePreparer(
             return;
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         if (value is BicepSecretOutputReference secretOutputReference)
         {
             azureReferences.Add(secretOutputReference.Resource);
             return;
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         if (value is IAzureKeyVaultSecretReference keyVaultSecretReference)
         {
@@ -413,6 +451,12 @@ internal sealed class AzureResourcePreparer(
             {
                 ProcessAzureReferences(azureReferences, vp);
             }
+            return;
+        }
+
+        if (value is IManifestExpressionProvider)
+        {
+            // Unknown manifest expression providers don't have Azure references to track
             return;
         }
 

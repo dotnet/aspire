@@ -66,9 +66,14 @@ sealed partial class TestSummaryGenerator
                             ? "lin"
                             : filePath.Contains("macos-")
                                 ? "mac"
-                                : "os?";
+                                : throw new InvalidOperationException($"Could not determine OS from file path: {filePath}");
 
-            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
+            var icon = total == 0 ? "⚠️"
+                        : failed > 0 ? "❌"
+                            : passed > 0 ? "✅"
+                                : "❓";
+
+            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {icon} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
         }
 
         var overallTableBuilder = new StringBuilder();
@@ -84,7 +89,7 @@ sealed partial class TestSummaryGenerator
         return overallTableBuilder.ToString();
     }
 
-    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url = null)
+    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url)
     {
         if (!File.Exists(trxFilePath))
         {
@@ -109,6 +114,7 @@ sealed partial class TestSummaryGenerator
         var failed = counters.Failed;
         if (failed == 0)
         {
+            Console.WriteLine($"No failed tests in {trxFilePath}");
             return;
         }
 
@@ -116,7 +122,11 @@ sealed partial class TestSummaryGenerator
         var passed = counters.Passed;
         var skipped = counters.NotExecuted;
 
-        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {GetTestTitle(trxFilePath)}");
+        var title = string.IsNullOrEmpty(url)
+            ? GetTestTitle(trxFilePath)
+            : $"{GetTestTitle(trxFilePath)} (<a href=\"{url}\">Logs</a>)";
+
+        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {title}");
         reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
         reportBuilder.AppendLine("|--------|--------|---------|-------|");
         reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {passed} | {failed} | {skipped} | {total} |");
@@ -124,6 +134,7 @@ sealed partial class TestSummaryGenerator
         reportBuilder.AppendLine();
         if (testRun.Results?.UnitTestResults is null)
         {
+            Console.WriteLine($"Could not find any UnitTestResult entries in {trxFilePath}");
             return;
         }
 
@@ -132,25 +143,37 @@ sealed partial class TestSummaryGenerator
         {
             foreach (var test in failedTests)
             {
-                var title = string.IsNullOrEmpty(url)
-                                ? $"🔴 <b>{test.TestName}</b>"
-                                : $"🔴 <a href=\"{url}\">{test.TestName}</a>";
-
                 reportBuilder.AppendLine("<div>");
                 reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
-                    <details><summary>{title}</summary>
+                    <details><summary>🔴 <b>{test.TestName}</b></summary>
+
                 """);
-
-                var errorMsgBuilder = new StringBuilder();
-                errorMsgBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText ?? string.Empty);
-                errorMsgBuilder.AppendLine(test.Output?.StdOut ?? string.Empty);
-
-                // Truncate long error messages for readability
-                var errorMsgTruncated = TruncateTheStart(errorMsgBuilder.ToString(), 50_000);
 
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("```yml");
-                reportBuilder.AppendLine(errorMsgTruncated);
+
+                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
+                if (test.Output?.StdOut is not null)
+                {
+                    const int halfLength = 25_000;
+                    var stdOutSpan = test.Output.StdOut.AsSpan();
+
+                    reportBuilder.AppendLine();
+                    reportBuilder.AppendLine("### StdOut");
+
+                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+                    reportBuilder.AppendLine(startSpan.ToString());
+
+                    if (stdOutSpan.Length > halfLength)
+                    {
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                        var endSpan = stdOutSpan[^halfLength..];
+                        // `endSpan` might not begin at the true beginning of the original line
+                        reportBuilder.Append("... ");
+                        reportBuilder.Append(endSpan);
+                    }
+                }
+
                 reportBuilder.AppendLine("```");
                 reportBuilder.AppendLine();
                 reportBuilder.AppendLine("</div>");
@@ -173,9 +196,4 @@ sealed partial class TestSummaryGenerator
 
     [GeneratedRegex(@"(?<testName>.*)_(?<tfm>net\d+\.0)_.*")]
     private static partial Regex TestNameFromTrxFileNameRegex();
-
-    private static string? TruncateTheStart(string? s, int maxLength)
-        => s is null || s.Length <= maxLength
-            ? s
-            : "... (truncated) " + s[^maxLength..];
 }

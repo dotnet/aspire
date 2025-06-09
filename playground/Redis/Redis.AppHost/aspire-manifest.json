@@ -36,7 +36,7 @@
       "entrypoint": "/bin/sh",
       "args": [
         "-c",
-        "/app/GarnetServer --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
+        "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
       ],
       "volumes": [
         {

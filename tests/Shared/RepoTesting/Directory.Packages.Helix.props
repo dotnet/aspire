@@ -13,8 +13,6 @@
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="$(PackageVersion)" />
-
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
@@ -35,7 +33,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="$(PackageVersion)" />
@@ -56,6 +54,7 @@
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Yarp" Version="$(PackageVersion)" />
 
     <PackageVersion Include="Aspire.Keycloak.Authentication" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />

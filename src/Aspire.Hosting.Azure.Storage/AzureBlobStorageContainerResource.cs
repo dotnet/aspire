@@ -4,10 +4,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// A resource that represents an Azure Blob Storage container.

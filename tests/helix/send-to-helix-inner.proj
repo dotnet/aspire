@@ -65,8 +65,7 @@
     <_TestBlameArguments Include="--crashdump-type Full" />
 
     <!--
-      At time of writing, Aspire.Components.Common.Tests doesn't have runnable tests in CI. In that case, we don't want to fail.
-      Also EndToEnd.Tests doesn't have tests matching scenario=cosmos
+      At time of writing, EndToEnd.Tests doesn't have tests matching scenario=cosmos
       So, ignore exit code 8 (zero tests ran)
       https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
     -->
@@ -152,9 +151,6 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
-
-    <!-- Force container runtime to Docker since that's what is installed on Helix -->
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DOTNET_ASPIRE_CONTAINER_RUNTIME=docker" />
 
     <!-- Set the DCP env -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />

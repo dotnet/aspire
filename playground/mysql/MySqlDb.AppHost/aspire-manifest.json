@@ -4,7 +4,7 @@
     "mysql": {
       "type": "container.v0",
       "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-      "image": "docker.io/library/mysql:9.2",
+      "image": "docker.io/library/mysql:9.3",
       "bindMounts": [
         {
           "source": "../MySql.ApiService/data",
@@ -29,6 +29,14 @@
       "type": "value.v0",
       "connectionString": "{mysql.connectionString};Database=catalog"
     },
+    "myTestDb": {
+      "type": "value.v0",
+      "connectionString": "{mysql.connectionString};Database=myTestDb"
+    },
+    "myTestDb2": {
+      "type": "value.v0",
+      "connectionString": "{mysql.connectionString};Database=myTestDb2"
+    },
     "apiservice": {
       "type": "project.v0",
       "path": "../MySql.ApiService/MySql.ApiService.csproj",
@@ -38,7 +46,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "ConnectionStrings__catalog": "{catalog.connectionString}"
+        "ConnectionStrings__catalog": "{catalog.connectionString}",
+        "ConnectionStrings__myTestDb": "{myTestDb.connectionString}",
+        "ConnectionStrings__myTestDb2": "{myTestDb2.connectionString}"
       },
       "bindings": {
         "http": {

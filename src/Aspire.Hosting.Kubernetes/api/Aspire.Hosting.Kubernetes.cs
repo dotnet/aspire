@@ -8,35 +8,67 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    public static partial class KubernetesPublisherExtensions
+    public static partial class KubernetesEnvironmentExtensions
     {
-        public static IDistributedApplicationBuilder AddKubernetesPublisher(this IDistributedApplicationBuilder builder, System.Action<Kubernetes.KubernetesPublisherOptions>? configureOptions = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Kubernetes.KubernetesEnvironmentResource> AddKubernetesEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static IDistributedApplicationBuilder AddKubernetesPublisher(this IDistributedApplicationBuilder builder, string name, System.Action<Kubernetes.KubernetesPublisherOptions>? configureOptions = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Kubernetes.KubernetesEnvironmentResource> WithProperties(this ApplicationModel.IResourceBuilder<Kubernetes.KubernetesEnvironmentResource> builder, System.Action<Kubernetes.KubernetesEnvironmentResource> configure) { throw null; }
+    }
+
+    public static partial class KubernetesServiceExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<T> PublishAsKubernetesService<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Kubernetes.KubernetesResource> configure)
+            where T : ApplicationModel.IComputeResource { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Kubernetes
 {
-    public sealed partial class KubernetesPublisherOptions : Publishing.PublishingOptions
+    public sealed partial class KubernetesEnvironmentResource : ApplicationModel.Resource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
+        public KubernetesEnvironmentResource(string name) : base(default!) { }
+
+        public string DefaultImagePullPolicy { get { throw null; } set { } }
+
+        public string DefaultServiceType { get { throw null; } set { } }
+
+        public string? DefaultStorageClassName { get { throw null; } set { } }
+
+        public string DefaultStorageReadWritePolicy { get { throw null; } set { } }
+
+        public string DefaultStorageSize { get { throw null; } set { } }
+
+        public string DefaultStorageType { get { throw null; } set { } }
+
         public string HelmChartDescription { get { throw null; } set { } }
 
         public string HelmChartName { get { throw null; } set { } }
 
         public string HelmChartVersion { get { throw null; } set { } }
+    }
 
-        public string ImagePullPolicy { get { throw null; } set { } }
+    public partial class KubernetesResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<KubernetesEnvironmentResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    {
+        public KubernetesResource(string name, ApplicationModel.IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : base(default!) { }
 
-        public string ServiceType { get { throw null; } set { } }
+        public Resources.ConfigMap? ConfigMap { get { throw null; } set { } }
 
-        public string? StorageClassName { get { throw null; } set { } }
+        public Resources.Deployment? Deployment { get { throw null; } set { } }
 
-        public string StorageReadWritePolicy { get { throw null; } set { } }
+        public KubernetesEnvironmentResource Parent { get { throw null; } }
 
-        public string StorageSize { get { throw null; } set { } }
+        public Resources.Secret? Secret { get { throw null; } set { } }
 
-        public string StorageType { get { throw null; } set { } }
+        public Resources.Service? Service { get { throw null; } set { } }
+
+        public Resources.StatefulSet? StatefulSet { get { throw null; } set { } }
+    }
+
+    public sealed partial class KubernetesServiceCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public KubernetesServiceCustomizationAnnotation(System.Action<KubernetesResource> configure) { }
+
+        public System.Action<KubernetesResource> Configure { get { throw null; } }
     }
 }
 

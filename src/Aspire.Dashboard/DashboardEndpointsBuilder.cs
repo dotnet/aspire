@@ -8,12 +8,54 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 
 namespace Aspire.Dashboard;
 
 public static class DashboardEndpointsBuilder
 {
+    public static void MapDashboardBlazor(this IEndpointRouteBuilder endpoints)
+    {
+        var options = new StaticFileOptions
+        {
+            FileProvider = new ManifestEmbeddedFileProvider(typeof(DashboardEndpointsBuilder).Assembly),
+            OnPrepareResponse = SetCacheHeaders
+        };
+
+        var app = endpoints.CreateApplicationBuilder();
+        app.Use(next => context =>
+        {
+            // Set endpoint to null so the static files middleware will handle the request.
+            context.SetEndpoint(null);
+
+            return next(context);
+        });
+        app.UseStaticFiles(options);
+
+        endpoints.MapGet("/_aspire/blazor.web.js", app.Build());
+
+        static void SetCacheHeaders(StaticFileResponseContext ctx)
+        {
+            // By setting "Cache-Control: no-cache", we're allowing the browser to store
+            // a cached copy of the response, but telling it that it must check with the
+            // server for modifications (based on Etag) before using that cached copy.
+            // Longer term, we should generate URLs based on content hashes (at least
+            // for published apps) so that the browser doesn't need to make any requests
+            // for unchanged files.
+            var headers = ctx.Context.Response.GetTypedHeaders();
+            if (headers.CacheControl == null)
+            {
+                headers.CacheControl = new CacheControlHeaderValue
+                {
+                    NoCache = true
+                };
+            }
+        }
+    }
+
     public static void MapDashboardHealthChecks(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapHealthChecks($"/{DashboardUrls.HealthBasePath}").AllowAnonymous();
@@ -52,7 +94,7 @@ public static class DashboardEndpointsBuilder
             }
 
             // The passed in language should be one of the localized cultures.
-            var newLanguage = GlobalizationHelpers.LocalizedCultures.SingleOrDefault(c => string.Equals(c.Name, language, StringComparisons.CultureName));
+            var newLanguage = GlobalizationHelpers.OrderedLocalizedCultures.SingleOrDefault(c => string.Equals(c.Name, language, StringComparisons.CultureName));
             if (newLanguage == null)
             {
                 return Results.BadRequest();

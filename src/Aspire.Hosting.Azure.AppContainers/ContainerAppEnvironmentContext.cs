@@ -10,15 +10,15 @@ namespace Aspire.Hosting.Azure;
 internal sealed class ContainerAppEnvironmentContext(
     ILogger logger,
     DistributedApplicationExecutionContext executionContext,
-    IAzureContainerAppEnvironment environment)
+    AzureContainerAppEnvironmentResource environment)
 {
     public ILogger Logger => logger;
 
     public DistributedApplicationExecutionContext ExecutionContext => executionContext;
 
-    public IAzureContainerAppEnvironment Environment => environment;
+    public AzureContainerAppEnvironmentResource Environment => environment;
 
-    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceComparer());
+    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceNameComparer());
 
     public ContainerAppContext GetContainerAppContext(IResource resource)
     {

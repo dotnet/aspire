@@ -8,21 +8,53 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    public static partial class DockerComposePublisherExtensions
+    public static partial class DockerComposeEnvironmentExtensions
     {
-        public static IDistributedApplicationBuilder AddDockerComposePublisher(this IDistributedApplicationBuilder builder, System.Action<Docker.DockerComposePublisherOptions>? configureOptions = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> AddDockerComposeEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static IDistributedApplicationBuilder AddDockerComposePublisher(this IDistributedApplicationBuilder builder, string name, System.Action<Docker.DockerComposePublisherOptions>? configureOptions = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureComposeFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.Resources.ComposeFile> configure) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithProperties(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.DockerComposeEnvironmentResource> configure) { throw null; }
+    }
+
+    public static partial class DockerComposeServiceExtensions
+    {
+        public static string AsEnvironmentPlaceholder(this ApplicationModel.IManifestExpressionProvider manifestExpressionProvider, Docker.DockerComposeServiceResource dockerComposeService) { throw null; }
+
+        public static string AsEnvironmentPlaceholder(this ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> builder, Docker.DockerComposeServiceResource dockerComposeService) { throw null; }
+
+        public static string AsEnvironmentPlaceholder(this ApplicationModel.ParameterResource parameter, Docker.DockerComposeServiceResource dockerComposeService) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> PublishAsDockerComposeService<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Docker.DockerComposeServiceResource, Docker.Resources.ComposeNodes.Service> configure)
+            where T : ApplicationModel.IComputeResource { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Docker
 {
-    public sealed partial class DockerComposePublisherOptions : Publishing.PublishingOptions
+    public partial class DockerComposeEnvironmentResource : ApplicationModel.Resource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
+        public DockerComposeEnvironmentResource(string name) : base(default!) { }
+
+        public bool BuildContainerImages { get { throw null; } set { } }
+
         public string? DefaultContainerRegistry { get { throw null; } set { } }
 
-        public string? ExistingNetworkName { get { throw null; } set { } }
+        public string? DefaultNetworkName { get { throw null; } set { } }
+    }
+
+    public sealed partial class DockerComposeServiceCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public DockerComposeServiceCustomizationAnnotation(System.Action<DockerComposeServiceResource, Resources.ComposeNodes.Service> configure) { }
+
+        public System.Action<DockerComposeServiceResource, Resources.ComposeNodes.Service> Configure { get { throw null; } }
+    }
+
+    public partial class DockerComposeServiceResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<DockerComposeEnvironmentResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    {
+        public DockerComposeServiceResource(string name, ApplicationModel.IResource resource, DockerComposeEnvironmentResource composeEnvironmentResource) : base(default!) { }
+
+        public DockerComposeEnvironmentResource Parent { get { throw null; } }
     }
 }
 

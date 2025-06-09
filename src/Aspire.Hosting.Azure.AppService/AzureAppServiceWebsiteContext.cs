@@ -99,7 +99,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: null, // App Service manages internal port mapping
+                TargetPort: endpoint.TargetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }
@@ -181,6 +181,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             return (new BicepFormatString(expr.Format, args), finalSecretType);
         }
 
+        if (value is IManifestExpressionProvider manifestExpressionProvider)
+        {
+            return (AllocateParameter(manifestExpressionProvider, secretType), secretType);
+        }
+
         throw new NotSupportedException($"Unsupported value type {value.GetType()}");
     }
 
@@ -212,9 +217,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             // Use the host name as the name of the web app
             Name = HostName,
             AppServicePlanId = appServicePlanParameter,
+            // Creating the app service with new sidecar configuration
             SiteConfig = new SiteConfigProperties()
             {
-                LinuxFxVersion = BicepFunction.Interpolate($"DOCKER|{containerImage}"),
+                LinuxFxVersion = "SITECONTAINERS",
                 AcrUserManagedIdentityId = acrClientIdParameter,
                 UseManagedIdentityCreds = true,
                 AppSettings = []
@@ -225,6 +231,19 @@ internal sealed class AzureAppServiceWebsiteContext(
                 UserAssignedIdentities = []
             },
         };
+
+        // Defining the main container for the app service
+        var mainContainer = new SiteContainer("mainContainer")
+        {
+            Parent = webSite,
+            Name = "main",
+            Image = containerImage,
+            AuthType = SiteContainerAuthType.UserAssigned,
+            UserManagedIdentityClientId = acrClientIdParameter,
+            IsMain = true
+        };
+
+        infra.Add(mainContainer);
 
         foreach (var kv in EnvironmentVariables)
         {

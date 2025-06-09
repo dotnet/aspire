@@ -178,7 +178,9 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        var annotation = new ContainerMountAnnotation(Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory), target, ContainerMountType.BindMount, isReadOnly);
+        // If the source is a rooted path, use it directly without resolution
+        var sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 
@@ -417,7 +419,6 @@ public static class ContainerResourceBuilderExtensions
 
         return builder.WithAnnotation(new ContainerImagePullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
-
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
@@ -789,8 +790,8 @@ public static class ContainerResourceBuilderExtensions
     /// builder.AddContainer("mycontainer", "myimage")
     ///     .WithContainerFiles("/", (context, cancellationToken) =>
     ///     {
-    ///         var appModel = context.ServiceProvider.GetRequiredService{DistributedApplicationModel}();
-    ///         var postgresInstances = appModel.Resources.OfType{PostgresDatabaseResource}();
+    ///         var appModel = context.ServiceProvider.GetRequiredService&lt;DistributedApplicationModel&gt;();
+    ///         var postgresInstances = appModel.Resources.OfType&lt;PostgresDatabaseResource&gt;();
     ///
     ///         return [
     ///             new ContainerDirectory
@@ -832,6 +833,56 @@ public static class ContainerResourceBuilderExtensions
         };
 
         builder.Resource.Annotations.Add(annotation);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container by copying them from a source path on the host.
+    /// In run mode, this will copy the files from the host to the container at runtime, allowing for overriding ownership and permissions
+    /// in the container. In publish mode, this will create a bind mount to the source path on the host.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination (absolute) path in the container.</param>
+    /// <param name="sourcePath">The source path on the host to copy files from.</param>
+    /// <param name="defaultOwner">The default owner UID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
+    /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, string sourcePath, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        var sourceFullPath = Path.GetFullPath(sourcePath, builder.ApplicationBuilder.AppHostDirectory);
+
+        if (!Directory.Exists(sourceFullPath) && !File.Exists(sourceFullPath))
+        {
+            throw new InvalidOperationException($"The source path '{sourceFullPath}' does not exist. Ensure the path is correct and accessible.");
+        }
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // In run mode, use copied files as they allow us to configure permissions and ownership and support
+            // remote execution scenarios where the source path may not be accessible from the container runtime.
+            var annotation = new ContainerFileSystemCallbackAnnotation
+            {
+                DestinationPath = destinationPath,
+                Callback = (_, _) => Task.FromResult(ContainerDirectory.GetFileSystemItemsFromPath(sourceFullPath, searchOptions: SearchOption.AllDirectories)),
+                DefaultOwner = defaultOwner,
+                DefaultGroup = defaultGroup,
+                Umask = umask,
+            };
+
+            builder.Resource.Annotations.Add(annotation);
+        }
+        else
+        {
+            // In publish mode, use a bind mount as it is better supported by publish targets
+            builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
+        }
 
         return builder;
     }

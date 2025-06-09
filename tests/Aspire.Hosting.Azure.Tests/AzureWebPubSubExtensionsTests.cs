@@ -4,6 +4,8 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.WebPubSub;
+using Microsoft.Extensions.DependencyInjection;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -59,8 +61,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -104,8 +106,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -134,8 +136,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal(expectedManifest, manifestString);
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -160,8 +162,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         output.WriteLine(manifest.BicepText);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -214,8 +216,8 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedManifest, manifestString);
 
         Assert.Equal("wps1", wps.Resource.Name);
-        await Verifier.Verify(manifest.BicepText, extension: "bicep")
-            .UseHelixAwareDirectory("Snapshots");
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact]
@@ -259,6 +261,93 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Same(hub1.Resource, hub2.Resource);
         Assert.Equal("resource1", hub1.Resource.Name);
         Assert.Equal("same-hub", hub1.Resource.HubName);
+    }
+
+    [Fact]
+    public async Task AddDefaultAzureWebPubSub()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep"
+            }
+            """;
+
+        var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
+
+        Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, wps.Resource);
+
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        Assert.Equal("wps1", wps.Resource.Name);
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        var wpsRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "wps1-roles");
+        var wpsRolesManifest = await GetManifestWithBicep(wpsRoles, skipPreparer: true);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param wps1_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' existing = {
+              name: wps1_outputs_name
+            }
+
+            resource wps1_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(wps1.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalType: principalType
+              }
+              scope: wps1
+            }
+            """;
+        Assert.Equal(expectedBicep, wpsRolesManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureWebPubSubWithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1")
+        .WithParameter("sku", "Standard_S1")
+        .WithParameter("capacity", 2);
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "sku": "Standard_S1",
+                "capacity": 2
+              }
+            }
+            """;
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(wps.Resource);
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        Assert.Equal("wps1", wps.Resource.Name);
+
+        await Verify(manifest.BicepText, extension: "bicep");
     }
 
     private sealed class ProjectA : IProjectMetadata

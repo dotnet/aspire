@@ -61,6 +61,7 @@ steps:
         RunOnlyBasicBuildTemplateTests: true
         # test root path for template test projects
         DEV_TEMP: $(Build.SourcesDirectory)\..
+        DOTNET_ROOT: $(Build.SourcesDirectory)\.dotnet
         TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
       displayName: Run Template tests
 
@@ -74,6 +75,8 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build
+      env:
+        DOTNET_ROOT: "$(Build.SourcesDirectory)/.dotnet"
 
     - task: DockerInstaller@0
       inputs:
@@ -106,7 +109,6 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /maxcpucount:1 /p:BuildInParallel=false $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
-        DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
         DCP_DIAGNOSTICS_LOG_LEVEL: debug

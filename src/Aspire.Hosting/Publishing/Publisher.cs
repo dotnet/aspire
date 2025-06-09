@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -22,7 +24,7 @@ internal class Publisher(
             );
         }
 
-        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath);
+        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, Path.GetFullPath(options.Value.OutputPath));
         return context.WriteModelAsync(model);
     }
 }

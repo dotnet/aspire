@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
@@ -15,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -764,6 +766,20 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.UI.DisableResourceGraph);
+    }
+    [Fact]
+    public async Task ServiceProvider_AppCreated_LoggerProvidersRegistered()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+
+        // Act
+        var loggerProviders = app.Services.GetServices<ILoggerProvider>();
+        var loggerProviderTypes = loggerProviders.Select(p => p.GetType()).ToList();
+
+        // Assert
+        Assert.Contains(typeof(TelemetryLoggerProvider), loggerProviderTypes);
+        Assert.Contains(typeof(ConsoleLoggerProvider), loggerProviderTypes);
     }
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)

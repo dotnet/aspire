@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Тестовый проект .NET Aspire (xUnit)",
-  "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
+  "description": "Проект, содержащий тесты интеграции xUnit.net проекта .NET Aspire AppHost.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

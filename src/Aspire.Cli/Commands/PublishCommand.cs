@@ -76,11 +76,8 @@ internal sealed class PublishCommand : BaseCommand
         {
             using var activity = _activitySource.StartActivity();
 
-            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
-            {
-                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
-            });
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
             {
@@ -228,8 +225,8 @@ internal sealed class PublishCommand : BaseCommand
             if (lastActivityUpdateLookup.Any(kvp => kvp.Value.IsError) || lastActivityUpdateLookup.All(kvp => kvp.Value.IsComplete))
             {
                 // If we have an error or all tasks are complete then we can stop
-                // processing the publishing activities.
-                return false;
+                // processing the publishing activities. Return true if there are no errors.
+                return lastActivityUpdateLookup.All(kvp => !kvp.Value.IsError);
             }
         }
 

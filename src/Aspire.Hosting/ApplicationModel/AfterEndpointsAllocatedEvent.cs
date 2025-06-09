@@ -26,6 +26,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </code>
 /// </example>
 /// </remarks>
+[Obsolete("The AfterEndpointsAllocatedEvent is deprecated and will be removed in a future version. Use the resource specific events BeforeResourceStartedEvent or ResourceEndpointsAllocatedEvent instead depending on your needs.")]
 public class AfterEndpointsAllocatedEvent(IServiceProvider services, DistributedApplicationModel model) : IDistributedApplicationEvent
 {
     /// <summary>

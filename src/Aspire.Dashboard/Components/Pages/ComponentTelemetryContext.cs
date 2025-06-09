@@ -41,8 +41,6 @@ public sealed class ComponentTelemetryContext : IDisposable
     // Internal for testing
     internal Dictionary<string, AspireTelemetryProperty> Properties { get; } = [];
 
-    private DashboardTelemetryService TelemetryService => _telemetryService ?? throw new ArgumentNullException(nameof(_telemetryService), "InitializeAsync has not been called");
-
     public void Initialize(DashboardTelemetryService telemetryService, string? browserUserAgent)
     {
         _telemetryService = telemetryService;
@@ -63,7 +61,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             });
     }
 
-    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties)
+    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
     {
         // Only send updated properties if they are different from the existing ones.
         var anyChange = false;
@@ -84,15 +82,21 @@ public sealed class ComponentTelemetryContext : IDisposable
 
         if (anyChange)
         {
-            PostProperties();
+            PostProperties(logger);
         }
 
         return anyChange;
     }
 
-    private void PostProperties()
+    private void PostProperties(ILogger logger)
     {
-        TelemetryService.PostOperation(
+        if (_telemetryService == null)
+        {
+            logger.LogWarning($"Telemetry service for '{_componentType}' is not initialized. Cannot post properties.");
+            return;
+        }
+
+        _telemetryService.PostOperation(
             TelemetryEventKeys.ParametersSet,
             TelemetryResult.Success,
             properties: Properties,
@@ -103,7 +107,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (!_disposed)
         {
-            TelemetryService.PostOperation(
+            _telemetryService?.PostOperation(
                 TelemetryEventKeys.ComponentDispose,
                 TelemetryResult.Success,
                 properties: new Dictionary<string, AspireTelemetryProperty>

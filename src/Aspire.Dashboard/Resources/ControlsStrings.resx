@@ -123,9 +123,7 @@
   <data name="ChartContainerFiltersHeader" xml:space="preserve">
     <value>Filters</value>
   </data>
-  <data name="ChartContainerSelectFilters" xml:space="preserve">
-    <value>Select filters</value>
-  </data>
+
   <data name="ChartContainerGraphTab" xml:space="preserve">
     <value>Graph</value>
   </data>
@@ -242,9 +240,7 @@
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
     <value>Time</value>
   </data>
-  <data name="MetricTableShowLatestValues" xml:space="preserve">
-    <value>Show latest 10 values</value>
-  </data>
+
   <data name="MetricTableShowOnlyValueChanges" xml:space="preserve">
     <value>Only show value updates</value>
   </data>
@@ -332,9 +328,7 @@
   <data name="StructuredLogsDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
-  <data name="TraceDetailAttributesHeader" xml:space="preserve">
-    <value>Attributes</value>
-  </data>
+
   <data name="SpanDetailsContextHeader" xml:space="preserve">
     <value>Context</value>
   </data>
@@ -401,15 +395,7 @@
   <data name="FluentDataGridHeaderCellSubmitAriaLabelText" xml:space="preserve">
     <value>Set column widths</value>
   </data>
-  <data name="StructuredFilteringFilters" xml:space="preserve">
-    <value>Filters</value>
-  </data>
-  <data name="StructuredFilteringNoFilters" xml:space="preserve">
-    <value>No filters</value>
-  </data>
-  <data name="StructuredFilteringAddFilter" xml:space="preserve">
-    <value>Add filter</value>
-  </data>
+
   <data name="LabelEmpty" xml:space="preserve">
     <value>(Empty)</value>
   </data>

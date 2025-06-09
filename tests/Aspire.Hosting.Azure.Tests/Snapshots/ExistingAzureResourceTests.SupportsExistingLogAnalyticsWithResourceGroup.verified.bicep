@@ -8,3 +8,5 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' exis
 }
 
 output logAnalyticsWorkspaceId string = logAnalytics.id
+
+output name string = existingResourceName

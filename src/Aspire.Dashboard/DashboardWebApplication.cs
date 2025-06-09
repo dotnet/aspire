@@ -240,6 +240,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddScoped<ComponentTelemetryContextProvider>();
         builder.Services.TryAddSingleton<DashboardTelemetryService>();
         builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
+        builder.Services.AddSingleton<ILoggerProvider, TelemetryLoggerProvider>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -443,6 +444,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
+        _app.MapDashboardBlazor();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

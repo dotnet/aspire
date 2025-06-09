@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -27,6 +28,11 @@ internal sealed class DockerComposePublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
+    private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
+    private const UnixFileMode MaxDefaultFilePermissions = UnixFileMode.UserRead | UnixFileMode.UserWrite |
+        UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+        UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
+
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
     public readonly string OutputPath = outputPath;
 
@@ -65,7 +71,11 @@ internal sealed class DockerComposePublishingContext(
         var composeFile = new ComposeFile();
         composeFile.AddNetwork(defaultNetwork);
 
-        foreach (var resource in model.Resources)
+        IEnumerable<IResource> resources = environment.Dashboard?.Resource is IResource r
+                ? [r, .. model.Resources]
+                : model.Resources;
+
+        foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
@@ -82,6 +92,18 @@ internal sealed class DockerComposePublishingContext(
                 [
                     defaultNetwork.Name,
                 ];
+
+                if (serviceResource.TargetResource.TryGetAnnotationsOfType<ContainerFileSystemCallbackAnnotation>(out var fsAnnotations))
+                {
+                    foreach (var a in fsAnnotations)
+                    {
+                        var files = await a.Callback(new() { Model = serviceResource.TargetResource, ServiceProvider = executionContext.ServiceProvider }, CancellationToken.None).ConfigureAwait(false);
+                        foreach (var file in files)
+                        {
+                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath);
+                        }
+                    }
+                }
 
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<DockerComposeServiceCustomizationAnnotation>(out var annotations))
                 {
@@ -121,6 +143,64 @@ internal sealed class DockerComposePublishingContext(
         }
 
         envFile.Save(envFilePath);
+    }
+
+    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
+    {
+        if (item is ContainerDirectory dir)
+        {
+            foreach (var dirItem in dir.Entries)
+            {
+                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name);
+            }
+
+            return;
+        }
+
+        if (item is ContainerFile file)
+        {
+            var name = composeService.Name + "_" + path.Replace('/', '_') + "_" + file.Name;
+
+            // If there is a source path, we should copy the file to the output path and use that instead.
+            string? sourcePath = null;
+            if (!string.IsNullOrEmpty(file.SourcePath))
+            {
+                try
+                {
+                    // Determine the path to copy the file to
+                    sourcePath = Path.Combine(OutputPath, composeService.Name, Path.GetFileName(file.SourcePath));
+                    // Files will be copied to a subdirectory named after the service
+                    Directory.CreateDirectory(Path.Combine(OutputPath, composeService.Name));
+                    File.Copy(file.SourcePath, sourcePath);
+                    // Use a relative path for the compose file to make it portable
+                    // Use unix style path separators even on Windows
+                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath).Replace('\\', '/');
+                }
+                catch
+                {
+                    logger.FailedToCopyFile(file.SourcePath, OutputPath);
+                    throw;
+                }
+            }
+
+            composeFile.AddConfig(new()
+            {
+                Name = name,
+                File = sourcePath,
+                Content = file.Contents,
+            });
+
+            composeService.AddConfig(new()
+            {
+                Source = name,
+                Target = path + "/" + file.Name,
+                Uid = (item.Owner ?? uid)?.ToString(CultureInfo.InvariantCulture),
+                Gid = (item.Group ?? gid)?.ToString(CultureInfo.InvariantCulture),
+                Mode = item.Mode != 0 ? item.Mode : MaxDefaultFilePermissions & ~umask,
+            });
+
+            return;
+        }
     }
 
     private static void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)

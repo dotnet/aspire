@@ -57,7 +57,7 @@ if ($help) {
 }
 
 if ($vs) {
-  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.sln"
+  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.slnx"
 
   . $PSScriptRoot\common\tools.ps1
 

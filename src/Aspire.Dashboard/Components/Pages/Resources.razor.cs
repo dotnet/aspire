@@ -56,6 +56,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+    [Inject]
+    public required ILogger<Resources> Logger { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -165,6 +167,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -225,7 +228,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
-        TelemetryContextProvider.Initialize(TelemetryContext);
         _isLoading = false;
 
         async Task SubscribeResourcesAsync()
@@ -255,9 +257,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                         {
                             UpdateFromResource(
                                 resource,
-                                t => AreAllTypesVisible,
-                                s => AreAllStatesVisible,
-                                s => AreAllHealthStatesVisible);
+                                // The new type/state/health status should be visible if it's either
+                                // 1) new, or
+                                // 2) previously visible
+                                t => !PageViewModel.ResourceTypesToVisibility.TryGetValue(t, out var value) || value,
+                                s => !PageViewModel.ResourceStatesToVisibility.TryGetValue(s, out var value) || value,
+                                s => !PageViewModel.ResourceHealthStatusesToVisibility.TryGetValue(s, out var value) || value);
 
                             if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
                             {
@@ -554,7 +559,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _contextMenuItems.Clear();
             ResourceMenuItems.AddMenuItems(
                 _contextMenuItems,
-                openingMenuButtonId: null,
                 resource,
                 NavigationManager,
                 TelemetryRepository,
@@ -562,8 +566,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 ControlsStringsLoc,
                 Loc,
                 CommandsLoc,
-                (buttonId) => ShowResourceDetailsAsync(resource, buttonId),
-                (command) => ExecuteResourceCommandAsync(resource, command),
+                EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
+                EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
                 showUrls: true);
@@ -858,7 +862,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     {
         _resourcesInteropReference?.Dispose();
         _watchTaskCancellationTokenSource.Cancel();
-        _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
         TelemetryContext.Dispose();
 
@@ -886,9 +889,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         var properties = new List<ComponentTelemetryProperty>
         {
             new(TelemetryPropertyKeys.ResourceView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind.ToString(), AspireTelemetryPropertyType.UserSetting)),
-            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType)).OrderBy(t => t).ToList()))
+            new(TelemetryPropertyKeys.ResourceTypes, new AspireTelemetryProperty(_resourceByName.Values.Select(r => TelemetryPropertyValues.GetResourceTypeTelemetryValue(r.ResourceType, r.SupportsDetailedTelemetry)).OrderBy(t => t).ToList()))
         };
 
-        TelemetryContext.UpdateTelemetryProperties(properties.ToArray());
+        TelemetryContext.UpdateTelemetryProperties(properties.ToArray(), Logger);
     }
 }

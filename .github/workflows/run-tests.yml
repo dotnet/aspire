@@ -59,7 +59,7 @@ jobs:
           }
 
       - name: Setup vars (Linux)
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
@@ -213,7 +213,6 @@ jobs:
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           CI: false
-          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
@@ -236,7 +235,6 @@ jobs:
         id: run-tests
         env:
           CI: false
-          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
@@ -259,25 +257,8 @@ jobs:
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
-      # Save the result of the previous steps - success or failure
-      # in the form of a file result-success/result-failure -{name}.rst
-      - name: Store result - success
-        if: ${{ success() }}
-        run: touch result-success-${{ inputs.testShortName }}.rst
-      - name: Store result - failure
-        if: ${{ !success() }}
-        run: touch result-failed-${{ inputs.testShortName }}.rst
-
-      # Upload that result file to artifact named test-job-result-{name}
-      - name: Upload test result
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}
-          path: result-*.rst
-
       - name: Dump docker info
-        if: always()
+        if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |
           docker container ls --all
           docker container ls --all --format json
@@ -300,11 +281,8 @@ jobs:
         if: always()
         env:
           CI: false
-        run: >
-          test -d ${{ github.workspace }}/testresults &&
-          ${{ github.workspace }}/dotnet.sh
-          run
-          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
-          --
-          ${{ github.workspace }}/testresults
-          -u ${{ steps.upload-logs.outputs.artifact-url }}
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+          }

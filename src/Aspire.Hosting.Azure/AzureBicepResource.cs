@@ -255,6 +255,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         /// <summary>
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
+        [Obsolete("KnownParameters.KeyVaultName is deprecated. Use an AzureKeyVaultResource instead.")]
         public static readonly string KeyVaultName = KeyVaultNameConst;
 
         /// <summary>
@@ -265,6 +266,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         /// <summary>
         /// The resource id of the log analytics workspace.
         /// </summary>
+        [Obsolete("KnownParameters.LogAnalyticsWorkspaceId is deprecated. Use an AzureLogAnalyticsWorkspaceResource instead.")]
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>
@@ -302,6 +304,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// </summary>
 /// <param name="name">The name of the KeyVault secret.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
+[Obsolete("BicepSecretOutputReference is no longer supported. Use IAzureKeyVaultResource instead.")]
 public sealed class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>

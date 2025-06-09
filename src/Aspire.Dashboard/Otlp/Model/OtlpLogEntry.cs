@@ -7,9 +7,11 @@ using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
+[DebuggerDisplay("InternalId = {InternalId}, TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
 {
+    private static long s_nextLogEntryId;
+
     public KeyValuePair<string, string>[] Attributes { get; }
     public DateTime TimeStamp { get; }
     public uint Flags { get; }
@@ -21,11 +23,11 @@ public class OtlpLogEntry
     public string? OriginalFormat { get; }
     public OtlpApplicationView ApplicationView { get; }
     public OtlpScope Scope { get; }
-    public Guid InternalId { get; }
+    public long InternalId { get; }
 
     public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {
-        InternalId = Guid.NewGuid();
+        InternalId = Interlocked.Increment(ref s_nextLogEntryId);
         TimeStamp = ResolveTimeStamp(record);
 
         string? originalFormat = null;
@@ -117,5 +119,36 @@ public class OtlpLogEntry
             KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
             _ => log.Attributes.GetValue(field)
         };
+    }
+
+    public const string ExceptionStackTraceField = "exception.stacktrace";
+    public const string ExceptionMessageField = "exception.message";
+    public const string ExceptionTypeField = "exception.type";
+
+    public static string? GetExceptionText(OtlpLogEntry logEntry)
+    {
+        // exception.stacktrace includes the exception message and type.
+        // https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
+        if (GetProperty(logEntry, ExceptionStackTraceField) is { Length: > 0 } stackTrace)
+        {
+            return stackTrace;
+        }
+
+        if (GetProperty(logEntry, ExceptionMessageField) is { Length: > 0 } message)
+        {
+            if (GetProperty(logEntry, ExceptionTypeField) is { Length: > 0 } type)
+            {
+                return $"{type}: {message}";
+            }
+
+            return message;
+        }
+
+        return null;
+
+        static string? GetProperty(OtlpLogEntry logEntry, string propertyName)
+        {
+            return logEntry.Attributes.GetValue(propertyName);
+        }
     }
 }

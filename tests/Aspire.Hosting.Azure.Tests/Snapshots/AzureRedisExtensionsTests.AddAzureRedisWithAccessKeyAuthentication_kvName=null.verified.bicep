@@ -1,7 +1,7 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
+param redis_cache_kv_outputs_name string
 
 resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
   name: take('rediscache-${uniqueString(resourceGroup().id)}', 63)
@@ -21,7 +21,7 @@ resource redis_cache 'Microsoft.Cache/redis@2024-03-01' = {
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: redis_cache_kv_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

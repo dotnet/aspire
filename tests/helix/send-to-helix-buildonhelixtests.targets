@@ -39,6 +39,7 @@
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
       <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
+      <_TestRunCommandArguments Include="--ignore-exit-code 8" />
     </ItemGroup>
 
     <PropertyGroup>

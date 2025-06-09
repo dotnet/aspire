@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
 using Semver;
@@ -49,10 +50,6 @@ internal sealed class AddCommand : BaseCommand
         versionOption.Description = "The version of the integration to add.";
         Options.Add(versionOption);
 
-        var prereleaseOption = new Option<bool>("--prerelease");
-        prereleaseOption.Description = "Include pre-release versions of the integration when searching.";
-        Options.Add(prereleaseOption);
-
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = "The NuGet source to use for the integration.";
         Options.Add(sourceOption);
@@ -68,25 +65,29 @@ internal sealed class AddCommand : BaseCommand
         {
             var integrationName = parseResult.GetValue<string>("integration");
 
-            var effectiveAppHostProjectFile = await _interactionService.ShowStatusAsync("Locating app host project...", async () =>
-            {
-                var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-                return await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
-            });
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var prerelease = parseResult.GetValue<bool>("--prerelease");
-
             var source = parseResult.GetValue<string?>("--source");
 
             var packages = await _interactionService.ShowStatusAsync(
                 "Searching for Aspire packages...",
-                () => _nuGetPackageCache.GetIntegrationPackagesAsync(effectiveAppHostProjectFile.Directory!, prerelease, source, cancellationToken)
+                () => _nuGetPackageCache.GetIntegrationPackagesAsync(
+                    workingDirectory: effectiveAppHostProjectFile.Directory!, 
+                    prerelease: true, 
+                    source: source, 
+                    cancellationToken: cancellationToken)
                 );
+
+            if (!packages.Any())
+            {
+                throw new EmptyChoicesException("No integration packages were found. Please check your internet connection or NuGet source configuration.");
+            }
 
             var version = parseResult.GetValue<string?>("--version");
 
@@ -135,6 +136,7 @@ internal sealed class AddCommand : BaseCommand
                         effectiveAppHostProjectFile,
                         selectedNuGetPackage.Package.Id,
                         selectedNuGetPackage.Package.Version,
+                        source,
                         addPackageOptions,
                         cancellationToken);
 
@@ -172,6 +174,11 @@ internal sealed class AddCommand : BaseCommand
         catch (OperationCanceledException)
         {
             _interactionService.DisplayCancellationMessage();
+            return ExitCodeConstants.FailedToAddPackage;
+        }
+        catch (EmptyChoicesException ex)
+        {
+            _interactionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)

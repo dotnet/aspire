@@ -29,4 +29,14 @@ public class ContainerMountAnnotationTests
     {
         Assert.Throws<ArgumentException>("isReadOnly", () => new ContainerMountAnnotation(null, "/usr/foo", ContainerMountType.Volume, true));
     }
+
+    [Fact]
+    public void CtorAllowsDockerSocketAsBindMountSource()
+    {
+        var annotation = new ContainerMountAnnotation("/var/run/docker.sock", "/var/run/docker.sock", ContainerMountType.BindMount, false);
+        Assert.Equal("/var/run/docker.sock", annotation.Source);
+        Assert.Equal("/var/run/docker.sock", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+    }
 }

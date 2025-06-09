@@ -67,19 +67,6 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   parent: env
 }
 
-resource env_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(env.id, userPrincipalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
-  properties: {
-    principalId: userPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-  }
-  scope: env
-}
-
-output MANAGED_IDENTITY_NAME string = env_mi.name
-
-output MANAGED_IDENTITY_PRINCIPAL_ID string = env_mi.properties.principalId
-
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = env_law.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = env_law.id

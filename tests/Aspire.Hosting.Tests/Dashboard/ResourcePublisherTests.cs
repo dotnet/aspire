@@ -203,7 +203,8 @@ public class ResourcePublisherTests
             HealthReports = [],
             Commands = [],
             Relationships = [],
-            IsHidden = false
+            IsHidden = false,
+            SupportsDetailedTelemetry = false
         };
     }
 

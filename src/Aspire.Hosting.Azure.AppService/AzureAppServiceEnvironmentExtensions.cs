@@ -59,7 +59,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
             infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             }
@@ -84,8 +86,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 Sku = new AppServiceSkuDescription
                 {
-                    Name = "B1",
-                    Tier = "Basic"
+                    Name = "P0V3",
+                    Tier = "Premium"
                 },
                 Kind = "Linux",
                 IsReserved = true

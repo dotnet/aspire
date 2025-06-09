@@ -126,16 +126,6 @@
   <data name="ContainerMountBindMountsRequireSourceExceptionMessage" xml:space="preserve">
     <value>Bind mounts must specify a source path.</value>
   </data>
-  <data name="ContainerRuntimePrerequisiteMissingExceptionMessage" xml:space="preserve">
-    <value>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
-  </data>
-  <data name="ContainerRuntimeUnhealthyExceptionMessage" xml:space="preserve">
-    <value>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</value>
-  </data>
-  <data name="ContainerRuntimeUnresponsiveExceptionMessage" xml:space="preserve">
-    <value>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</value>
-  </data>
   <data name="DcpDependencyCheckFailedMessage" xml:space="preserve">
     <value>Application orchestrator dependency check returned an error: {0}</value>
   </data>

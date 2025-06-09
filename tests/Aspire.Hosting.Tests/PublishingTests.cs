@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -23,6 +25,7 @@ public class PublishingTests
                     Assert.True(context.CancellationToken.CanBeCanceled);
                     Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
                     Assert.Equal("default", context.ExecutionContext.PublisherName);
+                    Assert.True(Path.IsPathFullyQualified(context.OutputPath));
                     publishedCalled = true;
                     return Task.CompletedTask;
                 });

@@ -72,11 +72,6 @@
         <target state="translated">已偵測到基數限制</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerSelectFilters">
-        <source>Select filters</source>
-        <target state="translated">選取篩選</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">顯示計數</target>
@@ -282,11 +277,6 @@
         <target state="translated">未找到計量資料</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricTableShowLatestValues">
-        <source>Show latest 10 values</source>
-        <target state="translated">顯示最新的 10 個值</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
         <source>Only show value updates</source>
         <target state="translated">僅顯示值更新</target>
@@ -334,7 +324,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="new">Capture paused</target>
+        <target state="translated">擷取已暫停</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -507,21 +497,6 @@
         <target state="translated">狀態</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredFilteringAddFilter">
-        <source>Add filter</source>
-        <target state="translated">新增篩選</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringFilters">
-        <source>Filters</source>
-        <target state="translated">篩選</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringNoFilters">
-        <source>No filters</source>
-        <target state="translated">沒有篩選</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
         <target state="translated">內容</target>
@@ -565,11 +540,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">切換巢狀項目</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceDetailAttributesHeader">
-        <source>Attributes</source>
-        <target state="translated">屬性</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

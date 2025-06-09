@@ -369,7 +369,7 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public async Task WithPgAdminAddsContainer()
+    public void WithPgAdminAddsContainer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithHostPort(8081));
@@ -377,10 +377,7 @@ public class AddPostgresTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // The mount annotation is added in the AfterEndpointsAllocatedEvent.
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
-        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var container = builder.Resources.Single(r => r.Name == "pgadmin");
         var createFile = container.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/pgadmin4", createFile.DestinationPath);
@@ -434,7 +431,7 @@ public class AddPostgresTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithImageTag("8.3"));
 
-        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var container = builder.Resources.Single(r => r.Name == "pgadmin");
         var imageAnnotation = container.Annotations.OfType<ContainerImageAnnotation>().Single();
 
         Assert.Equal("8.3", imageAnnotation.Tag);
@@ -447,7 +444,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
-        Assert.Single(builder.Resources, r => r.Name.EndsWith("-pgadmin"));
+        Assert.Single(builder.Resources, r => r.Name.Equals("pgadmin"));
     }
 
     [Fact]
@@ -455,8 +452,8 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var username = builder.AddParameter("pg-user", "myuser");
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
@@ -468,9 +465,7 @@ public class AddPostgresTests
 
         using var app = builder.Build();
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
-        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+        var pgadmin = builder.Resources.Single(r => r.Name.Equals("pgadmin"));
 
         var createServers = pgadmin.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
@@ -508,15 +503,6 @@ public class AddPostgresTests
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]
@@ -524,8 +510,8 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2").WithPgWeb(pga => pga.WithHostPort(8081));
@@ -540,9 +526,7 @@ public class AddPostgresTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
-        var pgweb = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
+        var pgweb = builder.Resources.Single(r => r.Name.Equals("pgweb"));
         var createBookmarks = pgweb.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
         Assert.Equal("/", createBookmarks.DestinationPath);
@@ -574,15 +558,6 @@ public class AddPostgresTests
                 Assert.Equal(UnixFileMode.None, file.Mode);
                 Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), file.Contents);
             });
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]
