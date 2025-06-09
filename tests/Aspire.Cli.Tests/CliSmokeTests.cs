@@ -19,8 +19,9 @@ public class CliSmokeTests
     [InlineData("", true)]
     [InlineData("en-US", true)]
     [InlineData("fr", true)]
+    [InlineData("fr", true, "DOTNET_CLI_UI_LANGUAGE")]
     [InlineData("el", false)]
-    public async Task LocaleOverrideReturnsExitCode(string locale, bool isValid)
+    public async Task LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
     {
         var expectedErrorMessages = isValid ? 1 : 2;
 
@@ -28,9 +29,9 @@ public class CliSmokeTests
         var oldErrorOutput = Console.Error;
         Console.SetError(errorWriter);
 
-        Environment.SetEnvironmentVariable("ASPIRE_LOCALE_OVERRIDE", locale);
+        Environment.SetEnvironmentVariable(environmentVariableName, locale);
         await Program.Main([]);
-        Environment.SetEnvironmentVariable("ASPIRE_LOCALE_OVERRIDE", null);
+        Environment.SetEnvironmentVariable(environmentVariableName, null);
 
         var errorOutput = errorWriter.ToString().Trim();
         Assert.Equal(expectedErrorMessages, errorOutput.Count(c => c == '\n') + 1);

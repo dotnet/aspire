@@ -181,7 +181,10 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        if (Environment.GetEnvironmentVariable(KnownConfigNames.LocaleOverride) is { } localeOverride)
+        var localeOverride = Environment.GetEnvironmentVariable(KnownConfigNames.CliLocaleOverride)
+                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
+                             ?? Environment.GetEnvironmentVariable("DOTNET_CLI_UI_LANGUAGE");
+        if (localeOverride is not null)
         {
             if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
             {
