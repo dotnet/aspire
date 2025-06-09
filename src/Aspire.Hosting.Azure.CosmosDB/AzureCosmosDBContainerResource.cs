@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Azure.Cosmos;
 
 namespace Aspire.Hosting.Azure;
 
@@ -24,7 +23,7 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// <param name="parent">The parent Azure Cosmos DB database resource.</param>
     public AzureCosmosDBContainerResource(string name, string containerName, IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(name)
     {
-        ContainerName = ThrowIfNullOrEmpty(containerName);
+        ArgumentException.ThrowIfNullOrEmpty(containerName);
         ArgumentNullException.ThrowIfNull(partitionKeyPaths);
         var partitionKeyPathsArray = partitionKeyPaths.ToArray();
         if (partitionKeyPathsArray.Length == 0)
@@ -35,8 +34,8 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
         {
             throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(partitionKeyPaths));
         }
+        ContainerProperties = new ContainerProperties(containerName, partitionKeyPathsArray);
 
-        PartitionKeyPaths = partitionKeyPathsArray;
         Parent = parent ?? throw new ArgumentNullException(nameof(parent));
     }
 
@@ -47,29 +46,45 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// <param name="containerName">The container name.</param>
     /// <param name="partitionKeyPath">The partition key path.</param>
     /// <param name="parent">The parent Azure Cosmos DB database resource.</param>
-    [Obsolete("Use the overload that supports the hierarchical partition keys instead.")]
-    public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent)
-        : this(name, containerName, [partitionKeyPath], parent) { }
+    public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent) : base(name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(containerName);
+        ArgumentException.ThrowIfNullOrEmpty(partitionKeyPath);
+        ContainerProperties = new ContainerProperties(containerName, partitionKeyPath);
+        Parent = parent ?? throw new ArgumentNullException(nameof(parent));
+    }
 
     /// <summary>
     /// Gets or sets the container name.
     /// </summary>
-    public string ContainerName { get; set; }
+    public string ContainerName
+    {
+        get => ContainerProperties.Id;
+        set => ContainerProperties.Id = value;
+    }
+
+    /// <summary>
+    /// Gets the container properties for this azure cosmos db container resouce.
+    /// </summary>
+    public ContainerProperties ContainerProperties { get; private init; }
 
     /// <summary>
     /// Gets or sets the partition key path.
     /// </summary>
-    [Obsolete($"Use {nameof(PartitionKeyPaths)} instead.")]
     public string PartitionKeyPath
     {
-        get => PartitionKeyPaths[0];
-        set => PartitionKeyPaths = [ThrowIfNullOrEmpty(value)];
+        get => ContainerProperties.PartitionKeyPath;
+        set => ContainerProperties.PartitionKeyPath = value;
     }
 
     /// <summary>
     /// Gets or sets the hierarchical partition keys.
     /// </summary>
-    public IReadOnlyList<string> PartitionKeyPaths { get; private set; }
+    public IReadOnlyList<string> PartitionKeyPaths
+    {
+        get => ContainerProperties.PartitionKeyPaths;
+        set => ContainerProperties.PartitionKeyPaths = value;
+    }
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB database resource.
@@ -97,11 +112,5 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
             target[$"Aspire__Microsoft__EntityFrameworkCore__Cosmos__{connectionName}__ContainerName"] = ContainerName;
             target[$"Aspire__Microsoft__Azure__Cosmos__{connectionName}__ContainerName"] = ContainerName;
         }
-    }
-
-    private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
-        return argument;
     }
 }
