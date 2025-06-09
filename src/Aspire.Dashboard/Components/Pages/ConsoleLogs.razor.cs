@@ -713,20 +713,32 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
-        if (_resources is not null && ResourceName is not null)
+        if (_resources is not null)
         {
-            viewModel.SelectedOption = GetSelectedOption();
-            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
-            viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
-        }
-        else
-        {
-            viewModel.SelectedOption = _noSelection;
-            viewModel.SelectedResource = null;
-            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            if (ResourceName is not null)
+            {
+                viewModel.SelectedOption = GetSelectedOption();
+                viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
+                viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+                return Task.CompletedTask;
+            }
+            else if (TryGetSingleResource() is { } r)
+            {
+                viewModel.SelectedResource = r;
+                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+            }
         }
 
+        viewModel.SelectedOption = _noSelection;
+        viewModel.SelectedResource = null;
+        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         return Task.CompletedTask;
+
+        ResourceViewModel? TryGetSingleResource()
+        {
+            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden()).ToList();
+            return actualResources.Count == 1 ? actualResources[0] : null;
+        }
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
