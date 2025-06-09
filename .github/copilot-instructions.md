@@ -57,6 +57,14 @@ Note that tests for a project can be executed without first building from the ro
 
 Example: `[QuarantinedTest("..issue url..")]`
 
+## Snapshot Testing with Verify
+
+* We use the Verify library (Verify.XunitV3) for snapshot testing in several test projects.
+* Snapshot files are stored in `Snapshots` directories within test projects.
+* When tests that use snapshot testing are updated and generate new output, the snapshots need to be accepted.
+* Use `dotnet verify accept -y` to accept all pending snapshot changes after running tests.
+* The verify tool is available globally as part of the copilot setup.
+
 ## Editing resources
 
 The `*.Designer.cs` files are in the repo, but are intended to match same named `*.resx` files. If you add/remove/change resources in a resx, make the matching changes in the `*.Designer.cs` file that matches that resx.
