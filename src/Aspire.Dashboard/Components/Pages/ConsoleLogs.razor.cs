@@ -724,6 +724,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             else if (TryGetSingleResource() is { } r)
             {
+                // If there is no app selected and there is only one application available, select it.
                 viewModel.SelectedResource = r;
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }

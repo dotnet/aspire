@@ -62,8 +62,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
 
-        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var navigationManager = Services.GetRequiredService<NavigationManager>();
+
+        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var changeHandler = navigationManager.RegisterLocationChangingHandler(c =>
         {
             targetLocationTcs.SetResult(c.TargetLocation);
