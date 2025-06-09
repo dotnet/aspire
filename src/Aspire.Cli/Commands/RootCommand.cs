@@ -17,8 +17,14 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, IInteractionService interactionService)
-        : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
+    public RootCommand(
+        NewCommand newCommand,
+        RunCommand runCommand,
+        AddCommand addCommand,
+        PublishCommand publishCommand,
+        ExecCommand execCommand,
+        IInteractionService interactionService)
+        : base("The Aspire CLI c an be used to create, run, and publish Aspire-based applications.")
     {
         ArgumentNullException.ThrowIfNull(newCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
@@ -70,5 +76,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
+        Subcommands.Add(execCommand);
     }
 }

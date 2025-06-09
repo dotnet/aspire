@@ -9,6 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Spectre.Console;
+
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand

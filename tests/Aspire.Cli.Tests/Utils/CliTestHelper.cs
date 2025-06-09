@@ -44,11 +44,9 @@ internal static class CliTestHelper
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
-        services.AddTransient<RootCommand>();
-        services.AddTransient<NewCommand>();
-        services.AddTransient<RunCommand>();
-        services.AddTransient<AddCommand>();
-        services.AddTransient<PublishCommand>();
+
+        Program.RegisterCommands(services);
+
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;

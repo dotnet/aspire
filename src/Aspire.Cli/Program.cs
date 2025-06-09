@@ -92,8 +92,9 @@ public class Program
                     nameof(NewCommand),
                     nameof(RunCommand),
                     nameof(AddCommand),
-                    nameof(PublishCommand)
-                    );
+                    nameof(PublishCommand),
+                    nameof(ExecCommand)
+                );
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
@@ -134,15 +135,23 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
-        // Commands.
-        builder.Services.AddTransient<NewCommand>();
-        builder.Services.AddTransient<RunCommand>();
-        builder.Services.AddTransient<AddCommand>();
-        builder.Services.AddTransient<PublishCommand>();
-        builder.Services.AddTransient<RootCommand>();
+        RegisterCommands(builder.Services);
 
         var app = builder.Build();
         return app;
+    }
+
+    internal static void RegisterCommands(IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        
+        services.AddTransient<RootCommand>();
+        
+        services.AddTransient<NewCommand>();
+        services.AddTransient<RunCommand>();
+        services.AddTransient<AddCommand>();
+        services.AddTransient<PublishCommand>();
+        services.AddTransient<ExecCommand>();
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
