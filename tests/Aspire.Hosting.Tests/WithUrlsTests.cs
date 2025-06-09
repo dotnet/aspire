@@ -397,7 +397,7 @@ public class WithUrlsTests
     }
 
     [Fact]
-    public async Task UrlsAreInExepctedStateForResourcesGivenTheirLifecycle()
+    public async Task UrlsAreInExpectedStateForResourcesGivenTheirLifecycle()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
