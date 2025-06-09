@@ -118,7 +118,7 @@ internal sealed class BicepProvisioner(
             Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", resourceGroup.Id.Name),
-                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
+                new("azure.tenant.domain", context.Tenant.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
             ])
         }).ConfigureAwait(false);
@@ -159,7 +159,7 @@ internal sealed class BicepProvisioner(
         })
         .ConfigureAwait(false);
 
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
 
         var deployments = resourceGroup.GetArmDeployments();
 
@@ -189,7 +189,7 @@ internal sealed class BicepProvisioner(
         await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -201,7 +201,7 @@ internal sealed class BicepProvisioner(
         }
         else
         {
-            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -209,7 +209,7 @@ internal sealed class BicepProvisioner(
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
         var az = context.UserSecrets.Prop("Azure");
-        az["Tenant"] = context.Tenant.Data.DefaultDomain;
+        az["Tenant"] = context.Tenant.DefaultDomain;
 
         var resourceConfig = context.UserSecrets
             .Prop("Azure")
@@ -315,8 +315,8 @@ internal sealed class BicepProvisioner(
     {
         var prefix = PortalDeploymentOverviewUrl;
 
-        var subId = provisioningContext.Subscription.Data.Id.ToString();
-        var rgName = resourceGroup.Data.Name;
+        var subId = provisioningContext.Subscription.Id.ToString();
+        var rgName = resourceGroup.Name;
         var subAndRg = $"{subId}/resourceGroups/{rgName}";
 
         var deployId = deploymentName;

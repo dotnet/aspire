@@ -15,16 +15,11 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class DefaultResourceGroupResource(ResourceGroupResource resourceGroupResource) : IResourceGroupResource
 {
     public ResourceIdentifier Id => resourceGroupResource.Id;
-    public IResourceGroupData Data { get; } = new DefaultResourceGroupData(resourceGroupResource.Data);
+    public string Name => resourceGroupResource.Data.Name;
 
     public IArmDeploymentCollection GetArmDeployments()
     {
         return new DefaultArmDeploymentCollection(resourceGroupResource.GetArmDeployments());
-    }
-
-    private sealed class DefaultResourceGroupData(ResourceGroupData resourceGroupData) : IResourceGroupData
-    {
-        public string Name => resourceGroupData.Name;
     }
 
     private sealed class DefaultArmDeploymentCollection(ArmDeploymentCollection armDeploymentCollection) : IArmDeploymentCollection

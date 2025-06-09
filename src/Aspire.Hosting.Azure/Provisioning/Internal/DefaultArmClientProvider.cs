@@ -29,7 +29,7 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
 
             await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
             {
-                if (tenant.Data.TenantId == subscription.Data.TenantId)
+                if (tenant.Data.TenantId == subscriptionResource.TenantId)
                 {
                     tenantResource = new DefaultTenantResource(tenant);
                     break;
@@ -38,7 +38,7 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
 
             if (tenantResource is null)
             {
-                throw new InvalidOperationException($"Could not find tenant id {subscription.Data.TenantId} for subscription {subscription.Data.DisplayName}.");
+                throw new InvalidOperationException($"Could not find tenant id {subscriptionResource.TenantId} for subscription {subscriptionResource.DisplayName}.");
             }
 
             return (subscriptionResource, tenantResource);
@@ -46,13 +46,8 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
 
         private sealed class DefaultTenantResource(TenantResource tenantResource) : ITenantResource
         {
-            public ITenantData Data { get; } = new DefaultTenantData(tenantResource.Data);
-
-            private sealed class DefaultTenantData(TenantData tenantData) : ITenantData
-            {
-                public Guid? TenantId => tenantData.TenantId;
-                public string? DefaultDomain => tenantData.DefaultDomain;
-            }
+            public Guid? TenantId => tenantResource.Data.TenantId;
+            public string? DefaultDomain => tenantResource.Data.DefaultDomain;
         }
     }
 }

@@ -127,8 +127,7 @@ public class DefaultProvisioningContextProviderTests
 
         // Assert
         Assert.NotNull(context.ResourceGroup);
-        Assert.NotNull(context.ResourceGroup.Data);
-        Assert.NotNull(context.ResourceGroup.Data.Name);
+        Assert.NotNull(context.ResourceGroup.Name);
         
         // Verify that the resource group name was saved to user secrets
         var azureSettings = userSecrets["Azure"] as JsonObject;
@@ -162,8 +161,7 @@ public class DefaultProvisioningContextProviderTests
 
         // Assert
         Assert.NotNull(context.ResourceGroup);
-        Assert.NotNull(context.ResourceGroup.Data);
-        Assert.Equal(resourceGroupName, context.ResourceGroup.Data.Name);
+        Assert.Equal(resourceGroupName, context.ResourceGroup.Name);
     }
 
     [Fact]
@@ -220,9 +218,8 @@ public class DefaultProvisioningContextProviderTests
 
         // Assert
         Assert.NotNull(context.Tenant);
-        Assert.NotNull(context.Tenant.Data);
-        Assert.Equal(Guid.Parse("87654321-4321-4321-4321-210987654321"), context.Tenant.Data.TenantId);
-        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.Data.DefaultDomain);
+        Assert.Equal(Guid.Parse("87654321-4321-4321-4321-210987654321"), context.Tenant.TenantId);
+        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
     }
 
     private static IOptions<AzureProvisionerOptions> CreateOptions(

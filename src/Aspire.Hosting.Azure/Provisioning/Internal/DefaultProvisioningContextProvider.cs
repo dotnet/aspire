@@ -43,8 +43,8 @@ internal sealed class DefaultProvisioningContextProvider(
 
         var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Data.Id);
-        logger.LogInformation("Tenant: {tenantId}", tenantResource.Data.TenantId);
+        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
+        logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
 
         if (string.IsNullOrEmpty(_options.Location))
         {
@@ -98,7 +98,7 @@ internal sealed class DefaultProvisioningContextProvider(
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
 
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
+            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
         }
         catch (Exception)
         {
@@ -116,7 +116,7 @@ internal sealed class DefaultProvisioningContextProvider(
             var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;
 
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
+            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);

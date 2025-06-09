@@ -115,7 +115,8 @@ internal sealed class TestArmClient : IArmClient
 internal sealed class TestSubscriptionResource : ISubscriptionResource
 {
     public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012");
-    public ISubscriptionData Data { get; } = new TestSubscriptionData();
+    public string? DisplayName { get; } = "Test Subscription";
+    public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
 
     public Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default)
     {
@@ -126,16 +127,6 @@ internal sealed class TestSubscriptionResource : ISubscriptionResource
     {
         return new TestResourceGroupCollection();
     }
-}
-
-/// <summary>
-/// Test implementation of <see cref="ISubscriptionData"/>.
-/// </summary>
-internal sealed class TestSubscriptionData : ISubscriptionData
-{
-    public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012");
-    public string? DisplayName { get; } = "Test Subscription";
-    public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
 }
 
 /// <summary>
@@ -162,28 +153,18 @@ internal sealed class TestResourceGroupCollection : IResourceGroupCollection
 /// </summary>
 internal sealed class TestResourceGroupResource : IResourceGroupResource
 {
-    private readonly string _name;
-
     public TestResourceGroupResource(string name = "test-rg")
     {
-        _name = name;
+        Name = name;
     }
 
     public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg");
-    public IResourceGroupData Data => new TestResourceGroupData(_name);
+    public string Name { get; }
 
     public IArmDeploymentCollection GetArmDeployments()
     {
         return new TestArmDeploymentCollection();
     }
-}
-
-/// <summary>
-/// Test implementation of <see cref="IResourceGroupData"/>.
-/// </summary>
-internal sealed class TestResourceGroupData(string name) : IResourceGroupData
-{
-    public string Name { get; } = name;
 }
 
 /// <summary>
@@ -207,14 +188,6 @@ internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 /// Test implementation of <see cref="ITenantResource"/>.
 /// </summary>
 internal sealed class TestTenantResource : ITenantResource
-{
-    public ITenantData Data { get; } = new TestTenantData();
-}
-
-/// <summary>
-/// Test implementation of <see cref="ITenantData"/>.
-/// </summary>
-internal sealed class TestTenantData : ITenantData
 {
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
     public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";

@@ -14,7 +14,8 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class DefaultSubscriptionResource(SubscriptionResource subscriptionResource) : ISubscriptionResource
 {
     public ResourceIdentifier Id => subscriptionResource.Id;
-    public ISubscriptionData Data { get; } = new DefaultSubscriptionData(subscriptionResource.Data);
+    public string? DisplayName => subscriptionResource.Data.DisplayName;
+    public Guid? TenantId => subscriptionResource.Data.TenantId;
 
     public async Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default)
     {
@@ -25,13 +26,6 @@ internal sealed class DefaultSubscriptionResource(SubscriptionResource subscript
     public IResourceGroupCollection GetResourceGroups()
     {
         return new DefaultResourceGroupCollection(subscriptionResource.GetResourceGroups());
-    }
-
-    private sealed class DefaultSubscriptionData(SubscriptionData subscriptionData) : ISubscriptionData
-    {
-        public ResourceIdentifier Id => subscriptionData.Id;
-        public string? DisplayName => subscriptionData.DisplayName;
-        public Guid? TenantId => subscriptionData.TenantId;
     }
 
     private sealed class DefaultResourceGroupCollection(ResourceGroupCollection resourceGroupCollection) : IResourceGroupCollection

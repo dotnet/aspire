@@ -36,9 +36,9 @@ public class ProvisioningContextTests
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext();
 
         // Assert
-        Assert.Equal("Test Subscription", context.Subscription.Data.DisplayName);
-        Assert.Contains("subscriptions", context.Subscription.Data.Id.ToString());
-        Assert.NotNull(context.Subscription.Data.TenantId);
+        Assert.Equal("Test Subscription", context.Subscription.DisplayName);
+        Assert.Contains("subscriptions", context.Subscription.Id.ToString());
+        Assert.NotNull(context.Subscription.TenantId);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class ProvisioningContextTests
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext();
 
         // Assert
-        Assert.Equal("test-rg", context.ResourceGroup.Data.Name);
+        Assert.Equal("test-rg", context.ResourceGroup.Name);
         Assert.Contains("resourceGroups", context.ResourceGroup.Id.ToString());
     }
 
@@ -59,8 +59,8 @@ public class ProvisioningContextTests
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext();
 
         // Assert
-        Assert.NotNull(context.Tenant.Data.TenantId);
-        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.Data.DefaultDomain);
+        Assert.NotNull(context.Tenant.TenantId);
+        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
     }
 
     [Fact]
@@ -99,9 +99,9 @@ public class ProvisioningContextTests
 
         // Assert
         Assert.NotNull(subscription);
-        Assert.Equal("Test Subscription", subscription.Data.DisplayName);
+        Assert.Equal("Test Subscription", subscription.DisplayName);
         Assert.NotNull(tenant);
-        Assert.NotNull(tenant.Data.TenantId);
+        Assert.NotNull(tenant.TenantId);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class ProvisioningContextTests
         // Assert
         Assert.NotNull(resourceGroups);
         Assert.NotNull(response);
-        Assert.Equal("test-rg", response.Value.Data.Name);
+        Assert.Equal("test-rg", response.Value.Name);
     }
 
     [Fact]

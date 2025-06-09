@@ -93,9 +93,14 @@ internal interface ISubscriptionResource
     ResourceIdentifier Id { get; }
 
     /// <summary>
-    /// Gets subscription data.
+    /// Gets the subscription display name.
     /// </summary>
-    ISubscriptionData Data { get; }
+    string? DisplayName { get; }
+
+    /// <summary>
+    /// Gets the tenant ID.
+    /// </summary>
+    Guid? TenantId { get; }
 
     /// <summary>
     /// Gets a resource group.
@@ -106,27 +111,6 @@ internal interface ISubscriptionResource
     /// Gets resource groups collection.
     /// </summary>
     IResourceGroupCollection GetResourceGroups();
-}
-
-/// <summary>
-/// Abstraction for Azure SubscriptionData.
-/// </summary>
-internal interface ISubscriptionData
-{
-    /// <summary>
-    /// Gets the subscription ID.
-    /// </summary>
-    ResourceIdentifier Id { get; }
-
-    /// <summary>
-    /// Gets the subscription display name.
-    /// </summary>
-    string? DisplayName { get; }
-
-    /// <summary>
-    /// Gets the tenant ID.
-    /// </summary>
-    Guid? TenantId { get; }
 }
 
 /// <summary>
@@ -156,25 +140,14 @@ internal interface IResourceGroupResource
     ResourceIdentifier Id { get; }
 
     /// <summary>
-    /// Gets resource group data.
+    /// Gets the resource group name.
     /// </summary>
-    IResourceGroupData Data { get; }
+    string Name { get; }
 
     /// <summary>
     /// Gets ARM deployments collection.
     /// </summary>
     IArmDeploymentCollection GetArmDeployments();
-}
-
-/// <summary>
-/// Abstraction for Azure ResourceGroupData.
-/// </summary>
-internal interface IResourceGroupData
-{
-    /// <summary>
-    /// Gets the resource group name.
-    /// </summary>
-    string Name { get; }
 }
 
 /// <summary>
@@ -196,17 +169,6 @@ internal interface IArmDeploymentCollection
 /// Abstraction for Azure TenantResource.
 /// </summary>
 internal interface ITenantResource
-{
-    /// <summary>
-    /// Gets tenant data.
-    /// </summary>
-    ITenantData Data { get; }
-}
-
-/// <summary>
-/// Abstraction for Azure TenantData.
-/// </summary>
-internal interface ITenantData
 {
     /// <summary>
     /// Gets the tenant ID.
