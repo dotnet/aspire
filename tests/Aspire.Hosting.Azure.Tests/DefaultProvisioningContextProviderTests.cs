@@ -44,7 +44,7 @@ public class DefaultProvisioningContextProviderTests
         Assert.NotNull(context.Subscription);
         Assert.NotNull(context.ResourceGroup);
         Assert.NotNull(context.Tenant);
-        Assert.NotNull(context.Location);
+        Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
         Assert.NotNull(context.UserSecrets);
         Assert.Equal("westus2", context.Location.Name);

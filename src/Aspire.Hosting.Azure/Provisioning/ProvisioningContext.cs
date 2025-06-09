@@ -15,7 +15,7 @@ internal sealed class ProvisioningContext(
     ISubscriptionResource subscription,
     IResourceGroupResource resourceGroup,
     ITenantResource tenant,
-    IAzureLocation location,
+    AzureLocation location,
     UserPrincipal principal,
     JsonObject userSecrets)
 {
@@ -24,7 +24,7 @@ internal sealed class ProvisioningContext(
     public ISubscriptionResource Subscription => subscription;
     public ITenantResource Tenant => tenant;
     public IResourceGroupResource ResourceGroup => resourceGroup;
-    public IAzureLocation Location => location;
+    public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;
 }

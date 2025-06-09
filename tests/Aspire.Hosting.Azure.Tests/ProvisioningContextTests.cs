@@ -25,7 +25,7 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Subscription);
         Assert.NotNull(context.ResourceGroup);
         Assert.NotNull(context.Tenant);
-        Assert.NotNull(context.Location);
+        Assert.NotNull(context.Location.Name);
         Assert.NotNull(context.Principal);
         Assert.NotNull(context.UserSecrets);
     }

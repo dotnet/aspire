@@ -110,7 +110,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
         IResourceGroupResource? resourceGroup;
 
-        IAzureLocation location = new DefaultAzureLocation(new(_options.Location));
+        var location = new AzureLocation(_options.Location);
         try
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
@@ -129,7 +129,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
             logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
-            var rgData = new ResourceGroupData(new AzureLocation(_options.Location));
+            var rgData = new ResourceGroupData(location);
             rgData.Tags.Add("aspire", "true");
             var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;

@@ -225,22 +225,6 @@ internal interface ITenantData
 }
 
 /// <summary>
-/// Abstraction for Azure AzureLocation.
-/// </summary>
-internal interface IAzureLocation
-{
-    /// <summary>
-    /// Gets the location name.
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    /// Returns the string representation of the location.
-    /// </summary>
-    string ToString();
-}
-
-/// <summary>
 /// Provides user principal retrieval functionality.
 /// </summary>
 internal interface IUserPrincipalProvider

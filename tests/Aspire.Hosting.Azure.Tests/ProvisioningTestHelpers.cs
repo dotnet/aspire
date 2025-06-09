@@ -30,7 +30,7 @@ internal static class ProvisioningTestHelpers
         ISubscriptionResource? subscription = null,
         IResourceGroupResource? resourceGroup = null,
         ITenantResource? tenant = null,
-        IAzureLocation? location = null,
+        AzureLocation? location = null,
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null)
     {
@@ -40,7 +40,7 @@ internal static class ProvisioningTestHelpers
             subscription ?? new TestSubscriptionResource(),
             resourceGroup ?? new TestResourceGroupResource(),
             tenant ?? new TestTenantResource(),
-            location ?? new TestAzureLocation(),
+            location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());
     }
@@ -222,16 +222,6 @@ internal sealed class TestTenantData : ITenantData
 {
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
     public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";
-}
-
-/// <summary>
-/// Test implementation of <see cref="IAzureLocation"/>.
-/// </summary>
-internal sealed class TestAzureLocation : IAzureLocation
-{
-    public string Name { get; } = "westus2";
-
-    public override string ToString() => Name;
 }
 
 /// <summary>
