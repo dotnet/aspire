@@ -30,5 +30,14 @@
       "environmentVariables": {
       }
     },
+    "aspire-run-testingAppHost1": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      //C:\code\aspire\artifacts\bin\Aspire.Cli\Debug\net8.0
+      //C:\code\aspire\artifacts\bin\TestingAppHost1.AppHost\Debug\net8.0
+      "commandLineArgs": "run --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\"",
+      "environmentVariables": {
+      }
+    }
   }
 }

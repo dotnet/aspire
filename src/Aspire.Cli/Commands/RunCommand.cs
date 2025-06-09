@@ -104,7 +104,7 @@ internal sealed class RunCommand : BaseCommand
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
-            
+
             appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))

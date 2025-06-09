@@ -3,10 +3,12 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
@@ -81,13 +83,12 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
+        var buildOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector();
 
         var resource = parseResult.GetValue<string?>("--resource");
-        if (string.IsNullOrEmpty(resource))
-        {
-            // target resource is required
-            return ExitCodeConstants.InvalidCommand;
-        }
+        // resource can be missing; if missing it just executes in the context of the apphost
+
         var command = parseResult.GetValue<string?>("--command");
         if (string.IsNullOrEmpty(command))
         {
@@ -102,6 +103,27 @@ internal class ExecCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        return -1;
+        // build stuff here. environment, flags, etc
+        var env = new Dictionary<string, string>();
+        var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+        var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
+
+        var runOptions = new DotNetCliRunnerInvocationOptions
+        {
+            StandardOutputCallback = runOutputCollector.AppendOutput,
+            StandardErrorCallback = runOutputCollector.AppendError,
+        };
+
+        var pendingRun = _runner.RunAsync(
+            effectiveAppHostProjectFile,
+            watch: false, // for now
+            noBuild: false, // for now
+            args: unmatchedTokens,
+            env: env,
+            backchannelCompletionSource: backchannelCompletionSource,
+            options: runOptions,
+            cancellationToken);
+
+        return await pendingRun;
     }
 }

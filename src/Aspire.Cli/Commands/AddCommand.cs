@@ -58,7 +58,7 @@ internal sealed class AddCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
-
+        
         var outputCollector = new OutputCollector();
 
         try
