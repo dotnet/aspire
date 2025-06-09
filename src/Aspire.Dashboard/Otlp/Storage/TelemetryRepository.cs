@@ -1082,7 +1082,7 @@ public sealed class TelemetryRepository : IDisposable
                     continue;
                 }
 
-                var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
+                var appKey = ApplicationKey.Create(uninstrumentedPeer.DisplayName, uninstrumentedPeer.Name);
                 var (app, _) = GetOrAddApplication(appKey, uninstrumentedPeer: true);
                 span.UninstrumentedPeer = app;
             }

@@ -5,15 +5,28 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public readonly record struct ApplicationKey(string Name, string? InstanceId) : IComparable<ApplicationKey>
 {
-    public static ApplicationKey Create(string name)
+    public static ApplicationKey Create(string name, string instanceId)
     {
-        var separator = name.LastIndexOf('-');
-        if (separator == -1)
+        // Check if instanceId combines name, e.g.
+        // name = api
+        // instanceId = api-123
+        // In this situation, subtract name from the instanceId.
+        if (instanceId.Length >= name.Length + 2 &&
+            instanceId.StartsWith(name, StringComparisons.ResourceName) &&
+            instanceId[name.Length] == '-')
         {
-            return new ApplicationKey(Name: name, InstanceId: null);
+            return new ApplicationKey(name, instanceId.Substring(name.Length + 1));
         }
 
-        return new ApplicationKey(Name: name.Substring(0, separator), InstanceId: name.Substring(separator + 1));
+        // Fall back to splitting based on a dash delimiter.
+        // This could fail because there could be a dash in either the name or the instance id.
+        var separator = instanceId.LastIndexOf('-');
+        if (separator == -1)
+        {
+            return new ApplicationKey(Name: instanceId, InstanceId: null);
+        }
+
+        return new ApplicationKey(Name: instanceId.Substring(0, separator), InstanceId: instanceId.Substring(separator + 1));
     }
 
     public int CompareTo(ApplicationKey other)

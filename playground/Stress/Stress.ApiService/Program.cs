@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Resources;
 using Stress.ApiService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
+    .ConfigureResource(b =>
+    {
+        b.AddService(builder.Environment.ApplicationName);
+    })
     .WithTracing(tracing => tracing
         .AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName)
         .AddSource("Services.Api"))
