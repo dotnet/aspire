@@ -55,6 +55,11 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     }
 
     /// <summary>
+    /// Gets the container properties for this azure cosmos db container resource.
+    /// </summary>
+    public ContainerProperties ContainerProperties { get; private init; }
+
+    /// <summary>
     /// Gets or sets the container name.
     /// </summary>
     public string ContainerName
@@ -62,11 +67,6 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
         get => ContainerProperties.Id;
         set => ContainerProperties.Id = value;
     }
-
-    /// <summary>
-    /// Gets the container properties for this azure cosmos db container resouce.
-    /// </summary>
-    public ContainerProperties ContainerProperties { get; private init; }
 
     /// <summary>
     /// Gets or sets the partition key path.
