@@ -48,7 +48,7 @@
 
   <UsingTask
     TaskName="CreateTarGz"
-    TaskFactory="CodeTaskFactory"
+    TaskFactory="RoslynCodeTaskFactory"
     AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
     <ParameterGroup>
       <SourceDirectory ParameterType="System.String" Required="true" />
