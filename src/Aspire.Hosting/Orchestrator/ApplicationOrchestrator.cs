@@ -184,7 +184,7 @@ internal sealed class ApplicationOrchestrator
     {
         var urls = new List<ResourceUrlAnnotation>();
 
-        // Project endpoints to URLS
+        // Project endpoints to URLs
         if (resource.TryGetEndpoints(out var endpoints) && resource is IResourceWithEndpoints resourceWithEndpoints)
         {
             foreach (var endpoint in endpoints)
