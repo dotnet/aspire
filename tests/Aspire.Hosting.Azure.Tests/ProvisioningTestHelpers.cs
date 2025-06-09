@@ -118,11 +118,6 @@ internal sealed class TestSubscriptionResource : ISubscriptionResource
     public string? DisplayName { get; } = "Test Subscription";
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
 
-    public Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IResourceGroupResource>(new TestResourceGroupResource(resourceGroupName));
-    }
-
     public IResourceGroupCollection GetResourceGroups()
     {
         return new TestResourceGroupCollection();

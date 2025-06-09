@@ -17,12 +17,6 @@ internal sealed class DefaultSubscriptionResource(SubscriptionResource subscript
     public string? DisplayName => subscriptionResource.Data.DisplayName;
     public Guid? TenantId => subscriptionResource.Data.TenantId;
 
-    public async Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default)
-    {
-        var resourceGroup = await subscriptionResource.GetResourceGroupAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-        return new DefaultResourceGroupResource(resourceGroup.Value);
-    }
-
     public IResourceGroupCollection GetResourceGroups()
     {
         return new DefaultResourceGroupCollection(subscriptionResource.GetResourceGroups());

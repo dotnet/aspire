@@ -108,7 +108,8 @@ internal sealed class BicepProvisioner(
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
                 ? parameterResource.Value
                 : (string)existingResourceGroup;
-            resourceGroup = await context.Subscription.GetResourceGroupAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
+            var response = await context.Subscription.GetResourceGroups().GetAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
+            resourceGroup = response.Value;
         }
 
         await notificationService.PublishUpdateAsync(resource, state => state with

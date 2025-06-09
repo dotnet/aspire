@@ -103,11 +103,6 @@ internal interface ISubscriptionResource
     Guid? TenantId { get; }
 
     /// <summary>
-    /// Gets a resource group.
-    /// </summary>
-    Task<IResourceGroupResource> GetResourceGroupAsync(string resourceGroupName, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets resource groups collection.
     /// </summary>
     IResourceGroupCollection GetResourceGroups();
