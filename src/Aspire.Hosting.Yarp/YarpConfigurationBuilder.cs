@@ -12,8 +12,8 @@ namespace Aspire.Hosting.Yarp;
 internal sealed class YarpConfigurationBuilder : IYarpConfigurationBuilder
 {
     private string? _configFilePath;
-    private readonly List<ClusterConfig> _clusterConfigs = [];
-    private readonly List<RouteConfig> _routeConfigs = [];
+    private readonly List<ClusterConfig> _clusterConfigs = new List<ClusterConfig>();
+    private readonly List<RouteConfig> _routeConfigs = new List<RouteConfig>();
     private readonly JsonSerializerOptions _serializerOptions;
 
     public YarpConfigurationBuilder()
