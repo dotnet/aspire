@@ -27,3 +27,8 @@ jobs:
       # Install verify tool for snapshot testing
       - name: Install verify tool
         run: ./dotnet.sh tool install --global Verify.Tool --version 0.6.0 || true
+
+      - name: Setup PATH
+        run:
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          echo "$PWD/.dotnet/" >> $GITHUB_PATH
