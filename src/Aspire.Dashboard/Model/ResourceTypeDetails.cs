@@ -32,7 +32,7 @@ public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
             return new ApplicationKey(ReplicaSetName, InstanceId: null);
         }
 
-        return ApplicationKey.Create(ReplicaSetName, InstanceId);
+        return ApplicationKey.Create(name: ReplicaSetName, instanceId: InstanceId);
     }
 
     public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
