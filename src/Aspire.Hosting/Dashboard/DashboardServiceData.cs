@@ -15,14 +15,14 @@ internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
-    private readonly DashboardCommandExecutor _commandExecutor;
+    private readonly ResourceCommandService _commandExecutor;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        DashboardCommandExecutor commandExecutor)
+        ResourceCommandService commandExecutor)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
@@ -88,15 +88,16 @@ internal sealed class DashboardServiceData : IDisposable
 
     internal async Task<(ExecuteCommandResultType result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
     {
-        var logger = _resourceLoggerService.GetLogger(resourceId);
-
-        if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
+        try
         {
-            return await _commandExecutor.ExecuteCommandAsync(resourceId, resource, type, cancellationToken).ConfigureAwait(false);
+            var result = await _commandExecutor.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
-
-        logger.LogInformation("Unable to execute command '{Type}'. Resource '{ResourceId}' not available.", type, resourceId);
-        return (ExecuteCommandResultType.Canceled, null);
+        catch
+        {
+            // Note: Exception is already logged in the command executor.
+            return (ExecuteCommandResultType.Failure, "Unhandled exception thrown while executing command.");
+        }
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()
@@ -137,4 +138,11 @@ internal sealed class DashboardServiceData : IDisposable
             }
         }
     }
+}
+
+internal enum ExecuteCommandResultType
+{
+    Success,
+    Failure,
+    Canceled
 }

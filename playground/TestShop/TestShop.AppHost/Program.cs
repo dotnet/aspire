@@ -82,6 +82,61 @@ builder.AddYarp("apigateway")
        .WithReference(basketService)
        .WithReference(catalogService);
 
+catalogDb.WithCommand(
+    name: "resource-stop-all",
+    displayName: "Stop all",
+    executeCommand: async (c) =>
+    {
+        var commandService = c.ServiceProvider.GetRequiredService<ResourceCommandService>();
+        var model = c.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+
+        var resources = model.Resources
+            .Where(r => r.IsContainer() || r is ProjectResource || r is ExecutableResource)
+            .Where(r => r.Name != KnownResourceNames.AspireDashboard)
+            .ToList();
+
+        var commandTasks = new List<Task>();
+        foreach (var r in resources)
+        {
+            commandTasks.Add(commandService.ExecuteCommandAsync(r, "resource-stop", c.CancellationToken));
+        }
+        await Task.WhenAll(commandTasks).ConfigureAwait(false);
+
+        return CommandResults.Success();
+    },
+    commandOptions: new CommandOptions
+    {
+        IconName = "Stop",
+        IconVariant = IconVariant.Filled,
+    });
+catalogDb.WithCommand(
+    name: "resource-start-all",
+    displayName: "Start all",
+    executeCommand: async (c) =>
+    {
+        var commandService = c.ServiceProvider.GetRequiredService<ResourceCommandService>();
+        var model = c.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+
+        var resources = model.Resources
+            .Where(r => r.IsContainer() || r is ProjectResource || r is ExecutableResource)
+            .Where(r => r.Name != KnownResourceNames.AspireDashboard)
+            .ToList();
+
+        var commandTasks = new List<Task>();
+        foreach (var r in resources)
+        {
+            commandTasks.Add(commandService.ExecuteCommandAsync(r, "resource-start", c.CancellationToken));
+        }
+        await Task.WhenAll(commandTasks).ConfigureAwait(false);
+
+        return CommandResults.Success();
+    },
+    commandOptions: new CommandOptions
+    {
+        IconName = "Play",
+        IconVariant = IconVariant.Filled,
+    });
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
