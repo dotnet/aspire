@@ -28,6 +28,7 @@
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Do not use Directory.SetCurrentDirectory in tests as it can cause side effects when tests execute concurrently.
 
 ## Running tests
 

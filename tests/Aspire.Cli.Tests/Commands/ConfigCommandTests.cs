@@ -16,90 +16,53 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigSetAndGetWork()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+        
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        var provider = services.BuildServiceProvider();
 
-        // For this test, I need to test the actual writing functionality
-        // but without using SetCurrentDirectory. I'll need to create
-        // a test setup that the ConfigurationWriter can work with.
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configuration = provider.GetRequiredService<IConfiguration>();
         
-        // Create .aspire directory in the temp workspace
-        var aspireDir = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire");
-        Directory.CreateDirectory(aspireDir);
+        // Set a configuration value
+        await configWriter.SetConfigurationAsync("testKey", "testValue");
         
-        // Save current directory and change to temp for this test only
-        var originalDir = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
+        // Get the configuration value by rebuilding the service provider to pick up changes
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        provider = services.BuildServiceProvider();
+        configuration = provider.GetRequiredService<IConfiguration>();
         
-        try
-        {
-            var services = CliTestHelper.CreateServiceCollection(outputHelper);
-            var provider = services.BuildServiceProvider();
-
-            var configWriter = provider.GetRequiredService<IConfigurationWriter>();
-            var configuration = provider.GetRequiredService<IConfiguration>();
-            
-            // Set a configuration value
-            await configWriter.SetConfigurationAsync("testKey", "testValue");
-            
-            // Get the configuration value by rebuilding the service provider to pick up changes
-            services = CliTestHelper.CreateServiceCollection(outputHelper);
-            provider = services.BuildServiceProvider();
-            configuration = provider.GetRequiredService<IConfiguration>();
-            
-            var value = configuration["testKey"];
-            
-            Assert.Equal("testValue", value);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(originalDir);
-        }
+        var value = configuration["testKey"];
+        
+        Assert.Equal("testValue", value);
     }
 
     [Fact]
     public async Task ConfigCommandSetWithValidArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        // For this test, I need to test the actual writing functionality
-        // but without using SetCurrentDirectory. I'll need to create
-        // a test setup that the ConfigurationWriter can work with.
         
-        // Create .aspire directory in the temp workspace
-        var aspireDir = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire");
-        Directory.CreateDirectory(aspireDir);
-        
-        // Save current directory and change to temp for this test only
-        var originalDir = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
-        
-        try
-        {
-            var services = CliTestHelper.CreateServiceCollection(outputHelper);
-            var provider = services.BuildServiceProvider();
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        var provider = services.BuildServiceProvider();
 
-            var command = provider.GetRequiredService<RootCommand>();
-            var result = command.Parse("config set testKey testValue");
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("config set testKey testValue");
 
-            var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-            Assert.Equal(0, exitCode);
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
 
-            // Verify the value was set by rebuilding the service provider to pick up changes
-            services = CliTestHelper.CreateServiceCollection(outputHelper);
-            provider = services.BuildServiceProvider();
-            var configuration = provider.GetRequiredService<IConfiguration>();
-            var value = configuration["testKey"];
-            Assert.Equal("testValue", value);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(originalDir);
-        }
+        // Verify the value was set by rebuilding the service provider to pick up changes
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        provider = services.BuildServiceProvider();
+        var configuration = provider.GetRequiredService<IConfiguration>();
+        var value = configuration["testKey"];
+        Assert.Equal("testValue", value);
     }
 
     [Fact]
     public async Task ConfigCommandGetWithValidKey()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.LocalSettingsContent = """{"testKey": "testValue"}""";
         });
@@ -115,7 +78,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task ConfigCommandGetWithInvalidKey()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -128,7 +92,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task ConfigCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -141,7 +106,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task ConfigListWhenEmpty()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -156,53 +122,36 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
         
-        // Create .aspire directory in the temp workspace
-        var aspireDir = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire");
-        Directory.CreateDirectory(aspireDir);
-        
-        // Save current directory and change to temp for this test only
-        var originalDir = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
-        
-        try
-        {
-            var services = CliTestHelper.CreateServiceCollection(outputHelper);
-            var provider = services.BuildServiceProvider();
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        var provider = services.BuildServiceProvider();
 
-            var configWriter = provider.GetRequiredService<IConfigurationWriter>();
-            await configWriter.SetConfigurationAsync("key1", "value1");
-            await configWriter.SetConfigurationAsync("key2", "value2");
+        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        await configWriter.SetConfigurationAsync("key1", "value1");
+        await configWriter.SetConfigurationAsync("key2", "value2");
 
-            // Rebuild service provider to pick up configuration changes
-            services = CliTestHelper.CreateServiceCollection(outputHelper);
-            provider = services.BuildServiceProvider();
+        // Rebuild service provider to pick up configuration changes
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        provider = services.BuildServiceProvider();
 
-            var command = provider.GetRequiredService<RootCommand>();
-            var result = command.Parse("config list");
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("config list");
 
-            var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-            Assert.Equal(0, exitCode);
-        }
-        finally
-        {
-            Directory.SetCurrentDirectory(originalDir);
-        }
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
     }
 
     [Fact]
     public async Task ConfigDeleteExistingKey()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
-
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var configWriter = provider.GetRequiredService<IConfigurationWriter>();
         await configWriter.SetConfigurationAsync("testKey", "testValue");
 
         // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -212,7 +161,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
 
         // Verify the key was deleted by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         provider = services.BuildServiceProvider();
         var configuration = provider.GetRequiredService<IConfiguration>();
         var value = configuration["testKey"];
@@ -222,7 +171,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task ConfigDeleteNonExistentKey()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -237,7 +187,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.WorkingDirectory = tempRepo.WorkspaceRoot;
         });
@@ -255,7 +205,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         await configWriter.SetConfigurationAsync("key2", "value2");
 
         // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.WorkingDirectory = tempRepo.WorkspaceRoot;
         });
@@ -272,9 +222,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigServiceDeleteConfiguration()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var configWriter = provider.GetRequiredService<IConfigurationWriter>();
@@ -289,7 +238,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         Assert.True(deleted);
 
         // Verify it's gone by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         provider = services.BuildServiceProvider();
         var configuration = provider.GetRequiredService<IConfiguration>();
         var value = configuration["testKey"];
@@ -300,9 +249,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigSetGlobalOption()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -327,9 +275,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigDeleteGlobalOption()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         // First set a global value
@@ -347,9 +294,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigSetThenAppHostPathPreservesExistingConfig()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        Directory.SetCurrentDirectory(tempRepo.WorkspaceRoot.FullName);
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var configWriter = provider.GetRequiredService<IConfigurationWriter>();
@@ -361,7 +307,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         await configWriter.SetConfigurationAsync("appHostPath", "./TestProject.AppHost.csproj");
         
         // Verify both values are preserved by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(outputHelper);
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         provider = services.BuildServiceProvider();
         var configuration = provider.GetRequiredService<IConfiguration>();
         

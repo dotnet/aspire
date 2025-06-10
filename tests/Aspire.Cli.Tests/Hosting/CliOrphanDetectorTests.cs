@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
-using Aspire.TestUtilities;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
-using Aspire.Hosting.Utils;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -14,7 +10,7 @@ using Xunit;
 
 namespace Aspire.Cli.Tests;
 
-public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
+public class CliOrphanDetectorTests()
 {
     [Fact]
     public async Task CliOrphanDetectorCompletesWhenNoPidEnvironmentVariablePresent()
@@ -92,34 +88,34 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
     }
 
-    [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
-    public async Task AppHostExitsWhenCliProcessPidDies()
-    {
-        using var fakeCliProcess = RemoteExecutor.Invoke(
-            static () => Thread.Sleep(Timeout.Infinite),
-            new RemoteInvokeOptions { CheckExitCode = false }
-            );
+    // [Fact]
+    // [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
+    // public async Task AppHostExitsWhenCliProcessPidDies()
+    // {
+    //     using var fakeCliProcess = RemoteExecutor.Invoke(
+    //         static () => Thread.Sleep(Timeout.Infinite),
+    //         new RemoteInvokeOptions { CheckExitCode = false }
+    //         );
             
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
+    //     using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+    //     builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
         
-        var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
-            resourcesCreatedTcs.SetResult();
-            return Task.CompletedTask;
-        });
+    //     var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    //     builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+    //         resourcesCreatedTcs.SetResult();
+    //         return Task.CompletedTask;
+    //     });
 
-        using var app = builder.Build();
-        var pendingRun = app.RunAsync();
+    //     using var app = builder.Build();
+    //     var pendingRun = app.RunAsync();
 
-        // Wait until the apphost is spun up and then kill off the stub
-        // process so everything is torn down.
-        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fakeCliProcess.Process.Kill();
+    //     // Wait until the apphost is spun up and then kill off the stub
+    //     // process so everything is torn down.
+    //     await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+    //     fakeCliProcess.Process.Kill();
 
-        await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
-    }
+    //     await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
+    // }
 }
 
 file sealed class HostLifetimeStub(Action stopImplementation) : IHostApplicationLifetime

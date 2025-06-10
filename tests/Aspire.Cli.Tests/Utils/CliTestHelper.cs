@@ -21,9 +21,10 @@ namespace Aspire.Cli.Tests.Utils;
 
 internal static class CliTestHelper
 {
-    public static IServiceCollection CreateServiceCollection(ITestOutputHelper outputHelper, Action<CliServiceCollectionTestOptions>? configure = null)
+    public static IServiceCollection CreateServiceCollection(TemporaryWorkspace workspace, ITestOutputHelper outputHelper, Action<CliServiceCollectionTestOptions>? configure = null)
     {
         var options = new CliServiceCollectionTestOptions(outputHelper);
+        options.WorkingDirectory = workspace.WorkspaceRoot;
         configure?.Invoke(options);
 
         var services = new ServiceCollection();
