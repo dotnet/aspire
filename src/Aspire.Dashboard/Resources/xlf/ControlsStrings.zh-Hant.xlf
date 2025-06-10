@@ -242,10 +242,10 @@
         <target state="translated">(無)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LabelUnset">
+      <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
-        <target state="translated">(取消設定)</target>
-        <note />
+        <target state="new">(Unset)</target>
+        <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>
