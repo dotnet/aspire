@@ -35,43 +35,43 @@ public class ResourceCommandService : IDisposable
     }
 
     /// <summary>
-    /// 
+    /// Execute a command for the specified resource.
     /// </summary>
-    /// <param name="resourceId"></param>
-    /// <param name="command"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, string command, CancellationToken cancellationToken = default)
+    /// <param name="resourceId">The id of the resource.</param>
+    /// <param name="commandName">The command name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
+    public async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, string commandName, CancellationToken cancellationToken = default)
     {
         if (!_resources.TryGetValue(resourceId, out var resource))
         {
             return new ExecuteCommandResult { Success = false, ErrorMessage = $"Resource '{resourceId}' not found." };
         }
 
-        return await ExecuteCommandCoreAsync(resourceId, resource, command, cancellationToken).ConfigureAwait(false);
+        return await ExecuteCommandCoreAsync(resourceId, resource, commandName, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// 
+    /// Execute a command for the specified resource.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <param name="command"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public async Task<ExecuteCommandResult> ExecuteCommandAsync(IResource resource, string command, CancellationToken cancellationToken = default)
+    /// <param name="resource">The resource. If the resource has multiple instances, such as replicas, then the command will be executed for each instance.</param>
+    /// <param name="commandName">The command name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
+    public async Task<ExecuteCommandResult> ExecuteCommandAsync(IResource resource, string commandName, CancellationToken cancellationToken = default)
     {
         var names = resource.GetResolvedResourceNames();
         // Single resource for IResource. Return its result directly.
         if (names.Length == 1)
         {
-            return await ExecuteCommandCoreAsync(names[0], resource, command, cancellationToken).ConfigureAwait(false);
+            return await ExecuteCommandCoreAsync(names[0], resource, commandName, cancellationToken).ConfigureAwait(false);
         }
 
         // Run commands for multiple resources in parallel.
         var tasks = new List<Task<ExecuteCommandResult>>();
         foreach (var name in names)
         {
-            tasks.Add(ExecuteCommandCoreAsync(name, resource, command, cancellationToken));
+            tasks.Add(ExecuteCommandCoreAsync(name, resource, commandName, cancellationToken));
         }
 
         // Check for failures.
@@ -108,13 +108,13 @@ public class ResourceCommandService : IDisposable
         _cts.Cancel();
     }
 
-    internal async Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string type, CancellationToken cancellationToken)
+    internal async Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string commandName, CancellationToken cancellationToken)
     {
         var logger = _resourceLoggerService.GetLogger(resourceId);
 
-        logger.LogInformation("Executing command '{Type}'.", type);
+        logger.LogInformation("Executing command '{CommandName}'.", commandName);
 
-        var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
+        var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == commandName);
         if (annotation != null)
         {
             try
@@ -129,23 +129,23 @@ public class ResourceCommandService : IDisposable
                 var result = await annotation.ExecuteCommand(context).ConfigureAwait(false);
                 if (result.Success)
                 {
-                    logger.LogInformation("Successfully executed command '{Type}'.", type);
+                    logger.LogInformation("Successfully executed command '{CommandName}'.", commandName);
                     return result;
                 }
                 else
                 {
-                    logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
+                    logger.LogInformation("Failure executed command '{CommandName}'. Error message: {ErrorMessage}", commandName, result.ErrorMessage);
                     return result;
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error executing command '{Type}'.", type);
+                logger.LogError(ex, "Error executing command '{CommandName}'.", commandName);
                 return new ExecuteCommandResult { Success = false, ErrorMessage = "Unhandled exception thrown." };
             }
         }
 
-        logger.LogInformation("Command '{Type}' not available.", type);
-        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Command '{type}' not available for resource '{resourceId}'." };
+        logger.LogInformation("Command '{CommandName}' not available.", commandName);
+        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Command '{commandName}' not available for resource '{resourceId}'." };
     }
 }
