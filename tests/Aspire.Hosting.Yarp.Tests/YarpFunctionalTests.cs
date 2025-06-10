@@ -14,7 +14,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResourceConfigFile()
     {
-        await VerifyYarpResource(true);
+        await VerifyYarpResource(false);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResourceProgrammaticConfig()
     {
-        await VerifyYarpResource(false);
+        await VerifyYarpResource(true);
     }
 
     private async Task VerifyYarpResource(bool useProgrammaticConfig)
@@ -39,7 +39,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
         var yarp = builder.AddYarp("yarp");
         if (useProgrammaticConfig)
         {
-            yarp.Configure(configuration =>
+            yarp.WithConfiguration(configuration =>
             {
                 configuration
                     .AddRoute(new RouteConfig()
