@@ -27,8 +27,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
@@ -64,8 +64,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
@@ -102,8 +102,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
@@ -125,8 +125,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
 
@@ -159,8 +159,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var interactionService = new TestInteractionService();
 
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
@@ -174,8 +174,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
 
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
             await projectLocator.UseOrFindAppHostProjectFileAsync(null);
@@ -194,8 +194,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile);
 
@@ -213,8 +213,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestInteractionService();
 
-        var configurationWriter = new TestConfigurationWriter();
-        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
@@ -242,9 +242,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         // Simulated global settings path for test isolation.
         var globalSettingsFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.global.json");
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
-        var configurationWriter = new ConfigurationWriter(workspace.WorkspaceRoot, globalSettingsFile);
+        var configurationService = new ConfigurationService(workspace.WorkspaceRoot, globalSettingsFile);
         
-        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
+        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
 
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
 
@@ -266,7 +266,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         public string? AppHostPath { get; set; }
     }
 
-    private sealed class TestConfigurationWriter : IConfigurationWriter
+    private sealed class TestConfigurationService : IConfigurationService
     {
         public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
         {
@@ -278,6 +278,11 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         {
             // For test purposes, just return false (not found)
             return Task.FromResult(false);
+        }
+
+        public Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
         }
     }
 }

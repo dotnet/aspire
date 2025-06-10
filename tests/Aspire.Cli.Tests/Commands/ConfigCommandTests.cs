@@ -20,11 +20,11 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configService = provider.GetRequiredService<IConfigurationService>();
         var configuration = provider.GetRequiredService<IConfiguration>();
         
         // Set a configuration value
-        await configWriter.SetConfigurationAsync("testKey", "testValue");
+        await configService.SetConfigurationAsync("testKey", "testValue");
         
         // Get the configuration value by rebuilding the service provider to pick up changes
         services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
@@ -126,9 +126,9 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
-        await configWriter.SetConfigurationAsync("key1", "value1");
-        await configWriter.SetConfigurationAsync("key2", "value2");
+        var configService = provider.GetRequiredService<IConfigurationService>();
+        await configService.SetConfigurationAsync("key1", "value1");
+        await configService.SetConfigurationAsync("key2", "value2");
 
         // Rebuild service provider to pick up configuration changes
         services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
@@ -148,8 +148,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
-        await configWriter.SetConfigurationAsync("testKey", "testValue");
+        var configService = provider.GetRequiredService<IConfigurationService>();
+        await configService.SetConfigurationAsync("testKey", "testValue");
 
         // Rebuild service provider to pick up configuration changes
         services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
@@ -191,7 +191,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configService = provider.GetRequiredService<IConfigurationService>();
         var configuration = provider.GetRequiredService<IConfiguration>();
         
         // Initially empty
@@ -199,8 +199,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(emptyConfig);
 
         // Add some values
-        await configWriter.SetConfigurationAsync("key1", "value1");
-        await configWriter.SetConfigurationAsync("key2", "value2");
+        await configService.SetConfigurationAsync("key1", "value1");
+        await configService.SetConfigurationAsync("key2", "value2");
 
         // Rebuild service provider to pick up configuration changes
         services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
@@ -221,15 +221,15 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configService = provider.GetRequiredService<IConfigurationService>();
         
         // Delete non-existent key returns false
-        var deleted = await configWriter.DeleteConfigurationAsync("nonExistent");
+        var deleted = await configService.DeleteConfigurationAsync("nonExistent");
         Assert.False(deleted);
 
         // Set a value and delete it
-        await configWriter.SetConfigurationAsync("testKey", "testValue");
-        deleted = await configWriter.DeleteConfigurationAsync("testKey");
+        await configService.SetConfigurationAsync("testKey", "testValue");
+        deleted = await configService.DeleteConfigurationAsync("testKey");
         Assert.True(deleted);
 
         // Verify it's gone by rebuilding service provider
@@ -255,8 +255,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
 
         // Verify the value was set globally by checking if it exists in global settings
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        var globalSettingsPath = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire", "settings.global.json");
         
         if (File.Exists(globalSettingsPath))
         {
@@ -275,8 +274,8 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         // First set a global value
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
-        await configWriter.SetConfigurationAsync("testGlobalKey", "testGlobalValue", isGlobal: true);
+        var configService = provider.GetRequiredService<IConfigurationService>();
+        await configService.SetConfigurationAsync("testGlobalKey", "testGlobalValue", isGlobal: true);
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("config delete --global testGlobalKey");
@@ -293,13 +292,13 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var configWriter = provider.GetRequiredService<IConfigurationWriter>();
+        var configService = provider.GetRequiredService<IConfigurationService>();
         
         // First, set some configuration value (simulating user doing `aspire config set foo bar`)
-        await configWriter.SetConfigurationAsync("foo", "bar");
+        await configService.SetConfigurationAsync("foo", "bar");
         
         // Then simulate what happens when aspire run finds an apphost and sets the appHostPath
-        await configWriter.SetConfigurationAsync("appHostPath", "./TestProject.AppHost.csproj");
+        await configService.SetConfigurationAsync("appHostPath", "./TestProject.AppHost.csproj");
         
         // Verify both values are preserved by rebuilding service provider
         services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);

@@ -52,7 +52,7 @@ internal static class CliTestHelper
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
-        services.AddSingleton(options.ConfigurationWriterFactory);
+        services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -75,7 +75,7 @@ internal sealed class CliServiceCollectionTestOptions
         WorkingDirectory = workingDirectory;
 
         ProjectLocatorFactory = CreateDefaultProjectLocatorFactory;
-        ConfigurationWriterFactory = CreateDefaultConfigurationWriterFactory;
+        ConfigurationServiceFactory = CreateDefaultConfigurationServiceFactory;
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -111,11 +111,11 @@ internal sealed class CliServiceCollectionTestOptions
         return new PublishCommandPrompter(interactionService);
     };
 
-    public Func<IServiceProvider, IConfigurationWriter> ConfigurationWriterFactory { get; set; }
+    public Func<IServiceProvider, IConfigurationService> ConfigurationServiceFactory { get; set; }
 
-    public IConfigurationWriter CreateDefaultConfigurationWriterFactory(IServiceProvider serviceProvider)
+    public IConfigurationService CreateDefaultConfigurationServiceFactory(IServiceProvider serviceProvider)
     {
-        return new ConfigurationWriter(WorkingDirectory, GetGlobalSettingsFile(WorkingDirectory));
+        return new ConfigurationService(WorkingDirectory, GetGlobalSettingsFile(WorkingDirectory));
     }
 
     private static FileInfo GetGlobalSettingsFile(DirectoryInfo workingDirectory)
@@ -131,8 +131,8 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
-        return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationWriter);
+        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationService);
     }
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {

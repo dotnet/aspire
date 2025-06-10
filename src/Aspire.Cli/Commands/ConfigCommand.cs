@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Configuration;
@@ -12,24 +11,24 @@ namespace Aspire.Cli.Commands;
 internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
-    private readonly IConfigurationWriter _configurationWriter;
+    private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationWriter configurationWriter, IInteractionService interactionService)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService)
         : base("config", "Manage configuration settings.")
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(configurationWriter);
+        ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(interactionService);
 
         _configuration = configuration;
-        _configurationWriter = configurationWriter;
+        _configurationService = configurationService;
         _interactionService = interactionService;
 
         var getCommand = new GetCommand(_configuration, _interactionService);
-        var setCommand = new SetCommand(_configurationWriter, _interactionService);
-        var listCommand = new ListCommand(_configuration, _interactionService);
-        var deleteCommand = new DeleteCommand(_configurationWriter, _interactionService);
+        var setCommand = new SetCommand(configurationService, _interactionService);
+        var listCommand = new ListCommand(configurationService, _interactionService);
+        var deleteCommand = new DeleteCommand(configurationService, _interactionService);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -87,13 +86,13 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class SetCommand : BaseCommand
     {
-        private readonly IConfigurationWriter _configurationWriter;
+        private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public SetCommand(IConfigurationWriter configurationWriter, IInteractionService interactionService)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("set", "Set a configuration value.")
         {
-            _configurationWriter = configurationWriter;
+            _configurationService = configurationService;
             _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
@@ -135,7 +134,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             try
             {
-                await _configurationWriter.SetConfigurationAsync(key, value, isGlobal, cancellationToken);
+                await _configurationService.SetConfigurationAsync(key, value, isGlobal, cancellationToken);
                 var scope = isGlobal ? "globally" : "locally";
                 _interactionService.DisplaySuccess($"Configuration '{key}' set to '{value}' {scope}.");
                 return 0;
@@ -150,24 +149,24 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class ListCommand : BaseCommand
     {
-        private readonly IConfiguration _configuration;
+        private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public ListCommand(IConfiguration configuration, IInteractionService interactionService)
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("list", "List all configuration values.")
         {
-            _configuration = configuration;
+            _configurationService = configurationService;
             _interactionService = interactionService;
         }
 
-        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var allConfig = GetAllAspireConfiguration();
+            var allConfig = await _configurationService.GetAllConfigurationAsync(cancellationToken);
 
             if (allConfig.Count == 0)
             {
                 _interactionService.DisplayMessage("ℹ️", "No configuration values found.");
-                return Task.FromResult(0);
+                return ExitCodeConstants.Success;
             }
 
             foreach (var kvp in allConfig)
@@ -175,79 +174,19 @@ internal sealed class ConfigCommand : BaseCommand
                 Console.WriteLine($"{kvp.Key}={kvp.Value}");
             }
 
-            return Task.FromResult(0);
-        }
-
-        private static SortedDictionary<string, string> GetAllAspireConfiguration()
-        {
-            var allConfig = new SortedDictionary<string, string>();
-            
-            // Get global settings first
-            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
-            if (File.Exists(globalSettingsPath))
-            {
-                LoadConfigurationFromFile(globalSettingsPath, allConfig);
-            }
-            
-            // Then walk up directory tree for local settings (they override global)
-            var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-            var settingsFiles = new List<string>();
-            
-            while (currentDirectory is not null)
-            {
-                var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-                if (File.Exists(settingsFilePath))
-                {
-                    settingsFiles.Add(settingsFilePath);
-                }
-                currentDirectory = currentDirectory.Parent;
-            }
-            
-            // Process in reverse order so closer files take precedence
-            settingsFiles.Reverse();
-            foreach (var settingsFile in settingsFiles)
-            {
-                LoadConfigurationFromFile(settingsFile, allConfig);
-            }
-            
-            return allConfig;
-        }
-
-        private static void LoadConfigurationFromFile(string filePath, SortedDictionary<string, string> config)
-        {
-            try
-            {
-                var content = File.ReadAllText(filePath);
-                var settings = JsonNode.Parse(content)?.AsObject();
-                
-                if (settings is not null)
-                {
-                    foreach (var kvp in settings)
-                    {
-                        if (kvp.Value is not null)
-                        {
-                            config[kvp.Key] = kvp.Value.ToString();
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore errors reading configuration files
-            }
+            return ExitCodeConstants.Success;
         }
     }
 
     private sealed class DeleteCommand : BaseCommand
     {
-        private readonly IConfigurationWriter _configurationWriter;
+        private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public DeleteCommand(IConfigurationWriter configurationWriter, IInteractionService interactionService)
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("delete", "Delete a configuration value.")
         {
-            _configurationWriter = configurationWriter;
+            _configurationService = configurationService;
             _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
@@ -267,7 +206,7 @@ internal sealed class ConfigCommand : BaseCommand
         {
             var key = parseResult.GetValue<string>("key");
             var isGlobal = parseResult.GetValue<bool>("--global");
-            
+
             if (key is null)
             {
                 _interactionService.DisplayError("Configuration key is required.");
@@ -276,8 +215,8 @@ internal sealed class ConfigCommand : BaseCommand
 
             try
             {
-                var deleted = await _configurationWriter.DeleteConfigurationAsync(key, isGlobal, cancellationToken);
-                
+                var deleted = await _configurationService.DeleteConfigurationAsync(key, isGlobal, cancellationToken);
+
                 if (deleted)
                 {
                     var scope = isGlobal ? "globally" : "locally";

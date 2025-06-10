@@ -101,7 +101,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
-        builder.Services.AddSingleton(BuildConfigurationWriter);
+        builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -125,10 +125,10 @@ public class Program
         return app;
     }
 
-    private static IConfigurationWriter BuildConfigurationWriter(IServiceProvider serviceProvider)
+    private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationWriter(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
@@ -156,8 +156,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var configurationWriter = serviceProvider.GetRequiredService<IConfigurationWriter>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationWriter);
+        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService);
     }
 
     public static async Task<int> Main(string[] args)
