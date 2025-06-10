@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -63,10 +64,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerImageParam = AllocateContainerImageParameter();
         }
 
-        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
-        {
-            Name = NormalizedContainerAppName
-        };
+        var containerAppResource = CreateContainerApp();
 
         BicepValue<string>? containerAppIdentityId = null;
 
@@ -86,11 +84,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         containerAppResource.EnvironmentId = containerAppIdParam;
 
-        var configuration = new ContainerAppConfiguration()
-        {
-            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
-        };
-        containerAppResource.Configuration = configuration;
+        var configuration = containerAppResource.Configuration;
 
         AddIngress(configuration);
 
@@ -127,6 +121,32 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 a.Configure(infra, containerAppResource);
             }
         }
+    }
+
+    private ContainerApp CreateContainerApp()
+    {
+        var containerApp = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
+        {
+            Name = NormalizedContainerAppName
+        };
+
+        var configuration = new ContainerAppConfiguration()
+        {
+            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
+        };
+        containerApp.Configuration = configuration;
+
+        // default autoConfigureDataProtection to true for .NET projects
+        if (resource is ProjectResource)
+        {
+            containerApp.ResourceVersion = "2025-02-02-preview"; // currently only available in a preview version
+
+            var value = new BicepValue<bool>(true);
+            ((IBicepValue)value).Self = new BicepValueReference(configuration, "AutoConfigureDataProtection", ["runtime", "dotnet", "autoConfigureDataProtection"]);
+            configuration.ProvisionableProperties["AutoConfigureDataProtection"] = value;
+        }
+
+        return containerApp;
     }
 
     private void AddVolumes(ContainerAppTemplate template, ContainerAppContainer containerAppContainer)

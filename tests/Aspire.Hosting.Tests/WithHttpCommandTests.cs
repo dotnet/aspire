@@ -351,6 +351,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9772")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange

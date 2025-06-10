@@ -44,6 +44,7 @@ resource entries 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -60,6 +61,7 @@ resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@20
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -77,6 +79,8 @@ resource user_todo 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
           '/userId'
           '/id'
         ]
+        kind: 'MultiHash'
+        version: 2
       }
     }
   }
