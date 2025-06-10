@@ -149,7 +149,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         // default kind to functionapp for Azure Functions
-        if (resource is IAzureFunctionsResource)
+        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
         {
             containerApp.ResourceVersion = latestPreview;
 

@@ -6,8 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents a resource that that is an Azure Functions resource.
+/// Used to annotate resources as Azure Functions.
 /// </summary>
-public interface IAzureFunctionsResource : IResource
+public sealed class AzureFunctionsAnnotation : IResourceAnnotation
 {
 }

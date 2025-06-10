@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// to support Functions-specific customizations, like the mapping of connection strings and configurations
 /// for host storage.
 /// /// </remarks>
-public class AzureFunctionsProjectResource(string name) : ProjectResource(name), IAzureFunctionsResource
+public class AzureFunctionsProjectResource(string name) : ProjectResource(name)
 {
     internal AzureStorageResource? HostStorage { get; set; }
 }
