@@ -10,6 +10,8 @@ public class TraceCreator
 {
     public const string ActivitySourceName = "CustomTraceSpan";
 
+    public bool IncludeBrokenLinks { get; set; }
+
     private static readonly ActivitySource s_activitySource = new(ActivitySourceName);
 
     private readonly List<Activity> _allActivities = new List<Activity>();
@@ -30,7 +32,7 @@ public class TraceCreator
         return activity;
     }
 
-    public async Task CreateTraceAsync(int count, bool createChildren)
+    public async Task CreateTraceAsync(string traceName, int count, bool createChildren, string? rootName = null)
     {
         var activityStack = new Stack<Activity>();
 
@@ -41,8 +43,8 @@ public class TraceCreator
                 await Task.Delay(Random.Shared.Next(10, 50));
             }
 
-            var name = $"Span-{i}";
-            using var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
+            var name = $"{traceName}-Span-{i}";
+            using var activity = s_activitySource.StartActivity(rootName ?? name, ActivityKind.Client);
             if (activity == null)
             {
                 continue;
@@ -94,7 +96,7 @@ public class TraceCreator
         for (var i = 0; i < eventCount; i++)
         {
             var activityTags = new ActivityTagsCollection();
-            var tagsCount = Random.Shared.Next(0, 3);
+            var tagsCount = Random.Shared.Next(0, 5);
             for (var j = 0; j < tagsCount; j++)
             {
                 activityTags.Add($"key-{j}", "Value!");
@@ -121,7 +123,7 @@ public class TraceCreator
             // Create the activity link. There is a 50% chance the activity link goes to an activity
             // that doesn't exist. This logic is here to ensure incomplete links are handled correctly.
             ActivityContext activityContext;
-            if (Random.Shared.Next() % 2 == 0)
+            if (!IncludeBrokenLinks || Random.Shared.Next() % 2 == 0)
             {
                 var a = _allActivities[Random.Shared.Next(0, _allActivities.Count)];
                 activityContext = a.Context;

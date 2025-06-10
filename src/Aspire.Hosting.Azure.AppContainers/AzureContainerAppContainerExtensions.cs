@@ -22,7 +22,6 @@ public static class AzureContainerAppContainerExtensions
     /// <remarks>
     /// This method checks if the application is in publish mode. If it is, it adds the necessary infrastructure
     /// for container apps and applies the provided configuration action to the container app.
-    /// </remarks>
     /// <example>
     /// <code>
     /// builder.AddContainer("name", "image").PublishAsAzureContainerApp((infrastructure, app) =>
@@ -31,14 +30,17 @@ public static class AzureContainerAppContainerExtensions
     /// });
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<AzureResourceInfrastructure, ContainerApp> configure) where T : ContainerResource
+    /// </remarks>
+    public static IResourceBuilder<T> PublishAsAzureContainerApp<T>(this IResourceBuilder<T> container, Action<AzureResourceInfrastructure, ContainerApp> configure)
+        where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(configure);
+
         if (!container.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return container;
         }
-
-        container.ApplicationBuilder.AddAzureContainerAppsInfrastructure();
 
         container.WithAnnotation(new AzureContainerAppCustomizationAnnotation(configure));
 

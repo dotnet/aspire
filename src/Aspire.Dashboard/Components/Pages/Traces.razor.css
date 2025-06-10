@@ -1,3 +1,7 @@
+::deep table.main-grid {
+    margin-bottom: 1px !important; /* make bottom table row border visible when scrolling */
+}
+
 .trace-id {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;

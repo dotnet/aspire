@@ -1,4 +1,0 @@
-#nullable enable
-*REMOVED*static Aspire.Hosting.AzureSignalRExtensions.AddAzureSignalR(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureSignalRResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.SignalR.SignalRService!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.AzureSignalRResource!>!
-*REMOVED*Aspire.Hosting.ApplicationModel.AzureSignalRResource.AzureSignalRResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.ApplicationModel.AzureSignalRResource.AzureSignalRResource(string! name, System.Action<Aspire.Hosting.Azure.AzureResourceInfrastructure!>! configureInfrastructure) -> void

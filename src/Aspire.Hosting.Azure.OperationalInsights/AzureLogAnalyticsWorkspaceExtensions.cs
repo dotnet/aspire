@@ -14,35 +14,49 @@ namespace Aspire.Hosting;
 public static class AzureLogAnalyticsWorkspaceExtensions
 {
     /// <summary>
-    /// Adds an Azure Application Insights resource to the application model.
+    /// Adds an Azure Log Analytics Workspace resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureLogAnalyticsWorkspaceResource> AddAzureLogAnalyticsWorkspace(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
-            var workspace = new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new OperationalInsightsWorkspaceSku()
+            var workspace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
                 {
-                    Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    var resource = OperationalInsightsWorkspace.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
                 },
-                Tags = { { "aspire-resource-name", name } }
-            };
-            infrastructure.Add(workspace);
+                (infrastructure) => new OperationalInsightsWorkspace(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new OperationalInsightsWorkspaceSku()
+                    {
+                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    },
+                    Tags = { { "aspire-resource-name", name } }
+                });
 
             infrastructure.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {
                 Value = workspace.Id
             });
+            
+            // Add name output for the resource to externalize role assignments
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string))
+            {
+                Value = workspace.Name
+            });
         };
 
         var resource = new AzureLogAnalyticsWorkspaceResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 }

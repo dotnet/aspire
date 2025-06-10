@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -80,12 +81,12 @@ public class AddGarnetTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={myGarnet-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public async Task VerifyWithoutPasswordManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet");
@@ -95,8 +96,92 @@ public class AddGarnetTests
         var expectedManifest = $$"""
                                  {
                                    "type": "container.v0",
-                                   "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port}",
+                                   "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={myGarnet-password.value}",
                                    "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
+                                   "entrypoint": "/bin/sh",
+                                   "args": [
+                                     "-c",
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD"
+                                   ],
+                                   "env": {
+                                     "GARNET_PASSWORD": "{myGarnet-password.value}"
+                                   },
+                                   "bindings": {
+                                     "tcp": {
+                                       "scheme": "tcp",
+                                       "protocol": "tcp",
+                                       "transport": "tcp",
+                                       "targetPort": 6379
+                                     }
+                                   }
+                                 }
+                                 """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+
+        var garnet = builder.AddGarnet("myGarnet", password: pass);
+
+        var manifest = await ManifestUtils.GetManifest(garnet.Resource);
+
+        var expectedManifest = $$"""
+                                 {
+                                   "type": "container.v0",
+                                   "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={pass.value}",
+                                   "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
+                                   "entrypoint": "/bin/sh",
+                                   "args": [
+                                     "-c",
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD"
+                                   ],
+                                   "env": {
+                                     "GARNET_PASSWORD": "{pass.value}"
+                                   },
+                                   "bindings": {
+                                     "tcp": {
+                                       "scheme": "tcp",
+                                       "protocol": "tcp",
+                                       "transport": "tcp",
+                                       "targetPort": 6379
+                                     }
+                                   }
+                                 }
+                                 """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithPersistence()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var garnet = builder.AddGarnet("myGarnet")
+            .WithPersistence();
+
+        var manifest = await ManifestUtils.GetManifest(garnet.Resource);
+
+        var expectedManifest = $$"""
+                                 {
+                                   "type": "container.v0",
+                                   "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={myGarnet-password.value}",
+                                   "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
+                                   "entrypoint": "/bin/sh",
+                                   "args": [
+                                     "-c",
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
+                                   ],
+                                   "env": {
+                                     "GARNET_PASSWORD": "{myGarnet-password.value}"
+                                   },
                                    "bindings": {
                                      "tcp": {
                                        "scheme": "tcp",
@@ -161,7 +246,7 @@ public class AddGarnetTests
     }
 
     [Fact]
-    public void WithDataVolumeAddsPersistenceAnnotation()
+    public async Task WithDataVolumeAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
@@ -169,30 +254,23 @@ public class AddGarnetTests
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
+        var args = await GetCommandLineArgs(garnet);
+        Assert.Contains("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000", args);
     }
 
     [Fact]
-    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(garnet);
+        Assert.DoesNotContain("--checkpointdir", args);
     }
 
     [Fact]
-    public void WithDataBindMountAddsPersistenceAnnotation()
+    public async Task WithDataBindMountAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
@@ -200,30 +278,29 @@ public class AddGarnetTests
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        var args = await GetCommandLineArgs(garnet);
+        Assert.Contains("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000", args);
+    }
 
-        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
+    private static async Task<string> GetCommandLineArgs(IResourceBuilder<GarnetResource> builder)
+    {
+        var args = await ArgumentEvaluator.GetArgumentListAsync(builder.Resource);
+        return string.Join(" ", args);
     }
 
     [Fact]
-    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataBindMount("mygarnetdata", isReadOnly: true);
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(garnet);
+        Assert.DoesNotContain("--checkpointdir", args);
     }
 
     [Fact]
-    public void WithPersistenceReplacesPreviousAnnotationInstances()
+    public async Task WithPersistenceReplacesPreviousAnnotationInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
@@ -232,14 +309,12 @@ public class AddGarnetTests
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        var args = await GetCommandLineArgs(garnet);
+        Assert.Contains("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 10000", args);
 
-        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 10000".Split(" "), args);
+        // ensure `--checkpointdir` is not added twice
+        var saveIndex = args.IndexOf("--checkpointdir");
+        Assert.DoesNotContain("--checkpointdir", args.Substring(saveIndex + 1));
     }
 
     [Fact]
@@ -251,5 +326,62 @@ public class AddGarnetTests
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
+    }
+
+    [Fact]
+    public async Task AddGarnetContainerWithPasswordAnnotationMetadata()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var garnet = builder.
+            AddGarnet("myGarnet", password: pass)
+           .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(appModel.Resources.OfType<GarnetResource>());
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        Assert.Equal("{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.StartsWith($"localhost:5001,password={password}", connectionString);
+    }
+
+    [Fact]
+    public void GarnetCreatesConnectionStringWithPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddGarnet("myGarnet", password: pass);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void GarnetCreatesConnectionStringWithPasswordAndPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var password = "p@ssw0rd1";
+        var pass = appBuilder.AddParameter("pass", password);
+        appBuilder.AddGarnet("myGarnet", port: 3000, password: pass);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 }

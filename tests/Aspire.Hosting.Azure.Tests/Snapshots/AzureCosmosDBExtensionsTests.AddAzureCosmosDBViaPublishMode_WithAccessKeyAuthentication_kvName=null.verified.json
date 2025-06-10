@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{cosmos-kv.secrets.connectionstrings--cosmos}",
+  "path": "cosmos.module.bicep",
+  "params": {
+    "cosmos_kv_outputs_name": "{cosmos-kv.outputs.name}"
+  }
+}

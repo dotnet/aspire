@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Dcp;
 
 internal interface IDcpDependencyCheckService
 {
-    Task<DcpInfo?> GetDcpInfoAsync(CancellationToken cancellationToken = default);
+    Task<DcpInfo?> GetDcpInfoAsync(bool force = false, CancellationToken cancellationToken = default);
 }
 
 internal sealed class DcpInfo

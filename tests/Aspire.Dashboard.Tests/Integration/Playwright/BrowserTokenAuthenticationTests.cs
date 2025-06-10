@@ -1,17 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.TestUtilities;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
-using Aspire.Workload.Tests;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[RequiresPlaywright]
 public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenAuthenticationTests.BrowserTokenDashboardServerFixture>
 {
     public class BrowserTokenDashboardServerFixture : DashboardServerFixture
@@ -29,6 +30,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9345")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
         // Arrange
@@ -55,6 +57,7 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9697")]
     public async Task BrowserToken_LoginPage_Failure_DisplayFailureMessage()
     {
         // Arrange
@@ -73,10 +76,12 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             await submitButton.ClickAsync().DefaultTimeout();
 
             // Assert
+            const int pageVisibleTimeout = 10000;
+
             await Assertions
-                .Expect(page.GetByText("Invalid token"))
+                .Expect(page.GetByText(Login.InvalidTokenErrorMessage))
                 .ToBeVisibleAsync()
-                .DefaultTimeout();
+                .DefaultTimeout(pageVisibleTimeout);
         });
     }
 

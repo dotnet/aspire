@@ -245,6 +245,24 @@ public class ResourceNotificationTests
     }
 
     [Fact]
+    public async Task WaitingOnResourceReturnsItReachesStateAfterApplicationStoppingCancellationTokenSignaled()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        using var hostApplicationLifetime = new TestHostApplicationLifetime();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
+
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        hostApplicationLifetime.StopApplication();
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" }).DefaultTimeout();
+
+        await waitTask.DefaultTimeout();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignaled()
     {
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
@@ -261,13 +279,13 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignaled()
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeServiceIsDisposed()
     {
-        using var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var notificationService = ResourceNotificationServiceTestHelpers.Create(hostApplicationLifetime: hostApplicationLifetime);
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
-        hostApplicationLifetime.StopApplication();
+
+        notificationService.Dispose();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {
@@ -304,7 +322,7 @@ public class ResourceNotificationTests
         var logs = logger.Collector.GetSnapshot();
 
         // Initial state text, log just the new state
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
 
         logger.Collector.Clear();
@@ -324,7 +342,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState -> NewState"));
 
         logger.Collector.Clear();
@@ -374,11 +392,44 @@ public class ResourceNotificationTests
 
         var logs = logger.Collector.GetSnapshot();
 
-        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Single(logs, l => l.Level == LogLevel.Debug);
         Assert.Equal(3, logs.Where(l => l.Level == LogLevel.Trace).Count());
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains($"CreationTimeStamp = {createdDate:s}"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("State = { Text = SomeState"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("ExitCode = 0"));
+    }
+
+    [Fact]
+    public void IsMicrosoftOpenType_ReturnsFalse_ForNonMicrosoftResourceTypes()
+    {
+        var resourceTypes = new[]
+        {
+            typeof(XunitDelayEnumeratedTheoryTestCase),
+            typeof(Polly.DelayBackoffType),
+        };
+
+        foreach (var type in resourceTypes)
+        {
+            var result = ResourceNotificationService.IsMicrosoftOpenType(type);
+            Assert.False(result, $"Expected {type.Name} to not be a Microsoft OpenType, but it was.");
+        }
+    }
+
+    [Fact]
+    public void IsMicrosoftOpenType_ReturnsTrue_ForAspireTypes()
+    {
+        var resourceTypes = new[]
+        {
+            typeof(CustomResource),
+            typeof(ContainerResource),
+            typeof(PostgresServerResource)
+        };
+
+        foreach (var type in resourceTypes)
+        {
+            var result = ResourceNotificationService.IsMicrosoftOpenType(type);
+            Assert.True(result);
+        }
     }
 
     private sealed class CustomResource(string name) : Resource(name),

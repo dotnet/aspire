@@ -1,15 +1,40 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+using MongoDB.Driver;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddMongoDB("mongo")
     .WithMongoExpress(c => c.WithHostPort(3022))
     .AddDatabase("db");
 
+builder.Eventing.Subscribe<ResourceReadyEvent>(db.Resource, async (@event, ct) =>
+{
+    // Artificial delay to demonstrate the waiting
+    await Task.Delay(TimeSpan.FromSeconds(10), ct);
+
+    // Seed the database with some data
+    var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
+    using var client = new MongoClient(cs);
+
+    const string collectionName = "entries";
+
+    var myDb = client.GetDatabase("db");
+    await myDb.CreateCollectionAsync(collectionName, cancellationToken: ct);
+
+    for (int i = 0; i < 10; i++)
+    {
+        await myDb.GetCollection<Entry>(collectionName).InsertOneAsync(new Entry(), cancellationToken: ct);
+    }
+});
+
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db).WaitFor(db);
+       .WithReference(db)
+       .WaitFor(db);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -22,3 +47,10 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 #endif
 
 builder.Build().Run();
+
+public sealed class Entry
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? Id { get; set; }
+}

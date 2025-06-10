@@ -1,0 +1,153 @@
+# Executes quarantined tests in the outerloop
+name: Outerloop Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */2 * * *' # Every 2 hours
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  generate_tests_matrix:
+    name: Generate test runsheet
+    runs-on: windows-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    outputs:
+      runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # We need to build the whole solution, so that we can interrogate each test project
+      # and find out whether it contains any quarantined tests.
+      - name: Build the solution
+        run: |
+          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
+
+      - name: Generate test runsheet
+        id: generate_tests_matrix
+        run: |
+          ./build.cmd -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true -c Release -ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
+
+      - name: Upload logs, and test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: logs-runsheet
+          path: |
+            ${{ github.workspace }}/artifacts/log/*/runsheet.binlog
+            ${{ github.workspace }}/artifacts/log/*/TestLogs/**
+            ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
+          retention-days: 5
+
+  run_tests:
+    name: Test
+    needs: generate_tests_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
+
+    runs-on: ${{ matrix.tests.os }} # Use the OS from the matrix
+    if: ${{ github.repository_owner == 'dotnet' }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Trust HTTPS development certificate (Linux)
+        if: matrix.tests.os == 'ubuntu-latest'
+        run: ./dotnet.sh dev-certs https --trust
+
+      - name: Setup vars (Linux)
+        if: ${{ matrix.tests.os == 'ubuntu-latest' || matrix.tests.os == 'macos-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+
+      - name: Setup vars (Windows)
+        if: ${{ matrix.tests.os == 'windows-latest' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+
+      - name: Test ${{ matrix.tests.label }}
+        env:
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+        run: |
+          ${{ matrix.tests.command }}
+
+      - name: Upload logs, and test results
+        id: upload-logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: ${{ matrix.tests.project }}-${{ matrix.tests.os }}-logs
+          path: |
+            ${{ github.workspace }}/testresults/**
+            ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
+            ${{ github.workspace }}/artifacts/TestResults/*/*.trx
+          # Longer retention time to allow scanning runs for quarantined test results
+          retention-days: 30
+          
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/artifacts/TestResults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/artifacts/TestResults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+          }
+
+  results:
+    if: always()
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: run_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # get all the test logs artifacts into a single directory
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          pattern: '*-logs'
+          path: ${{ github.workspace }}/artifacts/all-logs
+          
+      # Organize the .trx files by OS
+      - name: Organize test results by OS
+        shell: pwsh
+        run: |
+          $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
+          
+          # Create OS-specific directories
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/ubuntu-latest" -Force
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/windows-latest" -Force
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/macos-latest" -Force
+          
+          # Find all .trx files
+          $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
+          
+          # Copy each .trx file to the appropriate OS folder
+          foreach ($trxFile in $trxFiles) {
+              if ($trxFile.FullName -match "ubuntu") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/ubuntu-latest/" -Force
+              } elseif ($trxFile.FullName -match "windows") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/windows-latest/" -Force
+              } elseif ($trxFile.FullName -match "macos") {
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/macos-latest/" -Force
+              }
+          }
+
+      - name: Generate test results summary
+        if: always()
+        env:
+          CI: false
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+          --combined

@@ -29,7 +29,7 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// <summary>
     /// Gets the arguments to pass to the build.
     /// </summary>
-    public Dictionary<string, object> BuildArguments { get; } = [];
+    public Dictionary<string, object?> BuildArguments { get; } = [];
 
     /// <summary>
     /// Gets the secrets to pass to the build.

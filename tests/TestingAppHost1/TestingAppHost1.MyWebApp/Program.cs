@@ -34,6 +34,21 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
+app.MapGet("/get-launch-profile-var", () =>
+{
+    return app.Configuration["LAUNCH_PROFILE_VAR"];
+}).WithName("GetLaunchProfileVar");
+
+app.MapGet("/get-app-host-arg", () =>
+{
+    return app.Configuration["APP_HOST_ARG"];
+}).WithName("GetAppHostArg");
+
+app.MapGet("/get-launch-profile-var-from-app-host", () =>
+{
+    return app.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"];
+}).WithName("GetLaunchProfileVarFromAppHost");
+
 app.Run();
 
 sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

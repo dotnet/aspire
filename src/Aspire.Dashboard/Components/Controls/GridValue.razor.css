@@ -1,18 +1,22 @@
 .container {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: calc((6 + (var(--design-unit) * var(--density))) * 1px);
     align-items: center;
-}
-
-.masking-enabled {
-    grid-template-columns: 1fr auto auto;
 }
 
 ::deep .grid-value {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+}
+
+::deep .button-container {
+    margin-left: 0; /* by default there shouldn't be a margin on the button container because it has no contents */
+}
+
+::deep .masking-enabled .button-container, td:hover .button-container, td:focus-within .button-container {
+    /* the button container always has contents if masking is enabled or it is hovered over, so display margin */
+    margin-left: calc((6 + (var(--design-unit) * var(--density))) * 1px);
 }
 
 ::deep .defaultHidden {
@@ -22,7 +26,7 @@
     display: inline-block;
 }
 
-::deep:hover .defaultHidden, ::deep:focus-within .defaultHidden {
-    opacity: 1;  /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
+td:hover > .container > .button-container > .defaultHidden, td:focus-within > .container > .button-container > .defaultHidden {
+    opacity: 1; /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
     width: auto;
 }

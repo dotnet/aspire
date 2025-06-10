@@ -18,7 +18,7 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureQueueStorageResource.
     /// </summary>
-    public AzureStorageResource Parent => storage;
+    public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Queue Storage resource.

@@ -15,8 +15,23 @@ else
         <div class="metrics-chart-header">
             <h3>@_instrument.Summary.Name</h3>
             <p>@_instrument.Summary.Description</p>
+
+            @if (_instrument.HasOverflow)
+            {
+                <div class="block-warning">
+                    <div class="block-warning-icon">
+                        <FluentIcon Value="new Icons.Filled.Size16.ErrorCircle()" Color="Color.Error" />
+                    </div>
+
+                    <div class="block-warning-message">
+                        <span class="title">@Loc[nameof(ControlsStrings.ChartContainerOverflowTitle)]</span>
+                        @Loc[nameof(ControlsStrings.ChartContainerOverflowDescription)]<br/>
+                        @((MarkupString)string.Format(ControlsStrings.ChartContainerOverflowLink, "https://aka.ms/dotnet/aspire/cardinality-limits"))
+                    </div>
+                </div>
+            }
         </div>
-        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
+        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
                        aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
@@ -37,16 +52,11 @@ else
                 </div>
             </FluentTab>
         </FluentTabs>
+        <div class="metrics-chart-footer">
+            @if (PauseText is not null)
+            {
+                <PauseWarning PauseText="@PauseText" />
+            }
+        </div>
     </div>
-}
-
-@code {
-    [Parameter, EditorRequired]
-    public required Metrics.MetricViewKind ActiveView { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
-
-    [Parameter]
-    public required List<OtlpApplication> Applications { get; set; }
 }

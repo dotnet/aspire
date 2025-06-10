@@ -10,6 +10,19 @@
       the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
     -->
     <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+
+    <!-- https://github.com/dotnet/arcade/issues/15654 -->
+    <!-- We currently have our own Xunit3.targets in eng/Xunit3, which Arcade will import -->
+    <TestRunnerName>Xunit3</TestRunnerName>
+
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
+
+    <!-- MTP-based tests are enabled in the repo. Change this to true to use VSTest. -->
+    <DisableTestingPlatformServerCapability>false</DisableTestingPlatformServerCapability>
+    <OutputType Condition="$(MSBuildProjectName.EndsWith('.Tests'))">Exe</OutputType>
+
   </PropertyGroup>
 
   <!-- IsAspireHost property might not be available here, so allow infering that from the project name -->

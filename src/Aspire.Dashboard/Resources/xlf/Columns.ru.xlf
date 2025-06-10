@@ -2,91 +2,26 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../Columns.resx">
     <body>
-      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
-        <source>Endpoints</source>
-        <target state="translated">Конечные точки</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="EndpointsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Производится запуск…</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
         <source>This container is persistent and won't be stopped when the app host is shut down.</source>
-        <target state="new">This container is persistent and won't be stopped when the app host is shut down.</target>
+        <target state="translated">Этот контейнер является постоянным и не будет остановлен при завершении работы узла приложения.</target>
         <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayContainerIdText">
-        <source>Container ID: {0}</source>
-        <target state="translated">ИД контейнера: {0}</target>
-        <note>{0} is an alphanumeric id</note>
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayCopyContainerIdText">
-        <source>Copy container ID to clipboard</source>
-        <target state="translated">Копировать ИД контейнера в буфер обмена</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayProcessIdText">
-        <source>Process ID: {0}</source>
-        <target state="translated">Идентификатор процесса: {0}</target>
-        <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
-        <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="new">Resource is running but not in a healthy state. Click for details.</target>
+        <source>Resource is running but not in a healthy state.</source>
+        <target state="translated">Ресурс работает, но находится в неработоспособном состоянии.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerArgsTitle">
-        <source>Container args</source>
-        <target state="translated">Аргументы контейнера</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommand">
-        <source>Command: {0}</source>
-        <target state="translated">Команда: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommandTitle">
-        <source>Container command</source>
-        <target state="translated">Команда контейнера</target>
-        <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
         <target state="translated">Копировать команду полностью в буфер обмена</target>
         <note />
       </trans-unit>
-      <trans-unit id="SourceColumnDisplayPort">
-        <source>Port: {0}</source>
-        <target state="translated">Порт: {0}</target>
-        <note>{0} is a port number</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPorts">
-        <source>Ports: {0}</source>
-        <target state="translated">Порты: {0}</target>
-        <note>{0} is a list of ports</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayWorkingDirectory">
-        <source>Working directory: {0}</source>
-        <target state="translated">Рабочий каталог: {0}</target>
-        <note>{0} is a path</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
-        <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Копировать имя и тег изображения в буфер обмена</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
-        <source>Copy file path to clipboard</source>
-        <target state="translated">Копировать путь файла в буфер обмена</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
         <source>Container runtime was found but appears to be unhealthy. Ensure that it is running.
 For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</source>
-        <target state="new">Container runtime was found but appears to be unhealthy. Ensure that it is running.
-For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
+        <target state="translated">Среда выполнения контейнера обнаружена, но, по-видимому, неработоспособна. Убедитесь, что она запущена.
+Дополнительные сведения см. по адресу https://aka.ms/dotnet/aspire/container-runtime-unhealthy</target>
         <note>Contains a new line</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
@@ -98,6 +33,16 @@ For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealt
         <source>{0} exited unexpectedly with exit code {1}</source>
         <target state="translated">{0} неожиданно завершила работу, вернув код {1}.</target>
         <note>{0} is a resource type, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="StateColumnResourceNotStarted">
+        <source>Resource has not started because it's configured to not automatically start.</source>
+        <target state="translated">Ресурс не запущен, поскольку он настроен на отключение автоматического запуска.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceWaiting">
+        <source>Resource is waiting for other resources to be in a running and healthy state.</source>
+        <target state="translated">Ресурс ожидает приведения других ресурсов в работоспособное состояние.</target>
+        <note />
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>
@@ -112,6 +57,11 @@ For more information, see https://aka.ms/dotnet/aspire/container-runtime-unhealt
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
         <target state="translated">1 журнал ошибок</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UrlsColumnDisplayOverflowTitle">
+        <source>URLs</source>
+        <target state="translated">URL-адреса</target>
         <note />
       </trans-unit>
     </body>

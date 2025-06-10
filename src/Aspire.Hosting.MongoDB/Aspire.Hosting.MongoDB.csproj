@@ -9,10 +9,6 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>25</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
   </ItemGroup>

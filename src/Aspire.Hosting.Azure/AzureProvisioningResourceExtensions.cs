@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.KeyVault;
 
 namespace Aspire.Hosting;
 
@@ -25,8 +26,7 @@ public static class AzureProvisioningResourceExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureProvisioningResource(name, configureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
@@ -44,6 +44,52 @@ public static class AzureProvisioningResourceExtensions
 
         builder.Resource.ConfigureInfrastructure += configure;
         return builder;
+    }
+
+    /// <summary>
+    /// Gets or creates a <see cref="KeyVaultSecret"/> resource in the specified <see cref="AzureResourceInfrastructure"/>
+    /// for the given <see cref="IAzureKeyVaultSecretReference"/>.
+    /// <para>
+    /// If the referenced Key Vault or secret does not already exist in the infrastructure, they will be created and added.
+    /// This allows referencing secrets that are provisioned outside of the current deployment.
+    /// </para>
+    /// </summary>
+    /// <param name="secretReference">The <see cref="IAzureKeyVaultSecretReference"/> representing the Key Vault secret to reference.</param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> in which to locate or add the <see cref="KeyVaultSecret"/>.</param>
+    /// <returns>
+    /// The <see cref="KeyVaultSecret"/> instance corresponding to the given secret reference.
+    /// </returns>
+    public static KeyVaultSecret AsKeyVaultSecret(this IAzureKeyVaultSecretReference secretReference, AzureResourceInfrastructure infrastructure)
+    {
+        ArgumentNullException.ThrowIfNull(secretReference);
+        ArgumentNullException.ThrowIfNull(infrastructure);
+
+        var resources = infrastructure.GetProvisionableResources();
+
+        var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
+        var kvName = Infrastructure.NormalizeBicepIdentifier($"{parameter.BicepIdentifier}_kv");
+
+        var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv => kv.BicepIdentifier == kvName);
+
+        if (kv is null)
+        {
+            kv = KeyVaultService.FromExisting(kvName);
+            kv.Name = parameter;
+            infrastructure.Add(kv);
+        }
+
+        var kvsName = Infrastructure.NormalizeBicepIdentifier($"{kv.BicepIdentifier}_{secretReference.SecretName}");
+        var kvs = resources.OfType<KeyVaultSecret>().SingleOrDefault(kvSecret => kvSecret.BicepIdentifier == kvsName);
+
+        if (kvs is null)
+        {
+            kvs = KeyVaultSecret.FromExisting(kvsName);
+            kvs.Name = secretReference.SecretName;
+            kvs.Parent = kv;
+            infrastructure.Add(kvs);
+        }
+
+        return kvs;
     }
 
     /// <summary>
@@ -69,11 +115,57 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResourceBuilder.Resource.Name);
+        return parameterResourceBuilder.Resource.AsProvisioningParameter(infrastructure, parameterName);
+    }
 
-        infrastructure.AspireResource.Parameters[parameterName] = parameterResourceBuilder.Resource;
+    /// <summary>
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// </summary>
+    /// <param name="manifestExpressionProvider">The <see cref="IManifestExpressionProvider"/> that represents the value to use for the <see cref="ProvisioningParameter"/>. </param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <param name="isSecure">Indicates whether the parameter is secure.</param>
+    /// <returns></returns>
+    public static ProvisioningParameter AsProvisioningParameter(this IManifestExpressionProvider manifestExpressionProvider, AzureResourceInfrastructure infrastructure, string? parameterName = null, bool? isSecure = null)
+    {
+        ArgumentNullException.ThrowIfNull(manifestExpressionProvider);
+        ArgumentNullException.ThrowIfNull(infrastructure);
 
-        return GetOrAddParameter(infrastructure, parameterName, parameterResourceBuilder.Resource.Secret);
+        parameterName ??= GetNameFromValueExpression(manifestExpressionProvider);
+
+        infrastructure.AspireResource.Parameters[parameterName] = manifestExpressionProvider;
+
+        return GetOrAddParameter(infrastructure, parameterName, isSecure);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="parameterResource"/>.
+    /// </summary>
+    /// <param name="parameterResource">
+    /// The <see cref="ParameterResource"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
+    /// to get or create a corresponding <see cref="ProvisioningParameter"/>.
+    /// </param>
+    /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <returns>
+    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
+    public static ProvisioningParameter AsProvisioningParameter(this ParameterResource parameterResource, AzureResourceInfrastructure infrastructure, string? parameterName = null)
+    {
+        ArgumentNullException.ThrowIfNull(parameterResource);
+        ArgumentNullException.ThrowIfNull(infrastructure);
+
+        parameterName ??= Infrastructure.NormalizeBicepIdentifier(parameterResource.Name);
+
+        infrastructure.AspireResource.Parameters[parameterName] = parameterResource;
+
+        return GetOrAddParameter(infrastructure, parameterName, parameterResource.Secret);
     }
 
     /// <summary>
@@ -98,7 +190,7 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(outputReference);
         ArgumentNullException.ThrowIfNull(infrastructure);
 
-        parameterName ??= outputReference.Name;
+        parameterName ??= GetNameFromValueExpression(outputReference);
 
         infrastructure.AspireResource.Parameters[parameterName] = outputReference;
 
@@ -166,11 +258,23 @@ public static class AzureProvisioningResourceExtensions
             if (isSecure.HasValue)
             {
                 parameter.IsSecure = isSecure.Value;
-            };
+            }
+
             infrastructure.Add(parameter);
         }
 
         return parameter;
+    }
+
+    private static string GetNameFromValueExpression(IManifestExpressionProvider ep)
+    {
+        var parameterName = ep.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
+
+        if (parameterName[0] == '_')
+        {
+            parameterName = parameterName[1..];
+        }
+        return Infrastructure.NormalizeBicepIdentifier(parameterName);
     }
 }
 

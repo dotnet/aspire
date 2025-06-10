@@ -8,17 +8,15 @@
     <PackageIconFullPath>$(SharedDir)AzureEventHubs_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>14</MinCodeCoverage>
-  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.EventHubs" />
-    <PackageReference Include="Azure.Messaging.EventHubs" />
-    <PackageReference Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" />
   </ItemGroup>
 
 </Project>

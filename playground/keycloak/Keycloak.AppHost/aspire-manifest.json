@@ -3,7 +3,7 @@
   "resources": {
     "keycloak": {
       "type": "container.v0",
-      "image": "quay.io/keycloak/keycloak:25.0",
+      "image": "quay.io/keycloak/keycloak:26.2",
       "args": [
         "start",
         "--import-realm"
@@ -12,19 +12,20 @@
         {
           "source": "../realms",
           "target": "/opt/keycloak/data/import",
-          "readOnly": false
+          "readOnly": true
         }
       ],
       "volumes": [
         {
-          "name": "keycloak.apphost-18509cd2da-keycloak-data",
+          "name": "keycloak.apphost-28dd42043c-keycloak-data",
           "target": "/opt/keycloak/data",
           "readOnly": false
         }
       ],
       "env": {
-        "KEYCLOAK_ADMIN": "admin",
-        "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}"
+        "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
+        "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
+        "KC_HEALTH_ENABLED": "true"
       },
       "bindings": {
         "http": {
@@ -32,6 +33,12 @@
           "protocol": "tcp",
           "transport": "http",
           "targetPort": 8080
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 9000
         }
       }
     },
@@ -44,7 +51,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "services__keycloak__http__0": "{keycloak.bindings.http.url}"
+        "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "services__keycloak__management__0": "{keycloak.bindings.management.url}"
       },
       "bindings": {
         "http": {
@@ -69,6 +77,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
         "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "services__keycloak__management__0": "{keycloak.bindings.management.url}",
         "services__apiservice__http__0": "{apiservice.bindings.http.url}",
         "services__apiservice__https__0": "{apiservice.bindings.https.url}"
       },

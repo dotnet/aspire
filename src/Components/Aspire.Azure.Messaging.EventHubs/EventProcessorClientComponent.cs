@@ -97,17 +97,14 @@ internal sealed class EventProcessorClientComponent()
         // name specified in the settings.
         bool shouldTryCreateIfNotExists = false;
 
+        // Do we have a container name provided in the settings?
         if (string.IsNullOrWhiteSpace(settings.BlobContainerName))
         {
+            // If not, we'll create a container name based on the namespace, event hub name and consumer group
             var ns = GetNamespaceFromSettings(settings);
 
-            // Do we have a container name provided in the settings?
-            if (string.IsNullOrWhiteSpace(settings.BlobContainerName))
-            {
-                // If not, we'll create a container name based on the namespace, event hub name and consumer group
-                settings.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
-                shouldTryCreateIfNotExists = true;
-            }
+            settings.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+            shouldTryCreateIfNotExists = true;
         }
 
         var containerClient = blobClient.GetBlobContainerClient(settings.BlobContainerName);

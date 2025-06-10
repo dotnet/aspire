@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Authentication.OpenIdConnect;
 internal static class AuthorizationPolicyBuilderExtensions
 {
     /// <summary>
-    /// Validates that the the expected claim and value are present.
+    /// Validates that the expected claim and value are present.
     /// </summary>
     /// <remarks>
     /// Checks are controlled by configuration.

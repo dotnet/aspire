@@ -32,9 +32,6 @@ public static class AspireMilvusExtensions
         string connectionName,
         Action<MilvusClientSettings>? configureSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         AddMilvus(builder, configureSettings, connectionName, serviceKey: null);
     }
 
@@ -52,8 +49,8 @@ public static class AspireMilvusExtensions
         string name,
         Action<MilvusClientSettings>? configureSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
+
         AddMilvus(builder, configureSettings, connectionName: name, serviceKey: name);
     }
 
@@ -64,6 +61,7 @@ public static class AspireMilvusExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = new MilvusClientSettings();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);

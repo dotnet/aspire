@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
-    <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client" />
+    <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client.v7" />
     <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 

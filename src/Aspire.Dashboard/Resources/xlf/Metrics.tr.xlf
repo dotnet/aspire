@@ -57,11 +57,6 @@
         <target state="translated">Son 12 saat</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">Son 24 saat</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">Seçili kaynak için ölçüm yok</target>
@@ -91,6 +86,11 @@
         <source>View attributes</source>
         <target state="translated">Öznitelikleri görüntüle</target>
         <note />
+      </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">Ölçüm yakalama {0} itibariyle duraklatıldı</target>
+        <note>{0} is a time</note>
       </trans-unit>
     </body>
   </file>

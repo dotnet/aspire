@@ -1,252 +1,103 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
-using Xunit.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzurePostgresExtensionsTests(ITestOutputHelper output)
+public class AzurePostgresExtensionsTests
 {
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzurePostgresFlexibleServer(bool publishMode)
+    // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.PostgresSupport. The output doesn't match the pattern here because the role assignment isn't generated
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task AddAzurePostgresFlexibleServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data.outputs.connectionString}",
-              "path": "postgres-data.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalType": "",
-                "principalName": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var allowAllIpsFirewall = "";
-        var allowAllIpsDependsOn = "";
-        if (!publishMode)
+        if (useAcaInfrastructure)
         {
-            allowAllIpsFirewall = """
+            builder.AddAzureContainerAppEnvironment("env");
 
-                resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-                  name: 'AllowAllIps'
-                  properties: {
-                    endIpAddress: '255.255.255.255'
-                    startIpAddress: '0.0.0.0'
-                  }
-                  parent: postgres_data
-                }
-            
-                """;
-
-            allowAllIpsDependsOn = """
-
-                    postgreSqlFirewallRule_AllowAllIps
-                """;
+            // on ACA infrastructure, if there are no references to the postgres resource,
+            // then there won't be any roles created. So add a reference here.
+            builder.AddContainer("api", "myimage")
+                .WithReference(postgres);
         }
 
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
 
-            param principalId string
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource, skipPreparer: true);
 
-            param principalType string
+        var postgresRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "postgres-data-roles");
+        var (postgresRolesManifest, postgresRolesBicep) = await AzureManifestUtils.GetManifestWithBicep(postgresRoles, skipPreparer: true);
 
-            param principalName string
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(postgresRolesManifest.ToString(), "json")
+              .AppendContentAsFile(postgresRolesBicep, "bicep");
+              
+    }
 
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                authConfig: {
-                  activeDirectoryAuth: 'Enabled'
-                  passwordAuth: 'Disabled'
-                }
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres-data'
-              }
-            }
+    [Fact]
+    public async Task AddAzurePostgresFlexibleServer_WithPasswordAuthentication_NoKeyVaultWithContainer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-            {{allowAllIpsFirewall}}
-            resource postgres_data_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-              name: principalId
-              properties: {
-                principalName: principalName
-                principalType: principalType
-              }
-              parent: postgres_data
-              dependsOn: [
-                postgres_data
-                postgreSqlFirewallRule_AllowAllAzureIps{{allowAllIpsDependsOn}}
-              ]
-            }
+        builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().RunAsContainer();
 
-            output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${principalName}'
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
     }
 
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public async Task AddAzurePostgresWithPasswordAuth(bool specifyUserName, bool specifyPassword)
+    [InlineData(true, true, null)]
+    [InlineData(true, true, "mykeyvault")]
+    [InlineData(true, false, null)]
+    [InlineData(true, false, "mykeyvault")]
+    [InlineData(false, true, null)]
+    [InlineData(false, true, "mykeyvault")]
+    [InlineData(false, false, null)]
+    [InlineData(false, false, "mykeyvault")]
+    public async Task AddAzurePostgresWithPasswordAuth(bool specifyUserName, bool specifyPassword, string? kvName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var userName = specifyUserName ? builder.AddParameter("user") : null;
         var password = specifyPassword ? builder.AddParameter("password") : null;
 
-        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data")
-            .WithPasswordAuthentication(userName, password);
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+
+        if (kvName is null)
+        {
+            kvName = "postgres-data-kv";
+            postgres.WithPasswordAuthentication(userName, password);
+        }
+        else
+        {
+            var keyVault = builder.AddAzureKeyVault(kvName);
+            postgres.WithPasswordAuthentication(keyVault, userName, password);
+        }
 
         postgres.AddDatabase("db1", "db1Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
-        var expectedManifest = $$"""
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{postgres-data.secretOutputs.connectionString}",
-              "path": "postgres-data.module.bicep",
-              "params": {
-                "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
-                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
-                "keyVaultName": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param administratorLogin string
-
-            @secure()
-            param administratorLoginPassword string
-
-            param keyVaultName string
-
-            resource postgres_data 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
-              name: take('postgresdata-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administratorLogin: administratorLogin
-                administratorLoginPassword: administratorLoginPassword
-                authConfig: {
-                  activeDirectoryAuth: 'Disabled'
-                  passwordAuth: 'Enabled'
-                }
-                availabilityZone: '1'
-                backup: {
-                  backupRetentionDays: 7
-                  geoRedundantBackup: 'Disabled'
-                }
-                highAvailability: {
-                  mode: 'Disabled'
-                }
-                storage: {
-                  storageSizeGB: 32
-                }
-                version: '16'
-              }
-              sku: {
-                name: 'Standard_B1ms'
-                tier: 'Burstable'
-              }
-              tags: {
-                'aspire-resource-name': 'postgres-data'
-              }
-            }
-
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-              name: 'AllowAllIps'
-              properties: {
-                endIpAddress: '255.255.255.255'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: postgres_data
-            }
-
-            resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
-              name: 'db1Name'
-              parent: postgres_data
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionString'
-              properties: {
-                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-              }
-              parent: keyVault
-            }
-
-            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'db1-connectionString'
-              properties: {
-                value: 'Host=${postgres_data.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db1Name'
-              }
-              parent: keyVault
-            }
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(bicep, extension: "bicep")
+                .AppendContentAsFile(manifest.ToString(), "json");
+            
     }
 
     [Theory]
@@ -287,6 +138,62 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Host=localhost;Port=12455;Username=postgres;Password=", db2ConnectionString);
         Assert.EndsWith("Database=db2Name", db2ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzurePostgresFlexibleServerRunAsContainerProducesCorrectUserNameAndPasswordAndHost(bool addDbBeforeRunAsContainer)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+        var user = builder.AddParameter("user", "user1");
+
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db1 = null!;
+        IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> db2 = null!;
+        if (addDbBeforeRunAsContainer)
+        {
+            db1 = postgres.AddDatabase("db1");
+            db2 = postgres.AddDatabase("db2", "db2Name");
+        }
+
+        IResourceBuilder<PostgresServerResource>? innerPostgres = null;
+        postgres.RunAsContainer(configureContainer: c =>
+        {
+            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                .WithHostPort(12455)
+                .WithPassword(pass)
+                .WithUserName(user);
+            innerPostgres = c;
+        });
+
+        if (!addDbBeforeRunAsContainer)
+        {
+            db1 = postgres.AddDatabase("db1");
+            db2 = postgres.AddDatabase("db2", "db2Name");
+        }
+
+        Assert.NotNull(innerPostgres);
+
+        var endpoint = Assert.Single(innerPostgres.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(5432, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+
+        var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db1", db1ConnectionString);
+
+        var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db2Name", db2ConnectionString);
     }
 
     [Theory]
@@ -388,5 +295,194 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
+    }
+
+    [Fact]
+    public async Task AsAzurePostgresFlexibleServerViaRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AsAzurePostgresFlexibleServerViaPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db", "dbName");
+
+        Assert.True(postgres.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azurePostgres = (AzurePostgresResource)connectionStringAnnotation.Resource;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
+        azurePostgres.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres", usr, pwd).PublishAsAzurePostgresFlexibleServer();
+        postgres.AddDatabase("db");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Verify that when PublishAs variant is used, connection string acquisition
+        // still uses the local endpoint.
+        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password=password";
+        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync());
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServerNoUserPassParams()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var postgres = builder.AddPostgres("postgres1")
+            .PublishAsAzurePostgresFlexibleServer(); // Because of InternalsVisibleTo
+
+        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres1.secretOutputs.connectionString}",
+              "path": "postgres1.module.bicep",
+              "params": {
+                "administratorLogin": "{postgres1-username.value}",
+                "administratorLoginPassword": "{postgres1-password.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var param = builder.AddParameter("param");
+
+        postgres = builder.AddPostgres("postgres2", userName: param)
+            .PublishAsAzurePostgresFlexibleServer();
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres2.secretOutputs.connectionString}",
+              "path": "postgres2.module.bicep",
+              "params": {
+                "administratorLogin": "{param.value}",
+                "administratorLoginPassword": "{postgres2-password.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        postgres = builder.AddPostgres("postgres3", password: param)
+            .PublishAsAzurePostgresFlexibleServer();
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres3.secretOutputs.connectionString}",
+              "path": "postgres3.module.bicep",
+              "params": {
+                "administratorLogin": "{postgres3-username.value}",
+                "administratorLoginPassword": "{param.value}",
+                "keyVaultName": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 }

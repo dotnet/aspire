@@ -20,7 +20,7 @@ public class TestMetrics : IDisposable
             new KeyValuePair<string, object?>("meter-tag", Guid.NewGuid().ToString())
         ]);
 
-        _counter = _meter.CreateCounter<int>("test-counter", unit: null, description: null, tags:
+        _counter = _meter.CreateCounter<int>("test-counter", unit: null, description: "This is a description", tags:
         [
             new KeyValuePair<string, object?>("instrument-tag", Guid.NewGuid().ToString())
         ]);

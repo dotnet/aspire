@@ -2,10 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-
-    <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' == 'Windows_NT'">false</RunTestsOnHelix>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!-- Only run on Linux; no docker support on Windows yet -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <!-- Issue: https://github.com/dotnet/aspire/issues/9198 -->
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
 
     <!-- no docker support on helix/windows yet -->
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
@@ -20,7 +22,6 @@
     <DefineConstants Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
@@ -28,15 +29,17 @@
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit.v3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
     <None Include="..\testproject\**\*" Link="$(DeployOutsideOfRepoSupportFilesDir)%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Needed by TestProject.AppHost -->
-    <None Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="$(DeployOutsideOfRepoSupportFilesDir)TestProject.AppHost\ResourceLoggerForwarderService.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+  <Import Project="..\Shared\TemplatesTesting\Aspire.Shared.TemplatesTesting.targets" />
 </Project>

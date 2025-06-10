@@ -6,7 +6,7 @@ namespace AspirePlusFunctions.Functions;
 public class MyEventHubTrigger(ILogger<MyEventHubTrigger> logger)
 {
     [Function(nameof(MyEventHubTrigger))]
-    public void Run([EventHubTrigger("myhub", Connection = "eventhubs")] string[] input)
+    public void Run([EventHubTrigger("myhub", Connection = "myhub")] string[] input)
     {
         logger.LogInformation("C# EventHub trigger function processed: {Count} messages", input.Length);
     }

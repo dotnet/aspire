@@ -31,6 +31,7 @@ parameters:
   IsWindows: false                       # optional
   condition: succeeded()                 # optional -- condition for step to execute; defaults to succeeded()
   continueOnError: false                 # optional -- determines whether to continue the build if the step errors; defaults to false
+  dockerCliPath: ''                      # optional -- path to custom Docker CLI for helix
 
 steps:
   - ${{ if and(parameters.condition, eq(parameters.IsWindows, 'true')) }}:
@@ -92,4 +93,5 @@ steps:
         HelixBaseUri: ${{ parameters.HelixBaseUri }}
         Creator: ${{ parameters.Creator }}
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        DockerCliToolDir: ${{ parameters.dockerCliPath }}
       continueOnError: ${{ parameters.continueOnError }}

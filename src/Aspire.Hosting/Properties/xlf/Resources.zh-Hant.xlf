@@ -17,31 +17,14 @@
         <target state="translated">繫結裝載必須指定來源路徑。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">找不到容器執行階段 '{0}'。來自容器執行階段檢查的錯誤為: {1}。
-如需支援的容器執行階段的詳細資訊，請參閱 https://aka.ms/dotnet/aspire/containers。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">找到了容器執行階段 '{0}'，但似乎狀況不良。容器執行階段檢查中的錯誤為 {1}。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">已找到容器執行階段 '{0}'，但似乎無回應。命令 '{0}' 在 {1} 秒後未傳回。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">應用程式協調器相依性檢查已傳回錯誤: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
-        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="translated">執行應用程式需要較新版本的 .NET Aspire 工作負載。執行 'dotnet workload update' 以取得它。</target>
+        <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
+        <target state="translated">需要較新版本的 Aspire.Hosting.AppHost 套件才能執行應用程式。請確認您正在參考至少版本 '{0}'。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

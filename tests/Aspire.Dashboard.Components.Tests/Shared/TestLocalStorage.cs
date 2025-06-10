@@ -12,7 +12,7 @@ public sealed class TestLocalStorage : ILocalStorage
 
     public Task<StorageResult<T>> GetAsync<T>(string key)
     {
-        return Task.FromResult(new StorageResult<T>(Success: false, Value: default));
+        return Task.FromResult(new StorageResult<T>(success: false, value: default));
     }
 
     public Task<StorageResult<T>> GetUnprotectedAsync<T>(string key)
@@ -20,9 +20,9 @@ public sealed class TestLocalStorage : ILocalStorage
         if (OnGetUnprotectedAsync is { } callback)
         {
             var (success, value) = callback(key);
-            return Task.FromResult(new StorageResult<T>(Success: success, Value: (T)(value ?? default(T))!));
+            return Task.FromResult(new StorageResult<T>(success: success, value: (T)(value ?? default(T))!));
         }
-        return Task.FromResult(new StorageResult<T>(Success: false, Value: default));
+        return Task.FromResult(new StorageResult<T>(success: false, value: default));
     }
 
     public Task SetAsync<T>(string key, T value)

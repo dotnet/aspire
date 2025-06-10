@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
-using Grpc.Core;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
@@ -21,13 +20,12 @@ public sealed class SpanWaterfallViewModel
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
     public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
 
-    private bool _isCollapsed;
     public bool IsCollapsed
     {
-        get => _isCollapsed;
+        get;
         set
         {
-            _isCollapsed = value;
+            field = value;
             UpdateHidden();
         }
     }
@@ -47,62 +45,55 @@ public sealed class SpanWaterfallViewModel
         return tooltip;
     }
 
-    public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
+    public bool MatchesFilter(string filter, Func<OtlpApplicationView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
     {
-        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {GetDisplaySummary(span)}";
-    }
-
-    public static string GetDisplaySummary(OtlpSpan span)
-    {
-        // Use attributes on the span to calculate a friendly summary.
-        // Optimize for common cases: HTTP, RPC, DATA, etc.
-        // Fall back to the span name if we can't find anything.
-        if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
+        if (Filter(this))
         {
-            if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
+            matchedDescendents = Children.SelectMany(GetWithDescendents);
+            return true;
+        }
+
+        foreach (var child in Children)
+        {
+            if (child.MatchesFilter(filter, getResourceName, out var matchedChildDescendents))
             {
-                var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
-                var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
-
-                return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
-            {
-                var dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
-
-                return $"DATA {dbSystem} {span.Name}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "rpc.system")))
-            {
-                var rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
-                var rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
-                var rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
-
-                if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
-                {
-                    var grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
-
-                    var summary = $"RPC {rpcService}/{rpcMethod}";
-                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
-                    {
-                        summary += $" {statusCode}";
-                    }
-                    return summary;
-                }
-
-                return $"RPC {rpcService}/{rpcMethod}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "messaging.system")))
-            {
-                var messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
-                var messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
-                var destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
-
-                return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
+                matchedDescendents = [child, ..matchedChildDescendents];
+                return true;
             }
         }
 
-        return span.Name;
+        matchedDescendents = null;
+        return false;
+
+        bool Filter(SpanWaterfallViewModel viewModel)
+        {
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                return true;
+            }
+
+            return viewModel.Span.SpanId.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || getResourceName(viewModel.Span.Source).Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || viewModel.Span.GetDisplaySummary().Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                   || viewModel.UninstrumentedPeer?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) is true;
+        }
+
+        static IEnumerable<SpanWaterfallViewModel> GetWithDescendents(SpanWaterfallViewModel s)
+        {
+            var stack = new Stack<SpanWaterfallViewModel>();
+            stack.Push(s);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                yield return current;
+
+                foreach (var child in current.Children)
+                {
+                    stack.Push(child);
+                }
+            }
+        }
     }
 
     private void UpdateHidden(bool isParentCollapsed = false)
@@ -116,7 +107,12 @@ public sealed class SpanWaterfallViewModel
 
     private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
 
-    public sealed record TraceDetailState(IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers, List<string> CollapsedSpanIds);
+    public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds);
+
+    public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
+    {
+        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
+    }
 
     public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, TraceDetailState state)
     {
@@ -177,12 +173,19 @@ public sealed class SpanWaterfallViewModel
         }
     }
 
-    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
+        if (span.UninstrumentedPeer?.ApplicationName is { } peerName)
+        {
+            // If the span has a peer name, use it.
+            return peerName;
+        }
+
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
+        // This should only match non-resource returning resolves such as Browser Link.
         foreach (var resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span.Attributes, out var name))
+            if (resolver.TryResolvePeer(span.Attributes, out var name, out _))
             {
                 return name;
             }

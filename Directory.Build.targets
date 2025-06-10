@@ -23,7 +23,6 @@
     <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.targets" />
   <Import Project="$(RepositoryEngineeringDir)/NullablePolyfill.targets" />
 
   <!-- HACK: This resolves issues in CI builds where the extensions.json file is mapped to the incorrect directory. We only want

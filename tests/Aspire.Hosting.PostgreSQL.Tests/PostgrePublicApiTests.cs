@@ -10,11 +10,69 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 
 public class PostgresPublicApiTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPgAdminContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => new PgAdminContainerResource(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPgWebContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => new PgWebContainerResource(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddPostgresShouldThrowWhenBuilderIsNull()
+    {
+        IDistributedApplicationBuilder builder = null!;
+        const string name = "PostgreSql";
+
+        var action = () => builder.AddPostgres(name);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddPostgresShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => builder.AddPostgres(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
     [Fact]
     public void AddDatabaseShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<PostgresServerResource> builder = null!;
-        const string name = "Postgres";
+        const string name = "PostgreDb";
 
         var action = () => builder.AddDatabase(name);
 
@@ -22,145 +80,67 @@ public class PostgresPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var postgres = builder.AddPostgres("Postgres");
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddPostgres("Postgres");
+        var name = isNull ? null! : string.Empty;
 
-        var action = () => postgres.AddDatabase(name);
+        var action = () => builder.AddDatabase(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
-    public void AddPostgresContainerShouldThrowWhenBuilderIsNull()
-    {
-        IDistributedApplicationBuilder builder = null!;
-        const string name = "Postgres";
-
-        var action = () => builder.AddPostgres(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddPostgresContainerShouldThrowWhenNameIsNull()
-    {
-        var builder = TestDistributedApplicationBuilder.Create();
-        string name = null!;
-
-        var action = () => builder.AddPostgres(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPgAdminContainerResourceShouldThrowWhenNameIsNull()
-    {
-        string name = null!;
-
-        var action = () => new PgAdminContainerResource(name);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPostgresDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
-    {
-        const string name = "PostgresDatabase";
-        string databaseName = null!;
-        var builder = TestDistributedApplicationBuilder.Create();
-        var parameterResource = builder.AddParameter("password");
-        var postgresParentResource = new PostgresServerResource("PostgresServer", default(ParameterResource?), parameterResource.Resource);
-
-        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(databaseName), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPostgresDatabaseResourceShouldThrowWhenNameIsNull()
-    {
-        string name = null!;
-        const string databaseName = "db";
-        var builder = TestDistributedApplicationBuilder.Create();
-        var parameterResource = builder.AddParameter("password");
-        var postgresParentResource = new PostgresServerResource("PostgresServer", default(ParameterResource?), parameterResource.Resource);
-
-        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPostgresDatabaseResourceShouldThrowWhenPostgresParentResourceIsNull()
-    {
-        const string name = "PostgresDatabase";
-        const string databaseName = "db";
-        PostgresServerResource postgresParentResource = null!;
-
-        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(postgresParentResource), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPostgresServerResourceShouldThrowWhenNameIsNull()
-    {
-        string name = null!;
-        var builder = TestDistributedApplicationBuilder.Create();
-        var password = builder.AddParameter("password");
-
-        var action = () => new PostgresServerResource(name, default(ParameterResource?), password.Resource);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void CtorPostgresServerResourceShouldThrowWhenPasswordIsNull()
-    {
-        const string name = "PostgresServer";
-        ParameterResource password = null!;
-
-        var action = () => new PostgresServerResource(name, default(ParameterResource?), password);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(password), exception.ParamName);
-    }
-
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
+    public void WithPgAdminShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<PostgresServerResource> builder = null!;
-        const string source = "/var/lib/postgresql/data";
 
-        var action = () => builder.WithDataBindMount(source);
+        var action = () => builder.WithPgAdmin();
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    public void WithHostPortForPgAdminContainerResourceShouldThrowWhenBuilderIsNull()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var postgres = builder.AddPostgres("Postgres");
-        string source = null!;
+        IResourceBuilder<PgAdminContainerResource> builder = null!;
+        int? port = null;
 
-        var action = () => postgres.WithDataBindMount(source);
+        var action = () => builder.WithHostPort(port);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(source), exception.ParamName);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithHostPortForPgWebContainerResourceShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<PgAdminContainerResource> builder = null!;
+        int? port = null;
+
+        var action = () => builder.WithHostPort(port);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithPgWebShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<PostgresServerResource> builder = null!;
+
+        var action = () => builder.WithPgWeb();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -175,14 +155,32 @@ public class PostgresPublicApiTests
     }
 
     [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
+    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
-        IResourceBuilder<PgAdminContainerResource> builder = null!;
+        IResourceBuilder<PostgresServerResource> builder = null!;
+        const string source = "/var/lib/postgresql/data";
 
-        var action = () => builder.WithHostPort(default(int?));
+        var action = () => builder.WithDataBindMount(source);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddPostgres("Postgres");
+        var source = isNull ? null! : string.Empty;
+
+        var action = () => builder.WithDataBindMount(source);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
@@ -191,33 +189,143 @@ public class PostgresPublicApiTests
         IResourceBuilder<PostgresServerResource> builder = null!;
         const string source = "/docker-entrypoint-initdb.d";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithInitBindMountShouldThrowWhenSourceIsNull()
+    public void WithInitFilesShouldThrowWhenBuilderIsNull()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var postgres = builder.AddPostgres("Postgres");
-        string source = null!;
+        IResourceBuilder<PostgresServerResource> builder = null!;
+        const string source = "/docker-entrypoint-initdb.d";
 
-        var action = () => postgres.WithInitBindMount(source);
+        var action = () => builder.WithInitFiles(source);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddPostgres("Postgres");
+        var source = isNull ? null! : string.Empty;
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    [Fact]
-    public void WithPgAdminShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitFilesShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        IResourceBuilder<PostgresServerResource> builder = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddPostgres("Postgres");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => builder.WithPgAdmin();
+        var action = () => builder.WithInitFiles(source);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPostgresDatabaseResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+        const string databaseName = "postgreDb";
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddParameter("password");
+        ParameterResource? userName = null;
+        var postgresParentResource = new PostgresServerResource("postgresServer", userName, builder.Resource);
+
+        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPostgresDatabaseResourceShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
+    {
+        const string name = "postgreSql";
+        var databaseName = isNull ? null! : string.Empty;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddParameter("password");
+        ParameterResource? userName = null;
+        var postgresParentResource = new PostgresServerResource("postgresServer", userName, builder.Resource);
+
+        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(databaseName), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorPostgresDatabaseResourceShouldThrowWhenPostgresParentResourceIsNull()
+    {
+        const string name = "postgreSql";
+        const string databaseName = "postgreDb";
+        PostgresServerResource postgresParentResource = null!;
+
+        var action = () => new PostgresDatabaseResource(name, databaseName, postgresParentResource);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
+        Assert.Equal(nameof(postgresParentResource), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorPostgresServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddParameter("password");
+        ParameterResource? userName = null;
+
+        var action = () => new PostgresServerResource(name, userName, builder.Resource);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorPostgresServerResourceShouldThrowWhenPasswordIsNull()
+    {
+        const string name = "postgreSql";
+        ParameterResource? userName = null;
+        ParameterResource password = null!;
+
+        var action = () => new PostgresServerResource(name, userName, password);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(password), exception.ParamName);
     }
 }

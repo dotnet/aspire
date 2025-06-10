@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,9 +60,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerAttribute.IsSupported ?
-            $"{_containerFixture.GetConnectionString()}test_db" :
-            "mongodb://root:password@localhost:27017/test_db?authSource=admin&authMechanism=SCRAM-SHA-256";
+        var connectionString = GetConnectionString();
 
         configuration.AddInMemoryCollection(
             [
@@ -70,6 +68,17 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
                 CreateConfigKey("Aspire:MongoDB:Driver", key, "ConnectionString"),
                 connectionString)
             ]);
+    }
+
+    private string GetConnectionString()
+    {
+        if (RequiresDockerAttribute.IsSupported)
+        {
+            var builder = new UriBuilder(_containerFixture.GetConnectionString());
+            builder.Path = "test_db";
+            return builder.ToString();
+        }
+        return "mongodb://root:password@localhost:27017/test_db?authSource=admin&authMechanism=SCRAM-SHA-256";
     }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MongoDBSettings>? configure = null, string? key = null)

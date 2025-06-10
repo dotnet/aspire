@@ -6,11 +6,12 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a parameter resource.
 /// </summary>
-public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
+public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestExpressionProvider, IValueProvider
 {
     private string? _value;
     private bool _hasValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
+    private string? _configurationKey;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -62,6 +63,16 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// Gets the expression used in the manifest to reference the value of the parameter.
     /// </summary>
     public string ValueExpression => $"{{{Name}.value}}";
+
+    /// <summary>
+    /// The configuration key for this parameter. The default format is "ConnectionStrings:{Name}" if the parameter is a connection string,
+    /// otherwise it is "Parameters:{Name}".
+    /// </summary>
+    internal string ConfigurationKey
+    {
+        get => _configurationKey ?? (IsConnectionString ? $"ConnectionStrings:{Name}" : $"Parameters:{Name}");
+        set => _configurationKey = value;
+    }
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
 }

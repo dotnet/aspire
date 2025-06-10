@@ -1,6 +1,6 @@
 # Aspire.Microsoft.EntityFrameworkCore.Cosmos library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to Azure Cosmos DB. Enables connection pooling, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to Azure Cosmos DB. Enables connection pooling, logging and telemetry.
 
 ## Getting started
 
@@ -18,7 +18,7 @@ dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddCosmosDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes connection name and database name parameters.
+In the _AppHost.cs_ file of your project, call the `AddCosmosDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes connection name and database name parameters.
 
 ```csharp
 builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb");
@@ -109,10 +109,10 @@ In your AppHost project, install the Aspire Azure CosmosDB Hosting library with 
 dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
 
 ```csharp
-var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cdb").AddCosmosDatabase("cosmosdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);

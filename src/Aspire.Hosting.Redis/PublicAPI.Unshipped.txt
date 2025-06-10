@@ -1,8 +1,0 @@
-#nullable enable
-Aspire.Hosting.Redis.RedisInsightResource
-Aspire.Hosting.Redis.RedisInsightResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-Aspire.Hosting.Redis.RedisInsightResource.RedisInsightResource(string! name) -> void
-static Aspire.Hosting.RedisBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>! builder, string! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>!
-static Aspire.Hosting.RedisBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>! builder, string? name = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>!
-static Aspire.Hosting.RedisBuilderExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>!
-static Aspire.Hosting.RedisBuilderExtensions.WithRedisInsight(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RedisResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Redis.RedisInsightResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RedisResource!>!

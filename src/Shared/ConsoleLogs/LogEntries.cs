@@ -15,6 +15,7 @@ public sealed class LogEntries(int maximumEntryCount)
 internal sealed class LogEntries(int maximumEntryCount)
 #endif
 {
+    private readonly List<LogPauseViewModel> _pauseViewModels = [];
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
     private int? _earliestTimestampIndex;
@@ -27,12 +28,57 @@ internal sealed class LogEntries(int maximumEntryCount)
 
     public int EntriesCount => _logEntries.Count;
 
-    public void Clear()
+    public void Clear(bool keepActivePauseEntries)
     {
-        _logEntries.Clear();
+        if (keepActivePauseEntries)
+        {
+            // Don't remove pause VMs or their entries that are still active.
+            _pauseViewModels.RemoveAll(pause => pause.EndTime is not null);
+            foreach (var pauseVM in _pauseViewModels)
+            {
+                // Reset filtered count to zero because all the entries have been cleared.
+                pauseVM.FilteredCount = 0;
+            }
+
+            var pauseEntries = _logEntries.Where(e => e.Type == LogEntryType.Pause && _pauseViewModels.Contains(e.Pause!)).ToList();
+            _logEntries.Clear();
+            foreach (var pauseEntry in pauseEntries)
+            {
+                _logEntries.Add(pauseEntry);
+            }
+        }
+        else
+        {
+            _pauseViewModels.Clear();
+            _logEntries.Clear();
+        }
+
         BaseLineNumber = null;
     }
 
+    public bool ProcessPauseFilters(LogEntry logEntry)
+    {
+        if (logEntry.Timestamp is null)
+        {
+            return false;
+        }
+
+        foreach (var pauseVM in _pauseViewModels)
+        {
+            if (pauseVM.Contains(logEntry.Timestamp.Value))
+            {
+                pauseVM.FilteredCount += 1;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Insert a log entry at the correct position in the list of log entries according to its timestamp.
+    /// </summary>
+    /// <param name="logLine"></param>
     public void InsertSorted(LogEntry logLine)
     {
         Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
@@ -66,8 +112,8 @@ internal sealed class LogEntries(int maximumEntryCount)
 
     private void InsertSortedCore(LogEntry logEntry)
     {
-        // If there is no timestamp then add to the end.
-        if (logEntry.Timestamp == null)
+        // If there is no timestamp or the entry is a pause then add to the end.
+        if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
         {
             InsertAt(_logEntries.Count);
             return;
@@ -128,11 +174,42 @@ internal sealed class LogEntries(int maximumEntryCount)
 
         void InsertAt(int index)
         {
+            if (logEntry.Type is LogEntryType.Pause)
+            {
+                _pauseViewModels.Add(logEntry.Pause!);
+                _logEntries.Insert(index, logEntry);
+                return;
+            }
+
             // Set the line number of the log entry.
             if (index == 0)
             {
                 Debug.Assert(BaseLineNumber != null, "Should be set before this method is run.");
                 logEntry.LineNumber = BaseLineNumber.Value;
+            }
+            else if (_logEntries[index - 1].Pause is { } pause)
+            {
+                Debug.Assert(pause.EndTime is not null, "Pause should have ended before trying to insert another log.");
+
+                int? previousLineNumber = null;
+                for (var i = index - 1; i >= 0; i--)
+                {
+                    if (_logEntries[i] is { Type: not LogEntryType.Pause } entry)
+                    {
+                        previousLineNumber = entry.LineNumber;
+                        break;
+                    }
+                }
+
+                if (previousLineNumber is not null)
+                {
+                    logEntry.LineNumber = previousLineNumber.Value + pause.FilteredCount + 1;
+                }
+                else
+                {
+                    Debug.Assert(BaseLineNumber is not null);
+                    logEntry.LineNumber = BaseLineNumber.Value + pause.FilteredCount;
+                }
             }
             else
             {

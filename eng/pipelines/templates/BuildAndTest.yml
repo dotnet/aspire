@@ -19,6 +19,12 @@ parameters:
   - name: runHelixTests
     type: boolean
     default: false
+  - name: runPipelineTests
+    type: boolean
+    default: false
+  - name: dockerCliVersion
+    type: string
+    default: '28.0.0'
 
 steps:
   # Internal pipeline: Build with pack+sign
@@ -32,7 +38,32 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
+              /p:SkipTestProjects=true
       displayName: Build
+
+    - script: ${{ parameters.dotnetScript }}
+              build
+              tests/workloads.proj
+              /p:SkipPackageCheckForTemplatesTesting=true
+      displayName: Prepare sdks for templates testing
+
+    - script: ${{ parameters.buildScript }}
+              -build
+              -restore
+              -test
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/BuildTemplatesTests.binlog
+              $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
+              /p:SkipTests=false
+              -projects $(Build.SourcesDirectory)\tests\Aspire.Templates.Tests\Aspire.Templates.Tests.csproj
+      env:
+        RunOnlyBasicBuildTemplateTests: true
+        # test root path for template test projects
+        DEV_TEMP: $(Build.SourcesDirectory)\..
+        DOTNET_ROOT: $(Build.SourcesDirectory)\.dotnet
+        TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
+      displayName: Run Template tests
 
   # Public pipeline - helix tests
   - ${{ if eq(parameters.runAsPublic, 'true') }}:
@@ -40,39 +71,61 @@ steps:
               -restore -build
               -configuration ${{ parameters.buildConfig }}
               -pack
-              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /p:PrepareForHelix=${{ lower(eq(parameters.runHelixTests, 'true')) }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build
+      env:
+        DOTNET_ROOT: "$(Build.SourcesDirectory)/.dotnet"
+
+    - task: DockerInstaller@0
+      inputs:
+        dockerVersion: ${{ parameters.dockerCliVersion }}
+      displayName: Install Docker CLI
 
   # Non-helix tests are run only on the public pipeline
-  - ${{ if and(eq(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
     # non-helix tests
     - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh &&
-                wget https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh &&
-                chmod +x ubuntu-create-dotnet-devcert.sh &&
-                ./ubuntu-create-dotnet-devcert.sh
+      - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
         displayName: Install devcerts
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
       - script: dotnet dev-certs https
         displayName: Install dev-certs
 
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks (Before Tests)
+        condition: always()
+
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
-              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
-              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
+              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /maxcpucount:1 /p:BuildInParallel=false $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
-        # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
-        DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-
+        DCP_DIAGNOSTICS_LOG_LEVEL: debug
+        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+        DCP_PRESERVE_EXECUTABLE_LOGS: 1
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
       displayName: Run non-helix tests
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks (After Tests always)
+        condition: always()
 
   # Helix tests are run only on the public pipeline
   - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
@@ -89,7 +142,7 @@ steps:
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
         # Code coverage on windows is disabled: <issue>
-        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -101,6 +154,8 @@ steps:
             HelixTargetQueues: Ubuntu.2204.Amd64.Open
           ${{ if eq(variables['System.TeamProject'], 'internal') }}:
             HelixTargetQueues: Ubuntu.2204.Amd64
+          ${{ if and(ne(parameters.isWindows, 'true'), ne(parameters.dockerCliVersion, '')) }}:
+            DockerCliPath: /opt/hostedtoolcache/docker-stable/${{ parameters.dockerCliVersion }}/x64/
 
         IsWindows: ${{ parameters.isWindows }}
         ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -118,19 +173,3 @@ steps:
       displayName: Gather helix trx files
       continueOnError: true
       condition: always()
-
-  # Code coverage - only on public pipelines
-  - ${{ if eq(parameters.runAsPublic, 'true') }}:
-    - task: CopyFiles@2
-      inputs:
-        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        flattenFolders: true
-      displayName: Gather code coverage results
-
-    - task: PublishPipelineArtifact@1
-      displayName: Publish coverage results (cobertura.xml)
-      inputs:
-        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        artifactName: '$(Agent.JobName)_CodeCoverageResults'
-        publishLocation: 'pipeline'

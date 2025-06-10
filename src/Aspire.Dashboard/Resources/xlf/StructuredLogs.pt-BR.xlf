@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ActionLogMessageText">
         <source>Log message</source>
-        <target state="new">Log message</target>
+        <target state="translated">Mensagem de log</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
@@ -17,24 +17,14 @@
         <target state="translated">O limite de log estruturado foi excedido</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Adicionar filtro</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Editar filtro</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Captura de logs estruturados em pausa às {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Detalhes da entrada de log</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -65,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">Filtro de nível de log mínimo</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Sem filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

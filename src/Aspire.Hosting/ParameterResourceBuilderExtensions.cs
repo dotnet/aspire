@@ -2,10 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -27,7 +24,12 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
+                    secret)
+                );
     }
 
     /// <summary>
@@ -78,10 +80,14 @@ public static class ParameterResourceBuilderExtensions
         // If publishValueAsDefault is set, we wrap the valueGetter in a ConstantParameterDefault, which gives
         // us both the runtime value and the value to publish to the manifest.
         // Otherwise, we just use the valueGetter directly, which only gives us the runtime value.
-        return builder.AddParameter(name,
-            parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
-            secret: secret,
-            parameterDefault: publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null);
+        return builder.AddParameter(
+                new ParameterResource(
+                    name,
+                    parameterDefault => parameterDefault is not null ? parameterDefault.GetDefaultValue() : valueGetter(),
+                    secret)
+                {
+                    Default = publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null
+                });
     }
 
     /// <summary>
@@ -99,18 +105,21 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(configurationKey);
 
         return builder.AddParameter(
-            name,
-            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
-            secret,
-            configurationKey: configurationKey);
+                new ParameterResource(
+                    name,
+                    parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
+                    secret)
+                {
+                    ConfigurationKey = configurationKey
+                });
     }
 
     /// <summary>
-    /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
+    /// Adds a parameter resource to the application, with a value coming from a <see cref="ParameterDefault"/> if not supplied from configuration.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
+    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value if a value is not present in configuration</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
     /// done when the value is generated, so that it stays stable across runs. This is only relevant when
@@ -132,80 +141,37 @@ public static class ParameterResourceBuilderExtensions
         }
 
         return builder.AddParameter(
-            name,
-            parameterDefault => parameterDefault!.GetDefaultValue(),
-            secret: secret,
-            parameterDefault: value);
+            new ParameterResource(name, p => GetParameterValue(builder.Configuration, name, value), secret)
+            {
+                Default = value
+            });
     }
 
-    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
-            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
+            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
 
-    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
-                                                                     string name,
-                                                                     Func<ParameterDefault?, string> callback,
-                                                                     bool secret = false,
-                                                                     bool connectionString = false,
-                                                                     ParameterDefault? parameterDefault = null,
-                                                                     string? configurationKey = null)
+    internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder, T resource)
+        where T : ParameterResource
     {
-        var resource = new ParameterResource(name, callback, secret);
-        resource.IsConnectionString = connectionString;
-        resource.Default = parameterDefault;
-
-        configurationKey ??= connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
-
-        var state = new CustomResourceSnapshot()
+        var state = new CustomResourceSnapshot
         {
             ResourceType = "Parameter",
             // hide parameters by default
-            State = KnownResourceStates.Hidden,
+            IsHidden = true,
             Properties = [
-                new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
+                new("parameter.secret", resource.Secret.ToString()),
+                new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
             ]
         };
-
-        try
-        {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
-        }
-        catch (DistributedApplicationException ex)
-        {
-            state = state with
-            {
-                State = new ResourceStateSnapshot("Configuration missing", KnownResourceStateStyles.Error),
-                Properties = [.. state.Properties, new("Value", ex.Message)]
-            };
-
-            builder.Services.AddLifecycleHook((sp) => new WriteParameterLogsHook(
-                sp.GetRequiredService<ResourceLoggerService>(),
-                name,
-                ex.Message));
-        }
 
         return builder.AddResource(resource)
                       .WithInitialState(state);
     }
-
-    /// <summary>
-    /// Writes the message to the specified resource's logs.
-    /// </summary>
-    private sealed class WriteParameterLogsHook(ResourceLoggerService loggerService, string resourceName, string message) : IDistributedApplicationLifecycleHook
-    {
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
-        {
-            loggerService.GetLogger(resourceName).LogError(message);
-
-            return Task.CompletedTask;
-        }
-    }
-
     /// <summary>
     /// Adds a parameter to the distributed application but wrapped in a resource with a connection string for use with <see cref="ResourceBuilderExtensions.WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithConnectionString}, string?, bool)"/>
     /// </summary>
@@ -219,15 +185,13 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        var parameterBuilder = builder.AddParameter(name, _ =>
-        {
-            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
-        },
-        secret: true,
-        connectionString: true);
-
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
-        return builder.CreateResourceBuilder(surrogate);
+        return builder.AddParameter(
+                new ConnectionStringParameterResource(
+                    name,
+                    _ => builder.Configuration.GetConnectionString(name) ??
+                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                    environmentVariableName)
+                );
     }
 
     /// <summary>
@@ -328,6 +292,26 @@ public static class ParameterResourceBuilderExtensions
         {
             parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
         }
+
+        return parameterResource;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ParameterResource"/>.
+    /// </summary>
+    /// <remarks>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    public static ParameterResource CreateParameter(IDistributedApplicationBuilder builder, string name, bool secret)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret);
 
         return parameterResource;
     }

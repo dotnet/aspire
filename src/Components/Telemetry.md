@@ -1,5 +1,14 @@
 # Log categories, activity source names and metric names
 
+Aspire.Azure.AI.Inference:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.AI.Inference.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.AI.OpenAI:
 - Log categories:
   - "Azure.Core"
@@ -48,6 +57,12 @@ Aspire.Azure.Messaging.WebPubSub:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Npgsql:
+- Everything from `Aspire.Npgsql`
+
+Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL:
+- Everything from `Aspire.Npgsql.EntityFrameworkCore.PostgreSQL`
+
 Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"
@@ -89,13 +104,13 @@ Aspire.Confluent.Kafka:
 - Log categories:
   - "Aspire.Confluent.Kafka"
 - Activity source names:
-  - none (currently not supported by Confluent.Kafka library)
+  - "OpenTelemetry.Instrumentation.ConfluentKafka"
 - Metric names:
   - "Aspire.Confluent.Kafka"
     - "messaging.kafka.consumer.queue.message_count"
     - "messaging.kafka.producer.queue.message_count"
     - "messaging.kafka.producer.queue.size"
-    - "messaging.kafka.network.tx"    
+    - "messaging.kafka.network.tx"
     - "messaging.kafka.network.transmitted"
     - "messaging.kafka.network.rx"
     - "messaging.kafka.network.received"
@@ -103,6 +118,11 @@ Aspire.Confluent.Kafka:
     - "messaging.kafka.message.transmitted"
     - "messaging.kafka.message.rx"
     - "messaging.kafka.message.received"
+  - "OpenTelemetry.Instrumentation.ConfluentKafka"
+    - "messaging.publish.duration"
+    - "messaging.publish.messages"
+    - "messaging.receive.duration"
+    - "messaging.receive.messages"
 
 Aspire.Elastic.Clients.Elasticsearch:
 - Log categories:
@@ -170,11 +190,19 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Metric names:
   - none
 
+Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
+- Log categories:
+  "Microsoft.Extensions.Configuration.AzureAppConfiguration.Refresh"
+- Activity source names:
+  - "Microsoft.Extensions.Configuration.AzureAppConfiguration"
+- Metric names:
+  - none
+
 Aspire.Milvus.Client:
 - Log categories:
   "Milvus.Client"
 - Activity source names:
-  - none (not currently supported by Milvus.Client library) 
+  - none (not currently supported by Milvus.Client library)
 - Metric names:
   - none (currently not supported by Milvus.Client library)
 
@@ -259,7 +287,7 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 
 Aspire.OpenAI:
 - Log categories:
-  - none  
+  - none
 - Activity source names:
   - "OpenAI.*"
 - Metric names:
@@ -312,7 +340,7 @@ Aspire.Qdrant.Client:
 - Log categories:
   "Qdrant.Client"
 - Activity source names:
-  - none (not currently supported by Qdrant.Client library) 
+  - none (not currently supported by Qdrant.Client library)
 - Metric names:
   - none (currently not supported by Qdrant.Client library)
 

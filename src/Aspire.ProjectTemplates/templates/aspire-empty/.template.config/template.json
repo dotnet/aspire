@@ -20,8 +20,8 @@
     "language": "C#",
     "type": "solution",
     "editorTreatAs": "solution",
-    "aspire-8.2-tfms": "net8.0",
-    "aspire-9.0-tfms": "net8.0;net9.0"
+    "aspire-9.3-tfms": "net8.0;net9.0",
+    "aspire-9.2-tfms": "net8.0;net9.0"
   },
   "precedence": "9000",
   "identity": "Aspire.Empty.CSharp.8.0",
@@ -35,27 +35,29 @@
   ],
   "sources": [
     {
-      "source": "./9.0",
+      "source": "./9.2",
       "target": "./",
-      "condition": "AspireVersionActual == 9.0",
+      "condition": "AspireVersionActual == 9.2",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]
     },
     {
-      "source": "./8.2",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 8.2",
+      "condition": "AspireVersionActual == 9.3",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         }
       ]
@@ -84,36 +86,36 @@
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
       "datatype": "choice",
-      "isEnabled": "Framework == net8.0",
       "choices": [
-          {
-             "choice": "9.0",
-             "displayName": "9.0",
-             "description": "Chooses .NET Aspire 9.0"
-          },
-          {
-            "choice": "8.2",
-            "displayName": "8.2",
-            "description": "Chooses .NET Aspire 8.2"
-         }
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
       ],
-      "defaultValue": "9.0"
-    },
-    "AspireVersionDefault": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "9.0"
-      }
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
-      "generator": "coalesce",
+      "generator": "switch",
+      "replaces": "aspireVersion",
       "parameters": {
-        "sourceVariableName": "AspireVersion",
-        "fallbackVariableName": "AspireVersionDefault"
-      },
-      "replaces": "aspireVersion"
+        "cases": [
+          {
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "",
+            "value": "9.3"
+          }
+        ]
+      }
     },
     "hostIdentifier": {
       "type": "bind",
@@ -284,6 +286,7 @@
     {
       "id": "set-startup-project",
       "description": "Sets the startup project in the solution",
+      "manualInstructions": [],
       "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
       "condition": "(hostIdentifier == \"vs\")",
       "args": {

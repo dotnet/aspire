@@ -3,19 +3,13 @@
   "isRoot": true,
   "tools": {
     "dotnet-coverage": {
-      "version": "17.12.5",
+      "version": "17.13.1",
       "commands": [
         "dotnet-coverage"
       ]
     },
-    "dotnet-reportgenerator-globaltool": {
-      "version": "5.2.4",
-      "commands": [
-        "reportgenerator"
-      ]
-    },
     "PowerShell": {
-      "version": "7.4.5",
+      "version": "7.5.0",
       "commands": [
         "pwsh"
       ]

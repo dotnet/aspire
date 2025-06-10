@@ -2,17 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
 
@@ -22,7 +22,6 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWaitForOnRabbitMQBlocksDependentResources()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
@@ -39,23 +38,21 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var app = builder.Build();
 
-        var pendingStart = app.StartAsync(cts.Token);
+        var pendingStart = app.StartAsync();
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await pendingStart;
+        await pendingStart.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -80,17 +77,17 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var connection = host.Services.GetRequiredService<IConnection>();
 
-        using var channel = connection.CreateModel();
+        await using var channel = await connection.CreateChannelAsync();
         const string queueName = "hello";
-        channel.QueueDeclare(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+        await channel.QueueDeclareAsync(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
 
         const string message = "Hello World!";
         var body = Encoding.UTF8.GetBytes(message);
 
-        channel.BasicPublish(exchange: string.Empty, routingKey: queueName, basicProperties: null, body: body);
+        await channel.BasicPublishAsync(exchange: string.Empty, routingKey: queueName, body: body);
 
-        var result = channel.BasicGet(queueName, true);
-        Assert.Equal(message, Encoding.UTF8.GetString(result.Body.Span));
+        var result = await channel.BasicGetAsync(queueName, true);
+        Assert.Equal(message, Encoding.UTF8.GetString(result!.Body.Span));
     }
 
     [Theory]
@@ -122,6 +119,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
                 rabbitMQ1.WithDataBindMount(bindMountPath);
             }
 
@@ -138,22 +136,23 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
-                        using var channel = connection.CreateModel();
+                        await using var channel = await connection.CreateChannelAsync();
                         const string queueName = "hello";
-                        channel.QueueDeclare(queueName, durable: true, exclusive: false);
+                        await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
                         const string message = "Hello World!";
                         var body = Encoding.UTF8.GetBytes(message);
 
-                        var props = channel.CreateBasicProperties();
+                        var props = new BasicProperties();
                         props.Persistent = true; // or props.DeliveryMode = 2;
-                        channel.BasicPublish(
+                        await channel.BasicPublishAsync(
                             exchange: string.Empty,
                             queueName,
+                            mandatory: true,
                             props,
                             body);
                     }
@@ -168,8 +167,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
             testOutputHelper.WriteLine($"Starting the second run with the same volume/mount");
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var rabbitMQ2 = builder2.AddRabbitMQ("rabbitMQ", password: passwordParameter2);
 
@@ -195,16 +193,16 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
-                        using var channel = connection.CreateModel();
+                        await using var channel = await connection.CreateChannelAsync();
                         const string queueName = "hello";
-                        channel.QueueDeclare(queueName, durable: true, exclusive: false);
+                        await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
-                        var result = channel.BasicGet(queueName, true);
-                        Assert.Equal("Hello World!", Encoding.UTF8.GetString(result.Body.Span));
+                        var result = await channel.BasicGetAsync(queueName, true);
+                        Assert.Equal("Hello World!", Encoding.UTF8.GetString(result!.Body.Span));
                     }
                 }
                 finally

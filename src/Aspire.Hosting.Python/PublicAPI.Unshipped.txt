@@ -1,6 +1,0 @@
-#nullable enable
-Aspire.Hosting.Python.PythonAppResource
-Aspire.Hosting.Python.PythonAppResource.PythonAppResource(string! name, string! executablePath, string! projectDirectory) -> void
-Aspire.Hosting.PythonAppResourceBuilderExtensions
-static Aspire.Hosting.PythonAppResourceBuilderExtensions.AddPythonApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonAppResource!>!
-static Aspire.Hosting.PythonAppResourceBuilderExtensions.AddPythonApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, string! virtualEnvironmentPath, params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonAppResource!>!

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,17 +17,23 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
-    public async Task HasEndPoints()
+    public void HasEndPoints()
     {
         // Get an endpoint from a resource
         var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
+    }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task CanGetConnectionStringFromAddConnectionString()
+    {
         // Get a connection string from a resource
-        var pgConnectionString = await _app.GetConnectionStringAsync("postgres1");
-        Assert.NotNull(pgConnectionString);
-        Assert.True(pgConnectionString.Length > 0);
+        var connectionString = await _app.GetConnectionStringAsync("cs");
+        var connectionString2 = await _app.GetConnectionStringAsync("cs2");
+        Assert.Equal("testconnection", connectionString);
+        Assert.Equal("Value=this is a value", connectionString2);
     }
 
     [Fact]
@@ -35,13 +41,11 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4650", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task HttpClientGetTest()
     {
         // Wait for the application to be ready
@@ -72,8 +76,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.Equal("https", profileName);
 
         // Wait for resource to start.
-        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
+        await _app.ResourceNotifications.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");

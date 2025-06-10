@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ConsoleLogs.resx">
     <body>
-      <trans-unit id="ConsoleLogsFailedToInitialize">
-        <source>Failed to initialize</source>
-        <target state="translated">初期化できませんでした</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
         <target state="translated">ログの監視が完了しました</target>
@@ -15,11 +10,6 @@
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
         <target state="translated">コンソール ログ</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ConsoleLogsInitializingLogViewer">
-        <source>Initializing log viewer...</source>
-        <target state="translated">ログ ビューアーを初期化しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
@@ -42,9 +32,44 @@
         <target state="translated">{0} のコンソール ログ</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;ログ キャプチャが {0} で一時停止されました。{1} 件のログがフィルターで除外されました&gt;</target>
+        <note>{0} is a date, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;ログ キャプチャが {0} と {1} の間で一時停止されました。{2} 件のログがフィルターで除外されました&gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">リソース アクション</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">リソースの選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="translated">コンソール ログの設定</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="translated">タイムスタンプを非表示</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="translated">タイムスタンプを表示</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShowUtc">
+        <source>UTC timestamps</source>
+        <target state="translated">UTC タイムスタンプ</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -55,6 +80,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">ログを監視しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="translated">ログのダウンロード</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

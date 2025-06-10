@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireOpenAIExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:OpenAI";
+    internal const string DefaultConfigSectionName = "Aspire:OpenAI";
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -25,18 +25,14 @@ public static class AspireOpenAIExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="OpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="OpenAIClientOptions"/>.</param>
+    /// <returns>An <see cref="AspireOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.OpenAI" section.</remarks>
-    public static void AddOpenAIClient(
+    public static AspireOpenAIClientBuilder AddOpenAIClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<OpenAISettings>? configureSettings = null,
         Action<OpenAIClientOptions>? configureOptions = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(connectionName);
-
-        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
-    }
+        => AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -45,20 +41,20 @@ public static class AspireOpenAIExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="OpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="OpenAIClientOptions"/>.</param>
+    /// <returns>An <see cref="AspireOpenAIClientBuilder"/> that can be used to register additional services.</returns>
     /// <remarks>Reads the configuration from "Aspire.OpenAI:{name}" section.</remarks>
-    public static void AddKeyedOpenAIClient(
+    public static AspireOpenAIClientBuilder AddKeyedOpenAIClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<OpenAISettings>? configureSettings = null,
         Action<OpenAIClientOptions>? configureOptions = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
+        return AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddOpenAIClient(
+    private static AspireOpenAIClientBuilder AddOpenAIClient(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<OpenAISettings>? configureSettings,
@@ -67,6 +63,8 @@ public static class AspireOpenAIExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configurationSectionName);
+        ArgumentNullException.ThrowIfNull(connectionName);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
         var namedConfigSection = configSection.GetSection(connectionName);
@@ -119,6 +117,8 @@ public static class AspireOpenAIExtensions
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(b => b.AddMeter("OpenAI.*"));
         }
+
+        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing);
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
         {

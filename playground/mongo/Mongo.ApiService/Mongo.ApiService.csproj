@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.MongoDB.Driver" />
+    <AspireProjectOrPackageReference Include="Aspire.MongoDB.Driver.v3" />
 
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>

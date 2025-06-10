@@ -1,4 +1,0 @@
-#nullable enable
-Microsoft.Extensions.Hosting.AspireRedisDistributedCacheExtensions
-static Microsoft.Extensions.Hosting.AspireRedisDistributedCacheExtensions.AddKeyedRedisDistributedCache(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings!>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions!>? configureOptions = null) -> void
-static Microsoft.Extensions.Hosting.AspireRedisDistributedCacheExtensions.AddRedisDistributedCache(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings!>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions!>? configureOptions = null) -> void

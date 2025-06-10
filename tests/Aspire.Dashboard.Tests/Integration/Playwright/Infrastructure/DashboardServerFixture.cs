@@ -34,7 +34,7 @@ public class DashboardServerFixture : IAsyncLifetime
         };
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await PlaywrightFixture.InitializeAsync();
 
@@ -57,14 +57,13 @@ public class DashboardServerFixture : IAsyncLifetime
             preConfigureBuilder: builder =>
             {
                 builder.Configuration.AddConfiguration(config);
-                builder.Services.AddSingleton<IDashboardClientStatus, MockDashboardClientStatus>();
-                builder.Services.AddScoped<IDashboardClient, MockDashboardClient>();
+                builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
             });
 
         await DashboardApp.StartAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await DashboardApp.DisposeAsync();
         await PlaywrightFixture.DisposeAsync();

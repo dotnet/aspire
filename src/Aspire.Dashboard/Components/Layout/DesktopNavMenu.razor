@@ -4,12 +4,12 @@
 @inject IStringLocalizer<Layout> Loc
 @inject IDashboardClient DashboardClient
 
-<FluentAppBar PopoverShowSearch="false">
+<FluentAppBar PopoverShowSearch="false" Class="desktop-nav-menu">
     @if (DashboardClient.IsEnabled)
     {
         <FluentAppBarItem
             Href="@DashboardUrls.ResourcesUrl()"
-            Match="NavLinkMatch.All"
+            Match="@(_isResources ? NavLinkMatch.Prefix : NavLinkMatch.All)"
             IconRest="ResourcesIcon()"
             IconActive="ResourcesIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuResourcesTab)]" />

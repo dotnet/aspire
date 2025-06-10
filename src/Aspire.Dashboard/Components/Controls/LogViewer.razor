@@ -1,39 +1,62 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
-@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
+
 @inject IJSRuntime JS
+@inject IStringLocalizer<ConsoleLogs> Loc
+
 @implements IAsyncDisposable
 
 <div class="log-overflow console-overflow continuous-scroll-overflow">
     <div class="log-container console-container" id="logContainer">
-        @if (LogEntries is {} logEntries)
+        @if (LogEntries is { } logEntries)
         {
-            <Virtualize Items="logEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
-                <div class="log-line-row-container">
-                    <div class="log-line-row console-line-row">
-                        <span class="log-line-area" role="log">
-                            <span class="log-line-number">@context.LineNumber</span>
-                            <span class="log-content">
-                                @{
-                                    var hasPrefix = false;
-                                }
-                                @if (context.Timestamp is { } timestamp)
-                                {
-                                    hasPrefix = true;
-                                    <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
-                                }
-                                @if (context.Type == LogEntryType.Error)
-                                {
-                                    hasPrefix = true;
-                                    <fluent-badge appearance="accent">stderr</fluent-badge>
-                                }
-                                @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
-                            </span>
-                        </span>
+            <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="200" TItem="LogEntry">
+                @if (context.Pause is { } pause)
+                {
+                    // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
+                    if (pause is { FilteredCount: 0, EndTime: not null })
+                    {
+                        return;
+                    }
+
+                    <div class="log-line-row-container">
+                        <div class="log-line-row console-line-row">
+                            <div class="log-line-area" role="log">
+                                <span class="log-line-number"></span>
+                                <span class="log-content log-pause">@pause.GetDisplayText(Loc, TimeProvider)</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                     <div class="log-line-row-container">
+                        <div class="log-line-row console-line-row">
+                            <span class="log-line-area" role="log">
+                                <span class="log-line-number">@context.LineNumber</span>
+                                <span class="log-content">
+                                    @{
+                                        var hasPrefix = false;
+                                    }
+                                    @if (ShowTimestamp && context.Timestamp is { } timestamp)
+                                    {
+                                        hasPrefix = true;
+                                        <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
+                                    }
+                                    @if (context.Type == LogEntryType.Error)
+                                    {
+                                        hasPrefix = true;
+                                        <fluent-badge appearance="accent">stderr</fluent-badge>
+                                    }
+                                    @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                }
             </Virtualize>
         }
     </div>

@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">Ajouter un filtre</target>
         <note />
       </trans-unit>
       <trans-unit id="ConditionContains">
         <source>contains</source>
-        <target state="new">contains</target>
+        <target state="translated">contient</target>
         <note />
       </trans-unit>
       <trans-unit id="ConditionNotContains">
         <source>not contains</source>
-        <target state="new">not contains</target>
+        <target state="translated">ne contient pas</target>
         <note>corresponds to A !contains B</note>
       </trans-unit>
       <trans-unit id="DialogTitleAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">Ajouter un filtre</target>
         <note />
       </trans-unit>
       <trans-unit id="DialogTitleEditFilter">
         <source>Edit filter</source>
-        <target state="new">Edit filter</target>
+        <target state="translated">Modifier le filtre</target>
         <note />
       </trans-unit>
       <trans-unit id="Filters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">Filtres</target>
         <note />
       </trans-unit>
       <trans-unit id="NoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">Aucun filtre</target>
         <note />
       </trans-unit>
     </body>

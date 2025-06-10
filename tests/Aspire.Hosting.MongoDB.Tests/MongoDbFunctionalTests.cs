@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +9,6 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
-using Xunit.Abstractions;
 using Polly;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -51,17 +50,15 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
         await app.StopAsync();
@@ -135,7 +132,9 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // MongoDB container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 mongodb1.WithDataBindMount(bindMountPath);
             }
 
@@ -169,8 +168,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter2 = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter2 = builder2.AddParameter("pwd", password);
 
             var mongodb2 = builder2.AddMongoDB("mongodb", password: passwordParameter2);
             var db2 = mongodb2.AddDatabase(dbName);
@@ -181,8 +179,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                //mongodb shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                await Task.Delay(TimeSpan.FromSeconds(10));
                 mongodb2.WithDataBindMount(bindMountPath!);
             }
 
@@ -248,7 +244,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5937")]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -260,18 +255,8 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
-
-        if (!OperatingSystem.IsWindows())
-        {
-            // Change permissions for non-root accounts (container user account)
-            const UnixFileMode OwnershipPermissions =
-               UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-               UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-               UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-        }
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(bindMountPath);
 
         try
         {
@@ -304,8 +289,10 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
             using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var mongodb = builder.AddMongoDB("mongodb")
                 .WithInitBindMount(bindMountPath);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var db = mongodb.AddDatabase(dbName);
             using var app = builder.Build();
@@ -345,6 +332,97 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             try
             {
                 Directory.Delete(bindMountPath);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithInitFiles()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        var dbName = "testdb";
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(6));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var initFilesPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(initFilesPath);
+
+        try
+        {
+            var initFilePath = Path.Combine(initFilesPath, "mongo-init.js");
+            await File.WriteAllTextAsync(initFilePath, $$"""
+                db = db.getSiblingDB('{{dbName}}');
+
+                db.createCollection('{{CollectionName}}');
+
+                db.{{CollectionName}}.insertMany([
+                    {
+                        name: 'The Shawshank Redemption'
+                    },
+                    {
+                        name: 'The Godfather'
+                    },
+                    {
+                        name: 'The Dark Knight'
+                    },
+                    {
+                        name: 'Schindler\'s List'
+                    }
+                ]);
+            """);
+
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+            var mongodb = builder.AddMongoDB("mongodb")
+                .WithInitFiles(initFilesPath);
+
+            var db = mongodb.AddDatabase(dbName);
+            using var app = builder.Build();
+
+            await app.StartAsync();
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+            hb.AddMongoDBClient(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync();
+
+            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
+            await pipeline.ExecuteAsync(async token =>
+            {
+                var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
+                var collection = mongoDatabase.GetCollection<Movie>(CollectionName);
+
+                var results = await collection.Find(new BsonDocument()).ToListAsync(token);
+
+                Assert.Collection(results,
+                                item => Assert.Contains("The Shawshank Redemption", item.Name),
+                                item => Assert.Contains("The Godfather", item.Name),
+                                item => Assert.Contains("The Dark Knight", item.Name),
+                                item => Assert.Contains("Schindler's List", item.Name)
+                                );
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(initFilesPath);
             }
             catch
             {

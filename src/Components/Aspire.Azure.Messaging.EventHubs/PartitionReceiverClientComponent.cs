@@ -25,6 +25,7 @@ internal sealed class PartitionReceiverClientComponent()
     {
         config.Bind(settings);
     }
+
     protected override IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> AddClient(
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsPartitionReceiverSettings settings,
         string connectionName, string configurationSectionName)
@@ -69,7 +70,7 @@ internal sealed class PartitionReceiverClientComponent()
                 settings.EventPosition,
                 settings.ConnectionString,
                 settings.EventHubName,
-                options);            
+                options);
 
         }, requiresCredential: false);
     }

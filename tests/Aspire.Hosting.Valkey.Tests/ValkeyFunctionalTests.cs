@@ -1,17 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Valkey.Tests;
 
@@ -42,7 +42,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        await app.WaitForHealthyAsync(valkey).WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForHealthyAsync(valkey).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -81,6 +81,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 valkey1.WithDataBindMount(bindMountPath);
             }
 
@@ -103,7 +104,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TimeSpan.FromMinutes(2));
+                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -154,7 +155,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TimeSpan.FromMinutes(2));
+                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -216,17 +217,15 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await pendingStart;
 

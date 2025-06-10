@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
@@ -72,6 +73,7 @@ public class TraceTests
             {
                 Assert.Equal("TestService", app.ApplicationName);
                 Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
@@ -331,8 +333,8 @@ public class TraceTests
                 Assert.Equal(2, trace.Spans.Count);
 
                 Assert.Collection(trace.Spans,
-                    span => Assert.Equal("scope1", span.Scope.ScopeName),
-                    span => Assert.Equal("scope2", span.Scope.ScopeName));
+                    span => Assert.Equal("scope1", span.Scope.Name),
+                    span => Assert.Equal("scope2", span.Scope.Name));
             });
     }
 
@@ -446,14 +448,14 @@ public class TraceTests
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("1-1", trace.RootSpan!.SpanId);
             },
             trace =>
             {
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
-                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
+                Assert.Same(OtlpScope.Empty, trace.FirstSpan.Scope);
                 AssertId("2-1", trace.RootSpan!.SpanId);
             });
     }
@@ -1231,13 +1233,15 @@ public class TraceTests
     [InlineData(KnownTraceFields.TraceIdField, "31")]
     [InlineData(KnownTraceFields.SpanIdField, "312d31")]
     [InlineData(KnownTraceFields.StatusField, "Unset")]
-    [InlineData(KnownTraceFields.KindField, "Internal")]
+    [InlineData(KnownTraceFields.KindField, "Client")]
     [InlineData(KnownResourceFields.ServiceNameField, "app1")]
+    [InlineData(KnownResourceFields.ServiceNameField, "TestPeer")]
     [InlineData(KnownSourceFields.NameField, "TestScope")]
     public void GetTraces_KnownFilters(string name, string value)
     {
         // Arrange
-        var repository = CreateRepository();
+        var outgoingPeerResolver = new TestOutgoingPeerResolver();
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
 
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
@@ -1250,7 +1254,7 @@ public class TraceTests
                     new ScopeSpans
                     {
                         Scope = CreateScope(),
-                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1")]) }
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1"), KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client) }
                     }
                 }
             }
@@ -1555,6 +1559,610 @@ public class TraceTests
                         Assert.Equal("prop2", p.Key);
                         Assert.Equal("value1", p.Value);
                     });
+            });
+    }
+
+    [Fact]
+    public void RemoveTraces_All()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "2", spanId: "2-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app2", "789"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "3-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearTraces();
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.NotNull(traces?.PagedResult?.Items);
+        Assert.Empty(traces.PagedResult.Items);
+        Assert.Equal(0, traces.PagedResult.TotalItemCount);
+    }
+
+    [Fact]
+    public void RemoveTraces_SelectedResource()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "2", spanId: "2-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app2", "789"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "3-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        repository.ClearTraces(new ApplicationKey("app1", "123"));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.NotNull(traces?.PagedResult?.Items);
+        Assert.Equal(2, traces.PagedResult.TotalItemCount);
+
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("2", trace.TraceId);
+                Assert.Collection(trace.Spans,
+                    s =>
+                    {
+                        AssertId("2-1", s.SpanId);
+                    },
+                    s =>
+                    {
+                        AssertId("2-2", s.SpanId);
+                    });
+            },
+            trace =>
+            {
+                AssertId("3", trace.TraceId);
+                Assert.Collection(trace.Spans,
+                    s =>
+                    {
+                        AssertId("3-1", s.SpanId);
+                    },
+                    s =>
+                    {
+                        AssertId("3-2", s.SpanId);
+                    });
+            });
+    }
+
+    [Fact]
+    public void RemoveTraces_MultipleSelectedResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "2", spanId: "2-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app2", "789"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "3-1"),
+                        }
+                    },
+                }
+            }
+        });
+
+        // Act
+        repository.ClearTraces(new ApplicationKey("app1", null));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.NotNull(traces?.PagedResult?.Items);
+        var trace = Assert.Single(traces.PagedResult.Items);
+
+        AssertId("3", trace.TraceId);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("3-1", s.SpanId);
+            },
+            s =>
+            {
+                AssertId("3-2", s.SpanId);
+            });
+    }
+
+    [Fact]
+    public void RemoveTraces_SelectedResource_SpansFromDifferentTrace()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app1", "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "2", spanId: "2-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource("app2", "789"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "3", spanId: "3-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "3-1"),
+                            // Spans on traces originating from other resources
+                            CreateSpan(traceId: "1", spanId: "1-3", startTime: s_testTime.AddMinutes(6), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-2"),
+                            CreateSpan(traceId: "2", spanId: "2-3", startTime: s_testTime.AddMinutes(6), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-2")
+                        }
+                    },
+                }
+            }
+        });
+
+        // Act
+        repository.ClearTraces(new ApplicationKey("app1", null));
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        Assert.NotNull(traces?.PagedResult?.Items);
+        var trace = Assert.Single(traces.PagedResult.Items);
+
+        AssertId("3", trace.TraceId);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("3-1", s.SpanId);
+            },
+            s =>
+            {
+                AssertId("3-2", s.SpanId);
+            });
+    }
+
+    [Fact]
+    public void AddTraces_HaveUninstrumentedPeers()
+    {
+        // Arrange
+        var outgoingPeerResolver = new TestOutgoingPeerResolver();
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Null(app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var uninstrumentedPeerApp = applications.Single(a => a.UninstrumentedPeer);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        var trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.NotNull(s.UninstrumentedPeer);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
+            });
+    }
+
+    [Fact]
+    public async Task AddTraces_OnPeerUpdated_HaveUninstrumentedPeers()
+    {
+        // Arrange
+        var matchPeer = false;
+        var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes =>
+        {
+            if (matchPeer)
+            {
+                var name = "TestPeer";
+                var matchedResourced = ModelTestHelpers.CreateResource(appName: "TestPeer");
+
+                return (name, matchedResourced);
+            }
+            else
+            {
+                return (null, null);
+            }
+        });
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        var trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            });
+
+        matchPeer = true;
+        await outgoingPeerResolver.InvokePeerChanges();
+
+        applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Null(app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            });
+
+        var uninstrumentedPeerApp = applications.Single(a => a.UninstrumentedPeer);
+
+        traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+
+        trace = Assert.Single(traces.PagedResult.Items);
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Null(s.UninstrumentedPeer);
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.NotNull(s.UninstrumentedPeer);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
+            });
+    }
+
+    [Fact]
+    public void AddTraces_UninstrumentedPeer_InstanceIdDashes_AppKeyResolvedCorrectly()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(appName: "test-abc-def", displayName: "test");
+        var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes => (resource.Name, resource));
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "source", instanceId: "abc"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("source", app.ApplicationName);
+                Assert.Equal("abc", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("test", app.ApplicationName);
+                Assert.Equal("abc-def", app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
             });
     }
 }

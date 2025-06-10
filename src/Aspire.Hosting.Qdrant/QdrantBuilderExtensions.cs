@@ -4,7 +4,6 @@
 using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
-using Aspire.Hosting.Utils;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -42,7 +41,7 @@ public static class QdrantBuilderExtensions
         int? httpPort = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
@@ -87,7 +86,15 @@ public static class QdrantBuilderExtensions
                     context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
             })
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            .WithUrlForEndpoint(QdrantServerResource.PrimaryEndpointName, c =>
+            {
+                c.DisplayText = "Qdrant (GRPC)";
+                // https://github.com/dotnet/aspire/issues/8809
+                c.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+            })
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)")
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, e => new ResourceUrlAnnotation() { Url = "/dashboard", DisplayText = "Qdrant Dashboard" });
     }
 
     /// <summary>
@@ -115,7 +122,7 @@ public static class QdrantBuilderExtensions
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
     }
@@ -125,7 +132,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {
@@ -180,7 +187,7 @@ public static class QdrantBuilderExtensions
         {
             throw new InvalidOperationException("Endpoint is unavailable");
         }
-        
+
         var client = new QdrantClient(endpoint, key);
         return client;
     }

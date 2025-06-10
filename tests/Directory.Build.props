@@ -1,13 +1,12 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
+  <Import Project="$(RepositoryEngineeringDir)Testing.props" />
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
 
   <PropertyGroup>
-    <!-- Set RunSettingsFilePath property which is read by VSTest. -->
-    <RunSettingsFilePath>$(RepositoryEngineeringDir)testing\.runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
-    <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
+    <TestArchiveTestsDirForTemplateTests Condition="'$(TestArchiveTestsDirForTemplateTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'templates-tests'))</TestArchiveTestsDirForTemplateTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
     <TestArchiveTestsDirForBuildOnHelixTests Condition="'$(TestArchiveTestsDirForBuildOnHelixTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'build-on-helix-tests'))</TestArchiveTestsDirForBuildOnHelixTests>
     <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
@@ -21,11 +20,10 @@
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
-  <Import Project="Shared\Aspire.Workload.Testing.props" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <Import Project="Shared\Aspire.Templates.Testing.props" Condition="'$(IsTemplateTestProject)' == 'true'" />
 
-  <PropertyGroup Condition="'$(IsWorkloadTestProject)' == 'true'">
+  <PropertyGroup Condition="'$(IsTemplateTestProject)' == 'true'">
     <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
-    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
   </PropertyGroup>
 
   <PropertyGroup>

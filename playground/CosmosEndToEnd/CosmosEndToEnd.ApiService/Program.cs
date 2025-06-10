@@ -8,8 +8,11 @@ using Newtonsoft.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddAzureCosmosClient("cosmos");
-builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef", configureDbContextOptions =>
+builder.AddAzureCosmosDatabase("db")
+    .AddKeyedContainer("entries")
+    .AddKeyedContainer("users")
+    .AddKeyedContainer("user-todo");
+builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 {
     configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);
 });
@@ -17,17 +20,13 @@ builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef", configureDbContext
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-app.MapGet("/", async (CosmosClient cosmosClient) =>
-{
-    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/Id")).Container;
 
-    // Add an entry to the database on each request.
-    var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
+static async Task<object> AddAndGetStatus<T>(Container container, T newEntry)
+{
     await container.CreateItemAsync(newEntry);
 
-    var entries = new List<Entry>();
-    var iterator = container.GetItemQueryIterator<Entry>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
+    var entries = new List<T>();
+    var iterator = container.GetItemQueryIterator<T>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
 
     var batchCount = 0;
     while (iterator.HasMoreResults)
@@ -42,10 +41,33 @@ app.MapGet("/", async (CosmosClient cosmosClient) =>
 
     return new
     {
-        batchCount = batchCount,
+        batchCount,
         totalEntries = entries.Count,
-        entries = entries
+        entries
     };
+}
+
+app.MapGet("/", async ([FromKeyedServices("entries")] Container container) =>
+{
+    var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
+    return await AddAndGetStatus(container, newEntry);
+});
+
+app.MapGet("/users", async ([FromKeyedServices("users")] Container container) =>
+{
+    var newEntry = new User() { Id = $"user-{Guid.NewGuid()}" };
+    return await AddAndGetStatus(container, newEntry);
+});
+
+app.MapGet("/user-todo", async ([FromKeyedServices("user-todo")] Container container) =>
+{
+    var newEntry = new UserTodo
+    {
+        Id = Guid.NewGuid(),
+        UserId = Guid.NewGuid().ToString(),
+        Task = "Sample task"
+    };
+    return await AddAndGetStatus(container, newEntry);
 });
 
 app.MapGet("/ef", async (TestCosmosContext context) =>
@@ -60,15 +82,36 @@ app.MapGet("/ef", async (TestCosmosContext context) =>
 
 app.Run();
 
+public class User
+{
+    [JsonProperty("id")]
+    public string? Id { get; set; }
+}
+
 public class Entry
 {
     [JsonProperty("id")]
     public string? Id { get; set; }
 }
 
+public class UserTodo
+{
+    [JsonProperty("id")]
+    public required Guid Id { get; set; }
+    [JsonProperty("userId")]
+    public required string UserId { get; set; }
+    public required string Task { get; set; }
+}
+
 public class TestCosmosContext(DbContextOptions<TestCosmosContext> options) : DbContext(options)
 {
     public DbSet<EntityFrameworkEntry> Entries { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EntityFrameworkEntry>()
+            .HasPartitionKey(e => e.Id);
+    }
 }
 
 public class EntityFrameworkEntry

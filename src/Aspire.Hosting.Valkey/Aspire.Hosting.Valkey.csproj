@@ -7,10 +7,6 @@
     <Description>Valkey® support for .NET Aspire.</Description>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>92</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>

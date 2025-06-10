@@ -53,6 +53,7 @@
 *.fsproj text=auto
 *.dbproj text=auto
 *.sln text=auto eol=crlf
+*.slnx text=auto eol=crlf
 
 # Set linguist language for .h files explicitly based on
 # https://github.com/github/linguist/issues/1626#issuecomment-401442069

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ActionLogMessageText">
         <source>Log message</source>
-        <target state="new">Log message</target>
+        <target state="translated">ログ メッセージ</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
@@ -17,24 +17,14 @@
         <target state="translated">構造化ログの制限を超えました</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">フィルターの追加</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">フィルターの編集</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">構造化ログ キャプチャが {0} で一時停止されました</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">ログ エントリの詳細</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">フィルター</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -65,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">最小のログ レベル フィルター</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">フィルターなし</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

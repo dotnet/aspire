@@ -19,7 +19,7 @@ dotnet add package Aspire.Microsoft.Azure.Cosmos
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureCosmosClient` extension method to register a `CosmosClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureCosmosClient` extension method to register a `CosmosClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureCosmosClient("cosmosConnectionName");
@@ -116,11 +116,11 @@ In your AppHost project, install the Aspire Azure CosmosDB Hosting library with 
 dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
 
 ```csharp
 var cosmosdb = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb")
+    ? builder.AddAzureCosmosDB("cdb").AddCosmosDatabase("cosmosdb")
     : builder.AddConnectionString("cosmosdb");
 
 var myService = builder.AddProject<Projects.MyService>()

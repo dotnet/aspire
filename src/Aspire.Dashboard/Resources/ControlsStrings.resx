@@ -123,9 +123,7 @@
   <data name="ChartContainerFiltersHeader" xml:space="preserve">
     <value>Filters</value>
   </data>
-  <data name="ChartContainerSelectFilters" xml:space="preserve">
-    <value>Select filters</value>
-  </data>
+
   <data name="ChartContainerGraphTab" xml:space="preserve">
     <value>Graph</value>
   </data>
@@ -212,7 +210,7 @@
     <value>Close</value>
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
-    <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
+    <value>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</value>
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
@@ -242,9 +240,7 @@
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
     <value>Time</value>
   </data>
-  <data name="MetricTableShowLatestValues" xml:space="preserve">
-    <value>Show latest 10 values</value>
-  </data>
+
   <data name="MetricTableShowOnlyValueChanges" xml:space="preserve">
     <value>Only show value updates</value>
   </data>
@@ -296,8 +292,8 @@
     <value>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
-  <data name="ResourceDetailsEndpointsHeader" xml:space="preserve">
-    <value>Endpoints</value>
+  <data name="ResourceDetailsUrlsHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
@@ -332,9 +328,7 @@
   <data name="StructuredLogsDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
-  <data name="TraceDetailAttributesHeader" xml:space="preserve">
-    <value>Attributes</value>
-  </data>
+
   <data name="SpanDetailsContextHeader" xml:space="preserve">
     <value>Context</value>
   </data>
@@ -374,6 +368,9 @@
   <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
     <value>Column width (in pixels)</value>
   </data>
+  <data name="FluentDataGridHeaderCellResizeDiscreteLabel" xml:space="preserve">
+    <value>Column width</value>
+  </data>
   <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
     <value>Sort</value>
   </data>
@@ -386,15 +383,19 @@
   <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
     <value>Resize</value>
   </data>
-  <data name="StructuredFilteringFilters" xml:space="preserve">
-    <value>Filters</value>
+  <data name="FluentDataGridHeaderCellGrowAriaLabelText" xml:space="preserve">
+    <value>Grow column width</value>
   </data>
-  <data name="StructuredFilteringNoFilters" xml:space="preserve">
-    <value>No filters</value>
+  <data name="FluentDataGridHeaderCellResetAriaLabelText" xml:space="preserve">
+    <value>Reset column widths</value>
   </data>
-  <data name="StructuredFilteringAddFilter" xml:space="preserve">
-    <value>Add filter</value>
+  <data name="FluentDataGridHeaderCellShrinkAriaLabelText" xml:space="preserve">
+    <value>Shrink column width</value>
   </data>
+  <data name="FluentDataGridHeaderCellSubmitAriaLabelText" xml:space="preserve">
+    <value>Set column widths</value>
+  </data>
+
   <data name="LabelEmpty" xml:space="preserve">
     <value>(Empty)</value>
   </data>
@@ -421,5 +422,58 @@
   </data>
   <data name="ResourceDetailsBackReferences" xml:space="preserve">
     <value>Back references</value>
+  </data>
+  <data name="VolumePathColumnHeader" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="VolumeMountTypeColumnHeader" xml:space="preserve">
+    <value>Mount type</value>
+  </data>
+  <data name="ClearAllResources" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="ClearSelectedResource" xml:space="preserve">
+    <value>Remove for {0}</value>
+  </data>
+  <data name="ClearPendingSelectedResource" xml:space="preserve">
+    <value>Remove for resource</value>
+  </data>
+  <data name="ChartContainerOverflowDescription" xml:space="preserve">
+    <value>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="ChartContainerOverflowTitle" xml:space="preserve">
+    <value>Cardinality capping has been detected</value>
+  </data>
+  <data name="ChartContainerOverflowLink" xml:space="preserve">
+    <value>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</value>
+    <comment>OpenTelemetry is the name of the standard.</comment>
+  </data>
+  <data name="EndpointNameColumnHeader" xml:space="preserve">
+    <value>Endpoint name</value>
+  </data>
+  <data name="LinkAddressColumnHeader" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ResourceGraphNoEndpoints" xml:space="preserve">
+    <value>No endpoints</value>
+  </data>
+  <data name="PauseButtonTitle" xml:space="preserve">
+    <value>Pause incoming data</value>
+  </data>
+  <data name="ResumeButtonTitle" xml:space="preserve">
+    <value>Resume incoming data</value>
+  </data>
+  <data name="ClearSignalsButtonTitle" xml:space="preserve">
+    <value>Remove data</value>
+  </data>
+  <data name="PauseWarningTitle" xml:space="preserve">
+    <value>Capture paused</value>
+  </data>
+  <data name="LinkTextColumnHeader" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ToggleNesting" xml:space="preserve">
+    <value>Toggle nesting</value>
   </data>
 </root>

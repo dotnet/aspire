@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../ConsoleLogs.resx">
     <body>
-      <trans-unit id="ConsoleLogsFailedToInitialize">
-        <source>Failed to initialize</source>
-        <target state="translated">无法初始化</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
         <target state="translated">已完成监视日志</target>
@@ -15,11 +10,6 @@
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
         <target state="translated">控制台日志</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ConsoleLogsInitializingLogViewer">
-        <source>Initializing log viewer...</source>
-        <target state="translated">正在初始化日志查看器...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
@@ -42,9 +32,44 @@
         <target state="translated">{0} 控制台日志</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="ConsoleLogsPauseActive">
+        <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;日志捕获已在 {0} 暂停，筛选掉 {1} 条日志&gt;</target>
+        <note>{0} is a date, {1} is a number</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsPauseDetails">
+        <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
+        <target state="translated">&lt;日志捕获已在 {0} 和 {1} 之间暂停，筛选掉 {2} 条日志&gt;</target>
+        <note>{0} is a date, {1} is a date, {2} is a number.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleLogsResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">资源操作</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">选择资源</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsSettings">
+        <source>Console logs settings</source>
+        <target state="translated">控制台日志设置</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampHide">
+        <source>Hide timestamps</source>
+        <target state="translated">隐藏时间戳</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShow">
+        <source>Show timestamps</source>
+        <target state="translated">显示时间戳</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsTimestampShowUtc">
+        <source>UTC timestamps</source>
+        <target state="translated">UTC 时间戳</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -55,6 +80,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">正在监视日志...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadLogs">
+        <source>Download logs</source>
+        <target state="translated">下载日志</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

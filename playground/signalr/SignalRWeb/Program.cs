@@ -2,7 +2,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSignalR().AddNamedAzureSignalR("signalr1");
+builder.Services.AddSignalR().AddNamedAzureSignalR("signalrDefault");
 
 var app = builder.Build();
 

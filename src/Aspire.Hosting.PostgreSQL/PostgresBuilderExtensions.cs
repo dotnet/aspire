@@ -5,9 +5,10 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Aspire.Hosting;
 
@@ -44,7 +45,7 @@ public static class PostgresBuilderExtensions
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -59,6 +60,32 @@ public static class PostgresBuilderExtensions
             if (connectionString == null)
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
+            }
+        });
+
+        builder.Eventing.Subscribe<ResourceReadyEvent>(postgresServer, async (@event, ct) =>
+        {
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
+            }
+
+            // Non-database scoped connection string
+            using var npgsqlConnection = new NpgsqlConnection(connectionString + ";Database=postgres;");
+
+            await npgsqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+            if (npgsqlConnection.State != System.Data.ConnectionState.Open)
+            {
+                throw new InvalidOperationException($"Could not open connection to '{postgresServer.Name}'");
+            }
+
+            foreach (var name in postgresServer.Databases.Keys)
+            {
+                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is PostgresDatabaseResource postgreDatabase)
+                {
+                    await CreateDatabaseAsync(npgsqlConnection, postgreDatabase, @event.Services, ct).ConfigureAwait(false);
+                }
             }
         });
 
@@ -111,14 +138,33 @@ public static class PostgresBuilderExtensions
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase);
+
+        builder.Resource.AddDatabase(postgresDatabase.Name, postgresDatabase.DatabaseName);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
+        {
+            connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(postgresDatabase)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -131,7 +177,8 @@ public static class PostgresBuilderExtensions
     /// <param name="configureContainer">Callback to configure PgAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null)
+        where T : PostgresServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -143,7 +190,7 @@ public static class PostgresBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-pgadmin";
+            containerName ??= "pgadmin";
 
             var pgAdminContainer = new PgAdminContainerResource(containerName);
             var pgAdminContainerBuilder = builder.ApplicationBuilder.AddResource(pgAdminContainer)
@@ -151,58 +198,24 @@ public static class PostgresBuilderExtensions
                                                  .WithImageRegistry(PostgresContainerImageTags.PgAdminRegistry)
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
-                                                 .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                                  .WithHttpHealthCheck("/browser")
                                                  .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
-            {
-                var serverFileMount = pgAdminContainer.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
-
-                var serverFileBuilder = new StringBuilder();
-
-                using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
-                using var writer = new Utf8JsonWriter(stream);
-                // Need to grant read access to the config file on unix like systems.
-                if (!OperatingSystem.IsWindows())
+            pgAdminContainerBuilder.WithContainerFiles(
+                destinationPath: "/pgadmin4",
+                callback: (context, _) =>
                 {
-                    File.SetUnixFileMode(serverFileMount.Source!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
-                }
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
 
-                var serverIndex = 1;
-
-                writer.WriteStartObject();
-                writer.WriteStartObject("Servers");
-
-                foreach (var postgresInstance in postgresInstances)
-                {
-                    if (postgresInstance.PrimaryEndpoint.IsAllocated)
-                    {
-                        var endpoint = postgresInstance.PrimaryEndpoint;
-
-                        writer.WriteStartObject($"{serverIndex}");
-                        writer.WriteString("Name", postgresInstance.Name);
-                        writer.WriteString("Group", "Servers");
-                        // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
-                        // This will need to be refactored once updated service discovery APIs are available
-                        writer.WriteString("Host", endpoint.Resource.Name);
-                        writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-                        writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
-                        writer.WriteString("SSLMode", "prefer");
-                        writer.WriteString("MaintenanceDB", "postgres");
-                        writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
-                        writer.WriteEndObject();
-                    }
-
-                    serverIndex++;
-                }
-
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-
-                return Task.CompletedTask;
-            });
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerFile
+                        {
+                            Name = "servers.json",
+                            Contents = WritePgAdminServerJson(postgresInstances),
+                        },
+                    ]);
+                });
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
@@ -236,6 +249,8 @@ public static class PostgresBuilderExtensions
     /// <returns>The resource builder for pgweb.</returns>
     public static IResourceBuilder<PgWebContainerResource> WithHostPort(this IResourceBuilder<PgWebContainerResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -244,13 +259,12 @@ public static class PostgresBuilderExtensions
 
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
-    /// </summary>
-    /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
-    /// </remarks>
+    /// </summary>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
+    /// <remarks>
     /// <example>
     /// Use in application host with a Postgres resource
     /// <code lang="csharp">
@@ -266,9 +280,12 @@ public static class PostgresBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
@@ -277,14 +294,13 @@ public static class PostgresBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-pgweb";
-            var dir = Directory.CreateTempSubdirectory().FullName;
+            containerName ??= "pgweb";
+
             var pgwebContainer = new PgWebContainerResource(containerName);
             var pgwebContainerBuilder = builder.ApplicationBuilder.AddResource(pgwebContainer)
                                                .WithImage(PostgresContainerImageTags.PgWebImage, PostgresContainerImageTags.PgWebTag)
                                                .WithImageRegistry(PostgresContainerImageTags.PgWebRegistry)
                                                .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                               .WithBindMount(dir, "/.pgweb/bookmarks")
                                                .WithArgs("--bookmarks-dir=/.pgweb/bookmarks")
                                                .WithArgs("--sessions")
                                                .ExcludeFromManifest();
@@ -293,36 +309,30 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithRelationship(builder.Resource, "PgWeb");
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
-            {
-                var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
-                var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/.pgweb/bookmarks");
-                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
+            pgwebContainerBuilder.WithHttpHealthCheck();
 
-                if (!Directory.Exists(serverFileMount.Source!))
+            pgwebContainerBuilder.WithContainerFiles(
+                destinationPath: "/",
+                callback: (context, _) =>
                 {
-                    Directory.CreateDirectory(serverFileMount.Source!);
-                }
+                    var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                    var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
-                foreach (var postgresDatabase in postgresInstances)
-                {
-                    var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
-
-                    // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
-                    // This will need to be refactored once updated service discovery APIs are available
-                    var fileContent = $"""
-                        host = "{postgresDatabase.Parent.Name}"
-                        port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
-                        user = "{user}"
-                        password = "{postgresDatabase.Parent.PasswordParameter.Value}"
-                        database = "{postgresDatabase.DatabaseName}"
-                        sslmode = "disable"
-                        """;
-
-                    var filePath = Path.Combine(serverFileMount.Source!, $"{postgresDatabase.Name}.toml");
-                    await File.WriteAllTextAsync(filePath, fileContent, ct).ConfigureAwait(false);
-                }
-            });
+                    // Add the bookmarks to the pgweb container
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerDirectory
+                        {
+                            Name = ".pgweb",
+                            Entries = [
+                                new ContainerDirectory
+                                {
+                                    Name = "bookmarks",
+                                    Entries = WritePgWebBookmarks(postgresInstances),
+                                },
+                            ],
+                        },
+                    ]);
+                });
 
             return builder;
         }
@@ -339,7 +349,7 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
 
         // When running in the context of Codespaces we need to set some additional environment
-        // varialbes so that PGAdmin will trust the forwarded headers that Codespaces port
+        // variables so that PGAdmin will trust the forwarded headers that Codespaces port
         // forwarding will send.
         var config = context.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
         if (context.ExecutionContext.IsRunMode && config.GetValue<bool>("CODESPACES", false))
@@ -374,7 +384,7 @@ public static class PostgresBuilderExtensions
     public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
     }
@@ -386,11 +396,189 @@ public static class PostgresBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use WithInitFiles instead.")]
     public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+    }
+
+    /// <summary>
+    /// Copies init files to a PostgreSQL container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory or files on the host to copy into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithInitFiles(this IResourceBuilder<PostgresServerResource> builder, string source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        const string initPath = "/docker-entrypoint-initdb.d";
+
+        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(initPath, importFullPath);
+    }
+
+    /// <summary>
+    /// Defines the SQL script used to create the database.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="PostgresDatabaseResource"/>.</param>
+    /// <param name="script">The SQL script used to create the database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The script can only contain SQL statements applying to the default database like CREATE DATABASE. Custom statements like table creation
+    /// and data insertion are not supported since they require a distinct connection to the newly created database.
+    /// <value>Default script is <code>CREATE DATABASE "&lt;QUOTED_DATABASE_NAME&gt;"</code></value>
+    /// </remarks>
+    public static IResourceBuilder<PostgresDatabaseResource> WithCreationScript(this IResourceBuilder<PostgresDatabaseResource> builder, string script)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(script);
+
+        builder.WithAnnotation(new PostgresCreateDatabaseScriptAnnotation(script));
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the PostgreSQL resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithPassword(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the user name that the PostgreSQL resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithUserName(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> userName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(userName);
+
+        builder.Resource.UserNameParameter = userName.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the PostgreSQL resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithHostPort(this IResourceBuilder<PostgresServerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(PostgresServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
+    {
+        var bookmarkFiles = new List<ContainerFileSystemItem>();
+
+        foreach (var postgresDatabase in postgresInstances)
+        {
+            var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
+
+            // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+            // This will need to be refactored once updated service discovery APIs are available
+            var fileContent = $"""
+                    host = "{postgresDatabase.Parent.Name}"
+                    port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
+                    user = "{user}"
+                    password = "{postgresDatabase.Parent.PasswordParameter.Value}"
+                    database = "{postgresDatabase.DatabaseName}"
+                    sslmode = "disable"
+                    """;
+
+            bookmarkFiles.Add(new ContainerFile
+            {
+                Name = $"{postgresDatabase.Name}.toml",
+                Contents = fileContent,
+            });
+        }
+
+        return bookmarkFiles;
+    }
+
+    private static string WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+        writer.WriteStartObject();
+        writer.WriteStartObject("Servers");
+
+        var serverIndex = 1;
+
+        foreach (var postgresInstance in postgresInstances)
+        {
+            var endpoint = postgresInstance.PrimaryEndpoint;
+
+            writer.WriteStartObject($"{serverIndex}");
+            writer.WriteString("Name", postgresInstance.Name);
+            writer.WriteString("Group", "Servers");
+            // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+            // This will need to be refactored once updated service discovery APIs are available
+            writer.WriteString("Host", endpoint.Resource.Name);
+            writer.WriteNumber("Port", (int)endpoint.TargetPort!);
+            writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
+            writer.WriteString("SSLMode", "prefer");
+            writer.WriteString("MaintenanceDB", "postgres");
+            writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
+            writer.WriteEndObject();
+
+            serverIndex++;
+        }
+
+        writer.WriteEndObject();
+        writer.WriteEndObject();
+
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        var scriptAnnotation = npgsqlDatabase.Annotations.OfType<PostgresCreateDatabaseScriptAnnotation>().LastOrDefault();
+
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(npgsqlDatabase.Parent);
+        logger.LogDebug("Creating database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
+
+        try
+        {
+            var quotedDatabaseIdentifier = new NpgsqlCommandBuilder().QuoteIdentifier(npgsqlDatabase.DatabaseName);
+            using var command = npgsqlConnection.CreateCommand();
+            command.CommandText = scriptAnnotation?.Script ?? $"CREATE DATABASE {quotedDatabaseIdentifier}";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Database '{DatabaseName}' created successfully", npgsqlDatabase.DatabaseName);
+        }
+        catch (PostgresException p) when (p.SqlState == "42P04")
+        {
+            // Ignore the error if the database already exists.
+            logger.LogDebug("Database '{DatabaseName}' already exists", npgsqlDatabase.DatabaseName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", npgsqlDatabase.DatabaseName);
+        }
     }
 }

@@ -35,10 +35,7 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        builder.AddMongoDBClient(configureSettings, configureClientSettings, connectionName, serviceKey: null);
+        AddMongoDBClient(builder, configureSettings, configureClientSettings, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -57,10 +54,10 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddMongoDBClient(
+        AddMongoDBClient(
+            builder,
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -75,6 +72,7 @@ public static class AspireMongoDBDriverExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = builder.GetMongoDBSettings(
             connectionName,
@@ -95,7 +93,8 @@ public static class AspireMongoDBDriverExtensions
 
         builder.AddMongoDatabase(settings.ConnectionString, serviceKey);
         builder.AddHealthCheck(
-            serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}",
+            connectionName,
+            serviceKey,
             settings);
     }
 
@@ -158,7 +157,8 @@ public static class AspireMongoDBDriverExtensions
 
     private static void AddHealthCheck(
         this IHostApplicationBuilder builder,
-        string healthCheckName,
+        string connectionName,
+        object? serviceKey,
         MongoDBSettings settings)
     {
         if (settings.DisableHealthChecks || string.IsNullOrWhiteSpace(settings.ConnectionString))
@@ -166,10 +166,18 @@ public static class AspireMongoDBDriverExtensions
             return;
         }
 
+        var healthCheckName = serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}";
         builder.TryAddHealthCheck(
             healthCheckName,
             healthCheck => healthCheck.AddMongoDb(
+#if MONGODB_V2
                 settings.ConnectionString,
+#else
+                serviceKey is null
+                    ? sp => sp.GetRequiredService<IMongoClient>()
+                    : sp => sp.GetRequiredKeyedService<IMongoClient>(serviceKey),
+                _ => MongoUrl.Create(settings.ConnectionString).DatabaseName,
+#endif
                 healthCheckName,
                 null,
                 null,
@@ -194,6 +202,16 @@ public static class AspireMongoDBDriverExtensions
         configureClientSettings?.Invoke(clientSettings);
 
         clientSettings.LoggingSettings ??= new LoggingSettings(serviceProvider.GetService<ILoggerFactory>());
+
+        var aspireVersion = typeof(MongoDBSettings).Assembly.GetName().Version?.ToString();
+        if (clientSettings.LibraryInfo != null)
+        {
+            clientSettings.LibraryInfo = new LibraryInfo($"{clientSettings.LibraryInfo.Name}|aspire", $"{clientSettings.LibraryInfo.Version}|{aspireVersion}");
+        }
+        else
+        {
+            clientSettings.LibraryInfo = new LibraryInfo("aspire", aspireVersion);
+        }
 
         return new MongoClient(clientSettings);
     }

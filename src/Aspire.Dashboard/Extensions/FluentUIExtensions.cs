@@ -27,20 +27,4 @@ internal static class FluentUIExtensions
 
         return attributes;
     }
-
-    public static Dictionary<string, object> GetOpenTextVisualizerAdditionalAttributes(string textValue, string textValueDescription, params (string Attribute, object Value)[] additionalAttributes)
-    {
-        var attributes = new Dictionary<string, object>(StringComparers.HtmlAttribute)
-        {
-            { "data-text", textValue },
-            { "data-textvisualizer-description", textValueDescription }
-        };
-
-        foreach (var (attribute, value) in additionalAttributes)
-        {
-            attributes.Add(attribute, value);
-        }
-
-        return attributes;
-    }
 }

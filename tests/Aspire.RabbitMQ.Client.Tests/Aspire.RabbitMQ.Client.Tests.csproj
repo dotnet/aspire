@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,7 +10,10 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" VersionOverride="[8.0.2,9.0.0)" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
+
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
     <PackageReference Include="Testcontainers.RabbitMq" />
   </ItemGroup>

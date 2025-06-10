@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Testing;
+using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
@@ -24,7 +24,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public abstract Task WaitReadyStateAsync(CancellationToken cancellationToken = default);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _testProgram = CreateTestProgram();
 
@@ -37,7 +37,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
         await WaitReadyStateAsync(cts.Token);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_app != null)
         {
@@ -66,15 +66,15 @@ public class SlimTestProgramFixture : TestProgramFixture
     {
         // Make sure services A, B and C are running
         await App.WaitForTextAsync("Application started.", "servicea", cancellationToken);
-        using var clientA = App.CreateHttpClient(TestProgram.ServiceABuilder.Resource.Name, "http");
+        using var clientA = App.CreateHttpClientWithResilience(TestProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
         await App.WaitForTextAsync("Application started.", "serviceb", cancellationToken);
-        using var clientB = App.CreateHttpClient(TestProgram.ServiceBBuilder.Resource.Name, "http");
+        using var clientB = App.CreateHttpClientWithResilience(TestProgram.ServiceBBuilder.Resource.Name, "http");
         await clientB.GetStringAsync("/", cancellationToken);
 
         await App.WaitForTextAsync("Application started.", "servicec", cancellationToken);
-        using var clientC = App.CreateHttpClient(TestProgram.ServiceCBuilder.Resource.Name, "http");
+        using var clientC = App.CreateHttpClientWithResilience(TestProgram.ServiceCBuilder.Resource.Name, "http");
         await clientC.GetStringAsync("/", cancellationToken);
     }
 }

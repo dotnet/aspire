@@ -27,8 +27,12 @@ public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
         {
             throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
         }
+        if (InstanceId is null)
+        {
+            return new ApplicationKey(ReplicaSetName, InstanceId: null);
+        }
 
-        return new ApplicationKey(ReplicaSetName, InstanceId);
+        return ApplicationKey.Create(name: ReplicaSetName, instanceId: InstanceId);
     }
 
     public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)

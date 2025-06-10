@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -10,11 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure Event Hubs resource.</param>
-public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString,
-    IResourceWithEndpoints,
-    IResourceWithAzureFunctionsConfig
+public class AzureEventHubsResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
 {
     private static readonly string[] s_eventHubClientNames =
     [
@@ -27,12 +26,17 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
     private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
 
-    internal List<string> Hubs { get; } = [];
+    internal List<AzureEventHubResource> Hubs { get; } = [];
 
     /// <summary>
     /// Gets the "eventHubsEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
     /// </summary>
     public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
+
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
@@ -44,12 +48,46 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        IsEmulator
-        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
-        : ReferenceExpression.Create($"{EventHubsEndpoint}");
+    public ReferenceExpression ConnectionStringExpression => GetConnectionString();
 
-    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    internal ReferenceExpression GetConnectionString(string? eventHub = null, string? consumerGroup = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+
+        if (IsEmulator)
+        {
+            builder.Append($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true");
+        }
+        else
+        {
+            if (eventHub is null && consumerGroup is null)
+            {
+                // for backwards compatibility - if there is no event hub or consumer group, return just the endpoint
+                builder.AppendFormatted(EventHubsEndpoint);
+            }
+            else
+            {
+                builder.Append($"Endpoint={EventHubsEndpoint}");
+            }
+        }
+
+        if (eventHub is not null)
+        {
+            builder.Append($";EntityPath={eventHub}");
+        }
+
+        if (consumerGroup is not null)
+        {
+            builder.Append($";ConsumerGroup={consumerGroup}");
+        }
+
+        return builder.Build();
+    }
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName) =>
+        ApplyAzureFunctionsConfiguration(target, connectionName);
+
+    internal void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName, string? eventHub = null, string? consumerGroup = null)
     {
         if (IsEmulator)
         {
@@ -71,5 +109,27 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
                 target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
             }
         }
+
+        // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+        foreach (var clientName in s_eventHubClientNames)
+        {
+            if (eventHub is not null)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__EventHubName"] = eventHub;
+            }
+            if (consumerGroup is not null)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConsumerGroup"] = consumerGroup;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var hubs = EventHubsNamespace.FromExisting(this.GetBicepIdentifier());
+        hubs.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(hubs);
+        return hubs;
     }
 }

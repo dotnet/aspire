@@ -3,11 +3,7 @@
   "resources": {
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "queue": {
       "type": "value.v0",
@@ -17,31 +13,44 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "myblobcontainer": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=myblobcontainer"
+    },
     "eventhubs": {
       "type": "azure.bicep.v0",
       "connectionString": "{eventhubs.outputs.eventHubsEndpoint}",
-      "path": "eventhubs.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "eventhubs.module.bicep"
+    },
+    "myhub": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={eventhubs.outputs.eventHubsEndpoint};EntityPath=myhub"
     },
     "messaging": {
       "type": "azure.bicep.v0",
       "connectionString": "{messaging.outputs.serviceBusEndpoint}",
-      "path": "messaging.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "messaging.module.bicep"
+    },
+    "myqueue": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={messaging.outputs.serviceBusEndpoint};EntityPath=myqueue"
+    },
+    "cosmosdb": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmosdb.outputs.connectionString}",
+      "path": "cosmosdb.module.bicep"
+    },
+    "mydatabase": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmosdb.outputs.connectionString};Database=mydatabase"
+    },
+    "mycontainer": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmosdb.outputs.connectionString};Database=mydatabase;Container=mycontainer"
     },
     "funcstorage67c6c": {
       "type": "azure.bicep.v0",
-      "path": "funcstorage67c6c.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "funcstorage67c6c.module.bicep"
     },
     "funcapp": {
       "type": "project.v0",
@@ -56,16 +65,27 @@
         "ASPNETCORE_URLS": "http://\u002B:{funcapp.bindings.http.targetPort}",
         "AzureWebJobsStorage__blobServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "AzureWebJobsStorage__queueServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
+        "AzureWebJobsStorage__tableServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
         "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.blobEndpoint}",
         "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.queueEndpoint}",
-        "eventhubs__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
-        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__eventhubs__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Data__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage67c6c.outputs.tableEndpoint}",
+        "myhub__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
+        "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventProcessorClient__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__PartitionReceiver__myhub__EventHubName": "myhub",
+        "Aspire__Azure__Messaging__EventHubs__EventHubBufferedProducerClient__myhub__EventHubName": "myhub",
+        "ConnectionStrings__myblobcontainer": "{myblobcontainer.connectionString}",
         "messaging__fullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
         "Aspire__Azure__Messaging__ServiceBus__messaging__FullyQualifiedNamespace": "{messaging.outputs.serviceBusEndpoint}",
+        "cosmosdb__accountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
+        "Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint": "{cosmosdb.outputs.connectionString}",
         "blob__blobServiceUri": "{storage.outputs.blobEndpoint}",
         "blob__queueServiceUri": "{storage.outputs.queueEndpoint}",
         "Aspire__Azure__Storage__Blobs__blob__ServiceUri": "{storage.outputs.blobEndpoint}",
@@ -98,8 +118,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "ConnectionStrings__eventhubs": "{eventhubs.connectionString}",
+        "ConnectionStrings__myhub": "{myhub.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}",
+        "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
         "services__funcapp__http__0": "{funcapp.bindings.http.url}",
@@ -116,6 +137,50 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "eventhubs-roles": {
+      "type": "azure.bicep.v0",
+      "path": "eventhubs-roles.module.bicep",
+      "params": {
+        "eventhubs_outputs_name": "{eventhubs.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "messaging-roles": {
+      "type": "azure.bicep.v0",
+      "path": "messaging-roles.module.bicep",
+      "params": {
+        "messaging_outputs_name": "{messaging.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cosmosdb-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmosdb-roles.module.bicep",
+      "params": {
+        "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "funcstorage67c6c-roles": {
+      "type": "azure.bicep.v0",
+      "path": "funcstorage67c6c-roles.module.bicep",
+      "params": {
+        "funcstorage67c6c_outputs_name": "{funcstorage67c6c.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

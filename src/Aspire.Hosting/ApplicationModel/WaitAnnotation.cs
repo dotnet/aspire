@@ -28,6 +28,11 @@ public sealed class WaitAnnotation(IResource resource, WaitType waitType, int ex
     public WaitType WaitType { get; } = waitType;
 
     /// <summary>
+    /// The behavior of the wait. Only applicable when <see cref="WaitType"/> is <see cref="WaitType.WaitUntilHealthy"/>.
+    /// </summary>
+    public WaitBehavior? WaitBehavior { get; init; }
+
+    /// <summary>
     /// The exit code that the resource must return for the wait to be satisfied.
     /// </summary>
     public int ExitCode { get; } = exitCode;
@@ -47,4 +52,20 @@ public enum WaitType
     /// Dependent resource will wait until resource completes.
     /// </summary>
     WaitForCompletion
+}
+
+/// <summary>
+/// Specifies the behavior of the wait.
+/// </summary>
+public enum WaitBehavior
+{
+    /// <summary>
+    /// If the resource is unavailable, continue waiting.
+    /// </summary>
+    WaitOnResourceUnavailable,
+
+    /// <summary>
+    /// If the resource is unavailable, stop waiting.
+    /// </summary>
+    StopOnResourceUnavailable
 }

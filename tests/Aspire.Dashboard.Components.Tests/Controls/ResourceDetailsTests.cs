@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Tests.Shared;
@@ -13,7 +14,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
 [UseCulture("en-US")]
-public class ResourceDetailsTests : TestContext
+public class ResourceDetailsTests : DashboardTestContext
 {
     [Fact]
     public async Task ClickMaskAllSwitch_UpdatedResource_MaskChanged()
@@ -34,6 +35,7 @@ public class ResourceDetailsTests : TestContext
         {
             builder.Add(p => p.ShowSpecOnlyToggle, true);
             builder.Add(p => p.Resource, resource1);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource1.Name, resource1)]));
         });
 
         // Assert
@@ -117,6 +119,7 @@ public class ResourceDetailsTests : TestContext
         {
             builder.Add(p => p.ShowSpecOnlyToggle, true);
             builder.Add(p => p.Resource, resource1);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource1.Name, resource1)]));
         });
 
         // Assert
@@ -200,6 +203,7 @@ public class ResourceDetailsTests : TestContext
         {
             builder.Add(p => p.ShowSpecOnlyToggle, true);
             builder.Add(p => p.Resource, resource1);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource1.Name, resource1)]));
         });
 
         // Assert
@@ -283,6 +287,7 @@ public class ResourceDetailsTests : TestContext
         {
             builder.Add(p => p.ShowSpecOnlyToggle, true);
             builder.Add(p => p.Resource, resource1);
+            builder.Add(p => p.ResourceByName, new ConcurrentDictionary<string, ResourceViewModel>([new KeyValuePair<string, ResourceViewModel> (resource1.Name, resource1)]));
         });
 
         // Assert

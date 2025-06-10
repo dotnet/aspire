@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
@@ -9,7 +10,7 @@
     @if (EnableMasking && IsMasked)
     {
         <span class="grid-value masked" id="@_cellTextId">
-            &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
+            @DashboardUIHelpers.GetMaskingText(length: 8).MarkupString
         </span>
     }
     else
@@ -22,7 +23,11 @@
             else
             {
                 @ContentBeforeValue
-                if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
+                if (ValueTemplate is not null)
+                {
+                    @ValueTemplate(Value)
+                }
+                else if (EnableHighlighting && !string.IsNullOrEmpty(HighlightText))
                 {
                     <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
                 }
@@ -31,49 +36,21 @@
                     @((MarkupString)_formattedValue)
                 }
                 @ContentAfterValue
-            }            
+            }
         </span>
-    }
-
-    @{
-        (string, object)[] uncapturedCopyAttributes = [
-            ("alt", PreCopyToolTip),
-            ("title", string.Empty),
-            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
-            ("tabindex", "0")
-        ];
     }
 
     @* Button area *@
 
-    <div @onclick:stopPropagation="true">
+    <div @onclick:stopPropagation="true" class="button-container">
 
         <span class="defaultHidden">
             <FluentButton Appearance="Appearance.Lightweight"
-                          Id="@_menuAnchorId"
-                          OnClick="@ToggleMenuOpen">
-                <FluentIcon Icon="Icons.Regular.Size16.MoreHorizontal" />
+                          Disabled="@(ValueToVisualize is null && Value is null)"
+                          OnClick="OpenTextVisualizerAsync"
+                          aria-label="@DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]">
+                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
             </FluentButton>
-
-            <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" HorizontalPosition="HorizontalPosition.End">
-                <FluentMenuItem Id="@_copyId"
-                                Disabled="@(ValueToCopy is null && Value is null)"
-                                AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
-                    <span slot="start">
-                        <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" />
-                    </span>
-                    @PreCopyToolTip
-                </FluentMenuItem>
-
-                <FluentMenuItem Disabled="@(ValueToVisualize is null && Value is null)"
-                                AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(ValueToVisualize ?? Value!, !string.IsNullOrEmpty(TextVisualizerTitle) ? TextVisualizerTitle : ValueDescription)">
-                    <span slot="start">
-                        <FluentIcon Style="vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" />
-                    </span>
-
-                    @DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]
-                </FluentMenuItem>
-            </FluentMenu>
         </span>
 
         @if (ContentInButtonArea is not null)

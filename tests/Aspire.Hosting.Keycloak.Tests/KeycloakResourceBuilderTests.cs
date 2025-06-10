@@ -26,14 +26,27 @@ public class KeycloakResourceBuilderTests
         var containerResource = Assert.Single(appModel.Resources.OfType<KeycloakResource>());
         Assert.Equal(resourceName, containerResource.Name);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        const string defaultEndpointName = "http";
+
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == defaultEndpointName);
         Assert.Equal(8080, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("http", endpoint.Name);
+        Assert.Equal(defaultEndpointName, endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
+
+        const string managementEndpointName = "management";
+
+        var healthEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == managementEndpointName);
+        Assert.Equal(9000, healthEndpoint.TargetPort);
+        Assert.False(healthEndpoint.IsExternal);
+        Assert.Equal(managementEndpointName, healthEndpoint.Name);
+        Assert.Null(healthEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, healthEndpoint.Protocol);
+        Assert.Equal("http", healthEndpoint.Transport);
+        Assert.Equal("http", healthEndpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(KeycloakContainerImageTags.Tag, containerAnnotation.Tag);
@@ -73,37 +86,6 @@ public class KeycloakResourceBuilderTests
         Assert.False(volumeAnnotation.IsReadOnly);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void WithRealmImportAddsBindMountAnnotation(bool? isReadOnly)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDirectory);
-
-        var resourceName = "keycloak";
-        var keycloak = builder.AddKeycloak(resourceName);
-
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithRealmImport(tempDirectory, isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithRealmImport(tempDirectory);
-        }
-
-        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-
-        Assert.Equal(tempDirectory, containerAnnotation.Source);
-        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.Target);
-        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
-    }
-
     [Fact]
     public void AddAddKeycloakAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
@@ -141,8 +123,9 @@ public class KeycloakResourceBuilderTests
                 "--import-realm"
               ],
               "env": {
-                "KEYCLOAK_ADMIN": "admin",
-                "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}"
+                "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
+                "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
+                "KC_HEALTH_ENABLED": "true"
               },
               "bindings": {
                 "http": {
@@ -150,6 +133,12 @@ public class KeycloakResourceBuilderTests
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 8080
+                },
+                "management": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 9000
                 }
               }
             }

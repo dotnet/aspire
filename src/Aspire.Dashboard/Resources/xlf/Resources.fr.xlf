@@ -9,52 +9,42 @@
       </trans-unit>
       <trans-unit id="ResourceActionMetricsText">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Métriques</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="new">No telemetry found for this resource.</target>
+        <target state="translated">Journaux structurés</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Traces</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="translated">Réduire les ressources enfants</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>{0} "{1}" failed</source>
-        <target state="new">{0} "{1}" failed</target>
+        <target state="translated">{0} « {1} » a échoué</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandStarting">
         <source>{0} "{1}" starting</source>
-        <target state="new">{0} "{1}" starting</target>
+        <target state="translated">Démarrage de {0} « {1} »</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>{0} "{1}" succeeded</source>
-        <target state="new">{0} "{1}" succeeded</target>
+        <target state="translated">{0} « {1} » a réussi</target>
         <note>{0} is the resource. {1} is the display name of the command.</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">Afficher les journaux</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">URL de point de terminaison</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">URL du proxy</target>
+        <target state="translated">Afficher les journaux de console</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
@@ -62,10 +52,25 @@
         <target state="translated">Afficher les journaux de console</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="translated">Développer les ressources enfants</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(Annuler)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
         <target state="translated">Actions</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResourcesChangeViewOptions">
+        <source>View options</source>
+        <target state="translated">Afficher les options</target>
+        <note>An icon allowing the user to expand or collapse all child resources.</note>
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
@@ -89,7 +94,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
         <source>Container lifetime</source>
-        <target state="new">Container lifetime</target>
+        <target state="translated">Durée de vie du conteneur</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -129,7 +134,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health state</source>
-        <target state="needs-review-translation">État d’intégrité</target>
+        <target state="translated">État d’intégrité</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -152,14 +157,44 @@
         <target state="translated">Heure d’arrêt</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEndpointsColumnHeader">
-        <source>Endpoints</source>
-        <target state="translated">Points de terminaison</target>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">A des filtres</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">Environnement</target>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="translated">Réinitialiser</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="translated">Zoom avant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="translated">Zoom arrière</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Masquer les types de ressources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">Aucun filtre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">État</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Afficher les types de ressources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -177,19 +212,9 @@
         <target state="translated">État</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">Variables d’environnement pour {0}</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">Ressources</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">Aucune variable d’environnement</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">
@@ -212,24 +237,19 @@
         <target state="translated">Type</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type filter: All types visible</source>
-        <target state="translated">Filtre de type : tous les types sont visibles</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesTypeFiltered">
-        <source>Type filter: Filtered</source>
-        <target state="translated">Filtre de type : filtré</target>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>
-        <target state="new">Waiting for health data...</target>
+        <target state="translated">En attente des données d’intégrité... Merci de patienter.</target>
         <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
       <trans-unit id="WaitingHealthDataStatusMessage">
         <source>Waiting...</source>
-        <target state="new">Waiting...</target>
+        <target state="translated">En attente...</target>
         <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
       </trans-unit>
     </body>

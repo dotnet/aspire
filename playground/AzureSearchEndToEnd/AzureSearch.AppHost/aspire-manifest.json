@@ -4,11 +4,7 @@
     "search": {
       "type": "azure.bicep.v0",
       "connectionString": "{search.outputs.connectionString}",
-      "path": "search.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "search.module.bicep"
     },
     "api": {
       "type": "project.v0",
@@ -34,6 +30,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "search-roles": {
+      "type": "azure.bicep.v0",
+      "path": "search-roles.module.bicep",
+      "params": {
+        "search_outputs_name": "{search.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

@@ -35,7 +35,7 @@ public static partial class UrlParser
                 nextCharIndex = urlMatch.Index + urlMatch.Length;
                 var url = text[urlStart..nextCharIndex];
 
-                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{WebUtility.HtmlEncode(url)}</a>");
+                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\" rel=\"noopener noreferrer nofollow\">{WebUtility.HtmlEncode(url)}</a>");
                 urlMatch = urlMatch.NextMatch();
             }
 

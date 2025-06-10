@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -12,10 +11,14 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KeycloakResourceBuilderExtensions
 {
-    private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
-    private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
+    private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
+    private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
+    private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+
     private const int DefaultContainerPort = 8080;
-    private const string RealmImportDirectory = "/opt/keycloak/data/import";
+    private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
+    private const string ManagementEndpointName = "management";
+    private const string KeycloakImportDirectory = "/opt/keycloak/data/import";
 
     /// <summary>
     /// Adds a Keycloak container to the application model.
@@ -29,7 +32,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <remarks>
     /// The container exposes port 8080 by default.
     /// This version of the package defaults to the <inheritdoc cref="KeycloakContainerImageTags.Tag"/> tag of the <inheritdoc cref="KeycloakContainerImageTags.Registry"/>/<inheritdoc cref="KeycloakContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <example>
     /// Use in application host
     /// <code lang="csharp">
@@ -39,6 +41,7 @@ public static class KeycloakResourceBuilderExtensions
     ///                        .WithReference(keycloak);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> AddKeycloak(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -47,7 +50,7 @@ public static class KeycloakResourceBuilderExtensions
         IResourceBuilder<ParameterResource>? adminPassword = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var passwordParameter = adminPassword?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
@@ -59,11 +62,15 @@ public static class KeycloakResourceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(targetPort: ManagementInterfaceContainerPort, name: ManagementEndpointName)
+            .WithHttpHealthCheck(endpointName: ManagementEndpointName, path: "/health/ready")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
                 context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
-            });
+                context.EnvironmentVariables[HealthCheckEnvVarName] = "true";
+            })
+            .WithUrlForEndpoint(ManagementEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -87,7 +94,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The volume is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a data volume
     /// <code lang="csharp">
@@ -95,12 +101,12 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataVolume();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/keycloak/data",
-            false);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/opt/keycloak/data", false);
     }
 
     /// <summary>
@@ -111,7 +117,6 @@ public static class KeycloakResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The source directory is mounted at /opt/keycloak/data in the container.
-    /// </remarks>
     /// <example>
     /// Use a bind mount
     /// <code lang="csharp">
@@ -119,10 +124,11 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithDataBindMount("mydata");
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/opt/keycloak/data", false);
     }
@@ -131,12 +137,11 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importDirectory">The directory containing the realm import files.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// The realm import files are mounted at /opt/keycloak/data/import in the container.
-    /// </remarks>
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
     /// <example>
     /// Import the realms from a directory
     /// <code lang="csharp">
@@ -144,22 +149,49 @@ public static class KeycloakResourceBuilderExtensions
     ///                       .WithRealmImport("../realms");
     /// </code>
     /// </example>
+    /// </remarks>
+    [Obsolete("Use WithRealmImport(string import) instead.")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importDirectory,
-        bool isReadOnly = false)
+        string import,
+        bool isReadOnly)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(importDirectory);
+        ArgumentException.ThrowIfNullOrEmpty(import);
 
-        var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
-        if (!Directory.Exists(importDirectoryFullPath))
-        {
-            throw new DirectoryNotFoundException($"The realm import directory '{importDirectoryFullPath}' does not exist.");
-        }
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
-        builder.WithBindMount(importDirectoryFullPath, RealmImportDirectory, isReadOnly);
+        return builder.WithBindMount(importFullPath, KeycloakImportDirectory, isReadOnly);
+    }
 
-        return builder;
+    /// <summary>
+    /// Adds a realm import to a Keycloak container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The realm import files are copied to /opt/keycloak/data/import in the container.
+    /// <example>
+    /// Import the realms from a directory
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak")
+    ///                       .WithRealmImport("../realms");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<KeycloakResource> WithRealmImport(
+        this IResourceBuilder<KeycloakResource> builder,
+        string import)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(import);
+
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(
+            KeycloakImportDirectory,
+            importFullPath,
+            defaultOwner: KeycloakContainerImageTags.ContainerUser);
     }
 }

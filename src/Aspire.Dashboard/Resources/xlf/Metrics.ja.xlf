@@ -57,11 +57,6 @@
         <target state="translated">過去 12 時間</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">過去 24 時間</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">選択したリソースのメトリックがありません</target>
@@ -91,6 +86,11 @@
         <source>View attributes</source>
         <target state="translated">属性の表示</target>
         <note />
+      </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">{0} で一時停止されたメトリック キャプチャ</target>
+        <note>{0} is a time</note>
       </trans-unit>
     </body>
   </file>

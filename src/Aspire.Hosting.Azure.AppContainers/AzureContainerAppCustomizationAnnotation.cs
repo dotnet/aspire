@@ -9,10 +9,11 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an annotation for customizing an Azure Container App.
 /// </summary>
-public sealed class AzureContainerAppCustomizationAnnotation(Action<AzureResourceInfrastructure, ContainerApp> configure) : IResourceAnnotation
+public sealed class AzureContainerAppCustomizationAnnotation(Action<AzureResourceInfrastructure, ContainerApp> configure)
+    : IResourceAnnotation
 {
     /// <summary>
     /// Gets the configuration action for customizing the Azure Container App.
     /// </summary>
-    public Action<AzureResourceInfrastructure, ContainerApp> Configure { get; } = configure;
+    public Action<AzureResourceInfrastructure, ContainerApp> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }

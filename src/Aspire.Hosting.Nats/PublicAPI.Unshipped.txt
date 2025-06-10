@@ -1,7 +1,0 @@
-#nullable enable
-Aspire.Hosting.ApplicationModel.NatsServerResource.NatsServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userName, Aspire.Hosting.ApplicationModel.ParameterResource? password) -> void
-Aspire.Hosting.ApplicationModel.NatsServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
-Aspire.Hosting.ApplicationModel.NatsServerResource.PasswordParameter.set -> void
-Aspire.Hosting.ApplicationModel.NatsServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
-Aspire.Hosting.ApplicationModel.NatsServerResource.UserNameParameter.set -> void
-static Aspire.Hosting.NatsBuilderExtensions.AddNats(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? userName = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>!

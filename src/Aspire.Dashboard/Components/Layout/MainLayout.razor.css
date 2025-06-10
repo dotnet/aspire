@@ -1,32 +1,4 @@
 @media (min-width: 768px) {
-    #blazor-error-ui {
-        background: var(--highlight-bg);
-        bottom: 0;
-        box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-        display: none;
-        left: 0;
-        padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-        position: fixed;
-        width: 100%;
-        z-index: 1000;
-        color: var(--error-ui-foreground-color);
-    }
-
-    #blazor-error-ui a {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-
-    #blazor-error-ui .reload {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
     ::deep.layout {
         height: 100vh;
         width: 100vw;
@@ -34,9 +6,9 @@
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto 1fr;
         grid-template-areas:
-        "icon head"
-        "nav messagebar"
-        "nav main";
+            "icon head"
+            "nav messagebar"
+            "nav main";
         background-color: var(--fill-color);
         color: var(--neutral-foreground-rest);
     }
@@ -74,13 +46,6 @@
 
     ::deep .header-right {
         margin-left: auto;
-    }
-
-    ::deep.layout > header > .header-gutters > fluent-button[appearance=stealth]:not(:hover)::part(control),
-    ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth]:not(:hover)::part(control),
-    ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
-    ::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
-        background-color: var(--neutral-layer-4);
     }
 
     ::deep.layout > header {
@@ -105,39 +70,11 @@
     }
 
     ::deep.layout > header > .header-gutters {
-        margin-left: 0;
+        margin: 0;
     }
 }
 
 @media (max-width: 768px) {
-    #blazor-error-ui {
-        background: var(--highlight-bg);
-        bottom: 0;
-        box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-        display: none;
-        left: 0;
-        padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-        position: fixed;
-        width: 100%;
-        z-index: 1000;
-        color: var(--error-ui-foreground-color);
-    }
-
-    #blazor-error-ui a {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-
-    #blazor-error-ui .reload {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
     ::deep.layout {
         height: 100vh;
         width: 100vw;
@@ -145,10 +82,10 @@
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto auto 1fr;
         grid-template-areas:
-        "icon head"
-        "nav-menu nav-menu"
-        "messagebar messagebar"
-        "main main";
+            "icon head"
+            "nav-menu nav-menu"
+            "messagebar messagebar"
+            "main main";
         background-color: var(--fill-color);
         color: var(--neutral-foreground-rest);
     }
@@ -186,13 +123,6 @@
 
     ::deep .header-right {
         margin-left: auto;
-    }
-
-    ::deep.layout > header > .header-gutters > fluent-button[appearance=stealth]:not(:hover)::part(control),
-    ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth]:not(:hover)::part(control),
-    ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
-    ::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
-        background-color: var(--neutral-layer-4);
     }
 
     ::deep.layout > .aspire-icon {
@@ -232,4 +162,60 @@
     ::deep.layout > header > .header-gutters {
         margin-left: 0;
     }
+}
+
+::deep .desktop-nav-menu > .fluent-appbar-item > .fluentui-counterbadge-container > a > .stack-vertical {
+    /* FluentAppBarItems have a default width. However, we have a wide range of widths
+       in content depending on the language (ie, from traces to seguimientos).
+       Remove the default horizontal padding to allow for more text  */
+    padding-left: 0;
+    padding-right: 0;
+}
+
+::deep.layout > header > .header-gutters > fluent-button[appearance=stealth]:not(:hover)::part(control),
+::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth]:not(:hover)::part(control),
+::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
+::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
+    background-color: var(--neutral-layer-4);
+}
+
+::deep .header-gutters .header-button {
+    height: 100%;
+    display: block;
+}
+
+::deep .header-gutters .header-button::part(control) {
+    width: 50px;
+    height: 100%;
+    border-radius: 0;
+    background-color: var(--neutral-fill-secondary-rest);
+}
+
+::deep.layout > header > .header-gutters > .header-button-selected:not(:hover)::part(control) {
+    background-color: var(--neutral-layer-floating) !important;
+}
+
+#blazor-error-ui {
+    background: var(--highlight-bg);
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    color: var(--error-ui-foreground-color);
+}
+
+#blazor-error-ui a {
+    color: var(--error-ui-accent-foreground-color);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+    text-decoration: none;
 }

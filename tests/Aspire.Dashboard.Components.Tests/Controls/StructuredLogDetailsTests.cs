@@ -6,7 +6,6 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Tests.Shared.Telemetry;
-using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
@@ -15,7 +14,7 @@ using Xunit;
 namespace Aspire.Dashboard.Components.Tests.Controls;
 
 [UseCulture("en-US")]
-public class StructuredLogDetailsTests : TestContext
+public class StructuredLogDetailsTests : DashboardTestContext
 {
     [Fact]
     public void Render_ManyDuplicateAttributes_NoDuplicateKeys()
@@ -24,7 +23,7 @@ public class StructuredLogDetailsTests : TestContext
         StructuredLogsSetupHelpers.SetupStructuredLogsDetails(this);
 
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
-        var app = new OtlpApplication("app1", "instance1", context);
+        var app = new OtlpApplication("app1", "instance1", uninstrumentedPeer: false, context);
         var view = new OtlpApplicationView(app, new RepeatedField<KeyValue>
         {
             new KeyValue { Key = "Message", Value = new AnyValue { StringValue = "value1" } },
@@ -42,13 +41,13 @@ public class StructuredLogDetailsTests : TestContext
                     KeyValuePair.Create("event.name", "value2")
                 ]),
                 logApp: view,
-                scope: new OtlpScope(TelemetryTestHelpers.CreateScope(
+                scope: TelemetryTestHelpers.CreateOtlpScope(
+                    context,
                     attributes:
                     [
                         KeyValuePair.Create("Message", "value1"),
                         KeyValuePair.Create("Message", "value2")
                     ]),
-                    context: context),
                 context: context)
         };
 

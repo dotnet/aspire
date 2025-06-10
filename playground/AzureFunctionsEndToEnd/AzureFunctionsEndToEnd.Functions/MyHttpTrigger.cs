@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text;
 using Azure.Messaging.EventHubs.Producer;
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS
 using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
@@ -17,24 +17,26 @@ namespace AzureFunctionsEndToEnd.Functions;
 
 public class MyHttpTrigger(
     ILogger<MyHttpTrigger> logger,
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS
     ServiceBusClient serviceBusClient,
 #endif
     EventHubProducerClient eventHubProducerClient,
     QueueServiceClient queueServiceClient,
-    BlobServiceClient blobServiceClient)
+    BlobServiceClient blobServiceClient,
+    BlobContainerClient blobContainerClient)
 {
     [Function("injected-resources")]
     public IResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
     {
         logger.LogInformation("C# HTTP trigger function processed a request.");
         var stringBuilder = new StringBuilder();
-#if !SKIP_PROVISIONED_AZURE_RESOURCE
+#if !SKIP_UNSTABLE_EMULATORS
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected ServiceBusClient namespace: {serviceBusClient.FullyQualifiedNamespace}");
 #endif
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected EventHubProducerClient namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected QueueServiceClient URI: {queueServiceClient.Uri}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected BlobServiceClient URI: {blobServiceClient.Uri}");
+        stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected BlobContainerClient URI: {blobContainerClient.Uri}");
         return Results.Text(stringBuilder.ToString());
     }
 }

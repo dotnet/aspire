@@ -1,38 +1,31 @@
 ﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
 @using Aspire.Dashboard.Model
-@using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
 
-<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Where(i => !i.IsDivider).Any())">
+@{
+    var additionalButtonAttributes = new Dictionary<string, object>(AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+    {
+        { "aria-haspopup", "true" },
+        { "aria-expanded", _visible },
+        { "onkeydown", (KeyboardEventArgs args) => OnKeyDown(args) }
+    };
+}
+
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
     @if (string.IsNullOrWhiteSpace(Text))
     {
-        <FluentIcon Value="@_icon" />
+        <FluentIcon Value="@_icon" Color="@IconColor" />
     }
     else
     {
         @Text
-        <FluentIcon Value="@_icon" Slot="end" />
+
+        @if (!HideIcon)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" Slot="end" />
+        }
     }
 </FluentButton>
 
-<FluentMenu Anchor="@MenuButtonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
-    @foreach (var item in Items)
-    {
-        @if (item.IsDivider) 
-        {
-            <FluentDivider />
-        }
-        else
-        {
-            <FluentMenuItem OnClick="() => HandleItemClicked(item)" title="@item.Tooltip" Disabled="@item.IsDisabled">
-                @item.Text
-                @if (item.Icon != null)
-                {
-                    <span slot="start">
-                        <FluentIcon Value="@item.Icon" Style="vertical-align: middle;" Width="16px" />
-                    </span>
-                }
-            </FluentMenuItem>
-        }
-    }
-</FluentMenu>
+<AspireMenu Anchor="@MenuButtonId" @bind-Open="@_visible" Items="Items" />

@@ -9,7 +9,8 @@
     "Web API",
     "API",
     "Service",
-    "Test"
+    "Test",
+    "xUnit"
   ],
   "name": ".NET Aspire Test Project (xUnit)",
   "defaultName": "Tests",
@@ -27,14 +28,14 @@
   "groupIdentity": "Aspire.Tests.xUnit",
   "sources": [
     {
-      "source": "./9.0",
+      "source": "./9.2",
       "target": "./",
-      "condition": "AspireVersionActual == 9.0"
+      "condition": "AspireVersionActual == 9.2"
     },
     {
-      "source": "./8.2",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 8.2"
+      "condition": "AspireVersionActual == 9.3"
     }
   ],
   "symbols": {
@@ -55,6 +56,25 @@
       "replaces": "net8.0",
       "defaultValue": "net9.0"
     },
+    "AspireVersionCli": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
+      ],
+      "defaultValue": "9.3"
+    },
     "AspireVersion": {
       "type": "parameter",
       "description": "The version of .NET Aspire to use.",
@@ -62,34 +82,88 @@
       "datatype": "choice",
       "isEnabled": "Framework == net8.0",
       "choices": [
-          {
-             "choice": "9.0",
-             "displayName": "9.0",
-             "description": "Chooses .NET Aspire 9.0"
-          },
-          {
-            "choice": "8.2",
-            "displayName": "8.2",
-            "description": "Chooses .NET Aspire 8.2"
-         }
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
       ],
-      "defaultValue": "9.0"
+      "defaultValue": "9.3"
     },
-    "AspireVersionDefault": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "9.0"
-      }
+    "AspireVersionNet9": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net9.0",
+      "choices": [
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
+      ],
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
-      "generator": "coalesce",
+      "generator": "switch",
+      "replaces": "aspireVersion",
       "parameters": {
-        "sourceVariableName": "AspireVersion",
-        "fallbackVariableName": "AspireVersionDefault"
-      },
-      "replaces": "aspireVersion"
+        "cases": [
+          {
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "",
+            "value": "9.3"
+          }
+        ]
+      }
+    },
+    "XUnitVersion": {
+      "type": "parameter",
+      "description": "The version of xUnit.net to use.",
+      "displayName": "xUnit.net version",
+      "datatype": "choice",
+      "replaces": "XUnitVersion",
+      "choices": [
+        {
+          "choice": "v2",
+          "displayName": "v2",
+          "description": "Chooses xUnit.net v2 with VSTest"
+        },
+        {
+          "choice": "v3",
+          "displayName": "v3",
+          "description": "Chooses xUnit.net v3 with VSTest (Aspire version 9.2 and later only)"
+        },
+        {
+          "choice": "v3mtp",
+          "displayName": "v3 with Microsoft Test Platform",
+          "description": "Chooses xUnit.net v3 with Microsoft Test Platform (Aspire version 9.2 and later only)"
+        }
+      ],
+      "defaultValue": "v2"
     },
     "hostIdentifier": {
       "type": "bind",

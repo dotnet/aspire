@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +9,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
@@ -17,44 +16,61 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    public async Task WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
+    public void WithHttpHealthCheckThrowsIfReferencingEndpointByNameThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddContainer("resource", "dummycontainer")
-                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                .WithHttpHealthCheck(endpointName: "nonhttp");
 
-        using var app = builder.Build();
+        var container = builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
 
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            await app.StartAsync();
-        }).DefaultTimeout();
+            container.WithHttpHealthCheck(endpointName: "nonhttp");
+        });
 
         Assert.Equal(
-            "The endpoint 'nonhttp' on resource 'resource' was not using the 'http' scheme.",
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
             ex.Message
             );
     }
 
     [Fact]
     [RequiresDocker]
-    public async Task WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    public void WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddContainer("resource", "dummycontainer")
-                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
-                .WithHttpsHealthCheck(endpointName: "nonhttp");
 
-        using var app = builder.Build();
+        var container = builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
 
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            await app.StartAsync();
-        }).DefaultTimeout();
+            container.WithHttpHealthCheck(() => container.GetEndpoint("nonhttp"));
+        });
 
         Assert.Equal(
-            "The endpoint 'nonhttp' on resource 'resource' was not using the 'https' scheme.",
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+            );
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            builder.AddContainer("resource", "dummycontainer")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp")
+                .WithHttpsHealthCheck(endpointName: "nonhttp");
+#pragma warning restore CS0618 // Type or member is obsolete
+        });
+
+        Assert.Equal(
+            "Could not create HTTP health check for resource 'resource' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
             ex.Message
             );
     }
@@ -85,19 +101,19 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        await pendingStart.DefaultTimeout();
+        await pendingStart.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
     [Fact]
@@ -117,7 +133,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
         {
             await app.StartAsync();
-        }).DefaultTimeout();
+        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         Assert.Equal("A health check registration is missing. Check logs for more details.", ex.Message);
 

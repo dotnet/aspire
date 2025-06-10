@@ -12,17 +12,44 @@ public sealed class LogEntry
 internal sealed class LogEntry
 #endif
 {
-    public string? Content { get; set; }
-    public DateTime? Timestamp { get; set; }
-    public LogEntryType Type { get; init; } = LogEntryType.Default;
+    public string? Content { get; private set; }
+
+    /// <summary>
+    /// The text content of the log entry. This is the same as <see cref="Content"/>, but without embedded links or other transformations and including the timestamp.
+    /// </summary>
+    public string? RawContent { get; private set; }
+    public DateTime? Timestamp { get; private set; }
+    public LogEntryType Type { get; private set; } = LogEntryType.Default;
     public int LineNumber { get; set; }
+    public LogPauseViewModel? Pause { get; private set; }
+
+    public static LogEntry CreatePause(DateTime startTimestamp, DateTime? endTimestamp = null)
+    {
+        return new LogEntry
+        {
+            Timestamp = startTimestamp,
+            Type = LogEntryType.Pause,
+            LineNumber = 0,
+            Pause = new LogPauseViewModel
+            {
+                StartTime = startTimestamp,
+                EndTime = endTimestamp
+            }
+        };
+    }
 
     public static LogEntry Create(DateTime? timestamp, string logMessage, bool isErrorMessage)
+    {
+        return Create(timestamp, logMessage, logMessage, isErrorMessage);
+    }
+
+    public static LogEntry Create(DateTime? timestamp, string logMessage, string rawLogContent, bool isErrorMessage)
     {
         return new LogEntry
         {
             Timestamp = timestamp,
             Content = logMessage,
+            RawContent = rawLogContent,
             Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default
         };
     }
@@ -35,5 +62,6 @@ internal enum LogEntryType
 #endif
 {
     Default,
-    Error
+    Error,
+    Pause
 }

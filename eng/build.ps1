@@ -9,10 +9,6 @@ Param(
   [switch]$testnobuild,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
 
-  # Run tests with code coverage
-  [Parameter(ParameterSetName='CommandLine')]
-  [switch] $testCoverage,
-
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
@@ -43,7 +39,6 @@ function Get-Help() {
   Write-Host "  -sign                   Sign build outputs."
   Write-Host "  -test (-t)              Incrementally builds and runs tests."
   Write-Host "                          Use in conjunction with -testnobuild to only run tests."
-  Write-Host "  -testCoverage           Run unit tests and capture code coverage information."
   Write-Host ""
 
   Write-Host "Libraries settings:"
@@ -62,7 +57,7 @@ if ($help) {
 }
 
 if ($vs) {
-  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.sln"
+  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.slnx"
 
   . $PSScriptRoot\common\tools.ps1
 
@@ -82,7 +77,7 @@ if ($vs) {
 }
 
 # Check if an action is passed in
-$actions = "b","build","r","restore","rebuild","sign","testnobuild","publish","clean"
+$actions = "b","build","r","restore","rebuild","sign","testnobuild","publish","clean","t","test"
 $actionPassedIn = @(Compare-Object -ReferenceObject @($PSBoundParameters.Keys) -DifferenceObject $actions -ExcludeDifferent -IncludeEqual).Length -ne 0
 if ($null -ne $properties -and $actionPassedIn -ne $true) {
   $actionPassedIn = @(Compare-Object -ReferenceObject $properties -DifferenceObject $actions.ForEach({ "-" + $_ }) -ExcludeDifferent -IncludeEqual).Length -ne 0
@@ -96,12 +91,12 @@ foreach ($argument in $PSBoundParameters.Keys)
 {
   switch($argument)
   {
-    "testCoverage"           { <# this argument is handled in this script only #> }
     "os"                     { $arguments += " /p:TargetOS=$($PSBoundParameters[$argument])" }
     "properties"             { $arguments += " " + $properties }
     "verbosity"              { $arguments += " -$argument " + $($PSBoundParameters[$argument]) }
     "configuration"          { $configuration = (Get-Culture).TextInfo.ToTitleCase($($PSBoundParameters[$argument])); $arguments += " -configuration $configuration" }
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
+    "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
@@ -112,35 +107,3 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
 
 Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
-
-
-# Perform code coverage as the last operation, this enables the following scenarios:
-#   .\build.cmd -restore -build -c Release -testCoverage
-if ($testCoverage) {
-  try {
-    # Install required toolset
-    . $PSScriptRoot/common/tools.ps1
-    InitializeDotNetCli -install $true | Out-Null
-
-    Push-Location $PSScriptRoot/../
-
-    $testResultPath = "./artifacts/TestResults/$configuration";
-
-    # Run tests and collect code coverage
-    ./.dotnet/dotnet dotnet-coverage collect --settings ./eng/CodeCoverage.config --output $testResultPath/local.cobertura.xml "build.cmd -test -configuration $configuration"
-
-    # Generate the code coverage report and open it in the browser
-    ./.dotnet/dotnet reportgenerator -reports:$testResultPath/*.cobertura.xml -targetdir:$testResultPath/CoverageResultsHtml -reporttypes:HtmlInline_AzurePipelines
-    Start-Process $testResultPath/CoverageResultsHtml/index.html
-  }
-  catch {
-    Write-Host $_.Exception.Message -Foreground "Red"
-    Write-Host $_.ScriptStackTrace -Foreground "DarkGray"
-    exit $global:LASTEXITCODE;
-  }
-  finally {
-    Pop-Location
-  }
-}
-
-exit 0

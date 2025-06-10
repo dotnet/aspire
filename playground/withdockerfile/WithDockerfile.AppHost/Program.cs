@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.Configuration["Parameters:goversion"] = "1.22"; // Just for validating parameter handling in Dockerfile builds.
 
-var goVersion = builder.AddParameter("goversion");
+builder.AddDockerComposeEnvironment("docker-compose");
+
+// Just for validating parameter handling in Dockerfile builds.
+var goVersion = builder.AddParameter("goversion", "1.22");
 var secret = builder.AddParameter("secret", secret: true);
 
 builder.AddDockerfile("mycontainer", "qots")

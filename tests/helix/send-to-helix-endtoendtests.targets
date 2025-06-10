@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForEnd2EndTests</BuildHelixWorkItemsDependsOn>
-    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsSdksForTesting>true</NeedsSdksForTesting>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,14 +21,13 @@
            Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
     <ItemGroup>
-      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot; --filter-trait &quot;scenario=$(_TestScenarioEnvVar)&quot;" />
     </ItemGroup>
 
     <PropertyGroup>
       <_WorkItemName>$([System.IO.Path]::GetFileNameWithoutExtension($(_E2ETestsArchivePath)))</_WorkItemName>
 
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
     </PropertyGroup>
 
@@ -51,8 +50,7 @@
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml;logs/Aspire.EndToEnd.Tests-%(Identity).trx</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

@@ -5,7 +5,7 @@
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForDefaultTests</BuildHelixWorkItemsDependsOn>
     <NeedsDcpPathOverride>true</NeedsDcpPathOverride>
     <!-- needed to run 9.0 tests on helix -->
-    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsSdksForTesting>true</NeedsSdksForTesting>
     <IncludeDotNetCli>false</IncludeDotNetCli>
 
     <TargetFrameworkSuffixRegex>^(.*?)(-net[\d.]+)?$</TargetFrameworkSuffixRegex>
@@ -21,13 +21,11 @@
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
+      <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
     </ItemGroup>
 
     <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
@@ -38,22 +36,14 @@
       <_DefaultWorkItems TestName="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), $(TargetFrameworkSuffixRegex), '$1'))" />
       <_DefaultWorkItems TestNameSuffix="$([System.Text.RegularExpressions.Regex]::Replace(%(FileName), $(TargetFrameworkSuffixRegex), '$2'))" />
 
-      <!-- runsettings timeout in ms, default to 15 mins -->
-      <_DefaultWorkItems TimeoutMs="900000" />
-
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Hosting.Elasticsearch.Tests'))" TimeoutMs="3600000" />
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Hosting.Oracle.Tests'))" TimeoutMs="1200000" />
-      <_DefaultWorkItems Condition="$([System.String]::new('%(FileName)').StartsWith('Aspire.Pomelo.EntityFrameworkCore.MySql.Tests'))" TimeoutMs="1200000" />
-
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml;logs/%(FileName).trx</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/%(FileName).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

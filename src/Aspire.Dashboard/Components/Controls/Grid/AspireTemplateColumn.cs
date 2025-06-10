@@ -14,17 +14,9 @@ public class AspireTemplateColumn<TGridItem> : TemplateColumn<TGridItem>, IAspir
     [Parameter]
     public string? ColumnId { get; set; }
 
-    [Parameter]
-    public bool UseCustomHeaderTemplate { get; set; } = true;
-
-    protected override void OnParametersSet()
+    protected override void OnInitialized()
     {
-        base.OnParametersSet();
-
-        if (UseCustomHeaderTemplate)
-        {
-            HeaderCellItemTemplate = AspireFluentDataGridHeaderCell.RenderHeaderContent(Grid);
-        }
+        Tooltip = true;
     }
 
     protected override bool ShouldRender()

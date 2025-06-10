@@ -10,7 +10,11 @@
     <None Include="$(RepoRoot)src\Components\Aspire.MongoDB.Driver\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" VersionOverride="[8.1.0,9.0.0)" />
+    <PackageReference Include="MongoDB.Driver" VersionOverride="[2.30.0,3.0.0)" />
+    <PackageReference Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" VersionOverride="[1.5.0,2.0.0)" />
+
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
     <PackageReference Include="TestContainers.MongoDb" />
   </ItemGroup>

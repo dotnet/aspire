@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -37,11 +38,6 @@ public interface IPropertyGridItem
     /// Gets the display value of the item.
     /// </summary>
     string? Value { get; }
-
-    /// <summary>
-    /// Overrides the value to copy. If <see langword="null"/>, <see cref="Value"/> is copied.
-    /// </summary>
-    public string? ValueToCopy => null;
 
     /// <summary>
     /// Overrides the value to visualize. If <see langword="null"/>, <see cref="Value"/> is visualized.
@@ -90,7 +86,7 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     private static readonly RenderFragment<TItem> s_emptyChildContent = _ => builder => { };
 
     private static readonly GridSort<TItem> s_defaultNameSort = GridSort<TItem>.ByAscending(vm => vm.Name);
-    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.Value);
+    private static readonly GridSort<TItem> s_defaultValueSort = GridSort<TItem>.ByAscending(vm => vm.IsValueMasked ? null : vm.Value);
 
     [Parameter, EditorRequired]
     public IQueryable<TItem>? Items { get; set; }
@@ -106,6 +102,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
 
     [Parameter]
     public string? ValueColumnTitle { get; set; }
+
+    [Parameter]
+    public bool Multiline { get; set; }
 
     /// <summary>
     /// Gets and sets the sorting behavior of the name column. Defaults to sorting on <see cref="IPropertyGridItem.Name"/>.
@@ -138,10 +137,18 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
     [Parameter]
-    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
+    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Default;
 
     [Parameter]
     public string? Class { get; set; }
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
 
     // Return null if empty so GridValue knows there is no template.
     private RenderFragment? GetContentAfterValue(TItem context) => ContentAfterValue == s_emptyChildContent

@@ -9,7 +9,8 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cosmos");
+cosmosdb.AddCosmosDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
@@ -50,30 +51,36 @@ var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
 var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2")
     .AddDatabase("pgsql2db");
 
-var sb = builder.AddAzureServiceBus("servicebus")
-    .AddQueue("queue1")
-    .ConfigureInfrastructure(infrastructure =>
-    {
-        var queue = infrastructure.GetProvisionableResources().OfType<ServiceBusQueue>().Single(q => q.BicepIdentifier == "queue1");
-        queue.MaxDeliveryCount = 5;
-        queue.LockDuration = TimeSpan.FromMinutes(5);
-    })
-    .AddTopic("topic1")
-    .ConfigureInfrastructure(infrastructure =>
-    {
-        var topic = infrastructure.GetProvisionableResources().OfType<ServiceBusTopic>().Single(q => q.BicepIdentifier == "topic1");
-        topic.EnablePartitioning = true;
-    })
-    .AddTopic("topic2")
-    .AddSubscription("topic1", "subscription1")
-    .ConfigureInfrastructure(infrastructure =>
-    {
-        var subscription = infrastructure.GetProvisionableResources().OfType<ServiceBusSubscription>().Single(q => q.BicepIdentifier == "subscription1");
-        subscription.LockDuration = TimeSpan.FromMinutes(5);
-        subscription.RequiresSession = true;
-    })
-    .AddSubscription("topic1", "subscription2")
-    .AddTopic("topic3", new[] { "sub1", "sub2" });
+var sb = builder.AddAzureServiceBus("servicebus");
+
+sb.AddServiceBusQueue("queue1");
+sb.ConfigureInfrastructure(infrastructure =>
+ {
+     var queue = infrastructure.GetProvisionableResources().OfType<ServiceBusQueue>().Single(q => q.BicepIdentifier == "queue1");
+     queue.MaxDeliveryCount = 5;
+     queue.LockDuration = TimeSpan.FromMinutes(5);
+ });
+
+sb.AddServiceBusTopic("topic1")
+    .AddServiceBusSubscription("subscription2");
+sb.ConfigureInfrastructure(infrastructure =>
+{
+    var topic = infrastructure.GetProvisionableResources().OfType<ServiceBusTopic>().Single(q => q.BicepIdentifier == "topic1");
+    topic.EnablePartitioning = true;
+});
+
+sb.AddServiceBusTopic("topic2")
+    .AddServiceBusSubscription("subscription1");
+sb.ConfigureInfrastructure(infrastructure =>
+{
+    var subscription = infrastructure.GetProvisionableResources().OfType<ServiceBusSubscription>().Single(q => q.BicepIdentifier == "subscription1");
+    subscription.LockDuration = TimeSpan.FromMinutes(5);
+    subscription.RequiresSession = true;
+});
+
+var topic3 = sb.AddServiceBusTopic("topic3");
+topic3.AddServiceBusSubscription("sub1");
+topic3.AddServiceBusSubscription("sub2");
 
 var appConfig = builder.AddAzureAppConfiguration("appConfig");
 

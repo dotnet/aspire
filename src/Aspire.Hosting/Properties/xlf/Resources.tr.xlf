@@ -17,32 +17,14 @@
         <target state="translated">Bağlama işlemlerinde bir kaynak yolu belirtilmelidir.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulunamadı. Kapsayıcı çalışma zamanı denetiminden gelen hata: {1}.
-.
-Desteklenen konteyner çalışma zamanları hakkında daha fazla ayrıntı için https://aka.ms/dotnet/aspire/containers adresine bakın.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulundu, ancak iyi durumda değil. Kapsayıcı çalışma zamanı denetiminden gelen hata: {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">'{0}' Kapsayıcı çalışma zamanı bulundu ancak yanıt vermiyor. '{0}' komutu {1} saniye sonra döndürülemedi.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">Uygulama düzenleyicisi bağımlılık denetimi bir hata döndürdü: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
-        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="translated">Uygulamayı çalıştırmak için .NET Aspire iş yükünün daha yeni bir sürümü gereklidir. Almak için 'dotnet iş yükü güncelleştirmesini' çalıştırın.</target>
+        <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
+        <target state="translated">Uygulamayı çalıştırmak için Daha yeni Bir.Barındırma.AppHost paketi sürümü gerekiyor. En az sürüm denetimine başvurarak '{0}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

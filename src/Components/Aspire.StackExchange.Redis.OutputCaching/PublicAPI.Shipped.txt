@@ -1,4 +1,0 @@
-#nullable enable
-Microsoft.Extensions.Hosting.AspireRedisOutputCacheExtensions
-static Microsoft.Extensions.Hosting.AspireRedisOutputCacheExtensions.AddKeyedRedisOutputCache(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings!>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions!>? configureOptions = null) -> void
-static Microsoft.Extensions.Hosting.AspireRedisOutputCacheExtensions.AddRedisOutputCache(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings!>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions!>? configureOptions = null) -> void

@@ -12,7 +12,7 @@ public class OrderProcessingWorker : BackgroundService
     private readonly IConfiguration _config;
     private readonly IServiceProvider _serviceProvider;
     private IConnection? _messageConnection;
-    private IModel? _messageChannel;
+    private IChannel? _messageChannel;
 
     public OrderProcessingWorker(ILogger<OrderProcessingWorker> logger, IConfiguration config, IServiceProvider serviceProvider)
     {
@@ -23,22 +23,23 @@ public class OrderProcessingWorker : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        return Task.Factory.StartNew(() =>
+        return Task.Factory.StartNew(async () =>
         {
             const string configKeyName = "Aspire:RabbitMQ:Client:OrderQueueName";
             string queueName = _config[configKeyName] ?? "orders";
 
             _messageConnection = _serviceProvider.GetRequiredService<IConnection>();
 
-            _messageChannel = _messageConnection.CreateModel();
-            _messageChannel.QueueDeclare(queueName, durable: true, exclusive: false);
+            _messageChannel = await _messageConnection.CreateChannelAsync();
+            await _messageChannel.QueueDeclareAsync(queueName, durable: true, exclusive: false);
 
-            var consumer = new EventingBasicConsumer(_messageChannel);
-            consumer.Received += ProcessMessageAsync;
+            var consumer = new AsyncEventingBasicConsumer(_messageChannel);
+            consumer.ReceivedAsync += ProcessMessageAsync;
 
-            _messageChannel.BasicConsume(queue: queueName,
-                                         autoAck: true,
-                                         consumer: consumer);
+            await _messageChannel.BasicConsumeAsync(
+                queueName,
+                autoAck: true,
+                consumer);
         }, stoppingToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
     }
 
@@ -49,7 +50,7 @@ public class OrderProcessingWorker : BackgroundService
         _messageChannel?.Dispose();
     }
 
-    private void ProcessMessageAsync(object? sender, BasicDeliverEventArgs args)
+    private Task ProcessMessageAsync(object? sender, BasicDeliverEventArgs args)
     {
         _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
 
@@ -72,5 +73,7 @@ public class OrderProcessingWorker : BackgroundService
             BuyerId:{BuyerId}
             ProductCount:{Count}
             """, order.Id, order.BuyerId, order.Items.Count);
+
+        return Task.CompletedTask;
     }
 }

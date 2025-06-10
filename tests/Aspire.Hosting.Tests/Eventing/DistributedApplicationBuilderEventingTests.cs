@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -188,11 +188,11 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         await beforeResourceStartedTcs.Task.DefaultTimeout();
 
-        await app.StopAsync().DefaultTimeout();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -215,12 +215,12 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await app.StartAsync();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10));
 
         Assert.True(fired);
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
@@ -238,6 +238,7 @@ public class DistributedApplicationBuilderEventingTests
             beforeStartEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
@@ -245,6 +246,7 @@ public class DistributedApplicationBuilderEventingTests
             afterEndpointsAllocatedEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);

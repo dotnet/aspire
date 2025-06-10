@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Model;
 using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
@@ -11,10 +12,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// An immutable snapshot of the state of a resource.
 /// </summary>
+[DebuggerDisplay("ResourceType = {ResourceType,nq}, State = {State?.Text,nq}, HealthStatus = {HealthStatus?.ToString(),nq}, Properties = {Properties.Length}")]
 public sealed record CustomResourceSnapshot
 {
     private readonly ImmutableArray<HealthReportSnapshot> _healthReports = [];
     private readonly ResourceStateSnapshot? _state;
+
+    /// <summary>
+    /// Monotonically increasing version number for the snapshot.
+    /// </summary>
+    internal long Version { get; init; }
 
     /// <summary>
     /// The type of the resource.
@@ -58,6 +65,11 @@ public sealed record CustomResourceSnapshot
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// A snapshot of the event that indicates the resource is ready.
+    /// </summary>
+    internal EventSnapshot? ResourceReadyEvent { get; init; }
 
     /// <summary>
     /// Gets the health status of the resource.
@@ -111,6 +123,16 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
 
+    /// <summary>
+    /// Whether this resource should be hidden in UI.
+    /// </summary>
+    public bool IsHidden { get; init; }
+
+    /// <summary>
+    /// Whether this resource is a built-in resource and supports usage telemetry.
+    /// </summary>
+    internal bool SupportsDetailedTelemetry { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
@@ -129,10 +151,17 @@ public sealed record CustomResourceSnapshot
 }
 
 /// <summary>
+/// A snapshot of an event.
+/// </summary>
+/// <param name="EventTask">The task the represents the result of executing the event.</param>
+internal record EventSnapshot(Task EventTask);
+
+/// <summary>
 /// A snapshot of the resource state
 /// </summary>
 /// <param name="Text">The text for the state update. See <see cref="KnownResourceStates"/> for expected values.</param>
 /// <param name="Style">The style for the state update. Use <seealso cref="KnownResourceStateStyles"/> for the supported styles.</param>
+[DebuggerDisplay("{Text}")]
 public sealed record ResourceStateSnapshot(string Text, string? Style)
 {
     /// <summary>
@@ -149,15 +178,46 @@ public sealed record ResourceStateSnapshot(string Text, string? Style)
 /// <param name="Name">The name of the environment variable.</param>
 /// <param name="Value">The value of the environment variable.</param>
 /// <param name="IsFromSpec">Determines if this environment variable was defined in the resource explicitly or computed (for e.g. inherited from the process hierarchy).</param>
+[DebuggerDisplay("{Value}", Name = "{Name}")]
 public sealed record EnvironmentVariableSnapshot(string Name, string? Value, bool IsFromSpec);
 
 /// <summary>
-/// A snapshot of the url.
+/// A snapshot of the URL.
 /// </summary>
-/// <param name="Name">Name of the url.</param>
-/// <param name="Url">The full uri.</param>
-/// <param name="IsInternal">Determines if this url is internal.</param>
-public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+/// <param name="Name">Name of the endpoint associated with the URL.</param>
+/// <param name="Url">The full URL.</param>
+/// <param name="IsInternal">Determines if this URL is internal. Internal URLs are only shown in the details grid for a resource.</param>
+[DebuggerDisplay("{Url}", Name = "{Name}")]
+public sealed record UrlSnapshot(string? Name, string Url, bool IsInternal)
+{
+    /// <summary>
+    /// The UI display properties for the url.
+    /// </summary>
+    public UrlDisplayPropertiesSnapshot DisplayProperties { get; init; } = new();
+
+    /// <summary>
+    /// Whether this URL is inactive or not.
+    /// </summary>
+    /// <remarks>
+    /// Inactive URLs are not displayed in UI.
+    /// </remarks>
+    public bool IsInactive { get; init; }
+
+    internal void Deconstruct(out string? name, out string url, out bool isInternal, out bool isInactive)
+    {
+        name = Name;
+        url = Url;
+        isInternal = IsInternal;
+        isInactive = IsInactive;
+    }
+}
+
+/// <summary>
+/// A snapshot of the display properties for a url.
+/// </summary>
+/// <param name="DisplayName">The display name of the url.</param>
+/// <param name="SortOrder">The order of the url in UI. Higher numbers are displayed first in the UI.</param>
+public sealed record UrlDisplayPropertiesSnapshot(string DisplayName = "", int SortOrder = 0);
 
 /// <summary>
 /// A snapshot of a volume, mounted to a container.
@@ -166,6 +226,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// <param name="Target">The target of the mount.</param>
 /// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
+[DebuggerDisplay("{Source}", Name = "{Target}")]
 public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
 
 /// <summary>
@@ -180,6 +241,7 @@ public sealed record RelationshipSnapshot(string ResourceName, string Type);
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
+[DebuggerDisplay("{Value}", Name = "{Name}")]
 public sealed record ResourcePropertySnapshot(string Name, object? Value)
 {
     /// <summary>
@@ -219,6 +281,7 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value)
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
 /// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+[DebuggerDisplay(null, Name = "{Name}")]
 public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState State, string DisplayName, string? DisplayDescription, object? Parameter, string? ConfirmationMessage, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
@@ -228,6 +291,7 @@ public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState S
 /// <param name="Status">The state of the resource, according to the report, or <see langword="null"/> if a health report has not yet been received for this health check.</param>
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
+[DebuggerDisplay("{Status}", Name = "{Name}")]
 public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
 
 /// <summary>
@@ -283,6 +347,7 @@ public static class KnownResourceStates
     /// <summary>
     /// The hidden state. Useful for hiding the resource.
     /// </summary>
+    [Obsolete("Use CustomResourceSnapshot.IsHidden instead.")]
     public static readonly string Hidden = nameof(Hidden);
 
     /// <summary>
@@ -296,9 +361,14 @@ public static class KnownResourceStates
     public static readonly string Running = nameof(Running);
 
     /// <summary>
-    /// The finished state. Useful for showing the resource has failed to start successfully.
+    /// The failed to start state. Useful for showing the resource has failed to start successfully.
     /// </summary>
     public static readonly string FailedToStart = nameof(FailedToStart);
+
+    /// <summary>
+    /// The runtime unhealthy state. Indicates that a resource could not be started because the runtime is not in a healthy state.
+    /// </summary>
+    public static readonly string RuntimeUnhealthy = nameof(RuntimeUnhealthy);
 
     /// <summary>
     /// The stopping state. Useful for showing the resource is stopping.
@@ -319,6 +389,11 @@ public static class KnownResourceStates
     /// The waiting state. Useful for showing the resource is waiting for a dependency.
     /// </summary>
     public static readonly string Waiting = nameof(Waiting);
+
+    /// <summary>
+    /// The not started state. Useful for showing the resource was created without being started.
+    /// </summary>
+    public static readonly string NotStarted = nameof(NotStarted);
 
     /// <summary>
     /// List of terminal states.

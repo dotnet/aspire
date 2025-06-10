@@ -16,36 +16,34 @@ public class LocalBrowserStorage : BrowserStorageBase, ILocalStorage
     };
 
     private readonly IJSRuntime _jsRuntime;
-    private readonly ILogger<LocalBrowserStorage> _logger;
 
-    public LocalBrowserStorage(IJSRuntime jsRuntime, ProtectedLocalStorage protectedLocalStorage, ILogger<LocalBrowserStorage> logger) : base(protectedLocalStorage)
+    public LocalBrowserStorage(IJSRuntime jsRuntime, ProtectedLocalStorage protectedLocalStorage, ILogger<LocalBrowserStorage> logger) : base(protectedLocalStorage, logger)
     {
         _jsRuntime = jsRuntime;
-        _logger = logger;
     }
 
-    public async Task<StorageResult<T>> GetUnprotectedAsync<T>(string key)
+    public async Task<StorageResult<TValue>> GetUnprotectedAsync<TValue>(string key)
     {
         var json = await GetJsonAsync(key).ConfigureAwait(false);
 
         if (json == null)
         {
-            return new StorageResult<T>(false, default);
+            return new StorageResult<TValue>(false, default);
         }
 
         try
         {
-            return new StorageResult<T>(true, JsonSerializer.Deserialize<T>(json, s_options));
+            return new StorageResult<TValue>(true, JsonSerializer.Deserialize<TValue>(json, s_options));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, $"Error when reading '{key}' as {typeof(T).Name} from local browser storage.");
+            Logger.LogWarning(ex, "Error when reading '{Key}' as {ValueType}.", key, typeof(TValue).Name);
 
-            return new StorageResult<T>(false, default);
+            return new StorageResult<TValue>(false, default);
         }
     }
 
-    public async Task SetUnprotectedAsync<T>(string key, T value)
+    public async Task SetUnprotectedAsync<TValue>(string key, TValue value)
     {
         var json = JsonSerializer.Serialize(value, s_options);
 

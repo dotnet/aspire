@@ -12,6 +12,11 @@
         <target state="translated">추적 제한을 초과했습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Traces capture paused at {0}</source>
+        <target state="translated">추적 캡처가 {0}에 일시 중지됨</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">이름: {0}</target>

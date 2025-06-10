@@ -18,6 +18,8 @@ partial class Resource
             Uid = snapshot.Uid,
             State = snapshot.State ?? "",
             StateStyle = snapshot.StateStyle ?? "",
+            IsHidden = snapshot.IsHidden,
+            SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
         };
 
         if (snapshot.CreationTimeStamp.HasValue)
@@ -40,9 +42,22 @@ partial class Resource
             resource.Environment.Add(new EnvironmentVariable { Name = env.Name, Value = env.Value ?? "", IsFromSpec = env.IsFromSpec });
         }
 
-        foreach (var url in snapshot.Urls)
+        foreach (var urlSnapshot in snapshot.Urls)
         {
-            resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal });
+            var url = new Url { EndpointName = urlSnapshot.Name ?? "", FullUrl = urlSnapshot.Url, IsInternal = urlSnapshot.IsInternal, IsInactive = urlSnapshot.IsInactive };
+            var displayProperties = new UrlDisplayProperties();
+            if (urlSnapshot.DisplayProperties?.DisplayName is not null)
+            {
+                displayProperties.DisplayName = urlSnapshot.DisplayProperties.DisplayName;
+            }
+
+            if (urlSnapshot.DisplayProperties?.SortOrder is not null)
+            {
+                displayProperties.SortOrder = urlSnapshot.DisplayProperties.SortOrder;
+            }
+
+            url.DisplayProperties = displayProperties;
+            resource.Urls.Add(url);
         }
 
         foreach (var relationship in snapshot.Relationships)

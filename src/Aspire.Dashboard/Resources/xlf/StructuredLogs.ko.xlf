@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ActionLogMessageText">
         <source>Log message</source>
-        <target state="new">Log message</target>
+        <target state="translated">로그 메시지</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
@@ -17,24 +17,14 @@
         <target state="translated">구조적 로그 제한 초과함</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">필터 추가</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">편집 필터</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">구조화된 로그 캡처가 {0}에 일시 중지됨</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">로그 항목 세부 정보</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">필터</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -65,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">최소 로그 수준 필터</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">필터 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

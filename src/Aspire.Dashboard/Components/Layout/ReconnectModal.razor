@@ -1,0 +1,23 @@
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Layout> Loc
+
+<dialog id="components-reconnect-modal" data-nosnippet>
+    <div class="components-reconnect-container">
+        <div class="components-rejoining-animation" aria-hidden="true">
+            <div></div>
+            <div></div>
+        </div>
+        <p class="components-reconnect-first-attempt-visible">
+            @((MarkupString)Loc[nameof(Layout.ReconnectFirstAttemptText)].Value)
+        </p>
+        <p class="components-reconnect-repeated-attempt-visible">
+            @((MarkupString)Loc[nameof(Layout.ReconnectRepeatedAttemptText)].Value)
+        </p>
+        <p class="components-reconnect-failed-visible">
+            @((MarkupString)Loc[nameof(Layout.ReconnectFailedText)].Value)
+        </p>
+        <button id="components-reconnect-button" class="components-reconnect-failed-visible">
+            @Loc[nameof(Layout.ReconnectRetryButtonText)]
+        </button>
+    </div>
+</dialog>

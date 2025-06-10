@@ -188,8 +188,7 @@ public class YarpServiceDiscoveryTests
                 }
                 else
                 {
-                    // For non-localhost values, fallback to the input address.
-                    Assert.Equal("basket", a.Host);
+                    Assert.Null(a.Host);
                 }
             });
     }

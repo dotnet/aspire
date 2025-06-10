@@ -1,0 +1,6 @@
+@CosmosEndToEnd.ApiService_HostAddress = http://localhost:5193
+
+GET {{SqlServerEndToEnd.ApiService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

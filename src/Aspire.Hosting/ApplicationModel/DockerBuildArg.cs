@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The required name of the arg.</param>
 /// <param name="value">The optional value of the arg, when omitted the value is populated from the corresponding environment variable.</param>
+[Obsolete("Use DockerfileBuildAnnotation to define docker build arguments.")]
 public sealed class DockerBuildArg(string name, object? value = null)
 {
     /// <summary>

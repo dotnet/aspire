@@ -1,133 +1,61 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureSqlExtensionsTests(ITestOutputHelper output)
+public class AzureSqlExtensionsTests
 {
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzureSqlServer(bool publishMode)
+    // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.SqlSupport. The output doesn't match the pattern here because the role assignment isn't generated
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task AddAzureSqlServer(bool publishMode, bool useAcaInfrastructure)
     {
         using var builder = TestDistributedApplicationBuilder.Create(publishMode ? DistributedApplicationOperation.Publish : DistributedApplicationOperation.Run);
 
         var sql = builder.AddAzureSqlServer("sql");
 
+        // database name same as the aspire resource name, free tier 
         sql.AddDatabase("db1");
+
+        // set the database name, free tier 
         sql.AddDatabase("db2", "db2Name");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+        // do not set any sku, use whatever is the default for Azure at that time
+        sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
 
-        var principalTypeParam = "";
-        if (!publishMode)
+        if (useAcaInfrastructure)
         {
-            principalTypeParam = """
-                ,
-                    "principalType": ""
-                """;
+            builder.AddAzureContainerAppEnvironment("env");
+
+            // on ACA infrastructure, if there are no references to the resource,
+            // then there won't be any roles created. So add a reference here.
+            builder.AddContainer("api", "myimage")
+                .WithReference(sql);
         }
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource, skipPreparer: true);
+
         var expectedManifest = $$"""
             {
               "type": "azure.bicep.v0",
               "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""{{principalTypeParam}}
-              }
+              "path": "sql.module.bicep"
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString(), ignoreLineEndingDifferences: true);
 
-        var allowAllIpsFirewall = "";
-        var bicepPrincipalTypeParam = "";
-        var bicepPrincipalTypeSetter = "";
-        if (!publishMode)
-        {
-            allowAllIpsFirewall = """
-
-                resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-                  name: 'AllowAllIps'
-                  properties: {
-                    endIpAddress: '255.255.255.255'
-                    startIpAddress: '0.0.0.0'
-                  }
-                  parent: sql
-                }
-                
-                """;
-
-            bicepPrincipalTypeParam = """
-                
-                param principalType string
-                
-                """;
-
-            bicepPrincipalTypeSetter = """
-
-                      principalType: principalType
-                """;
-        }
-
-        var expectedBicep = $$"""
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param principalId string
-
-            param principalName string
-            {{bicepPrincipalTypeParam}}
-            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
-              location: location
-              properties: {
-                administrators: {
-                  administratorType: 'ActiveDirectory'{{bicepPrincipalTypeSetter}}
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-                minimalTlsVersion: '1.2'
-                publicNetworkAccess: 'Enabled'
-                version: '12.0'
-              }
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-            }
-
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-              name: 'AllowAllAzureIps'
-              properties: {
-                endIpAddress: '0.0.0.0'
-                startIpAddress: '0.0.0.0'
-              }
-              parent: sql
-            }
-            {{allowAllIpsFirewall}}
-            resource db1 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db1'
-              location: location
-              parent: sql
-            }
-
-            resource db2 'Microsoft.Sql/servers/databases@2021-11-01' = {
-              name: 'db2Name'
-              location: location
-              parent: sql
-            }
-
-            output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Theory]
@@ -141,11 +69,13 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
         IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
         if (addDbBeforeRunAsContainer)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
-
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
         sql.RunAsContainer(c =>
         {
@@ -156,6 +86,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         {
             db1 = sql.AddDatabase("db1");
             db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
         }
 
         Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
@@ -170,6 +101,72 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
         var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db2ConnectionString);
         Assert.EndsWith(";TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=", db3ConnectionString);
+        Assert.EndsWith(";TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureSqlServerRunAsContainerProducesCorrectPasswordAndPort(bool addDbBeforeRunAsContainer)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var sql = builder.AddAzureSqlServer("sql");
+        var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
+        IResourceBuilder<AzureSqlDatabaseResource> db1 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db2 = null!;
+        IResourceBuilder<AzureSqlDatabaseResource> db3 = null!;
+
+        if (addDbBeforeRunAsContainer)
+        {
+            db1 = sql.AddDatabase("db1");
+            db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
+        }
+
+        IResourceBuilder<SqlServerServerResource>? innerSql = null;
+        sql.RunAsContainer(configureContainer: c =>
+        {
+            c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+                .WithHostPort(12455)
+                .WithPassword(pass);
+            innerSql = c;
+        });
+
+        Assert.NotNull(innerSql);
+
+        if (!addDbBeforeRunAsContainer)
+        {
+            db1 = sql.AddDatabase("db1");
+            db2 = sql.AddDatabase("db2", "db2Name");
+            db3 = sql.AddDatabase("db3", "db3Name").WithDefaultAzureSku();
+        }
+
+        var endpoint = Assert.Single(innerSql.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1433, endpoint.TargetPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(12455, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
+
+        Assert.True(sql.Resource.IsContainer(), "The resource should now be a container resource.");
+        var serverConnectionString = await sql.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.Equal("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", serverConnectionString);
+
+        var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db1", db1ConnectionString);
+
+        var db2ConnectionString = await db2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db2Name", db2ConnectionString);
+
+        var db3ConnectionString = await db3.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
+        Assert.StartsWith("Server=127.0.0.1,12455;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=db3Name", db3ConnectionString);
     }
 
     [Theory]
@@ -228,7 +225,7 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
 
         Assert.True(dbResourceInModel.TryGetAnnotationsOfType<Dummy1Annotation>(out var dbAnnotations));
         Assert.Single(dbAnnotations);
-    }
+    }   
 
     private sealed class Dummy1Annotation : IResourceAnnotation
     {
@@ -237,4 +234,69 @@ public class AzureSqlExtensionsTests(ITestOutputHelper output)
     private sealed class Dummy2Annotation : IResourceAnnotation
     {
     }
+    
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
+#pragma warning restore CS0618 // Type or member is obsolete
+        sql.AddDatabase("db", "dbName");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
+
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AsAzureSqlDatabaseViaPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase();
+#pragma warning restore CS0618 // Type or member is obsolete
+        sql.AddDatabase("db", "dbName");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.True(sql.Resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation));
+        var azureSql = (AzureSqlServerResource)connectionStringAnnotation.Resource;
+        azureSql.Outputs["sqlServerFqdn"] = "myserver";
+
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep"
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+    
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

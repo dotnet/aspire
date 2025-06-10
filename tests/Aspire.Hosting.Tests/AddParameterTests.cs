@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -32,7 +31,7 @@ public class AddParameterTests
 
         var state = annotation.InitialSnapshot;
 
-        Assert.Equal("Hidden", state.State);
+        Assert.True(state.IsHidden);
         Assert.Collection(state.Properties,
             prop =>
             {
@@ -43,54 +42,7 @@ public class AddParameterTests
             {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
                 Assert.Equal("Parameters:pass", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal("Value", prop.Name);
-                Assert.Equal("pass1", prop.Value);
             });
-    }
-
-    [Fact]
-    public void MissingParametersAreConfigurationMissing()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        appBuilder.AddParameter("pass");
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
-        var annotation = parameterResource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
-
-        Assert.NotNull(annotation);
-
-        var state = annotation.InitialSnapshot;
-
-        Assert.NotNull(state.State);
-        Assert.Equal("Configuration missing", state.State.Text);
-        Assert.Equal(KnownResourceStateStyles.Error, state.State.Style);
-        Assert.Collection(state.Properties,
-            prop =>
-            {
-                Assert.Equal("parameter.secret", prop.Name);
-                Assert.Equal("False", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
-                Assert.Equal("Parameters:pass", prop.Value);
-            },
-            prop =>
-            {
-                Assert.Equal("Value", prop.Name);
-                Assert.Contains("configuration key 'Parameters:pass' is missing", prop.Value?.ToString());
-            });
-
-        // verify that the logging hook is registered
-        Assert.Contains(app.Services.GetServices<IDistributedApplicationLifecycleHook>(), hook => hook.GetType().Name == "WriteParameterLogsHook");
     }
 
     [Fact]
@@ -231,7 +183,7 @@ public class AddParameterTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
+    public async Task ParametersWithDefaultValueObjectOverloadUseConfigurationValueWhenPresent(bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -250,12 +202,20 @@ public class AddParameterTests
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the the generated default value is used, regardless of the config value
-        // We can't test the exact value since it's random, but we can test the length
+        // Make sure the the generated default value is only used when there isn't a config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
-        Assert.Equal(10, parameterResource.Value.Length);
+        if (hasConfig)
+        {
+            Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+        }
+        else
+        {
+            Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
+            // We can't test the exact value since it's random, but we can test the length
+            Assert.Equal(10, parameterResource.Value.Length);
+        }
 
-        // The manifest should include the fields for the generated default value
+        // The manifest should always include the fields for the generated default value
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
         var expectedManifest = $$"""
             {
@@ -324,6 +284,71 @@ public class AddParameterTests
                 }
                 """;
         Assert.Equal(expectedManifest, paramManifest.ToString());
+    }
+
+    [Fact]
+    public async Task AddConnectionStringParameterIsASecretParameterInTheManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddConnectionString("mycs");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        Assert.Equal("mycs", connectionStringResource.Name);
+        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
+
+        var expectedManifest = $$"""
+            {
+              "type": "parameter.v0",
+              "connectionString": "{mycs.value}",
+              "value": "{mycs.inputs.value}",
+              "inputs": {
+                "value": {
+                  "type": "string",
+                  "secret": true
+                }
+              }
+            }
+            """;
+
+        var s = connectionStringManifest.ToString();
+
+        Assert.Equal(expectedManifest, s);
+    }
+
+    [Fact]
+    public async Task AddConnectionStringExpressionIsAValueInTheManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var endpoint = appBuilder.AddParameter("endpoint", "http://localhost:3452");
+        var key = appBuilder.AddParameter("key", "secretKey", secret: true);
+
+        // Get the service provider.
+        appBuilder.AddConnectionString("mycs", ReferenceExpression.Create($"Endpoint={endpoint};Key={key}"));
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ConnectionStringResource>());
+
+        Assert.Equal("mycs", connectionStringResource.Name);
+        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
+
+        var expectedManifest = $$"""
+            {
+              "type": "value.v0",
+              "connectionString": "Endpoint={endpoint.value};Key={key.value}"
+            }
+            """;
+
+        var s = connectionStringManifest.ToString();
+
+        Assert.Equal(expectedManifest, s);
     }
 
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault

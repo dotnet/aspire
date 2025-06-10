@@ -2,7 +2,7 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../Dialogs.resx">
     <body>
-      <trans-unit id="ExemplarsDialogCloseButtonText">
+      <trans-unit id="DialogCloseButtonText">
         <source>Close</source>
         <target state="translated">Cerrar</target>
         <note />
@@ -37,6 +37,16 @@
         <target state="translated">Valor</target>
         <note />
       </trans-unit>
+      <trans-unit id="FieldRequired">
+        <source>A value is required.</source>
+        <target state="translated">Se necesita un valor.</target>
+        <note>{0} is the literal, untranslated field name which we do not want to show, so it is missing.</note>
+      </trans-unit>
+      <trans-unit id="FieldTooLong">
+        <source>A maximum length of {1} characters is allowed.</source>
+        <target state="translated">Se permite una longitud máxima de {1} caracteres.</target>
+        <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
+      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
         <target state="translated">Aplicar filtro</target>
@@ -50,6 +60,21 @@
       <trans-unit id="FilterDialogConditionInputLabel">
         <source>Condition</source>
         <target state="translated">Condición</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Deshabilitar todo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Deshabilitar filtro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Habilitar todo</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -177,6 +202,21 @@
         <target state="translated">Oscuro</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
+        <source>Resource logs and telemetry</source>
+        <target state="translated">Registros de recursos y telemetría</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguage">
+        <source>Language</source>
+        <target state="translated">Idioma</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLanguagePageReloads">
+        <source>The page will reload on language change.</source>
+        <target state="translated">La página se volverá a cargar al cambiar de idioma.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">Claro</target>
@@ -185,6 +225,21 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">Sistema</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">La telemetría del panel está habilitada. Aspire recopilará datos de uso y los enviará a Microsoft.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">¿Por qué?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="translated">Ir a la documentación de telemetría de uso</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
@@ -196,6 +251,11 @@
         <source>Version: {0}</source>
         <target state="translated">Versión: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsRemoveAllButtonText">
+        <source>Remove all</source>
+        <target state="translated">Quitar todo</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>Format JSON</source>
@@ -210,6 +270,21 @@
       <trans-unit id="TextVisualizerDialogXmlFormat">
         <source>Format XML</source>
         <target state="translated">Formato XML</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningAcknowledge">
+        <source>Show value</source>
+        <target state="translated">Mostrar valor</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningDescription">
+        <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
+        <target state="translated">Confirme que quiere mostrar el valor. En el futuro, al abrir el visualizador de texto se mostrarán automáticamente todos los valores</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSecretWarningTitle">
+        <source>Sensitive value hidden</source>
+        <target state="translated">Valor confidencial oculto</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSelectFormatType">

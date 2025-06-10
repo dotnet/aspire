@@ -4,11 +4,11 @@
     "openai": {
       "type": "azure.bicep.v0",
       "connectionString": "{openai.outputs.connectionString}",
-      "path": "openai.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "openai.module.bicep"
+    },
+    "chat": {
+      "type": "value.v0",
+      "connectionString": "{openai.outputs.connectionString};Deployment=chat"
     },
     "webstory": {
       "type": "project.v0",
@@ -19,8 +19,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webstory.bindings.http.targetPort}",
-        "ConnectionStrings__openai": "{openai.connectionString}",
-        "OpenAI__DeploymentName": "gpt-4o"
+        "ConnectionStrings__chat": "{chat.connectionString}"
       },
       "bindings": {
         "http": {
@@ -35,6 +34,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "openai-roles": {
+      "type": "azure.bicep.v0",
+      "path": "openai-roles.module.bicep",
+      "params": {
+        "openai_outputs_name": "{openai.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

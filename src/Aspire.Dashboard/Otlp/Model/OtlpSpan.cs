@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Model.Otlp;
+using Grpc.Core;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -41,8 +42,13 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
+    public OtlpApplication? UninstrumentedPeer { get; internal set; }
+
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
+
+    private string? _cachedDisplaySummary;
+
     public OtlpSpan? GetParentSpan()
     {
         if (string.IsNullOrEmpty(ParentSpanId))
@@ -82,6 +88,7 @@ public class OtlpSpan
             Events = item.Events,
             Links = item.Links,
             BackLinks = item.BackLinks,
+            UninstrumentedPeer = item.UninstrumentedPeer
         };
     }
 
@@ -101,7 +108,7 @@ public class OtlpSpan
 
         if (!string.IsNullOrEmpty(StatusMessage))
         {
-            props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusField, Value = Status.ToString() });
+            props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusMessageField, Value = StatusMessage });
         }
 
         foreach (var kv in Attributes.OrderBy(a => a.Key))
@@ -114,21 +121,87 @@ public class OtlpSpan
 
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Application = {Source.ApplicationKey}, UninstrumentedPeerApplication = {UninstrumentedPeer?.ApplicationKey}, TraceId = {Trace.TraceId}";
     }
 
-    public static string? GetFieldValue(OtlpSpan span, string field)
+    public string GetDisplaySummary()
     {
+        return _cachedDisplaySummary ??= BuildDisplaySummary(this);
+
+        static string BuildDisplaySummary(OtlpSpan span)
+        {
+            // Use attributes on the span to calculate a friendly summary.
+            // Optimize for common cases: HTTP, RPC, DATA, etc.
+            // Fall back to the span name if we can't find anything.
+            if (span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer or OtlpSpanKind.Consumer)
+            {
+                if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
+                {
+                    var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
+                    var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
+
+                    return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
+                {
+                    var dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
+
+                    return $"DATA {dbSystem} {span.Name}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "rpc.system")))
+                {
+                    var rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
+                    var rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
+                    var rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
+
+                    if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
+
+                        var summary = $"RPC {rpcService}/{rpcMethod}";
+                        if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
+                        {
+                            summary += $" {statusCode}";
+                        }
+
+                        return summary;
+                    }
+
+                    return $"RPC {rpcService}/{rpcMethod}";
+                }
+                else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "messaging.system")))
+                {
+                    var messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
+                    var messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
+                    var destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
+
+                    return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
+                }
+            }
+
+            return span.Name;
+        }
+    }
+
+    public static FieldValues GetFieldValue(OtlpSpan span, string field)
+    {
+        // FieldValues is a hack to support two values in a single field.
+        // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => span.Source.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Application.ApplicationName, span.UninstrumentedPeer?.ApplicationName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
             KnownTraceFields.StatusField => span.Status.ToString(),
-            KnownSourceFields.NameField => span.Scope.ScopeName,
+            KnownSourceFields.NameField => span.Scope.Name,
             KnownTraceFields.NameField => span.Name,
             _ => span.Attributes.GetValue(field)
         };
+    }
+
+    public record struct FieldValues(string? Value1, string? Value2 = null)
+    {
+        public static implicit operator FieldValues(string? value) => new FieldValues(value);
     }
 }

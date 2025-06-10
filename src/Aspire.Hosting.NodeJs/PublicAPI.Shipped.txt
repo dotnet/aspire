@@ -1,6 +1,0 @@
-#nullable enable
-Aspire.Hosting.NodeAppHostingExtension
-Aspire.Hosting.NodeAppResource
-Aspire.Hosting.NodeAppResource.NodeAppResource(string! name, string! command, string! workingDirectory) -> void
-static Aspire.Hosting.NodeAppHostingExtension.AddNodeApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! scriptPath, string? workingDirectory = null, string![]? args = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.NodeAppResource!>!
-static Aspire.Hosting.NodeAppHostingExtension.AddNpmApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! workingDirectory, string! scriptName = "start", string![]? args = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.NodeAppResource!>!

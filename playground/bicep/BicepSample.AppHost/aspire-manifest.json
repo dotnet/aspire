@@ -29,29 +29,19 @@
     "kv3": {
       "type": "azure.bicep.v0",
       "connectionString": "{kv3.outputs.vaultUri}",
-      "path": "kv3.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "kv3.module.bicep"
     },
     "appConfig": {
       "type": "azure.bicep.v0",
       "connectionString": "{appConfig.outputs.appConfigEndpoint}",
       "path": "appConfig.module.bicep",
       "params": {
-        "sku": "standard",
-        "principalType": "",
-        "principalId": ""
+        "sku": "standard"
       }
     },
     "storage": {
       "type": "azure.bicep.v0",
-      "path": "storage.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "storage.module.bicep"
     },
     "blob": {
       "type": "value.v0",
@@ -68,11 +58,7 @@
     "sql": {
       "type": "azure.bicep.v0",
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-      "path": "sql.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalName": ""
-      }
+      "path": "sql.module.bicep"
     },
     "db": {
       "type": "value.v0",
@@ -99,25 +85,31 @@
     },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "{postgres2.secretOutputs.connectionString}",
+      "connectionString": "{postgres2-kv.secrets.connectionstrings--postgres2}",
       "path": "postgres2.module.bicep",
       "params": {
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}",
-        "keyVaultName": ""
+        "postgres2_kv_outputs_name": "{postgres2-kv.outputs.name}"
       }
+    },
+    "postgres2-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{postgres2-kv.outputs.vaultUri}",
+      "path": "postgres2-kv.module.bicep"
     },
     "db2": {
       "type": "value.v0",
-      "connectionString": "{postgres2.secretOutputs.db2-connectionString}"
+      "connectionString": "{postgres2-kv.secrets.connectionstrings--db2}"
     },
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cosmos.secretOutputs.connectionString}",
-      "path": "cosmos.module.bicep",
-      "params": {
-        "keyVaultName": ""
-      }
+      "connectionString": "{cosmos.outputs.connectionString}",
+      "path": "cosmos.module.bicep"
+    },
+    "db3": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db3"
     },
     "lawkspc": {
       "type": "azure.bicep.v0",
@@ -128,52 +120,57 @@
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
       "path": "ai.module.bicep",
       "params": {
-        "logAnalyticsWorkspaceId": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
+        "lawkspc_outputs_loganalyticsworkspaceid": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "aiwithoutlaw": {
       "type": "azure.bicep.v0",
       "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
-      "path": "aiwithoutlaw.module.bicep",
-      "params": {
-        "logAnalyticsWorkspaceId": ""
-      }
+      "path": "aiwithoutlaw.module.bicep"
     },
     "redis": {
       "type": "azure.bicep.v0",
       "connectionString": "{redis.outputs.connectionString}",
-      "path": "redis.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalName": ""
-      }
+      "path": "redis.module.bicep"
     },
     "sb": {
       "type": "azure.bicep.v0",
       "connectionString": "{sb.outputs.serviceBusEndpoint}",
-      "path": "sb.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "sb.module.bicep"
+    },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=queue1"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1"
+    },
+    "subscription1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription1"
+    },
+    "subscription2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription2"
+    },
+    "topic2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic2"
+    },
+    "topic2sub": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={sb.outputs.serviceBusEndpoint};EntityPath=topic2/Subscriptions/subscription1"
     },
     "signalr": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
-      "path": "signalr.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "signalr.module.bicep"
     },
     "wps": {
       "type": "azure.bicep.v0",
       "connectionString": "{wps.outputs.endpoint}",
-      "path": "wps.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "wps.module.bicep"
     },
     "api": {
       "type": "project.v0",
@@ -214,6 +211,97 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "kv3-roles": {
+      "type": "azure.bicep.v0",
+      "path": "kv3-roles.module.bicep",
+      "params": {
+        "kv3_outputs_name": "{kv3.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "appConfig-roles": {
+      "type": "azure.bicep.v0",
+      "path": "appConfig-roles.module.bicep",
+      "params": {
+        "appconfig_outputs_name": "{appConfig.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "sql-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql-roles.module.bicep",
+      "params": {
+        "sql_outputs_name": "{sql.outputs.name}",
+        "sql_outputs_sqlserveradminname": "{sql.outputs.sqlServerAdminName}",
+        "principalId": "",
+        "principalName": "",
+        "principalType": ""
+      }
+    },
+    "postgres2-kv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "postgres2-kv-roles.module.bicep",
+      "params": {
+        "postgres2_kv_outputs_name": "{postgres2-kv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "redis-roles": {
+      "type": "azure.bicep.v0",
+      "path": "redis-roles.module.bicep",
+      "params": {
+        "redis_outputs_name": "{redis.outputs.name}",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "sb-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sb-roles.module.bicep",
+      "params": {
+        "sb_outputs_name": "{sb.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "signalr-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalr-roles.module.bicep",
+      "params": {
+        "signalr_outputs_name": "{signalr.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "wps-roles": {
+      "type": "azure.bicep.v0",
+      "path": "wps-roles.module.bicep",
+      "params": {
+        "wps_outputs_name": "{wps.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

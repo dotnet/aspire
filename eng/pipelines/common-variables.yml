@@ -27,5 +27,9 @@ variables:
         /p:TeamName=$(_TeamName)
         /p:DotNetPublishUsingPipelines=true
         /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
-    - name: PostBuildSign
-      value: true
+    - ${{ if or(startswith(variables['Build.SourceBranch'], 'refs/heads/release/'), startswith(variables['Build.SourceBranch'], 'refs/heads/internal/release/'), eq(variables['Build.Reason'], 'Manual')) }}:
+      - name: PostBuildSign
+        value: false
+    - ${{ else }}:
+      - name: PostBuildSign
+        value: true

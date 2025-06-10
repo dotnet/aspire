@@ -1,14 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Milvus.Client;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Milvus.Tests;
 
@@ -93,7 +92,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
+                // Milvus container runs as root and will create the directory.
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
                 milvus1.WithDataBindMount(bindMountPath);
             }
 
@@ -130,8 +131,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var passwordParameter = builder2.AddParameter("pwd");
-            builder2.Configuration["Parameters:pwd"] = password;
+            var passwordParameter = builder2.AddParameter("pwd", password);
 
             var milvus2 = builder2.AddMilvus("milvus2", passwordParameter);
             var db2 = milvus2.AddDatabase("milvusdb2", dbname);

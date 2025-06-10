@@ -15,10 +15,10 @@ public sealed class TestSessionStorage : ISessionStorage
         if (OnGetAsync is { } callback)
         {
             var (success, value) = callback(key);
-            return Task.FromResult(new StorageResult<T>(Success: success, Value: (T)(value ?? default(T))!));
+            return Task.FromResult(new StorageResult<T>(success: success, value: (T)(value ?? default(T))!));
         }
 
-        return Task.FromResult<StorageResult<T>>(new StorageResult<T>(Success: false, Value: default));
+        return Task.FromResult<StorageResult<T>>(new StorageResult<T>(success: false, value: default));
     }
 
     public Task SetAsync<T>(string key, T value)

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <NoWarn>$(NoWarn);ASPIREHOSTINGPYTHON001;</NoWarn>
+
+    <!--
+      Do not run tests in Helix at all
+      required because DockerComposePublisherTests.PublishAsync_GeneratesValidDockerComposeFile needs the TestingAppHost1
+      -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Docker\Aspire.Hosting.Docker.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Verify.XunitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)\VerifyExtensions.cs" />
+    <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="hello.sh" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

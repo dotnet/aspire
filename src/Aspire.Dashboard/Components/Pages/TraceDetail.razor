@@ -9,7 +9,12 @@
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@GetPageTitle()"
+        ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     @if (_trace is { } trace)
@@ -19,37 +24,52 @@
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
-                @{
-                    var headerSpan = trace.RootSpan ?? trace.FirstSpan;
-                }
                 <div class="page-header">
                     <h1>
-                        <span>@GetResourceName(headerSpan.Source): @headerSpan.Name</span>
+                        <span>@GetPageTitle()</span>
                         <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>                    
+                    </h1>
                 </div>
             </PageTitleSection>
             <ToolbarSection>
-                <div>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
+                <div slot="" class="trace-header">
+                    <FluentOverflow Class="trace-header-details">
+                        <ChildContent>
+                            <FluentOverflowItem>
+                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
+                            </FluentOverflowItem>
+                            <FluentOverflowItem>
+                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
+                            </FluentOverflowItem>
+                            <FluentOverflowItem>
+                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong>
+                            </FluentOverflowItem>
+                            <FluentOverflowItem>
+                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
+                            </FluentOverflowItem>
+                            <FluentOverflowItem>
+                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
+                            </FluentOverflowItem>
+                        </ChildContent>
+                        <OverflowTemplate Context="overflow">
+                            <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton" Class="trace-header-tooltip">
+                                @foreach (var item in overflow.ItemsOverflow)
+                                {
+                                    <div style="margin: 5px;">@item.ChildContent</div>
+                                }
+                            </FluentTooltip>
+                        </OverflowTemplate>
+                    </FluentOverflow>
+                    <div class="trace-header-filters">
+                        <FluentSearch @bind-Value="_filter"
+                                      @bind-Value:after="HandleAfterFilterBindAsync"
+                                      Immediate="true"
+                                      ImmediateDelay="@FluentUIExtensions.InputDelay"
+                                      Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]" />
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+                    </div>
                 </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@trace.Spans.GroupBy(s => s.Source).Count()</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
-                </div>
-                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
             </ToolbarSection>
             <MainSection>
                 <SummaryDetailsView
@@ -76,10 +96,11 @@
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
+                                            RowSize="DataGridRowSize.Small"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
-                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
+                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
                                     @{
                                         var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                         // Indent the span name based on the depth of the span.
@@ -108,7 +129,7 @@
                                         <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
                                             @if (context.Children.Count > 0)
                                             {
-                                                <FluentButton Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
+                                                <FluentButton aria-label="@ControlStringsLoc[nameof(ControlsStrings.ToggleNesting)]" Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
                                                     <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
                                                 </FluentButton>
                                             }
@@ -126,7 +147,7 @@
                                             {
                                                 <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                             }
-                                            @GetResourceName(context.Span.Source)
+                                            <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
                                             @if (context.HasUninstrumentedPeer)
                                             {
                                                 <span class="uninstrumented-peer">
@@ -150,14 +171,14 @@
                                                         Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")"
                                                         Value="icon"
                                                         Class="uninstrumented-peer-icon"/>
-                                                    @context.UninstrumentedPeer
+                                                    <FluentHighlighter HighlightedText="@_filter" Text="@context.UninstrumentedPeer" />
                                                 </span>
                                             }
-                                            <span class="span-row-name">@SpanWaterfallViewModel.GetDisplaySummary(context.Span)</span>
+                                            <span class="span-row-name"><FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" /></span>
                                         </span>
                                     </span>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false">
+                                <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager">
                                     <HeaderCellItemTemplate>
                                         <div class="ticks">
                                             @* First column starts at 0. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from the next column *@
@@ -198,7 +219,7 @@
                                         </div>
                                     </ChildContent>
                                 </AspireTemplateColumn>
-                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
+                                <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                     @{
                                         var id = context.Span.SpanId;
                                     }

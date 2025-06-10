@@ -14,12 +14,20 @@ internal static class EntityFrameworkUtils
     /// <summary>
     /// Binds the DbContext specific configuration section to settings when available.
     /// </summary>
-    public static TSettings GetDbContextSettings<TContext, TSettings>(this IHostApplicationBuilder builder, string defaultConfigSectionName, Action<TSettings, IConfiguration> bindSettings)
+    public static TSettings GetDbContextSettings<TContext, TSettings>(this IHostApplicationBuilder builder, string defaultConfigSectionName, string? connectionName, Action<TSettings, IConfiguration> bindSettings)
         where TSettings : new()
     {
         TSettings settings = new();
         var configurationSection = builder.Configuration.GetSection(defaultConfigSectionName);
         bindSettings(settings, configurationSection);
+        // If the connectionName is not provided, we've been called in the context
+        // of an Enrich invocation and don't need to bind the connectionName specific settings.
+        // Instead, we'll just bind to the TContext-specific settings.
+        if (connectionName is not null)
+        {
+            var connectionSpecificConfigurationSection = configurationSection.GetSection(connectionName);
+            bindSettings(settings, connectionSpecificConfigurationSection);
+        }
         var typeSpecificConfigurationSection = configurationSection.GetSection(typeof(TContext).Name);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
@@ -28,6 +36,7 @@ internal static class EntityFrameworkUtils
 
         return settings;
     }
+
     /// <summary>
     /// Ensures a <see cref="DbContext"/> is registered in DI.
     /// </summary>

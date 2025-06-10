@@ -5,19 +5,19 @@ namespace Aspire.Hosting.Milvus;
 
 internal static class MilvusContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>milvusdb/milvus</summary>
+    /// <remarks>milvusdb/milvus</remarks>
     public const string Image = "milvusdb/milvus";
 
-    /// <summary>v2.4.13</summary>
-    public const string Tag = "v2.4.13";
+    /// <remarks>v2.5.9</remarks>
+    public const string Tag = "v2.5.9";
 
-    /// <summary>zilliz/attu</summary>
+    /// <remarks>zilliz/attu</remarks>
     public const string AttuImage = "zilliz/attu";
 
-    /// <summary>v2.4</summary>
-    public const string AttuTag = "v2.4";
+    /// <remarks>v2.5</remarks>
+    public const string AttuTag = "v2.5";
 }
 

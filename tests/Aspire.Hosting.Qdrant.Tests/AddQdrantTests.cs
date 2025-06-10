@@ -109,9 +109,8 @@ public class AddQdrantTests
     public async Task AddQdrantAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
         appBuilder.AddQdrant("my-qdrant", apiKey: pass);
 
         using var app = appBuilder.Build();
@@ -152,8 +151,7 @@ public class AddQdrantTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:pass"] = "pass";
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
                                  .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334));
@@ -169,8 +167,7 @@ public class AddQdrantTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:pass"] = "pass";
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("pass", "pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
             .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))

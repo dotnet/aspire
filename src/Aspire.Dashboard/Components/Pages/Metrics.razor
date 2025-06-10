@@ -10,7 +10,26 @@
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    @{
+        string? additionalText;
+        if (PageViewModel.SelectedApplication.Id is { ReplicaSetName: { } replicaSetName })
+        {
+            additionalText = PageViewModel.SelectedInstrument is { } selectedInstrument
+                ? $"{replicaSetName} - {selectedInstrument.Name}"
+                : replicaSetName;
+        }
+        else
+        {
+            additionalText = null;
+        }
+    }
+
+    <ApplicationName
+        AdditionalText="@additionalText"
+        ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout
@@ -26,7 +45,13 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
+
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreMetricsPaused(out _)" IsPausedChanged="@PauseManager.SetMetricsPaused" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearMetrics" />
+
             @if (!ViewportInformation.IsDesktop)
             {
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
@@ -74,32 +99,34 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    @if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel is { SelectedMeter: not null, SelectedInstrument: not null })
                                     {
                                         <ChartContainer
                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
-                                            MeterName="@(PageViewModel.SelectedMeter.MeterName)"
+                                            MeterName="@(PageViewModel.SelectedMeter.Name)"
                                             InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="@_applications" />
+                                            Applications="@_applications"
+                                            PauseText="@PauseText" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
-                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.MeterName</h3>
+                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.Name</h3>
                                         <FluentDataGrid
                                             Style="max-width:1100px;"
                                             Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
                                             GridTemplateColumns="3fr 5fr"
+                                            RowSize="DataGridRowSize.Medium"
                                             TGridItem="OtlpInstrumentSummary">
                                             <ChildContent>
                                                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
+                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.Name, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
                                                         @context.Name
                                                     </FluentAnchor>
                                                 </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
+                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Tooltip="true" TooltipText="@(c => c.Description)" />
                                             </ChildContent>
                                         </FluentDataGrid>
                                     }

@@ -6,6 +6,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,11 +57,13 @@ public class ProjectResourceTests
         }
     }
 
-    [Fact]
-    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Explicitly specify development environment and other config so it is constant.
-        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"],
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", $"{dashboardOtlpGrpcEndpointUrlKey}=http://localhost:18889"],
             DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
@@ -175,7 +178,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"], DistributedApplicationOperation.Run);
+        var appBuilder = CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}={value}"], DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -264,6 +267,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -273,6 +277,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -589,6 +594,9 @@ public class ProjectResourceTests
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://localhost:1234", arg));
+
+        // We don't yet process relationships set via the callbacks
+        Assert.False(project.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
     }
 
     [Theory]

@@ -2,12 +2,13 @@
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentInputLabel
-    Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
-    ForId="@_selectId"
-    Orientation="Orientation.Horizontal" />
+<FluentInputLabel Label="@Loc[nameof(ControlsStrings.ResourceLabel)]"
+                  ForId="@_selectId"
+                  Orientation="Orientation.Horizontal"
+                  class="@LabelClass" />
 
 <FluentSelect Items="Resources"
+              Disabled="@(Resources is null)"
               Id="@_selectId"
               OptionValue="@(c => c!.Name)"
               OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpApplicationType.ResourceGrouping)"

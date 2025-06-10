@@ -13,15 +13,18 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
     private CancellationTokenSource? _disposalCts;
 
     [Parameter]
-    public string? ResourceName { get; init; }
+    public string? AdditionalText { get; set; }
 
     [Parameter]
-    public IStringLocalizer? Loc { get; init; }
+    public string? ResourceName { get; set; }
+
+    [Parameter]
+    public IStringLocalizer? Loc { get; set; }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
-    private string? _applicationName;
+    private string? _pageTitle;
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,15 +34,24 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
             _disposalCts = new CancellationTokenSource();
             await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
         }
+    }
+
+    protected override void OnParametersSet()
+    {
+        string applicationName;
 
         if (ResourceName is not null && Loc is not null)
         {
-            _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
+            applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
         }
         else
         {
-            _applicationName = DashboardClient.ApplicationName;
+            applicationName = DashboardClient.ApplicationName;
         }
+
+        _pageTitle = string.IsNullOrEmpty(AdditionalText)
+            ? applicationName
+            : $"{applicationName} ({AdditionalText})";
     }
 
     public void Dispose()

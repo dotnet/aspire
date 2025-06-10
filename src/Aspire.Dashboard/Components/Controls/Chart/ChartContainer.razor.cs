@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
@@ -32,6 +34,18 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required TimeSpan Duration { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Pages.Metrics.MetricViewKind ActiveView { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Pages.Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required List<OtlpApplication> Applications { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string? PauseText { get; set; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -41,7 +55,10 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
-    public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
+    public ImmutableList<DimensionFilterViewModel> DimensionFilters { get; set; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
 
@@ -77,7 +94,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
-            if (_instrument == null)
+            if (_instrument == null || PauseManager.AreMetricsPaused(out _))
             {
                 continue;
             }
@@ -158,10 +175,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         PreviousMeterName = MeterName;
         PreviousInstrumentName = InstrumentName;
 
-        var filters = CreateUpdatedFilters(hasInstrumentChanged);
-
-        DimensionFilters.Clear();
-        DimensionFilters.AddRange(filters);
+        // Replace filters collection on change. Filters can be accessed from a background task so it is immutable for thread safety.
+        DimensionFilters = ImmutableList.Create(CollectionsMarshal.AsSpan(CreateUpdatedFilters(hasInstrumentChanged)));
 
         await UpdateInstrumentDataAsync(_instrument);
     }

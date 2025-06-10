@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.StackExchange.Redis.Tests;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.DotNet.RemoteExecutor;
@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using Xunit;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.StackExchange.Redis.OutputCaching.Tests;
 

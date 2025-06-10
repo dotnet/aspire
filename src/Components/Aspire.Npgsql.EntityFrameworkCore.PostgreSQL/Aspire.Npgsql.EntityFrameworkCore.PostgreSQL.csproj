@@ -6,12 +6,6 @@
     <PackageTags>$(ComponentEfCorePackageTags) postgressql postgres npgsql sql</PackageTags>
     <Description>A PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
-    <!-- This package hasn't shipped 9.0.0 yet, so use the previous stable version until it does -->
-    <PackageValidationBaselineVersion>8.2.2</PackageValidationBaselineVersion>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>91</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +24,13 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Npgsql.OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <!-- Npgsql EF needs to match the same major version as the underlying Npgsql assemblies. -->
+  <!-- This is to override CentralPackageTransitivePinningEnabled -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql8Version)" />
+    <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql8Version)" />
   </ItemGroup>
 
 </Project>

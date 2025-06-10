@@ -1,20 +1,15 @@
-trigger:
-  batch: true
+# Replaced per issue request - changed from per-commit to weekly schedule
+schedules:
+- cron: "0 0 * * 1" # Run at midnight (UTC) on Monday each week
+  displayName: Weekly Monday build
   branches:
     include:
     - main
     - release/*
-  paths:
-    include:
-      - '*'
-    exclude:
-      - '**.md'
-      - eng/Version.Details.xml
-      - .github/*
-      - docs/*
-      - LICENSE.TXT
-      - PATENTS.TXT
-      - THIRD-PARTY-NOTICES.TXT
+  always: true # Run even when there are no code changes
+  
+# Excluding normal trigger as we're now using schedules
+trigger: none
 
 pr:
   branches:
@@ -63,6 +58,14 @@ variables:
   - name: _InternalBuildArgs
     value: ''
 
+  # Use the build reason to decide whether to include helix_tests
+  - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
+    - name: testVariants
+      value: '_pipeline_tests,_helix_tests'
+  - ${{ else }}:
+    - name: testVariants
+      value: ''
+
 resources:
   containers:
   - container: LinuxContainer
@@ -95,7 +98,8 @@ stages:
 
       jobs:
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Windows jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Windows${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
@@ -126,8 +130,10 @@ stages:
                 repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                 isWindows: true
                 runHelixTests: ${{ contains(testVariant, 'helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}
 
-      - ${{ each testVariant in split(',_helix_tests', ',') }}:
+      # Linux jobs
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - job: Linux${{ testVariant }}
 
           # timeout accounts for wait times for helix agents up to 30mins
@@ -135,7 +141,7 @@ stages:
 
           pool:
             name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2004.amd64.open
+            demands: ImageOverride -equals build.ubuntu.2204.amd64.open
 
           variables:
             - name: _buildScript
@@ -157,49 +163,5 @@ stages:
                 repoLogPath: $(Build.Arcade.LogsPath)
                 repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                 isWindows: false
-                runHelixTests: ${{ contains(testVariant, 'helix') }}
-
-# ----------------------------------------------------------------
-# This stage performs quality gates checks
-# ----------------------------------------------------------------
-- stage: codecoverage
-  displayName: CodeCoverage
-  dependsOn:
-    - build
-  condition: succeeded('build')
-  variables:
-  - template: /eng/common/templates/variables/pool-providers.yml
-  jobs:
-  - template: /eng/common/templates/jobs/jobs.yml
-    parameters:
-      enableMicrobuild: true
-      enableTelemetry: true
-      runAsPublic: false
-      workspace:
-        clean: all
-
-      # ----------------------------------------------------------------
-      # This stage downloads the code coverage reports from the build jobs,
-      # merges those and validates the combined test coverage.
-      # ----------------------------------------------------------------
-      jobs:
-      - job: CodeCoverageReport
-        timeoutInMinutes: 10
-
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-        steps:
-        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
-          displayName: Init toolset
-
-        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
-          parameters:
-            # matches what is used in the conditions for the build/test jobs
-            testVariants: ',_helix_tests'
+                runHelixTests: ${{ contains(testVariant, '_helix') }}
+                runPipelineTests: ${{ contains(testVariant, '_pipeline') }}

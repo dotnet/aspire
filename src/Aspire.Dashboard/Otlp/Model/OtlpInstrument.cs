@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -18,9 +17,9 @@ public class OtlpInstrumentSummary
     public required string Description { get; init; }
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
-    public required OtlpMeter Parent { get; init; }
+    public required OtlpScope Parent { get; init; }
 
-    public OtlpInstrumentKey GetKey() => new(Parent.MeterName, Name);
+    public OtlpInstrumentKey GetKey() => new(Parent.Name, Name);
 }
 
 public class OtlpInstrumentData
@@ -28,6 +27,7 @@ public class OtlpInstrumentData
     public required OtlpInstrumentSummary Summary { get; init; }
     public required List<DimensionScope> Dimensions { get; init; }
     public required Dictionary<string, List<string?>> KnownAttributeValues { get; init; }
+    public required bool HasOverflow { get; init; }
 }
 
 [DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
@@ -38,34 +38,17 @@ public class OtlpInstrument
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
+    public bool HasOverflow { get; set; }
 
-    public void AddMetrics(Metric metric, ref KeyValuePair<string, string>[]? tempAttributes)
+    public DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
-        switch (metric.DataCase)
+        // See https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk.md#overflow-attribute
+        // Inspect attributes before they're merged with parent attributes. "otel.metric.overflow" should be the only attribute.
+        if (!HasOverflow && attributes.Count == 1 && attributes[0].Key == "otel.metric.overflow" && attributes[0].Value.GetString() == "true")
         {
-            case Metric.DataOneofCase.Gauge:
-                foreach (var d in metric.Gauge.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
-                }
-                break;
-            case Metric.DataOneofCase.Sum:
-                foreach (var d in metric.Sum.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
-                }
-                break;
-            case Metric.DataOneofCase.Histogram:
-                foreach (var d in metric.Histogram.DataPoints)
-                {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
-                }
-                break;
+            HasOverflow = true;
         }
-    }
 
-    private DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
-    {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
         //
@@ -127,7 +110,8 @@ public class OtlpInstrument
         var newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
-            Context = instrument.Context
+            Context = instrument.Context,
+            HasOverflow = instrument.HasOverflow
         };
 
         if (cloneData)

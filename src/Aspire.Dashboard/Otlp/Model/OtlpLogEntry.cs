@@ -7,9 +7,11 @@ using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
+[DebuggerDisplay("InternalId = {InternalId}, TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
 {
+    private static long s_nextLogEntryId;
+
     public KeyValuePair<string, string>[] Attributes { get; }
     public DateTime TimeStamp { get; }
     public uint Flags { get; }
@@ -21,12 +23,12 @@ public class OtlpLogEntry
     public string? OriginalFormat { get; }
     public OtlpApplicationView ApplicationView { get; }
     public OtlpScope Scope { get; }
-    public Guid InternalId { get; }
+    public long InternalId { get; }
 
     public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {
-        InternalId = Guid.NewGuid();
-        TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
+        InternalId = Interlocked.Increment(ref s_nextLogEntryId);
+        TimeStamp = ResolveTimeStamp(record);
 
         string? originalFormat = null;
         string? parentId = null;
@@ -61,6 +63,19 @@ public class OtlpLogEntry
         ParentId = parentId ?? string.Empty;
         ApplicationView = logApp;
         Scope = scope;
+    }
+
+    private static DateTime ResolveTimeStamp(LogRecord record)
+    {
+        // From proto docs:
+        //
+        // For converting OpenTelemetry log data to formats that support only one timestamp or
+        // when receiving OpenTelemetry log data by recipients that support only one timestamp
+        // internally the following logic is recommended:
+        //   - Use time_unix_nano if it is present, otherwise use observed_time_unix_nano.
+        var resolvedTimeUnixNano = record.TimeUnixNano != 0 ? record.TimeUnixNano : record.ObservedTimeUnixNano;
+
+        return OtlpHelpers.UnixNanoSecondsToDateTime(resolvedTimeUnixNano);
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch
@@ -100,9 +115,40 @@ public class OtlpLogEntry
             KnownStructuredLogFields.TraceIdField => log.TraceId,
             KnownStructuredLogFields.SpanIdField => log.SpanId,
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
-            KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            KnownStructuredLogFields.CategoryField => log.Scope.Name,
             KnownResourceFields.ServiceNameField => log.ApplicationView.Application.ApplicationName,
             _ => log.Attributes.GetValue(field)
         };
+    }
+
+    public const string ExceptionStackTraceField = "exception.stacktrace";
+    public const string ExceptionMessageField = "exception.message";
+    public const string ExceptionTypeField = "exception.type";
+
+    public static string? GetExceptionText(OtlpLogEntry logEntry)
+    {
+        // exception.stacktrace includes the exception message and type.
+        // https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
+        if (GetProperty(logEntry, ExceptionStackTraceField) is { Length: > 0 } stackTrace)
+        {
+            return stackTrace;
+        }
+
+        if (GetProperty(logEntry, ExceptionMessageField) is { Length: > 0 } message)
+        {
+            if (GetProperty(logEntry, ExceptionTypeField) is { Length: > 0 } type)
+            {
+                return $"{type}: {message}";
+            }
+
+            return message;
+        }
+
+        return null;
+
+        static string? GetProperty(OtlpLogEntry logEntry, string propertyName)
+        {
+            return logEntry.Attributes.GetValue(propertyName);
+        }
     }
 }

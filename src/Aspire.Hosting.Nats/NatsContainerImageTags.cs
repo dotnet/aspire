@@ -5,12 +5,12 @@ namespace Aspire.Hosting.Nats;
 
 internal static class NatsContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>library/nats</summary>
+    /// <remarks>library/nats</remarks>
     public const string Image = "library/nats";
 
-    /// <summary>2.10</summary>
-    public const string Tag = "2.10";
+    /// <remarks>2.11</remarks>
+    public const string Tag = "2.11";
 }

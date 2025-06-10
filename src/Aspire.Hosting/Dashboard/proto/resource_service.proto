@@ -124,13 +124,25 @@ message EnvironmentVariable {
 }
 
 message Url {
-    // The name of the url
-    string name = 1;
+    // The name of endpoint associated with the url
+    optional string endpoint_name = 1;
     // The uri of the url. Format is scheme://host:port/{*path}
     string full_url = 2;
     // Determines if this url shows up in the details view only by default.
     // If true, the url will not be shown in the list of urls in the top level resources view.
     bool is_internal = 3;
+    // Indicates if this URL is inactive. A non-running resource may still return inactive URLs.
+    // If true, the inactive url will not be shown in the dashboard.
+    bool is_inactive = 4;
+    // Display properties of the Url
+    UrlDisplayProperties display_properties = 5;
+}
+
+message UrlDisplayProperties {
+  // The sort order of the url. Lower values are displayed first in the UI. The absence of a value is treated as lowest order.
+  int32 sort_order = 1;
+  // The display name of the url, to appear in the UI.
+  string display_name = 2;
 }
 
 // Data about a volume mounted to a container.
@@ -225,6 +237,12 @@ message Resource {
 
     // The list of relationships for this resource.
     repeated ResourceRelationship relationships = 20;
+
+    // Whether the resource should be visually hidden in the dashboard.
+    bool is_hidden = 21;
+
+    // Whether the resource is built into Aspire and supports more detailed telemetry.
+    bool supports_detailed_telemetry = 22;
 }
 
 ////////////////////////////////////////////
@@ -285,6 +303,9 @@ message ConsoleLogLine {
 message WatchResourceConsoleLogsRequest {
     // Specifies the resource to watch logs from.
     string resource_name = 1;
+    // A flag that indicates whether to suppress following new logs.
+    // The method completes once the current set of logs is received.
+    bool suppress_follow = 2;
 }
 
 // A message received from the server when watching resource logs.

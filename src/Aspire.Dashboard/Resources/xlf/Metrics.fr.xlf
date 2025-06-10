@@ -57,11 +57,6 @@
         <target state="translated">12 dernières heures</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">Dernières 24 heures</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">Aucune métrique pour la ressource sélectionnée</target>
@@ -91,6 +86,11 @@
         <source>View attributes</source>
         <target state="translated">Afficher les attributs</target>
         <note />
+      </trans-unit>
+      <trans-unit id="PauseInProgressText">
+        <source>Metrics capture paused at {0}</source>
+        <target state="translated">Capture des métriques suspendue à {0}</target>
+        <note>{0} is a time</note>
       </trans-unit>
     </body>
   </file>

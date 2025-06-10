@@ -21,7 +21,50 @@ public class AnsiParser
     private const int XtermForegroundSequenceCode = 38;
     private const int XtermBackgroundSequenceCode = 48;
 
-    public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
+    public static string StripControlSequences(string text)
+    {
+        StringBuilder? outputBuilder = null;
+        var span = text.AsSpan();
+        var currentPos = 0;
+        var lastWritePos = 0;
+
+        while (currentPos < text.Length)
+        {
+            var nextEscapeIndex = text.IndexOf(EscapeChar, currentPos);
+            if (nextEscapeIndex == -1)
+            {
+                if (outputBuilder != null)
+                {
+                    // Write remaining text.
+                    outputBuilder.Append(text[lastWritePos..]);
+                    break;
+                }
+
+                // No escape sequence found, and no text has been escaped. Return the original text.
+                return text;
+            }
+
+            if (IsConEmuSequence(span[currentPos..], ref currentPos) ||
+                IsControlSequence(span[currentPos..], ref currentPos, out _, out _) ||
+                IsLinkControlSequence(span[currentPos..], ref currentPos, out _))
+            {
+                // Append text before the escape sequence, then advance the cursor past the escape sequence
+                outputBuilder ??= new StringBuilder(text.Length);
+                outputBuilder.Append(text[lastWritePos..nextEscapeIndex]);
+
+                currentPos++;
+                lastWritePos = currentPos;
+            }
+            else
+            {
+                currentPos++;
+            }
+        }
+
+        return outputBuilder?.ToString() ?? text;
+    }
+
+    public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null, ConsoleColor? defaultBackgroundColor = null)
     {
         var textStartIndex = -1;
         var textLength = 0;
@@ -104,7 +147,7 @@ public class AnsiParser
                 // Ignore everything else and don't write sequence to the output.
                 if (finalByte == DisplayAttributesFinalByte)
                 {
-                    ProcessParameters(ref newState, parameters);
+                    ProcessParameters(defaultBackgroundColor, ref newState, parameters);
                 }
 
                 continue;
@@ -154,7 +197,7 @@ public class AnsiParser
         return new(outputBuilder.ToString(), currentState);
     }
 
-    private static void ProcessParameters(ref ParserState newState, int[] parameters)
+    private static void ProcessParameters(ConsoleColor? defaultBackgroundColor, ref ParserState newState, int[] parameters)
     {
         for (var i = 0; i < parameters.Length; i++)
         {
@@ -185,7 +228,9 @@ public class AnsiParser
             }
             else if (TryGetBackgroundColor(parameter, out color))
             {
-                newState.BackgroundColor = color;
+                // Don't set the background color if it matches the default background color.
+                // Skipping setting it improves appearance when row mouseover slightly changes color.
+                newState.BackgroundColor = (color != defaultBackgroundColor) ? color : null;
             }
             else if (parameter == DefaultBackgroundCode)
             {
@@ -473,14 +518,14 @@ public class AnsiParser
     {
         return state.ForegroundColor switch
         {
-            ConsoleColor.Black   => state.Bright ? "ansi-fg-brightblack"   : "ansi-fg-black",
-            ConsoleColor.Blue    => state.Bright ? "ansi-fg-brightblue"    : "ansi-fg-blue",
-            ConsoleColor.Cyan    => state.Bright ? "ansi-fg-brightcyan"    : "ansi-fg-cyan",
-            ConsoleColor.Green   => state.Bright ? "ansi-fg-brightgreen"   : "ansi-fg-green",
+            ConsoleColor.Black => state.Bright ? "ansi-fg-brightblack" : "ansi-fg-black",
+            ConsoleColor.Blue => state.Bright ? "ansi-fg-brightblue" : "ansi-fg-blue",
+            ConsoleColor.Cyan => state.Bright ? "ansi-fg-brightcyan" : "ansi-fg-cyan",
+            ConsoleColor.Green => state.Bright ? "ansi-fg-brightgreen" : "ansi-fg-green",
             ConsoleColor.Magenta => state.Bright ? "ansi-fg-brightmagenta" : "ansi-fg-magenta",
-            ConsoleColor.Red     => state.Bright ? "ansi-fg-brightred"     : "ansi-fg-red",
-            ConsoleColor.White   => state.Bright ? "ansi-fg-brightwhite"   : "ansi-fg-white",
-            ConsoleColor.Yellow  => state.Bright ? "ansi-fg-brightyellow"  : "ansi-fg-yellow",
+            ConsoleColor.Red => state.Bright ? "ansi-fg-brightred" : "ansi-fg-red",
+            ConsoleColor.White => state.Bright ? "ansi-fg-brightwhite" : "ansi-fg-white",
+            ConsoleColor.Yellow => state.Bright ? "ansi-fg-brightyellow" : "ansi-fg-yellow",
             _ => ""
         };
     }
@@ -489,14 +534,14 @@ public class AnsiParser
     {
         return state.BackgroundColor switch
         {
-            ConsoleColor.Black   => "ansi-bg-black",
-            ConsoleColor.Blue    => "ansi-bg-blue",
-            ConsoleColor.Cyan    => "ansi-bg-cyan",
-            ConsoleColor.Green   => "ansi-bg-green",
+            ConsoleColor.Black => "ansi-bg-black",
+            ConsoleColor.Blue => "ansi-bg-blue",
+            ConsoleColor.Cyan => "ansi-bg-cyan",
+            ConsoleColor.Green => "ansi-bg-green",
             ConsoleColor.Magenta => "ansi-bg-magenta",
-            ConsoleColor.Red     => "ansi-bg-red",
-            ConsoleColor.White   => "ansi-bg-white",
-            ConsoleColor.Yellow  => "ansi-bg-yellow",
+            ConsoleColor.Red => "ansi-bg-red",
+            ConsoleColor.White => "ansi-bg-white",
+            ConsoleColor.Yellow => "ansi-bg-yellow",
             _ => ""
         };
     }

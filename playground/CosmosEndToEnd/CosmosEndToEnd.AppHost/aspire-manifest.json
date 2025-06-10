@@ -3,11 +3,24 @@
   "resources": {
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cosmos.secretOutputs.connectionString}",
-      "path": "cosmos.module.bicep",
-      "params": {
-        "keyVaultName": ""
-      }
+      "connectionString": "{cosmos.outputs.connectionString}",
+      "path": "cosmos.module.bicep"
+    },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db"
+    },
+    "entries": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=staging-entries"
+    },
+    "users": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=users"
+    },
+    "user-todo": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=db;Container=UserTodo"
     },
     "api": {
       "type": "project.v0",
@@ -18,7 +31,10 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__cosmos": "{cosmos.connectionString}"
+        "ConnectionStrings__db": "{db.connectionString}",
+        "ConnectionStrings__users": "{users.connectionString}",
+        "ConnectionStrings__entries": "{entries.connectionString}",
+        "ConnectionStrings__user-todo": "{user-todo.connectionString}"
       },
       "bindings": {
         "http": {
@@ -33,6 +49,14 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
       }
     }
   }

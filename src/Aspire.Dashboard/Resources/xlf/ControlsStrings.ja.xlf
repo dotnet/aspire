@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="ActionStructuredLogsText">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">構造化ログ</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionViewDetailsText">
         <source>View details</source>
-        <target state="new">View details</target>
+        <target state="translated">詳細を表示します</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsButtonText">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -57,9 +57,19 @@
         <target state="translated">オプション​​</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerSelectFilters">
-        <source>Select filters</source>
-        <target state="translated">フィルターの選択</target>
+      <trans-unit id="ChartContainerOverflowDescription">
+        <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
+        <target state="translated">OpenTelemetry SDK によって、メトリックの一部のディメンションが削除されました。</target>
+        <note>OpenTelemetry is the name of the standard.</note>
+      </trans-unit>
+      <trans-unit id="ChartContainerOverflowLink">
+        <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
+        <target state="translated">詳細については、「&lt;a href="{0}" target="_blank"&gt;OpenTelemetry 仕様のカーディナリティ制限&lt;/a&gt;」を参照してください。</target>
+        <note>OpenTelemetry is the name of the standard.</note>
+      </trans-unit>
+      <trans-unit id="ChartContainerOverflowTitle">
+        <source>Cardinality capping has been detected</source>
+        <target state="translated">カーディナリティ制限が検出されました</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -77,6 +87,26 @@
         <target state="translated">グラフを表示できません</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearAllResources">
+        <source>Remove all</source>
+        <target state="translated">すべて削除</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearPendingSelectedResource">
+        <source>Remove for resource</source>
+        <target state="translated">リソースの削除</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSelectedResource">
+        <source>Remove for {0}</source>
+        <target state="translated">{0} の削除</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">データの削除</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">詳細</target>
@@ -87,6 +117,11 @@
         <target state="translated">継続時間</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointNameColumnHeader">
+        <source>Endpoint name</source>
+        <target state="translated">エンドポイント名</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">イベント</target>
@@ -94,7 +129,7 @@
       </trans-unit>
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">例外の詳細</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -122,14 +157,34 @@
         <target state="translated">値を表示する</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
+        <source>Grow column width</source>
+        <target state="translated">列の幅を拡大</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResetAriaLabelText">
+        <source>Reset column widths</source>
+        <target state="translated">列の幅をリセット</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
         <target state="translated">サイズ変更</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeDiscreteLabel">
+        <source>Column width</source>
+        <target state="translated">列の幅</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
         <target state="translated">列の幅 (ピクセル単位)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellShrinkAriaLabelText">
+        <source>Shrink column width</source>
+        <target state="translated">列の幅を縮小</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
@@ -145,6 +200,11 @@
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
         <target state="translated">並べ替え (降順)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSubmitAriaLabelText">
+        <source>Set column widths</source>
+        <target state="translated">列の幅を設定</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -169,22 +229,32 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(すべて)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(空)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(なし)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(設定解除)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">アドレス</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">テキスト</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -200,11 +270,6 @@
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
         <target state="translated">メトリック データが見つかりません</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableShowLatestValues">
-        <source>Show latest 10 values</source>
-        <target state="translated">最新の 10 個の値を表示する</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
@@ -247,6 +312,16 @@
         <target state="translated">ページ ツール バー</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">受信データを一時停止</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">キャプチャが一時停止されました</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">カウント</target>
@@ -284,12 +359,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
         <source>Back references</source>
-        <target state="new">Back references</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointsHeader">
-        <source>Endpoints</source>
-        <target state="translated">エンドポイント</target>
+        <target state="translated">バック リファレンス</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
@@ -299,7 +369,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsReferences">
         <source>References</source>
-        <target state="new">References</target>
+        <target state="translated">リファレンス</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
@@ -309,12 +379,17 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsTypeHeader">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsUrlsHeader">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">ボリューム</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -322,14 +397,24 @@
         <target state="translated">{0} ({1} のレプリカ)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
+      <trans-unit id="ResourceGraphNoEndpoints">
+        <source>No endpoints</source>
+        <target state="translated">エンドポイントなし</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceHealthChecksHeader">
         <source>Health checks</source>
-        <target state="new">Health checks</target>
+        <target state="translated">正常性チェック</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">リソース</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">受信データを再開</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -399,22 +484,7 @@
       </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringAddFilter">
-        <source>Add filter</source>
-        <target state="translated">フィルターの追加</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringFilters">
-        <source>Filters</source>
-        <target state="translated">フィルター</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringNoFilters">
-        <source>No filters</source>
-        <target state="translated">フィルターなし</target>
+        <target state="translated">状態</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
@@ -457,9 +527,9 @@
         <target state="translated">タイムスタンプ</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceDetailAttributesHeader">
-        <source>Attributes</source>
-        <target state="translated">属性</target>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">入れ子の切り替え</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
@@ -488,9 +558,19 @@
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
         <target state="translated">合計: &lt;strong&gt;{0} 件の結果が見つかりました&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="VolumeMountTypeColumnHeader">
+        <source>Mount type</source>
+        <target state="translated">マウントの種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VolumePathColumnHeader">
+        <source>Path</source>
+        <target state="translated">パス</target>
+        <note />
       </trans-unit>
     </body>
   </file>

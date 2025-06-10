@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Hosting.RabbitMQ;
 using Testcontainers.RabbitMq;
 using Xunit;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
@@ -15,7 +16,7 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
     public string GetConnectionString() => _container?.GetConnectionString() ??
         throw new InvalidOperationException("The test container was not initialized.");
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (RequiresDockerAttribute.IsSupported)
         {
@@ -23,7 +24,7 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_container is not null)
         {

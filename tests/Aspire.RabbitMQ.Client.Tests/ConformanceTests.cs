@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -108,6 +107,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void TriggerActivity(IConnection service)
     {
+#if RABBITMQ_V6
         var channel = service.CreateModel();
         channel.QueueDeclare("test-queue", exclusive: false);
         channel.BasicPublish(
@@ -115,10 +115,21 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
             routingKey: "test-queue",
             basicProperties: null,
             body: "hello world"u8.ToArray());
+#else
+        Task.Run(async () =>
+        {
+            using var channel = await service.CreateChannelAsync();
+            await channel.QueueDeclareAsync("test-queue", exclusive: false);
+            await channel.BasicPublishAsync(
+                exchange: "",
+                routingKey: "test-queue",
+                body: "hello world"u8.ToArray());
+        }).Wait();
+#endif
     }
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("RabbitMQ connects to localhost by default if the connection information isn't available.");
+        Assert.Skip("RabbitMQ connects to localhost by default if the connection information isn't available.");
     }
 }

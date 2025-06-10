@@ -55,6 +55,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
         Action<NpgsqlSettings>? configureSettings, string connectionName, object? serviceKey, Action<NpgsqlDataSourceBuilder>? configureDataSourceBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         NpgsqlSettings settings = new();
         var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);

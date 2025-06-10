@@ -37,13 +37,17 @@ function getFluentMenuItemForTarget(element) {
     return null;
 }
 
-// Register a global click event listener to handle copy button clicks.
+// Register a global click event listener to handle copy/open button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
     // The copy 'button' could either be a button or a menu item.
-    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
-    if (targetElement && targetElement.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(targetElement);
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target);
+    if (targetElement) {
+        if (targetElement.getAttribute("data-copybutton")) {
+            buttonCopyTextToClipboard(targetElement);
+        } else if (targetElement.getAttribute("data-openbutton")) {
+            buttonOpenLink(targetElement);
+        }
         e.stopPropagation();
     }
 });
@@ -112,6 +116,13 @@ function isScrolledToBottom(container) {
     const difference = containerScrollBottom - container.scrollTop;
 
     return difference < marginOfError;
+}
+
+window.buttonOpenLink = function (element) {
+    const url = element.getAttribute("data-url");
+    const target = element.getAttribute("data-target");
+
+    window.open(url, target, "noopener,noreferrer");
 }
 
 window.buttonCopyTextToClipboard = function(element) {
@@ -201,7 +212,7 @@ function isInputElement(element, isRoot, isShadowRoot) {
     return false;
 }
 
-window.registerGlobalKeydownListener = function(shortcutManager) {
+window.registerGlobalKeydownListener = function (shortcutManager) {
     function hasNoModifiers(keyboardEvent) {
         return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey && !keyboardEvent.shiftKey;
     }
@@ -272,24 +283,27 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
     return {
         keydownListener: keydownListener,
     }
-}
+};
 
 window.unregisterGlobalKeydownListener = function (obj) {
     window.document.removeEventListener('keydown', obj.keydownListener);
-}
+};
 
-window.getBrowserTimeZone = function () {
+window.getBrowserInfo = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
-    return options.timeZone;
-}
+    return {
+        timeZone: options.timeZone,
+        userAgent: navigator.userAgent
+    };
+};
 
-window.focusElement = function(selector) {
+window.focusElement = function (selector) {
     const element = document.getElementById(selector);
     if (element) {
         element.focus();
     }
-}
+};
 
 window.getWindowDimensions = function() {
     return {
@@ -324,39 +338,6 @@ window.listenToWindowResize = function(dotnetHelper) {
     window.addEventListener('resize', throttledResizeListener);
 }
 
-window.registerOpenTextVisualizerOnClick = function(layout) {
-    const onClickListener = function (e) {
-        const fluentMenuItem = getFluentMenuItemForTarget(e.target);
-
-        if (!fluentMenuItem) {
-            return;
-        }
-
-        const text = fluentMenuItem.getAttribute("data-text");
-        const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
-
-        if (text && description) {
-            e.stopPropagation();
-
-            // data-text may be larger than the max Blazor message size limit for very large strings
-            // we have to stream it
-            const textAsArray = new TextEncoder().encode(text);
-            const textAsStream = DotNet.createJSStreamReference(textAsArray);
-            layout.invokeMethodAsync("OpenTextVisualizerAsync", textAsStream, description);
-        }
-    }
-
-    document.addEventListener('click', onClickListener);
-
-    return {
-        onClickListener: onClickListener,
-    }
-}
-
-window.unregisterOpenTextVisualizerOnClick = function (obj) {
-    document.removeEventListener('click', obj.onClickListener);
-};
-
 window.setCellTextClickHandler = function (id) {
     var cellTextElement = document.getElementById(id);
     if (!cellTextElement) {
@@ -371,4 +352,24 @@ window.setCellTextClickHandler = function (id) {
             e.stopPropagation();
         }
     });
+};
+
+window.scrollToTop = function (selector) {
+    var element = document.querySelector(selector);
+    if (element) {
+        element.scrollTop = 0;
+    }
+};
+
+// taken from https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0#download-from-a-stream
+window.downloadStreamAsFile = async function (fileName, contentStreamReference) {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = fileName ?? '';
+    anchorElement.click();
+    anchorElement.remove();
+    URL.revokeObjectURL(url);
 };

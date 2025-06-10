@@ -7,6 +7,7 @@ using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
@@ -21,8 +22,15 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
     /// </summary>
     internal static ResourceStateViewModel GetStateViewModel(ResourceViewModel resource, IStringLocalizer<Columns> loc)
     {
-        // Browse the icon library at: https://aka.ms/fluentui-system-icons
+        var (icon, color) = GetStateIcon(resource);
+        var text = GetStateText(resource, loc);
 
+        return new ResourceStateViewModel(text, icon, color);
+    }
+
+    private static (Icon icon, Color color) GetStateIcon(ResourceViewModel resource)
+    {
+        // Browse the icon library at: https://aka.ms/fluentui-system-icons
         Icon icon;
         Color color;
 
@@ -34,7 +42,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 icon = new Icons.Filled.Size16.ErrorCircle();
                 color = Color.Error;
             }
-            else if (resource.IsFinishedState())
+            else if (resource.IsFinishedState() || resource.IsExitedState())
             {
                 // Process completed successfully.
                 icon = new Icons.Regular.Size16.RecordStop();
@@ -47,7 +55,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 color = Color.Warning;
             }
         }
-        else if (resource.IsUnusableTransitoryState() || resource.IsUnknownState())
+        else if (resource.IsUnusableTransitoryState() || resource.IsUnknownState() || resource.IsNotStarted())
         {
             icon = new Icons.Filled.Size16.CircleHint(); // A dashed, hollow circle.
             color = Color.Info;
@@ -62,11 +70,6 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy)
-        {
-            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
-            color = Color.Warning;
-        }
         else if (!string.IsNullOrEmpty(resource.StateStyle))
         {
             (icon, color) = resource.StateStyle switch
@@ -78,15 +81,18 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 _ => (new Icons.Filled.Size16.Circle(), Color.Neutral)
             };
         }
+        else if (resource.HealthStatus is not HealthStatus.Healthy)
+        {
+            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
+            color = Color.Warning;
+        }
         else
         {
             icon = new Icons.Filled.Size16.CheckmarkCircle();
             color = Color.Success;
         }
 
-        var text = GetStateText(resource, loc);
-
-        return new ResourceStateViewModel(text, icon, color);
+        return (icon, color);
     }
 
     /// <summary>
@@ -119,6 +125,14 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         {
             // DCP reports the container runtime is unhealthy. Most likely the container runtime (e.g. Docker) isn't running.
             return loc[nameof(Columns.StateColumnResourceContainerRuntimeUnhealthy)];
+        }
+        else if (resource.IsWaiting())
+        {
+            return loc[nameof(Columns.StateColumnResourceWaiting)];
+        }
+        else if (resource.IsNotStarted())
+        {
+            return loc[nameof(Columns.StateColumnResourceNotStarted)];
         }
 
         // Fallback to text displayed in column.

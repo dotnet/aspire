@@ -8,17 +8,36 @@ namespace Aspire.Dashboard.Utils;
 
 internal static class DashboardUrls
 {
+    public const string ResourcesBasePath = "";
     public const string ConsoleLogBasePath = "consolelogs";
     public const string MetricsBasePath = "metrics";
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
+    public const string LoginBasePath = "login";
+    public const string HealthBasePath = "health";
 
-    public static string ResourcesUrl(string? resource = null)
+    public static string ResourcesUrl(string? resource = null, string? view = null, string? hiddenTypes = null, string? hiddenStates = null, string? hiddenHealthStates = null)
     {
-        var url = "/";
+        var url = $"/{ResourcesBasePath}";
         if (resource != null)
         {
             url = QueryHelpers.AddQueryString(url, "resource", resource);
+        }
+        if (view != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "view", view);
+        }
+        if (hiddenTypes != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenTypes", hiddenTypes);
+        }
+        if (hiddenStates != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenStates", hiddenStates);
+        }
+        if (hiddenHealthStates != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "hiddenHealthStates", hiddenHealthStates);
         }
 
         return url;
@@ -124,7 +143,7 @@ internal static class DashboardUrls
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)
     {
-        var url = "/login";
+        var url = $"/{LoginBasePath}";
         if (returnUrl != null)
         {
             url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);
@@ -133,6 +152,15 @@ internal static class DashboardUrls
         {
             url = QueryHelpers.AddQueryString(url, "t", token);
         }
+
+        return url;
+    }
+
+    public static string SetLanguageUrl(string language, string redirectUrl)
+    {
+        var url = "/api/set-language";
+        url = QueryHelpers.AddQueryString(url, "language", language);
+        url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
 
         return url;
     }

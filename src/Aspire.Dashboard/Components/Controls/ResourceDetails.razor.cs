@@ -3,15 +3,18 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class ResourceDetails
+public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -25,31 +28,47 @@ public partial class ResourceDetails
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required ILogger<ResourceDetails> Logger { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
-    // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
-    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
+    // NOTE Excludes URLs as they don't expose sensitive items (and enumerating URLs is non-trivial)
+    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(_displayedResourcePropertyViewModels).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private readonly List<DisplayedResourcePropertyViewModel> _displayedResourcePropertyViewModels = new();
     private readonly HashSet<string> _unmaskedItemNames = new();
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     internal IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment
             .Where(vm => (_showAll || vm.FromSpec) && ((IPropertyGridItem)vm).MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<DisplayedEndpoint> FilteredEndpoints =>
-        GetEndpoints()
+    internal IQueryable<DisplayedUrl> FilteredUrls =>
+        GetUrls()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredRelationships =>
         GetRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourceDetailRelationship> FilteredBackRelationships =>
+    internal IQueryable<ResourceDetailRelationshipViewModel> FilteredBackRelationships =>
         GetBackRelationships()
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
@@ -64,20 +83,21 @@ public partial class ResourceDetails
             .Where(vm => vm.MatchesFilter(_filter))
             .AsQueryable();
 
-    internal IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+    internal IQueryable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
             .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
             .AsQueryable();
 
     private bool _isVolumesExpanded;
     private bool _isEnvironmentVariablesExpanded;
-    private bool _isEndpointsExpanded;
+    private bool _isUrlsExpanded;
     private bool _isHealthChecksExpanded;
     private bool _isRelationshipsExpanded;
     private bool _isBackRelationshipsExpanded;
 
     private string _filter = "";
     private bool? _isMaskAllChecked;
+    private bool _dataChanged;
 
     private bool IsMaskAllChecked
     {
@@ -85,23 +105,26 @@ public partial class ResourceDetails
         set { _isMaskAllChecked = value; }
     }
 
-    private readonly GridSort<DisplayedEndpoint> _endpointValueSort = GridSort<DisplayedEndpoint>.ByAscending(vm => vm.Url ?? vm.Text);
+    private readonly GridSort<DisplayedUrl> _urlValueSort = GridSort<DisplayedUrl>.ByAscending(vm => vm.Url ?? vm.Text);
 
     protected override void OnParametersSet()
     {
         if (!ReferenceEquals(Resource, _resource))
         {
-            // Reset masking when the resource changes.
+            // Reset masking and set data changed flag when the resource changes.
             if (!string.Equals(Resource.Name, _resource?.Name, StringComparisons.ResourceName))
             {
                 _isMaskAllChecked = true;
                 _unmaskedItemNames.Clear();
+                _dataChanged = true;
             }
 
             _resource = Resource;
+            _displayedResourcePropertyViewModels.Clear();
+            _displayedResourcePropertyViewModels.AddRange(_resource.Properties.Select(p => new DisplayedResourcePropertyViewModel(p.Value, Loc, TimeProvider)));
 
             // Collapse details sections when they have no data.
-            _isEndpointsExpanded = GetEndpoints().Any();
+            _isUrlsExpanded = GetUrls().Count > 0;
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();
             _isHealthChecksExpanded = _resource.HealthReports.Any() || _resource.HealthStatus is null; // null means we're waiting for health reports
@@ -120,16 +143,37 @@ public partial class ResourceDetails
                 }
             }
         }
+
+        UpdateTelemetryProperties();
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetRelationships()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_dataChanged)
+        {
+            if (!firstRender)
+            {
+                await JS.InvokeVoidAsync("scrollToTop", ".property-grid-container");
+            }
+
+            _dataChanged = false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
+    }
+
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         foreach (var resourceRelationships in Resource.Relationships.GroupBy(r => r.ResourceName, StringComparers.ResourceName))
         {
@@ -140,26 +184,21 @@ public partial class ResourceDetails
 
             foreach (var match in matches)
             {
-                items.Add(new()
-                {
-                    Resource = match,
-                    ResourceName = ResourceViewModel.GetResourceName(match, ResourceByName),
-                    Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
-                });
+                items.Add(ResourceDetailRelationshipViewModel.Create(match, ResourceViewModel.GetResourceName(match, ResourceByName), resourceRelationships));
             }
         }
 
         return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private IEnumerable<ResourceDetailRelationship> GetBackRelationships()
+    private IEnumerable<ResourceDetailRelationshipViewModel> GetBackRelationships()
     {
         if (ResourceByName == null)
         {
             return [];
         }
 
-        var items = new List<ResourceDetailRelationship>();
+        var items = new List<ResourceDetailRelationshipViewModel>();
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
@@ -171,12 +210,7 @@ public partial class ResourceDetails
             {
                 if (string.Equals(resourceRelationships.Key, Resource.DisplayName, StringComparisons.ResourceName))
                 {
-                    items.Add(new()
-                    {
-                        Resource = otherResource,
-                        ResourceName = ResourceViewModel.GetResourceName(otherResource, ResourceByName),
-                        Types = resourceRelationships.Select(r => r.Type).OrderBy(r => r).ToList()
-                    });
+                    items.Add(ResourceDetailRelationshipViewModel.Create(otherResource, ResourceViewModel.GetResourceName(otherResource, ResourceByName), resourceRelationships));
                 }
             }
         }
@@ -184,18 +218,18 @@ public partial class ResourceDetails
         return items.OrderBy(r => r.ResourceName, StringComparers.ResourceName);
     }
 
-    private List<DisplayedEndpoint> GetEndpoints()
+    private List<DisplayedUrl> GetUrls()
     {
-        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
+        return ResourceUrlHelpers.GetUrls(Resource, includeInternalUrls: true, includeNonEndpointUrls: true);
     }
 
-    private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)
+    private IEnumerable<DisplayedResourcePropertyViewModel> GetResourceProperties(bool ordered)
     {
-        var vms = Resource.Properties.Values
+        var vms = _displayedResourcePropertyViewModels
             .Where(vm => vm.Value is { HasNullValue: false } and not { KindCase: Value.KindOneofCase.ListValue, ListValue.Values.Count: 0 });
 
         return ordered
-            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.Name)
+            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.DisplayName)
             : vms;
     }
 
@@ -235,22 +269,24 @@ public partial class ResourceDetails
         }
     }
 
-    public Task OnViewRelationshipAsync(ResourceDetailRelationship relationship)
+    public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)
     {
         NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: relationship.Resource.Name));
         return Task.CompletedTask;
     }
-}
 
-public sealed class ResourceDetailRelationship
-{
-    public required ResourceViewModel Resource { get; init; }
-    public required string ResourceName { get; init; }
-    public required List<string> Types { get; set; }
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new("ResourceDetails");
 
-    public bool MatchesFilter(string filter)
+    public void UpdateTelemetryProperties()
     {
-        return Resource.DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            Types.Any(t => t.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+        TelemetryContext.UpdateTelemetryProperties([
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(Resource.ResourceType, Resource.SupportsDetailedTelemetry))),
+        ], Logger);
+    }
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
     }
 }

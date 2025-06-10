@@ -1,0 +1,95 @@
+services:
+  pg:
+    image: "docker.io/library/postgres:17.2"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${PG_PASSWORD}"
+    ports:
+      - "8000:5432"
+    networks:
+      - "aspire"
+  dbsetup:
+    image: "${DBSETUP_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8001"
+      ConnectionStrings__db: "Host=pg;Port=5432;Username=postgres;Password=${PG_PASSWORD};Database=db"
+    ports:
+      - "8002:8001"
+      - "8004:8003"
+    depends_on:
+      pg:
+        condition: "service_started"
+    networks:
+      - "aspire"
+  api:
+    image: "${API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8005"
+      ConnectionStrings__db: "Host=pg;Port=5432;Username=postgres;Password=${PG_PASSWORD};Database=db"
+      ConnectionStrings__azdb: "${AZPG_OUTPUTS_CONNECTIONSTRING};Database=azdb"
+    ports:
+      - "8006:8005"
+      - "8008:8007"
+    depends_on:
+      pg:
+        condition: "service_started"
+      dbsetup:
+        condition: "service_completed_successfully"
+    networks:
+      - "aspire"
+  sqlserver:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLSERVER_PASSWORD}"
+    ports:
+      - "8009:1433"
+    volumes:
+      - type: "volume"
+        target: "/var/opt/mssql"
+        source: "sqlserver-data"
+        read_only: false
+    networks:
+      - "aspire"
+  frontend:
+    image: "${FRONTEND_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "8010"
+      ConnectionStrings__sqldb: "Server=sqlserver,1433;User ID=sa;Password=${SQLSERVER_PASSWORD};TrustServerCertificate=true;Initial Catalog=sqldb"
+      P0: "${PARAM0}"
+      P1: "${PARAM1}"
+      P2: "${PARAM2}"
+      P3: "${PARAM3}"
+      services__api__http__0: "http://api:8005"
+    ports:
+      - "8011:8010"
+      - "8013:8012"
+    depends_on:
+      api:
+        condition: "service_started"
+    networks:
+      - "aspire"
+  mycontainer:
+    image: "${MYCONTAINER_IMAGE}"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
+volumes:
+  sqlserver-data:
+    driver: "local"

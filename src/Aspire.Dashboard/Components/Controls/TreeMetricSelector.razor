@@ -2,7 +2,7 @@
 
 @inject IStringLocalizer<Metrics> Loc
 
-@if (_instruments is null)
+@if (PageViewModel.Instruments is null)
 {
     return;
 }
@@ -14,12 +14,12 @@
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+        @foreach (var meterGroup in PageViewModel.Instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.Name))
         {
-            <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == PageViewModel.SelectedMeter?.MeterName)">
+            <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.Name" Data="@meterGroup.Key" title="@meterGroup.Key.Name" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.Name == PageViewModel.SelectedMeter?.Name)">
                 @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
                 {
-                    <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == PageViewModel.SelectedInstrument?.Name && instrument.Parent.MeterName == PageViewModel.SelectedMeter?.MeterName)"/>
+                    <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == PageViewModel.SelectedInstrument?.Name && instrument.Parent.Name == PageViewModel.SelectedMeter?.Name)"/>
                 }
             </FluentTreeItem>
         }

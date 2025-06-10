@@ -7,12 +7,6 @@
     <Description>A client for Azure Event Hubs that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureEventHubs_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
-    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
-    <PackageValidationBaselineVersion>8.0.1-preview.8.24267.1</PackageValidationBaselineVersion>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>70</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" />
+    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

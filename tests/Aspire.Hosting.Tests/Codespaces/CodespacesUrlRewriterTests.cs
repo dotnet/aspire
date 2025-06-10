@@ -5,7 +5,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Codespaces;
 
@@ -30,7 +29,6 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
         var abortToken = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         using var app = builder.Build();
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         await app.StartAsync(abortToken.Token);
 
@@ -68,20 +66,19 @@ public class CodespacesUrlRewriterTests(ITestOutputHelper testOutputHelper)
         var abortToken = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         using var app = builder.Build();
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         await app.StartAsync(abortToken.Token);
 
         // Push the URL to the resource state.
         var localhostUrlSnapshot = new UrlSnapshot("Test", "http://localhost:1234", false);
-        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = KnownResourceStates.Running,
             Urls = [localhostUrlSnapshot]
         });
 
         // Wait until
-        var resourceEvent = await rns.WaitForResourceAsync(
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
             resource.Resource.Name,
             (re) => {
                 var match = re.Snapshot.Urls.Length > 0 && re.Snapshot.Urls[0].Url.Contains("app.github.dev");

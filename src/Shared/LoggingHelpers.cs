@@ -19,8 +19,10 @@ internal static class LoggingHelpers
         {
             var message = !isContainer
                 ? "Login to the dashboard at {DashboardLoginUrl}"
-                : "Login to the dashboard at {DashboardLoginUrl}. The URL may need changes depending on how network access to the container is configured.";
-            logger.LogInformation(message, $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}");
+                : "Login to the dashboard at {DashboardLoginUrl} . The URL may need changes depending on how network access to the container is configured.";
+
+            var dashboardUrl = $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}";
+            logger.LogInformation(message, dashboardUrl);
         }
     }
 }

@@ -15,10 +15,28 @@ public class DistributedApplicationExecutionContext
     /// <remarks>
     /// This constructor is used for internal testing purposes.
     /// </remarks>
-    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation)
+    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation) : this(operation, "manifest")
+    {
+    }
+
+    /// <summary>
+    /// Constructs a <see cref="DistributedApplicationExecutionContext" /> without a callback to retrieve the <see cref="IServiceProvider" />.
+    /// </summary>
+    /// <param name="operation">The operation being performed in this invocation of the AppHost.</param>
+    /// <param name="publisherName">The name of the publisher being used for the publish operation. This corresponds to publishers added via the <see cref="PublisherDistributedApplicationBuilderExtensions.AddPublisher{TPublisher, TPublisherOptions}(IDistributedApplicationBuilder, string, Action{TPublisherOptions})"/> extension method.</param>
+    /// <remarks>
+    /// This constructor is used for internal testing purposes.
+    /// </remarks>
+    public DistributedApplicationExecutionContext(DistributedApplicationOperation operation, string publisherName)
     {
         Operation = operation;
+        PublisherName = publisherName;
     }
+
+    /// <summary>
+    /// The name of the publisher that is being used if <see cref="Operation"/> is set to <see cref="DistributedApplicationOperation.Publish"/>. 
+    /// </summary>
+    public string PublisherName { get; set; }
 
     private readonly DistributedApplicationExecutionContextOptions? _options;
 
@@ -26,7 +44,7 @@ public class DistributedApplicationExecutionContext
     /// Constructs a <see cref="DistributedApplicationExecutionContext" /> with a callback to retrieve the <see cref="IServiceProvider" />.
     /// </summary>
     /// <param name="options">Options for <see cref="DistributedApplicationExecutionContext"/>.</param>
-    public DistributedApplicationExecutionContext(DistributedApplicationExecutionContextOptions options) : this(options.Operation)
+    public DistributedApplicationExecutionContext(DistributedApplicationExecutionContextOptions options) : this(options.Operation, options.PublisherName ?? "manifest")
     {
         _options = options;
     }

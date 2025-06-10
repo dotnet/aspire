@@ -31,7 +31,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// <summary>
     /// Gets the parameter that contains the SQL Server password.
     /// </summary>
-    public ParameterResource PasswordParameter { get; }
+    public ParameterResource PasswordParameter { get; private set; }
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
@@ -69,14 +69,25 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     }
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
+    private readonly List<SqlServerDatabaseResource> _databaseResources = [];
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
     /// </summary>
     public IReadOnlyDictionary<string, string> Databases => _databases;
 
-    internal void AddDatabase(string name, string databaseName)
+    internal void SetPassword(ParameterResource password)
     {
-        _databases.TryAdd(name, databaseName);
+        ArgumentNullException.ThrowIfNull(password);
+
+        PasswordParameter = password;
     }
+
+    internal void AddDatabase(SqlServerDatabaseResource database)
+    {
+        _databases.TryAdd(database.Name, database.DatabaseName);
+        _databaseResources.Add(database);
+    }
+
+    internal IReadOnlyList<SqlServerDatabaseResource> DatabaseResources => _databaseResources;
 }

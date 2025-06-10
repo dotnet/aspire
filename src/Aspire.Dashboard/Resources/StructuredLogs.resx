@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -130,15 +130,7 @@
   <data name="StructuredLogsSelectMinimumLogLevel" xml:space="preserve">
     <value>Select a minimum log level</value>
   </data>
-  <data name="StructuredLogsFilters" xml:space="preserve">
-    <value>Filters</value>
-  </data>
-  <data name="StructuredLogsNoFilters" xml:space="preserve">
-    <value>No filters</value>
-  </data>
-  <data name="StructuredLogsAddFilter" xml:space="preserve">
-    <value>Add filter</value>
-  </data>
+
   <data name="StructuredLogsEntryDetails" xml:space="preserve">
     <value>Log entry details</value>
   </data>
@@ -160,9 +152,7 @@
   <data name="StructuredLogsNoLogsFound" xml:space="preserve">
     <value>No structured logs found</value>
   </data>
-  <data name="StructuredLogsEditFilter" xml:space="preserve">
-    <value>Edit filter</value>
-  </data>
+
   <data name="StructuredLogsMessageFilter" xml:space="preserve">
     <value>Message filter</value>
   </data>
@@ -178,5 +168,8 @@
   </data>
   <data name="ActionLogMessageText" xml:space="preserve">
     <value>Log message</value>
+  </data>
+  <data name="PauseInProgressText" xml:space="preserve">
+    <value>Structured logs capture paused at {0}</value>
   </data>
 </root>

@@ -61,11 +61,6 @@ internal sealed class DcpOptions
     public string? ResourceNameSuffix { get; set; }
 
     /// <summary>
-    /// Whether to delete resources created by this application when the application is shut down.
-    /// </summary>
-    public bool DeleteResourcesOnShutdown { get; set; }
-
-    /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
     public bool RandomizePorts { get; set; }
@@ -74,7 +69,31 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
+    /// <summary>
+    /// The duration to wait for the container runtime to become healthy before aborting startup.
+    /// </summary>
+    /// <remarks>
+    /// A value of zero, which is the default value, indicates that the application will not wait for the container
+    /// runtime to become healthy.
+    /// If this property has a value greater than zero, the application will abort startup if the container runtime
+    /// does not become healthy within the specified timeout.
+    /// </remarks>
+    public TimeSpan ContainerRuntimeInitializationTimeout { get; set; }
+
     public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Whether to wait for resource cleanup to end when stopping DcpExecutor.
+    /// This guarantees that application resources (programs, transient containers etc.) are stopped
+    /// before DcpExecutor.StopAsync() returns. Default is false (resources are cleaned up asynchronously).
+    /// </summary>
+    public bool WaitForResourceCleanup { get; set; }
+
+    /// <summary>
+    /// Gets or sets the suffix to use for DCP log file names (applicable when verbose DCP logging is enabled).
+    /// By default log file name suffix defaults to the current process ID.
+    /// </summary>
+    public string? LogFileNameSuffix { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -146,7 +165,7 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            options.ContainerRuntime = configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
+            options.ContainerRuntime = configuration.GetString(KnownConfigNames.ContainerRuntime, KnownConfigNames.Legacy.ContainerRuntime);
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]))
@@ -162,7 +181,7 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            options.DependencyCheckTimeout = configuration.GetValue("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", options.DependencyCheckTimeout);
+            options.DependencyCheckTimeout = configuration.GetValue(KnownConfigNames.DependencyCheckTimeout, KnownConfigNames.Legacy.DependencyCheckTimeout, options.DependencyCheckTimeout);
         }
 
         options.KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryCount), options.KubernetesConfigReadRetryCount);
@@ -173,9 +192,11 @@ internal class ConfigureDefaultDcpOptions(
             options.ResourceNameSuffix = dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)];
         }
 
-        options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
-        options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+        options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
+        options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
+        options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
+        options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

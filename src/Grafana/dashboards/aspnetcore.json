@@ -198,7 +198,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "legendFormat": "p50",
           "range": true,
           "refId": "p50"
@@ -209,7 +209,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.75, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p75",
           "range": true,
@@ -221,7 +221,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p90",
           "range": true,
@@ -233,7 +233,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p95",
           "range": true,
@@ -245,7 +245,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.98, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.98, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p98",
           "range": true,
@@ -257,7 +257,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p99",
           "range": true,
@@ -269,7 +269,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.999, sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.999, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval])) by (le))",
           "hide": false,
           "legendFormat": "p99.9",
           "range": true,
@@ -424,7 +424,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\", http_response_status_code=~\"4..|5..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", http_response_status_code=~\"4..|5..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "All",
           "range": true,
           "refId": "All"
@@ -435,7 +435,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\", http_response_status_code=~\"4..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", http_response_status_code=~\"4..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))",
           "hide": false,
           "legendFormat": "4XX",
           "range": true,
@@ -447,7 +447,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\", http_response_status_code=~\"5..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=\"$job\", instance=\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", http_response_status_code=~\"5..\"}[$__rate_interval]) or vector(0)) / sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))",
           "hide": false,
           "legendFormat": "5XX",
           "range": true,
@@ -543,8 +543,8 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kestrel_active_connections{job=\"$job\", instance=\"$instance\"})",
-          "legendFormat": "__auto",
+          "expr": "sum(kestrel_active_connections{job=~\"$job\", instance=~\"$instance\"})",
+          "legendFormat": "active connections",
           "range": true,
           "refId": "A"
         }
@@ -638,8 +638,8 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(http_server_active_requests{job=\"$job\", instance=\"$instance\"})",
-          "legendFormat": "__auto",
+          "expr": "sum(http_server_active_requests{job=~\"$job\", instance=~\"$instance\"})",
+          "legendFormat": "active requests",
           "range": true,
           "refId": "A"
         }
@@ -707,7 +707,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\"})",
+          "expr": "sum(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range])))",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -777,7 +777,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\", error_type!=\"\"})",
+          "expr": "sum(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", error_type!=\"\"}[$__range])))",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -845,7 +845,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (url_scheme) (\r\n    max_over_time(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\"}[$__rate_interval])\r\n  )",
+          "expr": "sum by (url_scheme) (\r\n    ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range]))\r\n  )",
           "legendFormat": "{{scheme}}",
           "range": true,
           "refId": "A"
@@ -904,7 +904,6 @@
         },
         "textMode": "value_and_name"
       },
-      "pluginVersion": "",
       "targets": [
         {
           "datasource": {
@@ -912,7 +911,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (method_route) (\r\n    label_replace(max_over_time(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\"}[$__rate_interval]), \"method_route\", \"http/$1\", \"network_protocol_version\", \"(.*)\")\r\n  )",
+          "expr": "sum by (method_route) (\r\n    label_replace(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[$__range])), \"method_route\", \"http/$1\", \"network_protocol_version\", \"(.*)\")\r\n  )",
           "legendFormat": "{{protocol}}",
           "range": true,
           "refId": "A"
@@ -991,8 +990,8 @@
                 "value": [
                   {
                     "targetBlank": false,
-                    "title": "Test",
-                    "url": "/d/NagEsjE4z/asp-net-core-endpoint-details?var-route=${__data.fields.http_route}&var-method=${__data.fields.http_request_method}&${__url_time_range}"
+                    "title": "${__data.fields.http_request_method} ${__data.fields.http_route}",
+                    "url": "/d/NagEsjE4z/asp-net-core-endpoint-details?${job:queryparam}&${instance:queryparam}&var-route=${__data.fields.http_route}&var-method=${__data.fields.http_request_method}&${__url_time_range}"
                   }
                 ]
               }
@@ -1059,7 +1058,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(max_over_time(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\", http_route!=\"\"}[$__rate_interval]), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
+          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\"}[$__range])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -1165,8 +1164,9 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "",
-                    "url": "/d/NagEsjE4z/asp-net-core-endpoint-details?var-route=${__data.fields.http_route}&var-method=${__data.fields.http_request_method}&${__url_time_range}"
+                    "targetBlank": false,
+                    "title": "${__data.fields.http_request_method} ${__data.fields.http_route}",
+                    "url": "/d/NagEsjE4z/asp-net-core-endpoint-details?${job:queryparam}&${instance:queryparam}&var-route=${__data.fields.http_route}&var-method=${__data.fields.http_request_method}&${__url_time_range}"
                   }
                 ]
               }
@@ -1233,7 +1233,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(max_over_time(http_server_request_duration_seconds_count{job=\"$job\", instance=\"$instance\", http_route!=\"\", error_type!=\"\"}[$__rate_interval]), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
+          "expr": "  topk(10,\r\n  sum by (http_route, http_request_method, method_route) (\r\n    label_join(ceil(increase(http_server_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\", http_route!=\"\", error_type!=\"\"}[$__range])), \"method_route\", \" \", \"http_request_method\", \"http_route\")\r\n  ))",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -1272,7 +1272,7 @@
   ],
   "refresh": "10s",
   "revision": 1,
-  "schemaVersion": 38,
+  "schemaVersion": 39,
   "tags": [
     "dotnet",
     "prometheus",
@@ -1281,6 +1281,7 @@
   "templating": {
     "list": [
       {
+        "allValue": ".*",
         "current": {},
         "datasource": {
           "type": "prometheus",
@@ -1288,9 +1289,9 @@
         },
         "definition": "label_values(http_server_active_requests,job)",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Job",
-        "multi": false,
+        "multi": true,
         "name": "job",
         "options": [],
         "query": {
@@ -1304,6 +1305,7 @@
         "type": "query"
       },
       {
+        "allValue": ".*",
         "current": {},
         "datasource": {
           "type": "prometheus",
@@ -1311,9 +1313,9 @@
         },
         "definition": "label_values(http_server_active_requests{job=~\"$job\"},instance)",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Instance",
-        "multi": false,
+        "multi": true,
         "name": "instance",
         "options": [],
         "query": {
@@ -1350,6 +1352,6 @@
   "timezone": "",
   "title": "ASP.NET Core",
   "uid": "KdDACDp4z",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

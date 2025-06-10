@@ -20,6 +20,9 @@ using Azure.Messaging.EventHubs.Producer;
 [assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:PartitionReceiver", typeof(AzureMessagingEventHubsPartitionReceiverSettings))]
 [assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:PartitionReceiver:ClientOptions", typeof(PartitionReceiverOptions))]
 
+[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:EventHubBufferedProducerClient", typeof(AzureMessagingEventHubsBufferedProducerSettings))]
+[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:EventHubBufferedProducerClient:ClientOptions", typeof(EventHubBufferedProducerClientOptions))]
+
 [assembly: LoggingCategories(
     "Azure",
     "Azure.Core",

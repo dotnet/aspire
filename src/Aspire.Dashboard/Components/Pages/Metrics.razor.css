@@ -28,7 +28,8 @@
     grid-template-rows: auto 1fr;
     grid-template-areas:
         "header"
-        "chart";
+        "chart"
+        "footer";
     width: 100%;
     gap: calc(var(--design-unit) * 4px);
 }
@@ -42,6 +43,11 @@
 ::deep .metrics-chart-header {
     grid-area: header;
     overflow-x: hidden;
+}
+
+::deep .metrics-chart-footer {
+    grid-area: footer;
+    margin-bottom: calc(var(--design-unit) * 4px);
 }
 
 ::deep .metrics-chart-header h3 {
@@ -86,7 +92,8 @@
 }
 
 ::deep .metrics-content {
-    margin-left: 10px;
+    /* Match left padding of the page header */
+    margin-left: calc(var(--design-unit)* 4.5px);
 }
 
 ::deep .plotly-chart-container {

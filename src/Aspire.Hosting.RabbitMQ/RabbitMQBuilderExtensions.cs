@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RabbitMQ;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 
 namespace Aspire.Hosting;
 
@@ -32,7 +33,7 @@ public static class RabbitMQBuilderExtensions
         int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // don't use special characters in the password, since it goes into a URI
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
@@ -52,12 +53,22 @@ public static class RabbitMQBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRabbitMQ((sp, options) =>
+        // cache the connection so it is reused on subsequent calls to the health check
+        IConnection? connection = null;
+        builder.Services.AddHealthChecks().AddRabbitMQ(async (sp) =>
         {
-            // NOTE: This specific callback signature needs to be used to ensure
-            //       that execution of this setup callback is deferred until after
-            //       the container is build & started.
-            options.ConnectionUri = new Uri(connectionString!);
+            // NOTE: Ensure that execution of this setup callback is deferred until after
+            //       the container is built & started.
+            return connection ??= await CreateConnection(connectionString!).ConfigureAwait(false);
+
+            static Task<IConnection> CreateConnection(string connectionString)
+            {
+                var factory = new ConnectionFactory
+                {
+                    Uri = new Uri(connectionString)
+                };
+                return factory.CreateConnectionAsync();
+            }
         }, healthCheckKey);
 
         var rabbitmq = builder.AddResource(rabbitMq)
@@ -99,7 +110,7 @@ public static class RabbitMQBuilderExtensions
     public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly)
                       .RunWithStableNodeName();
@@ -126,6 +137,7 @@ public static class RabbitMQBuilderExtensions
     /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
+    /// <remarks>
     /// <example>
     /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
     /// <code>
@@ -134,6 +146,7 @@ public static class RabbitMQBuilderExtensions
     ///                       .WithManagementPlugin(port: 15672);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -148,8 +161,8 @@ public static class RabbitMQBuilderExtensions
             // Existing annotation is in a state we can update to enable the management plugin
             // See tag details at https://hub.docker.com/_/rabbitmq
 
-            const string management = "-management";
-            const string alpine = "-alpine";
+            const string management = "management";
+            const string alpine = "alpine";
 
             var annotation = containerAnnotations[0];
             var existingTag = annotation.Tag;
@@ -161,23 +174,30 @@ public static class RabbitMQBuilderExtensions
                 handled = true;
             }
             else if (existingTag.EndsWith(management, StringComparison.OrdinalIgnoreCase)
-                     || existingTag.EndsWith($"{management}{alpine}", StringComparison.OrdinalIgnoreCase))
+                     || existingTag.EndsWith($"{management}-{alpine}", StringComparison.OrdinalIgnoreCase))
             {
                 // Already using the management tag
                 handled = true;
             }
-            else if (existingTag.EndsWith(alpine, StringComparison.OrdinalIgnoreCase)
-                     && existingTag.Length > alpine.Length)
+            else if (existingTag.EndsWith(alpine, StringComparison.OrdinalIgnoreCase))
             {
-                // Transform tag like "3.12-alpine" to "3.12-management-alpine"
-                var tagPrefix = existingTag[..existingTag.IndexOf(alpine)];
-                annotation.Tag = $"{tagPrefix}{management}{alpine}";
+                if (existingTag.Length > alpine.Length)
+                {
+                    // Transform tag like "3.12-alpine" to "3.12-management-alpine"
+                    var tagPrefix = existingTag[..existingTag.IndexOf($"-{alpine}")];
+                    annotation.Tag = $"{tagPrefix}-{management}-{alpine}";
+                }
+                else
+                {
+                    // Transform tag "alpine" to "management-alpine"
+                    annotation.Tag = $"{management}-{alpine}";
+                }
                 handled = true;
             }
             else if (IsVersion(existingTag))
             {
                 // Tag is in version format so just append "-management"
-                annotation.Tag = $"{existingTag}{management}";
+                annotation.Tag = $"{existingTag}-{management}";
                 handled = true;
             }
         }

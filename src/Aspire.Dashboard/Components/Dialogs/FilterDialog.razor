@@ -57,14 +57,27 @@
             <ValidationMessage For="() => _formModel.Value" />
         </div>
 
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
-            <FluentButton OnClick="Cancel">@Loc[nameof(Dialogs.FilterDialogCancelButtonText)]</FluentButton>
-            <FluentButton Color="Color.Primary" Type="ButtonType.Submit">@Loc[nameof(Dialogs.FilterDialogApplyFilterButtonText)]</FluentButton>
-            @if (Content.Filter is not null)
-            {
-                <FluentButton Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dialogs.FilterDialogRemoveFilterButtonText)]" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
-            }
-        </FluentStack>
+        <div class="filter-input-container filter-button-container">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Left">
+                @if (Content.Filter is not null)
+                {
+                    if (Content.Filter.Enabled)
+                    {
+                        <FluentButton Appearance="Appearance.Stealth" Title="@Loc[nameof(Dialogs.FilterDialogDisableFilterButtonText)]" aria-label="@Loc[nameof(Dialogs.FilterDialogDisableFilterButtonText)]" OnClick="Disable"><FluentIcon Value="@(new Icons.Regular.Size16.Pause())" /></FluentButton>
+                    }
+                    else
+                    {
+                        <FluentButton Appearance="Appearance.Stealth" Title="@Loc[nameof(Dialogs.FilterDialogDisableFilterButtonText)]" aria-label="@Loc[nameof(Dialogs.FilterDialogDisableFilterButtonText)]" OnClick="Enable"><FluentIcon Value="@(new Icons.Regular.Size16.Play())" /></FluentButton>
+                    }
+                    <FluentButton Appearance="Appearance.Stealth" Title="@Loc[nameof(Dialogs.FilterDialogRemoveFilterButtonText)]" aria-label="@Loc[nameof(Dialogs.FilterDialogRemoveFilterButtonText)]" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
+                }
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
+                <FluentButton OnClick="Cancel">@Loc[nameof(Dialogs.FilterDialogCancelButtonText)]</FluentButton>
+                <FluentButton Color="Color.Primary" Type="ButtonType.Submit">@Loc[nameof(Dialogs.FilterDialogApplyFilterButtonText)]</FluentButton>
+            </FluentStack>
+        </div>
     </FluentStack>
 
 </EditForm>

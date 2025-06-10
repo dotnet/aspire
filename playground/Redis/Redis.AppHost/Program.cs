@@ -1,9 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var redis = builder.AddRedis("redis")
-    .WithDataVolume()
-    .WithRedisCommander(c => c.WithHostPort(33803))
-    .WithRedisInsight(c => c.WithHostPort(41567));
+var redis = builder.AddRedis("redis");
+redis.WithDataVolume()
+    .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redis))
+    .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis));
 
 var garnet = builder.AddGarnet("garnet")
     .WithDataVolume();
@@ -12,6 +12,7 @@ var valkey = builder.AddValkey("valkey")
     .WithDataVolume("valkey-data");
 
 builder.AddProject<Projects.Redis_ApiService>("apiservice")
+    .WithExternalHttpEndpoints()
     .WithReference(redis).WaitFor(redis)
     .WithReference(garnet).WaitFor(garnet)
     .WithReference(valkey).WaitFor(valkey);

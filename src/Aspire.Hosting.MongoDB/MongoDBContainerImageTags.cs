@@ -5,21 +5,21 @@ namespace Aspire.Hosting.MongoDB;
 
 internal static class MongoDBContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>library/mongo</summary>
+    /// <remarks>library/mongo</remarks>
     public const string Image = "library/mongo";
 
-    /// <summary>8.0</summary>
+    /// <remarks>8.0</remarks>
     public const string Tag = "8.0";
 
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string MongoExpressRegistry = "docker.io";
 
-    /// <summary>library/mongo-express</summary>
+    /// <remarks>library/mongo-express</remarks>
     public const string MongoExpressImage = "library/mongo-express";
 
-    /// <summary>1.0</summary>
+    /// <remarks>1.0</remarks>
     public const string MongoExpressTag = "1.0";
 }

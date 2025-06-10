@@ -10,7 +10,7 @@
     <DotNetCliPackageType>sdk</DotNetCliPackageType>
     <NeedsCreateDotNetDevScripts Condition="'$(OS)' != 'Windows_NT'">true</NeedsCreateDotNetDevScripts>
     <HasDocker Condition="'$(OS)' != 'Windows_NT'">true</HasDocker>
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4921 -->
     <DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>
 
     <DotNetCliVersion>$(DotNetSdkPreviousVersionForTesting)</DotNetCliVersion>
@@ -18,19 +18,11 @@
     <!-- dotnet-coverage tool version -->
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
     <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
-    <_DotNetCoverageVersionRegex>"dotnet-coverage":\s*{\s*"version":\s*"([^"]*)"</_DotNetCoverageVersionRegex>
-    <_DotNetCoverageToolVersion>$([System.Text.RegularExpressions.Regex]::Match($(_DotNetToolJsonContent), '$(_DotNetCoverageVersionRegex)').Groups[1].Value)</_DotNetCoverageToolVersion>
-    <_DotNetCoverageToolDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'tools', 'dotnet-coverage', $(_DotNetCoverageToolVersion)))</_DotNetCoverageToolDir>
-
-    <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
-    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
 
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
 
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
-
-    <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -46,9 +38,6 @@
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%</_TestAssemblyRootDirEnvVar>
 
-    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' != 'Windows_NT'">${CODE_COV_FILE_SUFFIX}</_CodeCoverageReportFileNameSuffixEnvVar>
-    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' == 'Windows_NT'">%CODE_COV_FILE_SUFFIX%</_CodeCoverageReportFileNameSuffixEnvVar>
-
     <_EnvVarSetKeyword Condition="'$(OS)' == 'Windows_NT'">set</_EnvVarSetKeyword>
     <_EnvVarSetKeyword Condition="'$(OS)' != 'Windows_NT'">export</_EnvVarSetKeyword>
 
@@ -60,20 +49,27 @@
 
     <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-tests|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
     <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-tests|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+
+    <_WaitForDcpCommand Condition="'$(OS)' != 'Windows_NT'">echo "Waiting for dcp process to exit..."; start_time=$(date +%s); echo "Start time: $start_time"; timeout=120; while pgrep -lf "dcp.exe" &gt; /dev/null &amp;&amp; [ $timeout -gt 0 ]; do sleep 1; timeout=$((timeout - 1)); done; end_time=$(date +%s); echo "End time: $end_time"; if pgrep -lf "dcp.exe" &gt; /dev/null; then echo "dcp process did not exit within the timeout period."; exit 1; fi</_WaitForDcpCommand>
+    <!-- Figure out the powershell... -->
+    <_WaitForDcpCommand Condition="'$(OS)' == 'Windows_NT'"></_WaitForDcpCommand>
+
+    <_SetExecutableBitCommand Condition="'$(OS)' != 'Windows_NT'">chmod +x $(_TestNameEnvVar) $(_ShellCommandSeparator) </_SetExecutableBitCommand>
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestCoverageCommand Include="$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect" />
-    <_TestCoverageCommand Include="--settings $(_HelixCorrelationPayloadEnvVar)/support-data/CodeCoverage.config" />
-    <_TestCoverageCommand Include="--output $(_HelixLogsPath)/$(_TestNameEnvVar)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
+    <_TestBlameArguments Include="--hangdump" />
+    <_TestBlameArguments Include="--hangdump-type Full" />
+    <_TestBlameArguments Include="--hangdump-timeout 20m" />
+    <_TestBlameArguments Include="--crashdump" />
+    <_TestBlameArguments Include="--crashdump-type Full" />
 
-    <_TestBlameArguments Include="--blame-hang" />
-    <_TestBlameArguments Include="--blame-hang-dump-type full" />
-    <_TestBlameArguments Include="--blame-hang-timeout 10m" />
-    <_TestBlameArguments Include="--blame-crash" />
-    <_TestBlameArguments Include="--blame-crash-dump-type full" />
-
-    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
+    <!--
+      At time of writing, EndToEnd.Tests doesn't have tests matching scenario=cosmos
+      So, ignore exit code 8 (zero tests ran)
+      https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes
+    -->
+    <_TestRunCommandArguments Include="$(_SetExecutableBitCommand)dotnet exec $(_TestNameEnvVar).dll --results-directory:$(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx --filter-not-trait &quot;category=failing&quot; --ignore-exit-code 8" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
@@ -82,6 +78,12 @@
   <ItemGroup>
     <!-- Run this at the start -->
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Azure.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Docker.Tests/Snapshots" Destination="Snapshots" />
+    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Kubernetes.Tests/Snapshots" Destination="Snapshots" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">
@@ -93,13 +95,13 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
+  <ItemGroup Condition="'$(NeedsSdksForTesting)' == 'true'">
     <!-- set path to dotnet-tests early, so any dotnet commands can run -->
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_TEMPLATES_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_TEMPLATES_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests)" />
 
     <!-- needed till the 9.0 sdk drops the aspire manifest -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipAspireWorkloadManifest=true" />
@@ -122,35 +124,43 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT' and '$(DockerCliToolDir)' != ''">
+    <!-- Update it to the latest cli. This path is set from the eng/pipelines/templates/BuildAndTest.yml -->
+    <HelixPreCommand Include="export PATH=$HELIX_CORRELATION_PAYLOAD/docker-cli:$PATH" />
+    <HelixPreCommand Include="which docker" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
-    <HelixPreCommand Include="docker ps" />
     <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Include="docker container ls --all --format json" />
     <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPreCommand Include="docker volume ls" />
     <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPreCommand Include="docker network ls" />
     <HelixPreCommand Include="docker network prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
-    <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker container ls --all --format json" />
     <HelixPostCommand Include="docker volume ls" />
-    <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
-    <HelixPostCommand Include="docker network prune -f" />
+    <HelixPostCommand Include="docker network ls" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
-    <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
-
     <!-- Issue: https://github.com/dotnet/aspire/pull/6181 -->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) MSBUILDDEBUGPATH=$(_HelixCorrelationPayloadEnvVar)/msbuild-debug" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
-    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
+    <!-- Set the DCP env -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_LEVEL=debug" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_DIAGNOSTICS_LOG_FOLDER=$(_HelixLogsPath)" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DCP_PRESERVE_EXECUTABLE_LOGS=1" />
+
+    <HelixPostCommand Include="$(_WaitForDcpCommand)" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(NeedsWorkload)' == 'true'">
+  <PropertyGroup Condition="'$(NeedsSdksForTesting)' == 'true'">
     <!-- Set this here so if dotnet-cli is overriding the path, then dotnet-tests overrides that and gets precedence -->
     <HelixPerWorkItemPreCommand Condition="'$(OS)' == 'Windows_NT'">set PATH=%HELIX_CORRELATION_PAYLOAD%\$(_DefaultSdkDirNameForTests)%3B%PATH%</HelixPerWorkItemPreCommand>
     <HelixPerWorkItemPreCommand Condition="'$(OS)' != 'Windows_NT'">export PATH=$HELIX_CORRELATION_PAYLOAD/$(_DefaultSdkDirNameForTests):$PATH</HelixPerWorkItemPreCommand>
@@ -161,30 +171,7 @@
 
   <Target Name="PrepareDependencies" DependsOnTargets="$(PrepareDependenciesDependsOn)" />
 
-  <Target Name="_StageDotNetCoverageTool" Condition="!Exists($(_DotNetCoverageToolDir))">
-    <Error Condition="'$(_DotNetCoverageToolVersion)' == ''"
-           Text="%24(_DotNetCoverageToolVersion) is unset. Could not determine the version from $(_DotNetToolJsonPath)" />
-
-    <Message Text="Installing dotnet-coverage $(_DotNetCoverageToolVersion)" />
-    <InstallDotNetTool Name="dotnet-coverage"
-                       DestinationPath="$(ArtifactsDir)/tools"
-                       Version="$(_DotNetCoverageToolVersion)"
-                       WorkingDirectory="$(ArtifactsTmpDir)"
-                       DotNetPath="$(DotNetTool)" />
-
-    <MakeDir Directories="$(_SupportDataStagingDir)" />
-    <Copy SourceFiles="$(RepoRoot)eng/CodeCoverage.config" DestinationFolder="$(_SupportDataStagingDir)" />
-  </Target>
-
-  <Target Name="_StageCreateDotNetDevCertScripts" Condition="'$(NeedsCreateDotNetDevScripts)' == 'true' and '$(OS)' != 'Windows_NT' and !Exists($(_CreateDotNetDevCertsDirectory))">
-    <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
-    <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
-  </Target>
-
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
-    <Error Condition="'$(_DotNetCoverageToolDir)' == '' or !Exists($(_DotNetCoverageToolDir))"
-           Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
-
     <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
       <Output TaskParameter="TargetOutputs" PropertyName="DCPBinaryLocation" />
     </MSBuild>
@@ -202,12 +189,11 @@
     </PropertyGroup>
 
     <ItemGroup Label="Common payload">
-      <HelixCorrelationPayload Include="$(_DotNetCoverageToolDir)" Destination="dotnet-coverage" />
-      <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
-      <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
+      <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(RepoRoot)tests\external-scripts" Destination="create-dotnet-devcert" />
+      <HelixCorrelationPayload Condition="'$(DockerCliToolDir)' != ''" Include="$(DockerCliToolDir)" Destination="docker-cli" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
+    <ItemGroup Condition="'$(NeedsSdksForTesting)' == 'true'">
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)$(_DefaultSdkDirNameForTests)" Destination="$(_DefaultSdkDirNameForTests)" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
     </ItemGroup>

@@ -4,12 +4,8 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure</PackageTags>
-    <Description>Azure Log Anlytics resource types for .NET Aspire.</Description>
+    <Description>Azure Log Analytics resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureLogAnalytics_256x.png</PackageIconFullPath>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <MinCodeCoverage>100</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

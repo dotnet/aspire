@@ -3,37 +3,40 @@
 @typeparam TItem where TItem : IPropertyGridItem
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
-                ResizeType="DataGridResizeType.Discrete"
-                Items="@Items"
-                ItemKey="@ItemKey"
-                ResizableColumns="true"
-                Style="width:100%"
-                GenerateHeader="@GenerateHeader"
-                GridTemplateColumns="@GridTemplateColumns"
-                ShowHover="true"
-                Class="@Class">
-    <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
-        <GridValue
-            ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
-            Value="@context.Name"
-            EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
-            HighlightText="@HighlightText" />
-    </AspireTemplateColumn>
-    <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
-        <GridValue
-            ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
-            Value="@context.Value"
-            ContentAfterValue="@GetContentAfterValue(context)"
-            EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
-            HighlightText="@HighlightText"
-            EnableMasking="@context.IsValueSensitive"
-            IsMasked="@context.IsValueMasked"
-            IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
-            TextVisualizerTitle="@context.Name"
-            ValueToCopy="@(context.ValueToCopy ?? context.Value)"
-            ValueToVisualize="@(context.ValueToVisualize ?? context.Value)" />
-        @ExtraValueContent(context)
-    </AspireTemplateColumn>
-</FluentDataGrid>
+<div class="property-grid">
+    <FluentDataGrid ColumnResizeLabels="@_resizeLabels"
+                    ColumnSortLabels="@_sortLabels"
+                    HeaderCellAsButtonWithMenu="true"
+                    ResizeType="DataGridResizeType.Discrete"
+                    Items="@Items"
+                    ItemKey="@ItemKey"
+                    ResizableColumns="true"
+                    Style="width:100%"
+                    GenerateHeader="@GenerateHeader"
+                    GridTemplateColumns="@GridTemplateColumns"
+                    RowSize="DataGridRowSize.Medium"
+                    ShowHover="true"
+                    Class="@Class"
+                    MultiLine="@Multiline">
+        <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
+            <GridValue ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
+                       Value="@context.Name"
+                       EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
+                       HighlightText="@HighlightText" />
+        </AspireTemplateColumn>
+        <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
+            <GridValue ValueDescription="@(context.Name ?? ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
+                       Value="@context.Value"
+                       ContentAfterValue="@GetContentAfterValue(context)"
+                       EnableHighlighting="@(!string.IsNullOrEmpty(HighlightText))"
+                       HighlightText="@HighlightText"
+                       EnableMasking="@context.IsValueSensitive"
+                       IsMasked="@context.IsValueMasked"
+                       IsMaskedChanged="(isMasked) => OnIsValueMaskedChanged(context, isMasked)"
+                       TextVisualizerTitle="@context.Name"
+                       ValueToVisualize="@(context.ValueToVisualize ?? context.Value)" />
+            @ExtraValueContent(context)
+        </AspireTemplateColumn>
+    </FluentDataGrid>
+</div>
 

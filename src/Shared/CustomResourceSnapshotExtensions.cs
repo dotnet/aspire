@@ -8,7 +8,7 @@ namespace Aspire.Hosting;
 
 internal static class CustomResourceSnapshotExtensions
 {
-    internal static ImmutableArray<ResourcePropertySnapshot> SetResourceProperty(this ImmutableArray<ResourcePropertySnapshot> properties, string name, object value)
+    internal static ImmutableArray<ResourcePropertySnapshot> SetResourceProperty(this ImmutableArray<ResourcePropertySnapshot> properties, string name, object value, bool IsSensitive = false)
     {
         for (var i = 0; i < properties.Length; i++)
         {
@@ -23,11 +23,44 @@ internal static class CustomResourceSnapshotExtensions
                 }
 
                 // Set value.
-                return properties.SetItem(i, property with { Value = value });
+                return properties.SetItem(i, property with { Value = value, IsSensitive = IsSensitive });
             }
         }
 
         // Add property.
-        return [.. properties, new ResourcePropertySnapshot(name, value)];
+        return [.. properties, new ResourcePropertySnapshot(name, value) { IsSensitive = IsSensitive }];
+    }
+
+    internal static ImmutableArray<ResourcePropertySnapshot> SetResourcePropertyRange(this ImmutableArray<ResourcePropertySnapshot> properties, IEnumerable<ResourcePropertySnapshot> newValues)
+    {
+        var existingProperties = new List<ResourcePropertySnapshot>(properties);
+        var propertiesToAdd = new List<ResourcePropertySnapshot>();
+
+        foreach (var newValue in newValues)
+        {
+            var found = false;
+            for (var i = 0; i < existingProperties.Count; i++)
+            {
+                var existingProperty = existingProperties[i];
+
+                if (string.Equals(existingProperty.Name, newValue.Name, StringComparisons.ResourcePropertyName))
+                {
+                    if (existingProperty.Value != newValue.Value)
+                    {
+                        existingProperties[i] = existingProperty with { Value = newValue.Value };
+                    }
+
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                propertiesToAdd.Add(newValue);
+            }
+        }
+
+        return [.. existingProperties, .. propertiesToAdd];
     }
 }

@@ -3,4 +3,4 @@
 
 namespace Aspire.Dashboard.Model;
 
-public record TextVisualizerDialogViewModel(string Text, string Description);
+public record TextVisualizerDialogViewModel(string Text, string Description, bool ContainsSecret);

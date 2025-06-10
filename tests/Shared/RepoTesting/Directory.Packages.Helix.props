@@ -11,9 +11,8 @@
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="$(PackageVersion)" />
-
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
@@ -21,6 +20,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ContainerRegistry" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="$(PackageVersion)" />
@@ -33,8 +33,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Dapr" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="$(PackageVersion)" />
@@ -55,6 +54,7 @@
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Yarp" Version="$(PackageVersion)" />
 
     <PackageVersion Include="Aspire.Keycloak.Authentication" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
@@ -63,6 +63,7 @@
     <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MongoDB.Driver" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.MongoDB.Driver.v3" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MySqlConnector" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.NATS.Net" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Npgsql" Version="$(PackageVersion)" />
@@ -71,6 +72,7 @@
     <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Qdrant.Client" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.RabbitMQ.Client" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client.v7" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Seq" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="$(PackageVersion)" />
@@ -83,15 +85,6 @@
   </ItemGroup>
 
   <ItemGroup Label="For tests">
-    <PackageVersion Include="xunit" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.core" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.analyzers" Version="$(XunitAnalyzersVersion)" />
-    <PackageVersion Include="xunit.assert" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioVersion)" />
-    <PackageVersion Include="xunit.runner.console" Version="$(XunitVersion)" />
-
     <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterVersion)" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitAssert" Version="$(MicrosoftDotNetXUnitAssertVersion)" />
   </ItemGroup>
 </Project>

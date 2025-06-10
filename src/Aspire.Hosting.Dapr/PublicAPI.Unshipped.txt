@@ -1,3 +1,0 @@
-#nullable enable
-Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.get -> string?
-Aspire.Hosting.Dapr.DaprSidecarOptions.SchedulerHostAddress.init -> void

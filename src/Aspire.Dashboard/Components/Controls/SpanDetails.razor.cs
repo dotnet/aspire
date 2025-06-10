@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -24,6 +25,9 @@ public partial class SpanDetails : IDisposable
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(ApplyFilter).AsQueryable();
@@ -50,6 +54,11 @@ public partial class SpanDetails : IDisposable
 
     private string _filter = "";
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
+    private bool _dataChanged;
+    private SpanDetailsViewModel? _viewModel;
+
+    private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
+    private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
 
     private readonly CancellationTokenSource _cts = new();
 
@@ -59,29 +68,58 @@ public partial class SpanDetails : IDisposable
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
     }
 
+    protected override void OnInitialized()
+    {
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
+
     protected override void OnParametersSet()
     {
-        _contextAttributes =
-        [
-            new TelemetryPropertyViewModel { Name = "Source", Key = KnownSourceFields.NameField, Value = ViewModel.Span.Scope.ScopeName }
-        ];
-        if (!string.IsNullOrEmpty(ViewModel.Span.Scope.Version))
+        if (!ReferenceEquals(ViewModel, _viewModel))
         {
-            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "Version", Key = KnownSourceFields.VersionField, Value = ViewModel.Span.Scope.ScopeName });
-        }
-        if (!string.IsNullOrEmpty(ViewModel.Span.ParentSpanId))
-        {
-            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "ParentId", Key = KnownTraceFields.ParentIdField, Value = ViewModel.Span.ParentSpanId });
-        }
-        if (!string.IsNullOrEmpty(ViewModel.Span.TraceId))
-        {
-            _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "TraceId", Key = KnownTraceFields.TraceIdField, Value = ViewModel.Span.TraceId });
-        }
+            // Only set data changed flag if the item being view changes.
+            if (!string.Equals(ViewModel.Span.SpanId, _viewModel?.Span.SpanId, StringComparisons.OtlpSpanId))
+            {
+                _dataChanged = true;
+            }
 
-        // Collapse details sections when they have no data.
-        _isSpanEventsExpanded = ViewModel.Span.Events.Any();
-        _isSpanLinksExpanded = ViewModel.Span.Links.Any();
-        _isSpanBacklinksExpanded = ViewModel.Span.BackLinks.Any();
+            _viewModel = ViewModel;
+
+            _contextAttributes =
+            [
+                new TelemetryPropertyViewModel { Name = "Source", Key = KnownSourceFields.NameField, Value = _viewModel.Span.Scope.Name }
+            ];
+            if (!string.IsNullOrEmpty(_viewModel.Span.Scope.Version))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "Version", Key = KnownSourceFields.VersionField, Value = _viewModel.Span.Scope.Version });
+            }
+            if (!string.IsNullOrEmpty(_viewModel.Span.ParentSpanId))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "ParentId", Key = KnownTraceFields.ParentIdField, Value = _viewModel.Span.ParentSpanId });
+            }
+            if (!string.IsNullOrEmpty(_viewModel.Span.TraceId))
+            {
+                _contextAttributes.Add(new TelemetryPropertyViewModel { Name = "TraceId", Key = KnownTraceFields.TraceIdField, Value = _viewModel.Span.TraceId });
+            }
+
+            // Collapse details sections when they have no data.
+            _isSpanEventsExpanded = _viewModel.Span.Events.Any();
+            _isSpanLinksExpanded = _viewModel.Span.Links.Any();
+            _isSpanBacklinksExpanded = _viewModel.Span.BackLinks.Any();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_dataChanged)
+        {
+            if (!firstRender)
+            {
+                await JS.InvokeVoidAsync("scrollToTop", ".property-grid-container");
+            }
+
+            _dataChanged = false;
+        }
     }
 
     public async Task OnViewDetailsAsync(SpanLinkViewModel linkVM)

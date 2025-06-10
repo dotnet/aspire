@@ -103,7 +103,14 @@ public class DimensionScope
             {
                 explicitBounds = h.ExplicitBounds.ToArray();
             }
-            _lastValue = new HistogramValue(h.BucketCounts.ToArray(), h.Sum, h.Count, start, end, explicitBounds);
+
+            var bucketCounts = h.BucketCounts.ToArray();
+            if (bucketCounts.Length > 0 && explicitBounds.Length == 0)
+            {
+                throw new InvalidOperationException("Histogram data point has bucket counts without any explicit bounds.");
+            }
+
+            _lastValue = new HistogramValue(bucketCounts, h.Sum, h.Count, start, end, explicitBounds);
             AddExemplars(_lastValue, h.Exemplars, context);
             _values.Add(_lastValue);
         }

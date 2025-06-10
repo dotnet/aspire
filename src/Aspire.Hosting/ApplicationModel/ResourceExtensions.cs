@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -40,11 +42,11 @@ public static class ResourceExtensions
     /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
-        var matchingTypeAnnotations = resource.Annotations.OfType<T>().ToArray();
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
 
-        if (matchingTypeAnnotations.Length is not 0)
+        if (matchingTypeAnnotations.Any())
         {
-            result = matchingTypeAnnotations;
+            result = matchingTypeAnnotations.ToArray();
             return true;
         }
         else
@@ -150,14 +152,13 @@ public static class ResourceExtensions
     /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
+    /// <param name="resource">The resource to get the environment variables from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
-    /// </remarks>
-    /// <param name="resource">The resource to get the environment variables from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
-    /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
     /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
     /// a unit test to validate environment variable values.
@@ -182,16 +183,169 @@ public static class ResourceExtensions
     ///         });
     /// </code>
     /// </example>
+    /// </remarks>
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var environmentVariables = new Dictionary<string, string>();
+        var env = new Dictionary<string, string>();
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, value, ex) =>
+            {
+                if (value is string s)
+                {
+                    env[key] = s;
+                }
+            },
+            NullLogger.Instance).ConfigureAwait(false);
 
+        return env;
+    }
+
+    /// <summary>
+    /// Get the arguments from the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the arguments from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The arguments retrieved from the resource.</returns>
+    /// <remarks>
+    /// This method is useful when you want to make sure the arguments are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
+    /// and arguments were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// <example>
+    /// Using <see cref="GetArgumentValuesAsync(IResourceWithArgs, DistributedApplicationOperation)"/> inside
+    /// a unit test to validate argument values.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder();
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithArgs("--discovery.type", "single-node")
+    ///  .WithArgs("--xpack.security.enabled", "true");
+    ///
+    /// var args = await container.Resource.GetArgumentsAsync();
+    ///
+    /// Assert.Collection(args,
+    ///     arg =>
+    ///         {
+    ///             Assert.Equal("--discovery.type", arg);
+    ///         },
+    ///         arg =>
+    ///         {
+    ///             Assert.Equal("--xpack.security.enabled", arg);
+    ///         });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
+        DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+    {
+        var args = new List<string>();
+
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, value, ex, _) =>
+            {
+                if (value is string s)
+                {
+                    args.Add(s);
+                }
+
+            },
+            NullLogger.Instance).ConfigureAwait(false);
+
+        return [.. args];
+    }
+
+    /// <summary>
+    /// Processes argument values for the specified resource in the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource containing the argument values to process.</param>
+    /// <param name="executionContext">The execution context used during the processing of argument values.</param>
+    /// <param name="processValue">
+    /// A callback invoked for each argument value. This action provides the unprocessed value, processed string representation,
+    /// an exception if one occurs, and a boolean indicating the success of processing.
+    /// </param>
+    /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
+    /// <param name="containerHostName">An optional container host name to consider during processing, if applicable.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async ValueTask ProcessArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        {
+            var args = new List<object>();
+            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            {
+                Logger = logger,
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            foreach (var a in args)
+            {
+                try
+                {
+                    var resolvedValue = (executionContext.Operation, a) switch
+                    {
+                        (_, string s) => new(s, false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
+                    };
+
+                    if (resolvedValue?.Value != null)
+                    {
+                        processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    processValue(a, a.ToString(), ex, false);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes environment variable values for the specified resource within the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource from which the environment variables are retrieved and processed.</param>
+    /// <param name="executionContext">The execution context to be used for processing the environment variables.</param>
+    /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
+    /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
+    /// <param name="containerHostName">The optional container host name associated with the resource being processed.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public static async ValueTask ProcessEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        Action<string, object?, string?, Exception?> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
             var config = new Dictionary<string, object>();
-            var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
-            var context = new EnvironmentCallbackContext(executionContext, config);
+            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
+            {
+                Logger = logger
+            };
 
             foreach (var callback in callbacks)
             {
@@ -200,23 +354,113 @@ public static class ResourceExtensions
 
             foreach (var (key, expr) in config)
             {
-                var value = (applicationOperation, expr) switch
+                try
                 {
-                    (_, string s) => s,
-                    (DistributedApplicationOperation.Run, IValueProvider provider) => await provider.GetValueAsync().ConfigureAwait(false),
-                    (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
-                    (_, null) => null,
-                    _ => throw new InvalidOperationException($"Unsupported expression type: {expr.GetType()}")
-                };
+                    var resolvedValue = (executionContext.Operation, expr) switch
+                    {
+                        (_, string s) => new(s, false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
+                        (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
+                        (_, { } o) => new(o.ToString(), false),
+                        (_, null) => new(null, false),
+                    };
 
-                if (value is not null)
+                    if (resolvedValue?.Value is not null)
+                    {
+                        processValue(key, expr, resolvedValue.Value, null);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    environmentVariables[key] = value;
+                    processValue(key, expr, expr?.ToString(), ex);
+                }
+            }
+        }
+    }
+
+    internal static async ValueTask ProcessContainerRuntimeArgValues(
+        this IResource resource,
+        Action<string?, Exception?> processValue,
+        ILogger logger,
+        string? containerHostName = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Apply optional extra arguments to the container run command.
+        if (resource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
+        {
+            var args = new List<object>();
+
+            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
+
+            foreach (var callback in runArgsCallback)
+            {
+                await callback.Callback(containerRunArgsContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                try
+                {
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, resource.IsContainer(), containerHostName, cancellationToken).ConfigureAwait(false))?.Value,
+                        { } obj => obj.ToString(),
+                        null => null
+                    };
+
+                    if (value is not null)
+                    {
+                        processValue(value, null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    processValue(arg.ToString(), ex);
+                }
+            }
+        }
+    }
+
+    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, string? containerHostName, CancellationToken cancellationToken)
+    {
+        containerHostName ??= "host.docker.internal";
+
+        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, containerHostName, cancellationToken);
+
+        if (!task.IsCompleted)
+        {
+            if (valueProvider is IResource resource)
+            {
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", resource.Name);
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+                }
+            }
+            else if (valueProvider is ConnectionStringReference { Resource: var cs })
+            {
+                logger.LogInformation("Waiting for value for connection string from resource '{ResourceName}'", cs.Name);
+            }
+            else
+            {
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from {ValueProvider}.", valueProvider.ToString());
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
                 }
             }
         }
 
-        return environmentVariables;
+        return await task.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -239,6 +483,17 @@ public static class ResourceExtensions
     public static bool TryGetEndpoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<EndpointAnnotation>? endpoints)
     {
         return TryGetAnnotationsOfType(resource, out endpoints);
+    }
+
+    /// <summary>
+    /// Attempts to retrieve the URLs for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve the URLs for.</param>
+    /// <param name="urls">The URLs for the given resource, if found.</param>
+    /// <returns>True if the URLs were found, false otherwise.</returns>
+    public static bool TryGetUrls(this IResource resource, [NotNullWhen(true)] out IEnumerable<ResourceUrlAnnotation>? urls)
+    {
+        return TryGetAnnotationsOfType(resource, out urls);
     }
 
     /// <summary>
@@ -317,10 +572,52 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the deployment target for the specified resource, if any. Throws an exception if
+    /// there are multiple compute environments and a compute environment is not explicitly specified.
+    /// </summary>
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    public static DeploymentTargetAnnotation? GetDeploymentTargetAnnotation(this IResource resource, IComputeEnvironmentResource? targetComputeEnvironment = null)
+    {
+        IComputeEnvironmentResource? selectedComputeEnvironment = null;
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            // If you have a ComputeEnvironmentAnnotation, it means the resource is bound to a specific compute environment.
+            // Skip the annotation if it doesn't match the specified computeEnvironmentResource.
+            if (targetComputeEnvironment is not null && targetComputeEnvironment != computeEnvironmentAnnotation.ComputeEnvironment)
+            {
+                return null;
+            }
+
+            // If the resource is bound to a specific compute environment, use that one.
+            selectedComputeEnvironment = computeEnvironmentAnnotation.ComputeEnvironment;
+        }
+
+        if (resource.TryGetAnnotationsOfType<DeploymentTargetAnnotation>(out var deploymentTargetAnnotations))
+        {
+            var annotations = deploymentTargetAnnotations.ToArray();
+
+            if (selectedComputeEnvironment is not null)
+            {
+                return annotations.SingleOrDefault(a => a.ComputeEnvironment == selectedComputeEnvironment);
+            }
+
+            if (annotations.Length > 1)
+            {
+                var computeEnvironmentNames = string.Join(", ", annotations.Select(a => a.ComputeEnvironment?.Name));
+                throw new InvalidOperationException($"Resource '{resource.Name}' has multiple compute environments - '{computeEnvironmentNames}'. Please specify a single compute environment using 'WithComputeEnvironment'.");
+            }
+
+            return annotations[0];
+        }
+        return null;
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    }
+
+    /// <summary>
     /// Gets the lifetime type of the container for the specified resource.
     /// Defaults to <see cref="ContainerLifetime.Session"/> if no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
-    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
+    /// <param name="resource">The resource to get the ContainerLifetimeType for.</param>
     /// <returns>
     /// The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists).
     /// Defaults to <see cref="ContainerLifetime.Session"/> if the annotation is not set.
@@ -333,6 +630,36 @@ public static class ResourceExtensions
         }
 
         return ContainerLifetime.Session;
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource has a pull policy annotation and retrieves the value if it does.
+    /// </summary>
+    /// <param name="resource">The resource to check for a ContainerPullPolicy annotation</param>
+    /// <param name="pullPolicy">The <see cref="ImagePullPolicy"/> for the annotation</param>
+    /// <returns>True if an annotation exists, false otherwise</returns>
+    internal static bool TryGetContainerImagePullPolicy(this IResource resource, [NotNullWhen(true)] out ImagePullPolicy? pullPolicy)
+    {
+        if (resource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            pullPolicy = pullPolicyAnnotation.ImagePullPolicy;
+            return true;
+        }
+
+        pullPolicy = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether a resource has proxy support enabled or not. Container resources may have a <see cref="ProxySupportAnnotation"/> setting that disables proxying for their
+    /// endpoints regardless of the endpoint proxy configuration.
+    /// </summary>
+    /// <param name="resource">The resource to get proxy support for.</param>
+    /// <returns>True if the resource supports proxied endpoints/services, false otherwise.</returns>
+    internal static bool SupportsProxy(this IResource resource)
+    {
+        // If the resource doesn't have a ProxySupportAnnotation or the ProxyEnabled property on the annotation is true, then the resource supports proxying.
+        return !resource.TryGetLastAnnotation<ProxySupportAnnotation>(out var proxySupportAnnotation) || proxySupportAnnotation.ProxyEnabled;
     }
 
     /// <summary>

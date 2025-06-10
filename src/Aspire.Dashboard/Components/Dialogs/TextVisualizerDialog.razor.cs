@@ -7,7 +7,9 @@ using System.Xml;
 using System.Xml.Linq;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -30,6 +32,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private string _formattedText = string.Empty;
 
     public HashSet<string?> EnabledOptions { get; } = [];
+    internal bool? ShowSecretsWarning { get; private set; }
+
     public string FormattedText
     {
         get => _formattedText;
@@ -39,6 +43,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             FormattedLines = GetLines();
         }
     }
+
     public ICollection<StringLogLine> FormattedLines { get; set; } = [];
 
     public string FormatKind { get; private set; } = PlaintextFormat;
@@ -52,9 +57,17 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
+    [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+
     protected override async Task OnInitializedAsync()
     {
         await ThemeManager.EnsureInitializedAsync();
+
+        // We need to make users perform an explicit action once before being able to see secret values
+        // We do this by making them agree to a warning in the text visualizer dialog.
+        var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
+        ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -64,7 +77,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
-        if (_jsModule is not null)
+        if (_jsModule is not null && IsTextContentDisplayed)
         {
             if (FormatKind is not PlaintextFormat)
             {
@@ -101,6 +114,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             ChangeFormattedText(PlaintextFormat, Content.Text);
         }
     }
+
+    private bool IsTextContentDisplayed => !Content.ContainsSecret || ShowSecretsWarning is false;
 
     private string GetLogContentClass()
     {
@@ -263,19 +278,30 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
 
-    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService, string valueDescription, string value)
+    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
+        IStringLocalizer<Resources.Dialogs> dialogsLoc, string valueDescription, string value, bool containsSecret)
     {
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
             Title = valueDescription,
+            DismissTitle = dialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,
         };
 
-        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(
+            new TextVisualizerDialogViewModel(value, valueDescription, containsSecret), parameters);
+    }
+
+    internal sealed record TextVisualizerDialogSettings(bool SecretsWarningAcknowledged);
+
+    private async Task UnmaskContentAsync()
+    {
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.TextVisualizerDialogSettings, new TextVisualizerDialogSettings(SecretsWarningAcknowledged: true));
+        ShowSecretsWarning = false;
     }
 }
 

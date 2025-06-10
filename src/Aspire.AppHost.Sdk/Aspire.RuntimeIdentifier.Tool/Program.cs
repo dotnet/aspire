@@ -14,24 +14,24 @@ sealed class Program
 {
     static int Main(string[] args)
     {
-        CliRootCommand rootCommand = new("Aspire.RuntimeIdentifier.Tool v" + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion)
+        RootCommand rootCommand = new("Aspire.RuntimeIdentifier.Tool v" + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion)
         {
             TreatUnmatchedTokensAsErrors = true
         };
 
-        CliOption<string?> runtimeGraphPathOption = new("--runtimeGraphPath")
+        Option<string?> runtimeGraphPathOption = new("--runtimeGraphPath")
         {
             Description = "Path to runtime graph path to use for RID mapping.",
             Required = true
         };
 
-        CliOption<string?> netcoreSdkRuntimeIdentifierOption = new("--netcoreSdkRuntimeIdentifier")
+        Option<string?> netcoreSdkRuntimeIdentifierOption = new("--netcoreSdkRuntimeIdentifier")
         {
             Description = "RID to use for finding the best applicable RID from mapping.",
             Required = true
         };
 
-        CliOption<string[]> supportedRidsOption = new("--supportedRids")
+        Option<string[]> supportedRidsOption = new("--supportedRids")
         {
             Description = "List of RIDs that are supported. Comma-separated.",
             Required = true,

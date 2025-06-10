@@ -5,8 +5,7 @@ namespace Aspire.Hosting.Dcp;
 
 internal static class DcpVersion
 {
-    public static Version MinimumVersionInclusive = new Version(0, 2, 3); // Aspire GA (8.0) release
-    public static Version MinimumVersionAspire_8_1 = new Version(0, 5, 6);
+    public static Version MinimumVersionInclusive = new Version(0, 12, 3); // Aspire 9.2 release
 
     /// <summary>
     /// Development build version proxy, considered always "current" and supporting latest features. 

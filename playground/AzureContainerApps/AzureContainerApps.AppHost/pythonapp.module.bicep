@@ -1,13 +1,13 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param outputs_azure_container_registry_managed_identity_id string
+param infra_outputs_azure_container_apps_environment_default_domain string
 
-param outputs_managed_identity_client_id string
+param infra_outputs_azure_container_apps_environment_id string
 
-param outputs_azure_container_apps_environment_id string
+param infra_outputs_azure_container_registry_endpoint string
 
-param outputs_azure_container_registry_endpoint string
+param infra_outputs_azure_container_registry_managed_identity_id string
 
 param pythonapp_containerimage string
 
@@ -19,23 +19,17 @@ resource pythonapp 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       registries: [
         {
-          server: outputs_azure_container_registry_endpoint
-          identity: outputs_azure_container_registry_managed_identity_id
+          server: infra_outputs_azure_container_registry_endpoint
+          identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
     }
-    environmentId: outputs_azure_container_apps_environment_id
+    environmentId: infra_outputs_azure_container_apps_environment_id
     template: {
       containers: [
         {
           image: pythonapp_containerimage
           name: 'pythonapp'
-          env: [
-            {
-              name: 'AZURE_CLIENT_ID'
-              value: outputs_managed_identity_client_id
-            }
-          ]
         }
       ]
       scale: {
@@ -46,7 +40,7 @@ resource pythonapp 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${outputs_azure_container_registry_managed_identity_id}': { }
+      '${infra_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
 }

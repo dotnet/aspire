@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
@@ -170,6 +172,8 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment(context =>
          {
+             Assert.NotNull(context.Resource);
+
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
@@ -257,6 +261,66 @@ public class ResourceExtensionsTests
                 Assert.Equal("{ElasticPassword.value}", env.Value);
                 Assert.False(string.IsNullOrEmpty(env.Value));
             });
+    }
+
+    [Fact]
+    public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var surrogate = builder.AddResource(new ConnectionStringParameterResource("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
+        var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
+        var nonSecretParameter = builder.AddResource(new ParameterResource("NonSecretParameter", _ => "NonSecretParameter"));
+
+        var containerArgs = await builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+            .WithArgs(surrogate)
+            .WithArgs(secretParameter)
+            .WithArgs(nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], containerArgs);
+
+        // Executables can also have arguments passed in AddExecutable
+        var executableArgs = await builder.AddExecutable(
+                "ping",
+                "ping",
+                string.Empty,
+                surrogate,
+                secretParameter,
+                nonSecretParameter)
+            .Resource.GetArgumentValuesAsync().DefaultTimeout();
+
+        Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
+    }
+
+    [Fact]
+    public void GetDeploymentTargetAnnotationWorks()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var compute1 = builder.AddResource(new ComputeEnvironmentResource("compute1"));
+        var compute2 = builder.AddResource(new ComputeEnvironmentResource("compute2"));
+
+        void RunTest<T>(IResourceBuilder<T> resourceBuilder) where T : IComputeResource
+        {
+            resourceBuilder
+                .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
+                .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
+
+            var ex = Assert.Throws<InvalidOperationException>(() => resourceBuilder.Resource.GetDeploymentTargetAnnotation());
+            Assert.Contains("'compute1, compute2'", ex.Message);
+
+            resourceBuilder.WithComputeEnvironment(compute2);
+
+            Assert.Equal(compute2.Resource, resourceBuilder.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
+        }
+
+        RunTest(builder.AddContainer("myContainer", "nginx"));
+        RunTest(builder.AddProject<Projects.ServiceA>("ServiceA"));
+        RunTest(builder.AddExecutable("myExecutable", "nginx", string.Empty));
+    }
+
+    private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource
+    {
     }
 
     private sealed class ParentResource(string name) : Resource(name)

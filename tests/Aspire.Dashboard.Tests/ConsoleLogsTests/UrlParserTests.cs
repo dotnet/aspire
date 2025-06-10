@@ -22,9 +22,9 @@ public class UrlParserTests
     }
 
     [Theory]
-    [InlineData("This is some text with a URL at the end: https://bing.com/", true, "This is some text with a URL at the end: <a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a>")]
-    [InlineData("https://bing.com/ This is some text with a URL at the beginning", true, "<a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a> This is some text with a URL at the beginning")]
-    [InlineData("This is some text with a https://bing.com/ in the middle", true, "This is some text with a <a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a> in the middle")]
+    [InlineData("This is some text with a URL at the end: https://bing.com/", true, "This is some text with a URL at the end: <a target=\"_blank\" href=\"https://bing.com/\" rel=\"noopener noreferrer nofollow\">https://bing.com/</a>")]
+    [InlineData("https://bing.com/ This is some text with a URL at the beginning", true, "<a target=\"_blank\" href=\"https://bing.com/\" rel=\"noopener noreferrer nofollow\">https://bing.com/</a> This is some text with a URL at the beginning")]
+    [InlineData("This is some text with a https://bing.com/ in the middle", true, "This is some text with a <a target=\"_blank\" href=\"https://bing.com/\" rel=\"noopener noreferrer nofollow\">https://bing.com/</a> in the middle")]
     public void TryParse_ReturnsCorrectResult(string input, bool expectedResult, string? expectedOutput)
     {
         var result = UrlParser.TryParse(input, WebUtility.HtmlEncode, out var modifiedText);
@@ -34,13 +34,13 @@ public class UrlParserTests
     }
 
     [Theory]
-    [InlineData("http://bing.com", "<a target=\"_blank\" href=\"http://bing.com\">http://bing.com</a>")]
-    [InlineData("https://bing.com", "<a target=\"_blank\" href=\"https://bing.com\">https://bing.com</a>")]
-    [InlineData("http://www.bing.com", "<a target=\"_blank\" href=\"http://www.bing.com\">http://www.bing.com</a>")]
-    [InlineData("http://bing.com/", "<a target=\"_blank\" href=\"http://bing.com/\">http://bing.com/</a>")]
-    [InlineData("http://bing.com/dir", "<a target=\"_blank\" href=\"http://bing.com/dir\">http://bing.com/dir</a>")]
-    [InlineData("http://bing.com/index.aspx", "<a target=\"_blank\" href=\"http://bing.com/index.aspx\">http://bing.com/index.aspx</a>")]
-    [InlineData("http://localhost", "<a target=\"_blank\" href=\"http://localhost\">http://localhost</a>")]
+    [InlineData("http://bing.com", "<a target=\"_blank\" href=\"http://bing.com\" rel=\"noopener noreferrer nofollow\">http://bing.com</a>")]
+    [InlineData("https://bing.com", "<a target=\"_blank\" href=\"https://bing.com\" rel=\"noopener noreferrer nofollow\">https://bing.com</a>")]
+    [InlineData("http://www.bing.com", "<a target=\"_blank\" href=\"http://www.bing.com\" rel=\"noopener noreferrer nofollow\">http://www.bing.com</a>")]
+    [InlineData("http://bing.com/", "<a target=\"_blank\" href=\"http://bing.com/\" rel=\"noopener noreferrer nofollow\">http://bing.com/</a>")]
+    [InlineData("http://bing.com/dir", "<a target=\"_blank\" href=\"http://bing.com/dir\" rel=\"noopener noreferrer nofollow\">http://bing.com/dir</a>")]
+    [InlineData("http://bing.com/index.aspx", "<a target=\"_blank\" href=\"http://bing.com/index.aspx\" rel=\"noopener noreferrer nofollow\">http://bing.com/index.aspx</a>")]
+    [InlineData("http://localhost", "<a target=\"_blank\" href=\"http://localhost\" rel=\"noopener noreferrer nofollow\">http://localhost</a>")]
     public void TryParse_SupportedUrlFormats(string input, string? expectedOutput)
     {
         var result = UrlParser.TryParse(input, WebUtility.HtmlEncode, out var modifiedText);
@@ -61,8 +61,18 @@ public class UrlParserTests
     }
 
     [Theory]
-    [InlineData("http://localhost:8080</url>", "<a target=\"_blank\" href=\"http://localhost:8080\">http://localhost:8080</a>&lt;/url&gt;")]
-    [InlineData("http://localhost:8080\"", "<a target=\"_blank\" href=\"http://localhost:8080\">http://localhost:8080</a>&quot;")]
+    [InlineData("script:alert('hi')")]
+    [InlineData("http://script:alert('hi')")]
+    public void TryParse_AttemptedScriptInjection(string input)
+    {
+        var result = UrlParser.TryParse(input, WebUtility.HtmlEncode, out var _);
+
+        Assert.False(result);
+    }
+
+    [Theory]
+    [InlineData("http://localhost:8080</url>", "<a target=\"_blank\" href=\"http://localhost:8080\" rel=\"noopener noreferrer nofollow\">http://localhost:8080</a>&lt;/url&gt;")]
+    [InlineData("http://localhost:8080\"", "<a target=\"_blank\" href=\"http://localhost:8080\" rel=\"noopener noreferrer nofollow\">http://localhost:8080</a>&quot;")]
     public void TryParse_ExcludeInvalidTrailingChars(string input, string? expectedOutput)
     {
         var result = UrlParser.TryParse(input, WebUtility.HtmlEncode, out var modifiedText);
@@ -77,7 +87,7 @@ public class UrlParserTests
         var result = UrlParser.TryParse("https://www.example.com?query=string&param=value", WebUtility.HtmlEncode, out var modifiedText);
         Assert.True(result);
 
-        Assert.Equal("<a target=\"_blank\" href=\"https://www.example.com?query=string&param=value\">https://www.example.com?query=string&amp;param=value</a>", modifiedText);
+        Assert.Equal("<a target=\"_blank\" href=\"https://www.example.com?query=string&param=value\" rel=\"noopener noreferrer nofollow\">https://www.example.com?query=string&amp;param=value</a>", modifiedText);
     }
 
     [Theory]

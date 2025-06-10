@@ -5,18 +5,19 @@ namespace Aspire.Hosting;
 
 internal static class KafkaContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>confluentinc/confluent-local</summary>
+    /// <remarks>confluentinc/confluent-local</remarks>
     public const string Image = "confluentinc/confluent-local";
 
-    /// <summary>7.7.1</summary>
-    public const string Tag = "7.7.1";
+    /// <remarks>7.9.0</remarks>
+    public const string Tag = "7.9.0";
 
-    /// <summary>provectuslabs/kafka-ui</summary>
-    public const string KafkaUiImage = "provectuslabs/kafka-ui";
+    /// <remarks>kafbat/kafka-ui</remarks>
+    public const string KafkaUiImage = "kafbat/kafka-ui";
 
-    /// <summary>v0.7.2</summary>
-    public const string KafkaUiTag = "v0.7.2";
+    /// <remarks>v1.2.0</remarks>
+    public const string KafkaUiTag = "v1.2.0";
 }
+

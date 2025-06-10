@@ -36,6 +36,11 @@ public sealed class DistributedApplicationOptions
     public string? ContainerRegistryOverride { get; set; }
 
     /// <summary>
+    /// Enables resource logging. Logs will be written to the logger category (ApplicationName.Resources.{resourceName}).
+    /// </summary>
+    public bool EnableResourceLogging { get; set; }
+
+    /// <summary>
     /// The command line arguments.
     /// </summary>
     public string[]? Args { get; set; }

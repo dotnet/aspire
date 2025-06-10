@@ -10,26 +10,63 @@ namespace Aspire.Hosting.MongoDB.Tests;
 public class MongoDBPublicApiTests
 {
     [Fact]
-    public void AddMongoDBContainerShouldThrowWhenBuilderIsNull()
+    public void AddMongoDBShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "MongoDB";
+        int? port = null;
 
-        var action = () => builder.AddMongoDB(name);
+        var action = () => builder.AddMongoDB(name, port);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddMongoDBContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMongoDBShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+        int? port = null;
 
-        var action = () => builder.AddMongoDB(name);
+        var action = () => builder.AddMongoDB(name, port);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void AddMongoDBWithParametersShouldThrowWhenBuilderIsNull()
+    {
+        IDistributedApplicationBuilder builder = null!;
+        const string name = "MongoDB"; IResourceBuilder<ParameterResource>? userName = null;
+        IResourceBuilder<ParameterResource>? password = null;
+
+        var action = () => builder.AddMongoDB(name, userName: userName, password: password);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMongoDBWithParametersShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
+        IResourceBuilder<ParameterResource>? userName = null;
+        IResourceBuilder<ParameterResource>? password = null;
+
+        var action = () => builder.AddMongoDB(name, userName: userName, password: password);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -37,7 +74,7 @@ public class MongoDBPublicApiTests
     public void AddDatabaseShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<MongoDBServerResource> builder = null!;
-        const string name = "db1";
+        const string name = "db";
 
         var action = () => builder.AddDatabase(name);
 
@@ -45,17 +82,46 @@ public class MongoDBPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builderResource = TestDistributedApplicationBuilder.Create();
-        var MongoDB = builderResource.AddMongoDB("MongoDB");
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMongoDB("MongoDB");
+        var name = isNull ? null! : string.Empty;
 
-        var action = () => MongoDB.AddDatabase(name);
+        var action = () => builder.AddDatabase(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithMongoExpressShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MongoDBServerResource> builder = null!;
+
+        var action = () => builder.WithMongoExpress();
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithHostPortShouldThrowWhenBuilderIsNull(bool isNull)
+    {
+        IResourceBuilder<MongoExpressContainerResource> builder = null!;
+        int? port = isNull ? null : 27017;
+
+        var action = () => builder.WithHostPort(port);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -81,16 +147,20 @@ public class MongoDBPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        var builderResource = TestDistributedApplicationBuilder.Create();
-        var MongoDB = builderResource.AddMongoDB("MongoDB");
-        string source = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMongoDB("MongoDB");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => MongoDB.WithDataBindMount(source);
+        var action = () => builder.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -99,89 +169,100 @@ public class MongoDBPublicApiTests
     {
         IResourceBuilder<MongoDBServerResource> builder = null!;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount("init.js");
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithMongoExpressShouldThrowWhenBuilderIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        IResourceBuilder<MongoDBServerResource> builder = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMongoDB("MongoDB");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => builder.WithMongoExpress();
+#pragma warning disable CS0618 // Type or member is obsolete
+        var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(builder), exception.ParamName);
-    }
-
-    [Fact]
-    public void WithInitBindMountShouldThrowWhenSourceIsNull()
-    {
-        var builderResource = TestDistributedApplicationBuilder.Create();
-        var MongoDB = builderResource.AddMongoDB("MongoDB");
-        string source = null!;
-
-        var action = () => MongoDB.WithInitBindMount(source);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
-    public void WithHostPortShouldThrowWhenBuilderIsNull()
+    public void WithInitFilesShouldThrowWhenBuilderIsNull()
     {
-        IResourceBuilder<MongoExpressContainerResource> builder = null!;
+        IResourceBuilder<MongoDBServerResource> builder = null!;
 
-        var action = () => builder.WithHostPort(6601);
+        var action = () => builder.WithInitFiles("init.js");
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMongoDBServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitFilesShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMongoDB("MongoDB");
+        var source = isNull ? null! : string.Empty;
 
-        var action = () => new MongoDBServerResource(name);
+        var action = () => builder.WithInitFiles(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMongoMongoDBDatabaseResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMongoDBDatabaseResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
-        var databaseName = "db1";
+        var name = isNull ? null! : string.Empty;
+        const string databaseName = "db";
         var parent = new MongoDBServerResource("mongodb");
 
         var action = () => new MongoDBDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMongoMongoDBDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMongoDBDatabaseResourceShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
     {
-        var name = "mongodb";
-        string databaseName = null!;
+        const string name = "mongodb";
+        var databaseName = isNull ? null! : string.Empty;
         var parent = new MongoDBServerResource(name);
 
         var action = () => new MongoDBDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(databaseName), exception.ParamName);
     }
 
     [Fact]
-    public void CtorMongoMongoDBDatabaseResourceShouldThrowWhenDatabaseParentIsNull()
+    public void CtorMongoDBDatabaseResourceShouldThrowWhenParentIsNull()
     {
-        var name = "mongodb";
-        var databaseName = "db1";
+        const string name = "mongodb";
+        const string databaseName = "db";
         MongoDBServerResource parent = null!;
 
         var action = () => new MongoDBDatabaseResource(name, databaseName, parent);
@@ -190,14 +271,33 @@ public class MongoDBPublicApiTests
         Assert.Equal(nameof(parent), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMongoExpressContainerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMongoDBServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => new MongoDBServerResource(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMongoExpressContainerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new MongoExpressContainerResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

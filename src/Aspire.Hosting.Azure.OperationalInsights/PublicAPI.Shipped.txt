@@ -1,7 +1,0 @@
-#nullable enable
-Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource
-Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource.AzureLogAnalyticsWorkspaceResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
-Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource.WorkspaceId.get -> Aspire.Hosting.Azure.BicepOutputReference!
-Aspire.Hosting.AzureLogAnalyticsWorkspaceExtensions
-static Aspire.Hosting.AzureLogAnalyticsWorkspaceExtensions.AddAzureLogAnalyticsWorkspace(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource!>!
-static Aspire.Hosting.AzureLogAnalyticsWorkspaceExtensions.AddAzureLogAnalyticsWorkspace(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.OperationalInsights.OperationalInsightsWorkspace!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource!>!

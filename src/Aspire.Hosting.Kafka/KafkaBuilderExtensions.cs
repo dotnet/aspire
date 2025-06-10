@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 using Confluent.Kafka;
 using HealthChecks.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +32,7 @@ public static class KafkaBuilderExtensions
     public static IResourceBuilder<KafkaServerResource> AddKafka(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         var kafka = new KafkaServerResource(name);
 
@@ -101,7 +100,7 @@ public static class KafkaBuilderExtensions
         }
         else
         {
-            containerName ??= $"{builder.Resource.Name}-kafka-ui";
+            containerName ??= "kafka-ui";
 
             var kafkaUi = new KafkaUIContainerResource(containerName);
             var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
@@ -110,19 +109,16 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(kafkaUi, (e, ct) =>
             {
                 var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
 
                 int i = 0;
                 foreach (var kafkaResource in kafkaResources)
                 {
-                    if (kafkaResource.InternalEndpoint.IsAllocated)
-                    {
-                        var endpoint = kafkaResource.InternalEndpoint;
-                        int index = i;
-                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
-                    }
+                    var endpoint = kafkaResource.InternalEndpoint;
+                    int index = i;
+                    kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
 
                     i++;
                 }
@@ -141,7 +137,7 @@ public static class KafkaBuilderExtensions
                 // In run mode, Kafka UI assumes Kafka is being accessed over a default Aspire container network and hardcodes the host as the Kafka resource name
                 // This will need to be refactored once updated service discovery APIs are available
                 ? ReferenceExpression.Create($"{endpoint.Resource.Name}:{endpoint.Property(EndpointProperty.TargetPort)}")
-                : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+                : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.HostAndPort)}");
 
             context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
             context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS", bootstrapServers);
@@ -191,7 +187,7 @@ public static class KafkaBuilderExtensions
     public static IResourceBuilder<KafkaServerResource> WithDataBindMount(this IResourceBuilder<KafkaServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder
             .WithEnvironment(ConfigureLogDirs)
@@ -219,8 +215,7 @@ public static class KafkaBuilderExtensions
             // In run mode, PLAINTEXT_INTERNAL assumes kafka is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
             ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{resource.Name}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
-            : ReferenceExpression.Create(
-            $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
+            : ReferenceExpression.Create($"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.HostAndPort)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;
     }

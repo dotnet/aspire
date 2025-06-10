@@ -9,7 +9,11 @@
     "Web API",
     "API",
     "Service",
-    "Cloud"
+    "Cloud",
+    "Test",
+    "MSTest",
+    "NUnit",
+    "xUnit"
   ],
   "name": ".NET Aspire Starter App",
   "defaultName": "AspireApp",
@@ -37,9 +41,9 @@
   ],
   "sources": [
     {
-      "source": "./9.0",
+      "source": "./9.2",
       "target": "./",
-      "condition": "AspireVersionActual == 9.0",
+      "condition": "AspireVersionActual == 9.2",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -48,7 +52,7 @@
           ]
         },
         {
-          "condition": "(TestFramework == None)",
+          "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
@@ -56,9 +60,9 @@
       ]
     },
     {
-      "source": "./8.2",
+      "source": "./9.3",
       "target": "./",
-      "condition": "AspireVersionActual == 8.2",
+      "condition": "AspireVersionActual == 9.3",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -67,7 +71,7 @@
           ]
         },
         {
-          "condition": "(TestFramework == None)",
+          "condition": "(TestFx == None)",
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
@@ -93,6 +97,25 @@
       "replaces": "net8.0",
       "defaultValue": "net9.0"
     },
+    "AspireVersionCli": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
+      ],
+      "defaultValue": "9.3"
+    },
     "AspireVersion": {
       "type": "parameter",
       "description": "The version of .NET Aspire to use.",
@@ -100,34 +123,63 @@
       "datatype": "choice",
       "isEnabled": "Framework == net8.0",
       "choices": [
-          {
-             "choice": "9.0",
-             "displayName": "9.0",
-             "description": "Chooses .NET Aspire 9.0"
-          },
-          {
-            "choice": "8.2",
-            "displayName": "8.2",
-            "description": "Chooses .NET Aspire 8.2"
-         }
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
       ],
-      "defaultValue": "9.0"
+      "defaultValue": "9.3"
     },
-    "AspireVersionDefault": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "9.0"
-      }
+    "AspireVersionNet9": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net9.0",
+      "choices": [
+        {
+          "choice": "9.2",
+          "displayName": "9.2",
+          "description": "Chooses .NET Aspire 9.2"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
+        }
+      ],
+      "defaultValue": "9.3"
     },
     "AspireVersionActual": {
       "type": "generated",
-      "generator": "coalesce",
+      "generator": "switch",
+      "replaces": "aspireVersion",
       "parameters": {
-        "sourceVariableName": "AspireVersion",
-        "fallbackVariableName": "AspireVersionDefault"
-      },
-      "replaces": "aspireVersion"
+        "cases": [
+          {
+            "condition": "AspireVersionCli == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "AspireVersion == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "AspireVersionNet9 == 9.2",
+            "value": "9.2"
+          },
+          {
+            "condition": "",
+            "value": "9.3"
+          }
+        ]
+      }
     },
     "hostIdentifier": {
       "type": "bind",
@@ -140,7 +192,7 @@
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
     },
-    "TestFramework": {
+    "TestFx": {
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "None",
@@ -164,6 +216,48 @@
           "description": "Creates an xUnit.net test project using the AppHost project."
         }
       ]
+    },
+    "XUnitVersion": {
+      "type": "parameter",
+      "description": "The version of xUnit.net to use.",
+      "displayName": "xUnit.net version",
+      "datatype": "choice",
+      "isEnabled": "(TestFx == xUnit.net)",
+      "replaces": "XUnitVersion",
+      "choices": [
+        {
+          "choice": "v2",
+          "displayName": "v2",
+          "description": "Chooses xUnit.net v2 with VSTest"
+        },
+        {
+          "choice": "v3",
+          "displayName": "v3",
+          "description": "Chooses xUnit.net v3 with VSTest (Aspire version 9.2 and later only)"
+        },
+        {
+          "choice": "v3mtp",
+          "displayName": "v3 with Microsoft Test Platform",
+          "description": "Chooses xUnit.net v3 with Microsoft Test Platform (Aspire version 9.2 and later only)"
+        }
+      ],
+      "defaultValue": "v2"
+    },
+    "IsXunit": {
+      "type": "generated",
+      "generator": "switch",
+      "parameters": {
+        "cases": [
+          {
+            "condition": "(TestFx == xUnit.net)",
+            "value": "true"
+          },
+          {
+            "condition": "",
+            "value": "false"
+          }
+        ]
+      }
     },
     "appHostHttpPort": {
       "type": "parameter",
@@ -443,13 +537,14 @@
     },
     {
       "path": "Aspire-StarterApplication.1.Tests\\Aspire-StarterApplication.1.Tests.csproj",
-      "condition": "(TestFramework != None)"
+      "condition": "(TestFx != None)"
     }
   ],
   "postActions": [
     {
       "id": "set-startup-project",
       "description": "Sets the startup project in the solution",
+      "manualInstructions": [],
       "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
       "condition": "(hostIdentifier == \"vs\")",
       "args": {

@@ -231,7 +231,7 @@ New components MUST have:
 * ConfigurationSchema.json file
 * Public APIs
 * Tests
-    * [ConformanceTests](../../tests/Aspire.Components.Common.Tests/ConformanceTests.cs)
+    * [ConformanceTests](../../tests/Aspire.Components.Common.TestUtilities/ConformanceTests.cs)
     * [EndToEndTests](../../tests/Aspire.EndToEnd.Tests/README.md#adding-tests-for-new-components)
     * Other unit tests as needed
 * Tracing support

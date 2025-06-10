@@ -9,10 +9,8 @@ namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisPublicApiTests
 {
-    #region RedisBuilderExtensions
-
     [Fact]
-    public void AddRedisContainerShouldThrowWhenBuilderIsNull()
+    public void AddRedisShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Redis";
@@ -23,15 +21,19 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddRedisContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddRedisShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
-        string name = null!;
+        var builder = TestDistributedApplicationBuilder.Create();
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddRedis(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -47,7 +49,7 @@ public class RedisPublicApiTests
     }
 
     [Fact]
-    public void WithRedisInsightResourceShouldThrowWhenBuilderIsNull()
+    public void WithRedisInsightShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisResource> builder = null!;
 
@@ -70,7 +72,7 @@ public class RedisPublicApiTests
     }
 
     [Fact]
-    public void RedisInsightResourceWithHostPortShouldThrowWhenBuilderIsNull()
+    public void RedisInsightWithHostPortShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisInsightResource> builder = null!;
         const int port = 777;
@@ -104,16 +106,20 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("Redis");
-        string source = null!;
+        var source = isNull ? null! : string.Empty;
 
         var action = () => redis.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -128,35 +134,90 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    #endregion
+    [Fact]
+    public void RedisInsightWithDataVolumeShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<RedisInsightResource> builder = null!;
 
-    #region RedisCommanderResource
+        var action = () => builder.WithDataVolume();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
 
     [Fact]
-    public void CtorRedisCommanderResourceShouldThrowWhenNameIsNull()
+    public void RedisInsightWithDataBindMountShouldThrowWhenBuilderIsNull()
     {
-        string name = null!;
+        IResourceBuilder<RedisInsightResource> builder = null!;
+        const string source = "/data";
+
+        var action = () => builder.WithDataBindMount(source);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RedisInsightWithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis = builder.AddRedis("Redis").WithRedisInsight(resource => { redisInsightBuilder = resource; });
+        var source = isNull ? null! : string.Empty;
+
+        Assert.NotNull(redisInsightBuilder);
+        var action = () => redisInsightBuilder.WithDataBindMount(source);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRedisCommanderResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new RedisCommanderResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    #endregion
-
-    #region RedisResource
-
-    [Fact]
-    public void CtorRedisResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRedisInsightResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
+
+        var action = () => new RedisInsightResource(name);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRedisResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    {
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new RedisResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
-
-    #endregion
 }

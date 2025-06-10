@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SamplesIntegrationTests.Infrastructure;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace SamplesIntegrationTests;
 
@@ -16,16 +15,10 @@ internal static class DistributedApplicationTestFactory
     /// <summary>
     /// Creates an <see cref="IDistributedApplicationTestingBuilder"/> for the specified app host assembly.
     /// </summary>
-    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(string appHostAssemblyPath, ITestOutputHelper? testOutput)
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type appHostProgramType, ITestOutputHelper? testOutput)
     {
-        var appHostProjectName = Path.GetFileNameWithoutExtension(appHostAssemblyPath) ?? throw new InvalidOperationException("AppHost assembly was not found.");
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
 
-        var appHostAssembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, appHostAssemblyPath));
-
-        var appHostType = appHostAssembly.GetTypes().FirstOrDefault(t => t.Name.EndsWith("_AppHost"))
-            ?? throw new InvalidOperationException("Generated AppHost type not found.");
-
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType);
         // Custom hook needed because we want to only override the registry when
         // the original is from `docker.io`, but the options.ContainerRegistryOverride will
         // always override.

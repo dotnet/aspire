@@ -12,6 +12,10 @@ internal sealed class ResourceCollection : IResourceCollection
 {
     private readonly List<IResource> _resources = [];
 
+    public ResourceCollection() { }
+
+    public ResourceCollection(IEnumerable<IResource> resources) => _resources.AddRange(resources);
+
     public IResource this[int index] { get => _resources[index]; set => _resources[index] = value; }
     public int Count => _resources.Count;
     public bool IsReadOnly => false;

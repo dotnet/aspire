@@ -1,0 +1,92 @@
+name: 'Enumerate test projects'
+description: 'Enumerate list of test projects'
+inputs:
+  includeIntegrations:
+    required: false
+    type: boolean
+    default: false
+  includeTemplates:
+    required: false
+    type: boolean
+    default: false
+
+outputs:
+  integrations_tests_matrix:
+    description: Integration tests matrix
+    value: ${{ steps.generate_integrations_matrix.outputs.integrations_tests_matrix }}
+  templates_tests_matrix:
+    description: Templates tests matrix
+    value: ${{ steps.generate_templates_matrix.outputs.templates_tests_matrix }}
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+      with:
+        dotnet-version: |
+          9.x
+
+    - name: Get list of integration tests
+      if: ${{ inputs.includeIntegrations }}
+      env:
+        CI: false
+      shell: pwsh
+      run: >
+        dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+        /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
+        /p:ContinuousIntegrationBuild=true
+
+    - name: Generate list of template tests
+      if: ${{ inputs.includeTemplates }}
+      env:
+        CI: false
+      shell: pwsh
+      run: >
+          dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
+          "/t:Build;ExtractTestClassNames"
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
+          -p:ExtractTestClassNamesForHelix=true
+          -p:PrepareForHelix=true
+          -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
+          -p:InstallBrowsersForPlaywright=false
+
+    - name: Generate tests matrix
+      id: generate_integrations_matrix
+      if: ${{ inputs.includeIntegrations }}
+      shell: pwsh
+      env:
+        CI: false
+      run: |
+        $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
+        $lines = Get-Content $filePath
+        $jsonObject = @{
+            "shortname" = $lines | Sort-Object
+        }
+        $jsonString = ConvertTo-Json $jsonObject -Compress
+        "integrations_tests_matrix=$jsonString"
+        "integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
+
+    - name: Generate templates matrix
+      id: generate_templates_matrix
+      if: ${{ inputs.includeTemplates }}
+      shell: pwsh
+      env:
+        CI: false
+      run: |
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
+        $lines = Get-Content $inputFilePath
+
+        $prefix = "Aspire.Templates.Tests."
+        $lines = Get-Content $inputFilePath | ForEach-Object {
+            $_ -replace "^$prefix", ""
+        }
+
+        $jsonObject = @{
+            "shortname" = $lines | Sort-Object
+        }
+        $jsonString = ConvertTo-Json $jsonObject -Compress
+        "templates_tests_matrix=$jsonString"
+        "templates_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT

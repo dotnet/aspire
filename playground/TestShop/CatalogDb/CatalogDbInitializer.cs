@@ -15,18 +15,16 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
 
+        using var activity = _activitySource.StartActivity("Initializing catalog database", ActivityKind.Client);
         await InitializeDatabaseAsync(dbContext, cancellationToken);
     }
 
-    private async Task InitializeDatabaseAsync(CatalogDbContext dbContext, CancellationToken cancellationToken)
+    public async Task InitializeDatabaseAsync(CatalogDbContext dbContext, CancellationToken cancellationToken = default)
     {
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-
-        using var activity = _activitySource.StartActivity("Migrating catalog database", ActivityKind.Client);
-
         var sw = Stopwatch.StartNew();
 
-        await strategy.ExecuteAsync(() => dbContext.Database.MigrateAsync(cancellationToken));
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(dbContext.Database.MigrateAsync, cancellationToken);
 
         await SeedAsync(dbContext, cancellationToken);
 

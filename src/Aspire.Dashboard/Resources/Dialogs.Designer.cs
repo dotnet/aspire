@@ -68,6 +68,13 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("FilterDialogApplyFilterButtonText", resourceCulture);
             }
         }
+
+        
+        public static string FilterDialogDisableFilterButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogDisableFilterButtonText", resourceCulture);
+            }
+        }
         
         public static string FilterDialogRemoveFilterButtonText {
             get {
@@ -102,6 +109,18 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogVersion {
             get {
                 return ResourceManager.GetString("SettingsDialogVersion", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogLanguage {
+            get {
+                return ResourceManager.GetString("SettingsDialogLanguage", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogLanguagePageReloads {
+            get {
+                return ResourceManager.GetString("SettingsDialogLanguagePageReloads", resourceCulture);
             }
         }
         
@@ -219,9 +238,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string ExemplarsDialogCloseButtonText {
+        public static string DialogCloseButtonText {
             get {
-                return ResourceManager.GetString("ExemplarsDialogCloseButtonText", resourceCulture);
+                return ResourceManager.GetString("DialogCloseButtonText", resourceCulture);
             }
         }
         
@@ -300,6 +319,79 @@ namespace Aspire.Dashboard.Resources {
         public static string OpenInTextVisualizer {
             get {
                 return ResourceManager.GetString("OpenInTextVisualizer", resourceCulture);
+            }
+        }
+        
+        public static string FieldRequired {
+            get {
+                return ResourceManager.GetString("FieldRequired", resourceCulture);
+            }
+        }
+        
+        public static string FieldTooLong {
+            get {
+                return ResourceManager.GetString("FieldTooLong", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogDashboardLogsAndTelemetry {
+            get {
+                return ResourceManager.GetString("SettingsDialogDashboardLogsAndTelemetry", resourceCulture);
+            }
+        }
+        
+        public static string SettingsRemoveAllButtonText {
+            get {
+                return ResourceManager.GetString("SettingsRemoveAllButtonText", resourceCulture);
+            }
+        }
+        
+        public static string TextVisualizerSecretWarningTitle {
+            get {
+                return ResourceManager.GetString("TextVisualizerSecretWarningTitle", resourceCulture);
+            }
+        }
+        
+        public static string TextVisualizerSecretWarningDescription {
+            get {
+                return ResourceManager.GetString("TextVisualizerSecretWarningDescription", resourceCulture);
+            }
+        }
+        
+        public static string TextVisualizerSecretWarningAcknowledge {
+            get {
+                return ResourceManager.GetString("TextVisualizerSecretWarningAcknowledge", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogDisableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogDisableAll", resourceCulture);
+            }
+        }
+        
+        public static string FilterDialogEnableAll {
+            get {
+                return ResourceManager.GetString("FilterDialogEnableAll", resourceCulture);
+            }
+        }
+
+        
+        public static string SettingsDialogTelemetryEnabledInfo {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryEnabledInfo", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryInfoLinkText {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkText", resourceCulture);
+            }
+        }
+        
+        public static string SettingsDialogTelemetryInfoLinkTooltip {
+            get {
+                return ResourceManager.GetString("SettingsDialogTelemetryInfoLinkTooltip", resourceCulture);
             }
         }
     }

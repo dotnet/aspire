@@ -5,7 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
+using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -17,6 +19,8 @@ public static class AzureSqlExtensions
     [Obsolete]
     private static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, bool useProvisioner)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
@@ -51,9 +55,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: false);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: false);
 
     /// <summary>
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
@@ -62,9 +64,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.PublishAsAzureSqlDatabase(useProvisioner: true);
-    }
+        => PublishAsAzureSqlDatabase(builder, useProvisioner: true);
 
     /// <summary>
     /// Adds an Azure SQL Database (server) resource to the application model.
@@ -74,23 +74,27 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
     public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.AddAzureProvisioning();
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
             var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
-            CreateSqlServer(infrastructure, builder, azureResource.Databases);
+            CreateSqlServer(infrastructure, builder, azureResource.AzureSqlDatabases);
         };
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
     }
 
     /// <summary>
     /// Adds an Azure SQL Database to the application model.
+    /// The Free Offer option will be used when deploying the resource in Azure
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -99,7 +103,7 @@ public static class AzureSqlExtensions
     public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -107,7 +111,7 @@ public static class AzureSqlExtensions
         var azureResource = builder.Resource;
         var azureSqlDatabase = new AzureSqlDatabaseResource(name, databaseName, azureResource);
 
-        builder.Resource.AddDatabase(name, databaseName);
+        builder.Resource.AddDatabase(azureSqlDatabase);
 
         if (azureResource.InnerResource is null)
         {
@@ -126,11 +130,24 @@ public static class AzureSqlExtensions
     }
 
     /// <summary>
+    /// Configures the Azure SQL Database to be deployed use the default SKU provided by Azure.
+    /// Please be aware that the Azure default Sku might not take advantage of the free offer.
+    /// </summary>
+    /// <param name="builder">The builder for the Azure SQL resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureSqlDatabaseResource> WithDefaultAzureSku(this IResourceBuilder<AzureSqlDatabaseResource> builder)
+    {
+        builder.Resource.UseDefaultAzureSku = true;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures an Azure SQL Database (server) resource to run locally in a container.
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
+    /// <remarks>
     /// <example>
     /// The following example creates an Azure SQL Database (server) resource that runs locally in a
     /// SQL Server container and referencing that resource in a .NET project.
@@ -146,8 +163,11 @@ public static class AzureSqlExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
@@ -165,14 +185,14 @@ public static class AzureSqlExtensions
 
         azureResource.SetInnerResource(sqlContainer.Resource);
 
-        foreach (var database in azureResource.Databases)
+        foreach (var database in azureResource.AzureSqlDatabases)
         {
             if (!azureDatabases.TryGetValue(database.Key, out var existingDb))
             {
                 throw new InvalidOperationException($"Could not find a {nameof(AzureSqlDatabaseResource)} with name {database.Key}.");
             }
 
-            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value);
+            var innerDb = sqlContainer.AddDatabase(database.Key, database.Value.DatabaseName);
             existingDb.SetInnerResource(innerDb.Resource);
         }
 
@@ -195,27 +215,97 @@ public static class AzureSqlExtensions
         IDistributedApplicationBuilder distributedApplicationBuilder,
         IReadOnlyDictionary<string, string> databases)
     {
-        var principalIdParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalId, typeof(string));
-        infrastructure.Add(principalIdParameter);
-        var principalNameParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalName, typeof(string));
-        infrastructure.Add(principalNameParameter);
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
 
-        var sqlServer = new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+        foreach (var database in databases)
         {
-            Administrators = new ServerExternalAdministrator()
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value);
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static void CreateSqlServer(
+        AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder,
+        IReadOnlyDictionary<string, AzureSqlDatabaseResource> databases)
+    {
+        var sqlServer = CreateSqlServerResourceOnly(infrastructure, distributedApplicationBuilder);
+
+        foreach (var database in databases)
+        {
+            var sqlDatabase = CreateAzureSQLDatabase(sqlServer, database.Key, database.Value.DatabaseName);
+
+            // Unless user specifically mention that they want to use the Azure defaults,
+            // an Azure SQL DB using the free option will be created
+            if (database.Value.UseDefaultAzureSku == false)
             {
-                AdministratorType = SqlAdministratorType.ActiveDirectory,
-                IsAzureADOnlyAuthenticationEnabled = true,
-                Sid = principalIdParameter,
-                Login = principalNameParameter,
-                TenantId = BicepFunction.GetSubscription().TenantId
-            },
-            Version = "12.0",
-            PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
-            MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
-            Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                sqlDatabase.Sku = new SqlSku() { Name = AzureSqlDatabaseResource.FREE_DB_SKU };
+                sqlDatabase.UseFreeLimit = true;
+                sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+            }
+
+            infrastructure.Add(sqlDatabase);
+        }
+    }
+
+    private static SqlDatabase CreateAzureSQLDatabase(SqlServer sqlServer, string databaseKey, string databaseName)
+    {
+        var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseKey);
+
+        // Force the api version to the one supporting the free SKU
+        // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50281
+
+        var sqlDatabase = new SqlDatabase(bicepIdentifier, "2023-08-01")
+        {
+            Parent = sqlServer,
+            Name = databaseName,
         };
-        infrastructure.Add(sqlServer);
+
+        return sqlDatabase;
+    }
+
+    private static SqlServer CreateSqlServerResourceOnly(AzureResourceInfrastructure infrastructure,
+        IDistributedApplicationBuilder distributedApplicationBuilder)
+    {
+        var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
+
+        var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+
+        (identifier, name) =>
+        {
+            var resource = SqlServer.FromExisting(identifier);
+            resource.Name = name;
+            return resource;
+        },
+        (infrastructure) =>
+        {
+            // Creating a new SqlServer instance requires an administrator. We create a dedicated user assigned managed identity.
+            var adminManagedIdentity = new UserAssignedIdentity("sqlServerAdminManagedIdentity")
+            {
+                Name = Take(Interpolate($"{azureResource.GetBicepIdentifier()}-admin-{GetUniqueString(GetResourceGroup().Id)}"), 63)
+            };
+
+            infrastructure.Add(adminManagedIdentity);
+
+            return new SqlServer(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                Administrators = new ServerExternalAdministrator()
+                {
+                    AdministratorType = SqlAdministratorType.ActiveDirectory,
+                    IsAzureADOnlyAuthenticationEnabled = true,
+                    Sid = adminManagedIdentity.PrincipalId,
+                    // We can't use adminManagedIdentity.Name as it would end up copying the source expression
+                    // and be converted to a reference() call in ARM which is not supported.
+                    Login = new IdentifierExpression($"{adminManagedIdentity.BicepIdentifier}.name"),
+                    TenantId = BicepFunction.GetSubscription().TenantId
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+        });
 
         infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
         {
@@ -227,12 +317,6 @@ public static class AzureSqlExtensions
 
         if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // When in run mode we inject the users identity and we need to specify
-            // the principalType.
-            var principalTypeParameter = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            infrastructure.Add(principalTypeParameter);
-            sqlServer.Administrators.PrincipalType = principalTypeParameter;
-
             infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
             {
                 Parent = sqlServer,
@@ -242,18 +326,13 @@ public static class AzureSqlExtensions
             });
         }
 
-        foreach (var databaseNames in databases)
-        {
-            var bicepIdentifier = Infrastructure.NormalizeBicepIdentifier(databaseNames.Key);
-            var databaseName = databaseNames.Value;
-            var sqlDatabase = new SqlDatabase(bicepIdentifier)
-            {
-                Parent = sqlServer,
-                Name = databaseName
-            };
-            infrastructure.Add(sqlDatabase);
-        }
-
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+
+        // We need to output name to externalize role assignments.
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+
+        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
+
+        return sqlServer;
     }
 }

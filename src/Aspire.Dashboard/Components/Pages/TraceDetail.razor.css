@@ -18,29 +18,39 @@
     width: 100%;
 }
 
-::deep .trace-view-grid fluent-data-grid-row[row-type="default"]:hover .span-bar-label-detail {
+::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']):hover .span-bar-label-detail {
     display: inline !important;
 }
 
-::deep .trace-view-grid fluent-data-grid-row[row-type="header"] {
+::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']) {
     background: var(--fill-color);
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
 }
 
-::deep .trace-view-grid fluent-data-grid-row {
+::deep .fluent-data-grid-row[row-type='sticky-header'] th:first-child {
+    margin-left: 5px;
+}
+
+::deep .trace-view-grid .fluent-data-grid-row {
     padding: 0;
     border: 0;
     align-items: center;
 }
 
-::deep .trace-view-grid fluent-data-grid-cell {
+::deep .trace-view-grid td {
     padding: 0;
     border: 0;
     border-radius: 0;
     vertical-align: middle;
 }
 
-::deep .trace-view-grid fluent-data-grid-cell[grid-column="2"] fluent-divider {
+::deep .trace-view-grid .column-header {
+    padding: 0 !important;
+    min-height: 32px !important;
+    border-bottom: 0;
+}
+
+::deep .trace-view-grid th[col-index="2"] fluent-divider {
     display: none;
 }
 
@@ -132,11 +142,11 @@
 }
 
 ::deep .selected-row .span-row-name,
-::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-row-name,
-::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
 ::deep .selected-row .span-container .span-bar-label,
-::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label,
-::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label {
     color: var(--neutral-foreground-rest);
 }
 
@@ -148,5 +158,37 @@
 
 ::deep .span-overview-container {
     height: 24px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+}
+
+::deep .trace-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "details filters";
+    width: 100%;
+}
+
+::deep .trace-header-details {
+    grid-area: details;
+}
+
+::deep .trace-header-details .fluent-overflow-item {
+    align-content: center;
+    padding-right: 8px;
+    text-wrap-mode: nowrap;
+}
+
+::deep .trace-header-details .fluent-overflow-more {
+    align-content: center;
+}
+
+::deep .trace-header-tooltip {
+    min-width: 300px;
+}
+
+::deep .trace-header-filters {
+    grid-area: filters;
+    display: flex;
+    column-gap: 8px;
 }

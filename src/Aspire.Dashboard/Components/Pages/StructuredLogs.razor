@@ -6,14 +6,21 @@
 @using Aspire.Dashboard.Resources
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
 @inject IJSRuntime JS
 @implements IDisposable
 
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<StructuredFiltering> FilterLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
-<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
+<PageTitle>
+    <ApplicationName
+        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)"
+        Loc="@Loc"/>
+</PageTitle>
 
 <div class="page-content-container">
     <AspirePageContentLayout @ref="@_contentLayout"
@@ -28,7 +35,13 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
-                            CanSelectGrouping="true" />
+                            CanSelectGrouping="true"
+                            LabelClass="toolbar-left" />
+
+            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreStructuredLogsPaused(out _)" IsPausedChanged="@PauseManager.SetStructuredLogsPaused" />
+            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
+                                HandleClearSignal="ClearStructureLogs" />
+
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
                           Immediate="true"
@@ -57,22 +70,17 @@
                                 HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentLabel slot="end">@FilterLoc[nameof(StructuredFiltering.Filters)]</FluentLabel>
             @if (ViewModel.Filters.Count == 0)
             {
                 <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
             }
             else
             {
-                for (var i = 0; i < ViewModel.Filters.Count; i++)
-                {
-                    var filter = ViewModel.Filters[i];
-                    if (i != 0)
-                    {
-                        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                    }
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)" class="telemetry-filter-button" title="@filter.GetDisplayText(FilterLoc)">@filter.GetDisplayText(FilterLoc)</FluentButton>
-                }
+                <div slot="end">
+                    <FluentCounterBadge HorizontalPosition="70" Count="@(ViewModel.Filters.GetEnabledFilters().Count())" Appearance="Appearance.Accent">
+                        <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" Items="@GetFilterMenuItems()" />
+                    </FluentCounterBadge>
+                </div>
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
@@ -101,9 +109,9 @@
                                         ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
                     }
 
-                    <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.ScopeName})")">
+                    <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.Name})")">
                         @eventName
-                        <span class="pane-details-subtext">@context!.LogEntry.Scope.ScopeName</span>
+                        <span class="pane-details-subtext">@context!.LogEntry.Scope.Name</span>
                     </div>
                 </DetailsTitleTemplate>
                 <Summary>
@@ -111,7 +119,9 @@
                         <div class="logs-grid-container continuous-scroll-overflow">
                             <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                 <FluentDataGrid @ref="_dataGrid"
-                                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                                ColumnResizeLabels="@_resizeLabels"
+                                                ColumnSortLabels="@_sortLabels"
+                                                HeaderCellAsButtonWithMenu="true"
                                                 ResizeType="DataGridResizeType.Discrete"
                                                 Virtualize="true"
                                                 RowClass="@GetRowClass"
@@ -143,7 +153,7 @@
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))
                                             {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId, context.SpanId)" class="long-inner-content" @onclick:stopPropagation="true">
                                                     @OtlpHelpers.ToShortenedId(context.TraceId)
                                                 </a>
                                             }
@@ -175,9 +185,11 @@
                 </Details>
             </SummaryDetailsView>
         </MainSection>
-
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter" TotalItemCount="@_totalItemsCount" />
+            <TotalItemsFooter
+                @ref="_totalItemsFooter"
+                TotalItemCount="@_totalItemsCount"
+                PauseText="@PauseText" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

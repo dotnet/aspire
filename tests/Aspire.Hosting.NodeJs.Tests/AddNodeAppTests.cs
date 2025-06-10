@@ -11,7 +11,7 @@ public class AddNodeAppTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithResourceCleanUp(true);
 
         var workingDirectory = AppContext.BaseDirectory;
         var nodeApp = builder.AddNodeApp("nodeapp", "..\\foo\\app.js", workingDirectory)
@@ -27,7 +27,7 @@ public class AddNodeAppTests
                 "..\\foo\\app.js"
               ],
               "env": {
-                "NODE_ENV": "development",
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}",
                 "PORT": "{nodeapp.bindings.http.targetPort}"
               },
               "bindings": {
@@ -45,6 +45,7 @@ public class AddNodeAppTests
 
         var npmApp = builder.AddNpmApp("npmapp", workingDirectory)
             .WithHttpEndpoint(port: 5032, env: "PORT");
+
         manifest = await ManifestUtils.GetManifest(npmApp.Resource);
 
         expectedManifest = $$"""
@@ -57,7 +58,7 @@ public class AddNodeAppTests
                 "start"
               ],
               "env": {
-                "NODE_ENV": "development",
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}",
                 "PORT": "{npmapp.bindings.http.targetPort}"
               },
               "bindings": {

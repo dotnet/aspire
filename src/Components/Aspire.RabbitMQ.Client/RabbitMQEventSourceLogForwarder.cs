@@ -11,7 +11,6 @@ namespace Aspire.RabbitMQ.Client;
 internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
 {
     private static readonly Func<ErrorEventSourceEvent, Exception?, string> s_formatErrorEvent = FormatErrorEvent;
-    private static readonly Func<EventSourceEvent, Exception?, string> s_formatEvent = FormatEvent;
 
     private readonly ILogger _logger;
     private RabbitMQEventSourceListener? _listener;
@@ -50,14 +49,11 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 (eventData.EventId == 1 && eventData.EventName == "Info") ||
                 (eventData.EventId == 2 && eventData.EventName == "Warn"));
 
-            _logger.Log(level, eventId, new EventSourceEvent(eventData), null, s_formatEvent);
+            _logger.Log(level, eventId, eventData.Payload?[0]?.ToString() ?? "<empty>");
         }
     }
 
     private static string FormatErrorEvent(ErrorEventSourceEvent eventSourceEvent, Exception? ex) =>
-        eventSourceEvent.EventData.Payload?[0]?.ToString() ?? "<empty>";
-
-    private static string FormatEvent(EventSourceEvent eventSourceEvent, Exception? ex) =>
         eventSourceEvent.EventData.Payload?[0]?.ToString() ?? "<empty>";
 
     public void Dispose() => _listener?.Dispose();
@@ -73,43 +69,18 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
         _ => throw new ArgumentOutOfRangeException(nameof(level), level, null),
     };
 
-    private readonly struct EventSourceEvent : IReadOnlyList<KeyValuePair<string, object?>>
-    {
-        public EventWrittenEventArgs EventData { get; }
-
-        public EventSourceEvent(EventWrittenEventArgs eventData)
-        {
-            // only Info and Warn events are expected, which always have 'message' as the only payload
-            Debug.Assert(eventData.PayloadNames?.Count == 1 && eventData.PayloadNames[0] == "message");
-
-            EventData = eventData;
-        }
-
-        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
-        {
-            for (var i = 0; i < Count; i++)
-            {
-                yield return this[i];
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public int Count => EventData.PayloadNames?.Count ?? 0;
-
-        public KeyValuePair<string, object?> this[int index] => new(EventData.PayloadNames![index], EventData.Payload![index]);
-    }
-
     private readonly struct ErrorEventSourceEvent : IReadOnlyList<KeyValuePair<string, object?>>
     {
         public EventWrittenEventArgs EventData { get; }
 
+        public int Count { get; }
+
         public ErrorEventSourceEvent(EventWrittenEventArgs eventData)
         {
             EventData = eventData;
+
+            var exData = eventData!.Payload![1] as IDictionary<string, object?>;
+            Count = string.IsNullOrEmpty(exData!["InnerException"]?.ToString()) ? 3 : 4;
         }
 
         public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
@@ -124,8 +95,6 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
         {
             return GetEnumerator();
         }
-
-        public int Count => 5;
 
         public KeyValuePair<string, object?> this[int index]
         {
@@ -135,31 +104,20 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                 Debug.Assert(EventData.PayloadNames[0] == "message");
                 Debug.Assert(EventData.PayloadNames[1] == "ex");
 
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, 5);
+                ArgumentOutOfRangeException.ThrowIfNegative(index);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
+
+                var exData = EventData.Payload[1] as IDictionary<string, object?>;
+                Debug.Assert(exData is not null && exData.Count == 4);
 
                 return index switch
                 {
-                    0 => new(EventData.PayloadNames[0], EventData.Payload[0]),
-                    < 5 => GetExData(EventData, index),
+                    0 => new("exception.type", exData["Type"]),
+                    1 => new("exception.message", exData["Message"]),
+                    2 => new("exception.stacktrace", exData["StackTrace"]),
+                    3 => new("exception.innerexception", exData["InnerException"]),
                     _ => throw new UnreachableException()
                 };
-
-                static KeyValuePair<string, object?> GetExData(EventWrittenEventArgs eventData, int index)
-                {
-                    Debug.Assert(index >= 1 && index <= 4);
-                    Debug.Assert(eventData.Payload?.Count == 2);
-                    var exData = eventData.Payload[1] as IDictionary<string, object?>;
-                    Debug.Assert(exData is not null && exData.Count == 4);
-
-                    return index switch
-                    {
-                        1 => new("exception.type", exData["Type"]),
-                        2 => new("exception.message", exData["Message"]),
-                        3 => new("exception.stacktrace", exData["StackTrace"]),
-                        4 => new("exception.innerexception", exData["InnerException"]),
-                        _ => throw new UnreachableException()
-                    };
-                }
             }
         }
     }

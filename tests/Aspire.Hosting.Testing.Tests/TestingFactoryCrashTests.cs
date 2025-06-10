@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -26,22 +26,12 @@ public class TestingFactoryCrashTests
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.StartAsync().WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
-            return;
         }
         else
         {
             await factory.StartAsync().WaitAsync(cts.Token);
         }
 
-        if (crashArg is "after-start" or "after-shutdown")
-        {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.DisposeAsync().AsTask().WaitAsync(cts.Token));
-            Assert.Contains(crashArg, exception.Message);
-            return;
-        }
-        else
-        {
-            await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);
-        }
+        await factory.DisposeAsync().AsTask().WaitAsync(cts.Token);
     }
 }

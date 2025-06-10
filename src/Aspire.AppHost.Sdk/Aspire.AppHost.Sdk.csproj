@@ -9,10 +9,6 @@
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MinCodeCoverage>100</MinCodeCoverage>
-  </PropertyGroup>
-
   <ItemGroup>
     <TextReplacementValue Include="DefaultTargetFramework" NewValue="$(DefaultTargetFramework)" />
   </ItemGroup>

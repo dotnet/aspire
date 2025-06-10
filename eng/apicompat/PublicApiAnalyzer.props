@@ -1,8 +1,0 @@
-<Project>
-
-  <PropertyGroup Condition="'$(UsePublicApiAnalyzers)' == 'true'">
-    <!-- https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/Microsoft.CodeAnalysis.PublicApiAnalyzers.md -->
-    <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017;RS0022;RS0024;RS0025;RS0026;RS0027;RS0036;RS0037</WarningsAsErrors>
-  </PropertyGroup>
-
-</Project>

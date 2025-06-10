@@ -1,0 +1,42 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using System.Collections.Concurrent
+@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Resources> Loc
+
+@typeparam TValue where TValue : notnull
+
+<FluentStack Orientation="Orientation.Vertical" Id="@Id">
+    <FluentCheckbox Label="@ControlsStringsLoc[nameof(ControlsStrings.LabelAll)]"
+                    ThreeState="true"
+                    ShowIndeterminate="false"
+                    ThreeStateOrderUncheckToIntermediate="true"
+                    @bind-CheckState:get="@GetCheckState(Values)"
+                    @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync"
+    />
+
+    @foreach (var (key, isChecked) in Values.OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
+    {
+        var label = string.IsNullOrEmpty(key.ToString()) ? Loc[nameof(Resources.ResourceFilterOptionEmpty)] : key.ToString();
+
+        <FluentCheckbox Label="@label"
+                        @bind-Value:get="@isChecked"
+                        @bind-Value:set="@(c => OnValueVisibilityChangedInternalAsync(key, c))" />
+    }
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ConcurrentDictionary<TValue, bool> Values { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> OnAllValuesCheckedChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<TValue, bool, Task> OnValueVisibilityChangedAsync { get; set; }
+
+    [Parameter]
+    public string? Id { get; set; }
+}

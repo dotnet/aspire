@@ -3,17 +3,22 @@
   "resources": {
     "pg": {
       "type": "azure.bicep.v0",
-      "connectionString": "{pg.secretOutputs.connectionString}",
+      "connectionString": "{pg-kv.secrets.connectionstrings--pg}",
       "path": "pg.module.bicep",
       "params": {
         "administratorLogin": "{pg-username.value}",
         "administratorLoginPassword": "{pg-password.value}",
-        "keyVaultName": ""
+        "pg_kv_outputs_name": "{pg-kv.outputs.name}"
       }
+    },
+    "pg-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pg-kv.outputs.vaultUri}",
+      "path": "pg-kv.module.bicep"
     },
     "db": {
       "type": "value.v0",
-      "connectionString": "{pg.secretOutputs.db-connectionString}"
+      "connectionString": "{pg-kv.secrets.connectionstrings--db}"
     },
     "dbsetup": {
       "type": "project.v0",
@@ -88,6 +93,15 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "pg-kv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pg-kv-roles.module.bicep",
+      "params": {
+        "pg_kv_outputs_name": "{pg-kv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     },
     "pg-username": {

@@ -3,14 +3,14 @@
 
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
-using Aspire.Workload.Tests;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+[RequiresPlaywright]
 public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 {
     public AppBarTests(DashboardServerFixture dashboardServerFixture)
@@ -65,6 +65,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9152", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange
@@ -103,7 +104,8 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 
                 await AsyncTestHelpers.AssertIsTrueRetryAsync(
                     async () => await checkbox.IsCheckedAsync(),
-                    "Checkbox isn't immediately checked.");
+                    "Checkbox isn't immediately checked.",
+                    retries: 15 /* this seems to take a very long time to run, so needs a long timeout */);
             }
         });
     }

@@ -17,31 +17,14 @@
         <target state="translated">绑定装载必须指定源路径。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">找不到容器运行时“{0}”。容器运行时检查中的错误为: {1}。
-有关受支持的容器运行时的更多详细信息，请参阅 https://aka.ms/dotnet/aspire/containers。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">已找到容器运行时“{0}”，但似乎运行不正常。容器运行时检查中的错误为 {1}。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">已找到容器运行时“{0}”，但似乎没有响应。命令“{0}”在 {1} 秒后未返回。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">应用程序业务流程协调程序依赖项检查返回了错误: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
-        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="translated">运行应用程序需要较新版本的 .NET Aspire 工作负载。运行“dotnet 工作负载更新”以获取它。</target>
+        <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
+        <target state="translated">运行应用程序需要更新版本的 Aspire.Hosting.AppHost 包。请确保至少引用版本 '{0}'。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

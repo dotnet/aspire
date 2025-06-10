@@ -5,30 +5,30 @@ namespace Aspire.Hosting.Redis;
 
 internal static class RedisContainerImageTags
 {
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string Registry = "docker.io";
 
-    /// <summary>library/redis</summary>
+    /// <remarks>library/redis</remarks>
     public const string Image = "library/redis";
 
-    /// <summary>7.4</summary>
+    /// <remarks>7.4</remarks>
     public const string Tag = "7.4";
 
-    /// <summary>RedisCommanderRegistry</summary>
+    /// <remarks>RedisCommanderRegistry</remarks>
     public const string RedisCommanderRegistry = "docker.io";
 
-    /// <summary>rediscommander/redis-commander</summary>
+    /// <remarks>rediscommander/redis-commander</remarks>
     public const string RedisCommanderImage = "rediscommander/redis-commander";
 
-    /// <summary>latest</summary>
+    /// <remarks>latest</remarks>
     public const string RedisCommanderTag = "latest"; // There isn't a better tag than 'latest' which is 3 years old.
 
-    /// <summary>docker.io</summary>
+    /// <remarks>docker.io</remarks>
     public const string RedisInsightRegistry = "docker.io";
 
-    /// <summary>redis/redisinsight</summary>
+    /// <remarks>redis/redisinsight</remarks>
     public const string RedisInsightImage = "redis/redisinsight";
 
-    /// <summary>2.58</summary>
-    public const string RedisInsightTag = "2.58";
+    /// <remarks>2.68</remarks>
+    public const string RedisInsightTag = "2.68";
 }

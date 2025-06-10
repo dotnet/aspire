@@ -16,8 +16,8 @@ SET PATH=%DOTNET_ROOT%;%PATH%
 SET sln=%~1
 
 IF "%sln%"=="" (
-    echo Solution not specified, using Aspire.sln
-    SET sln=%~dp0Aspire.sln
+    echo Solution not specified, using Aspire.slnx
+    SET sln=%~dp0Aspire.slnx
 )
 
 start "" "%sln%"

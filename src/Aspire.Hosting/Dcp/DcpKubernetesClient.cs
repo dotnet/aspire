@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using System.Net.Http.Headers;
+using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Autorest;
 
@@ -11,6 +14,8 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class DcpKubernetesClient : k8s.Kubernetes
 {
+    private const string ExecutionDocumentPath = "admin/execution";
+
     public DcpKubernetesClient(KubernetesClientConfiguration config, params DelegatingHandler[] handlers) : base(config, handlers)
     {
     }
@@ -68,7 +73,7 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
         }
         url += q.ToString();
 
-        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders : null, body: null, cancellationToken).ConfigureAwait(false);
+        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders: null, body: null, cancellationToken).ConfigureAwait(false);
         var httpRequest = httpResponse.RequestMessage;
         var result = new HttpOperationResponse<Stream>()
         {
@@ -77,6 +82,70 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
             Body = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)
         };
         return result;
+    }
+
+    /// <summary>
+    /// GET DCP Execution document (part of the DCP administrative interface).
+    /// </summary>
+    public async Task<ApiServerExecution> GetExecutionDocumentAsync(CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(HttpClientTimeout);
+        cancellationToken = cts.Token;
+
+        var httpRequest = new HttpRequestMessage
+        {
+            Method = HttpMethod.Get,
+            RequestUri = new Uri(this.BaseUri, ExecutionDocumentPath)
+        };
+        httpRequest.Version = HttpVersion.Version20;
+
+        var httpResponse = await SendRequestRaw(null, httpRequest, cancellationToken).ConfigureAwait(false);
+        var content = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        return KubernetesJson.Deserialize<ApiServerExecution>(content);
+    }
+
+    /// <summary>
+    /// PATCH Execution document (part of the DCP administrative interface) with supplied data. 
+    /// </summary>
+    /// <returns>
+    /// The ApiServerExecution object representing the updated state of the API server.
+    /// </returns>
+    public async Task<ApiServerExecution> PatchExecutionDocumentAsync(
+        ApiServerExecution apiServerExecution,
+        CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(HttpClientTimeout);
+        cancellationToken = cts.Token;
+
+        var httpRequest = new HttpRequestMessage
+        {
+            Method = HttpMethod.Patch,
+            RequestUri = new Uri(this.BaseUri, ExecutionDocumentPath)
+        };
+        httpRequest.Version = HttpVersion.Version20;
+
+        var content = KubernetesJson.Serialize(apiServerExecution, null);
+        httpRequest.Content = new StringContent(content, System.Text.Encoding.UTF8);
+        httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/merge-patch+json");
+
+        var httpResponse = await SendRequestRaw(content, httpRequest, cancellationToken).ConfigureAwait(false);
+        if (httpResponse.StatusCode == HttpStatusCode.NoContent || apiServerExecution.ApiServerStatus == ApiServerStatus.Stopping)
+        {
+            // NoContent means that the server successfully processed the request and the current state
+            // is equivalent to the sent patch, so we can just return that.
+            //
+            // The check for ApiServerStatus.Stopping is a workaround for DCP 0.11 series issue that it may not send complete response
+            // when programmatic server stoppage is requested. But it is not really possible for the server to respond
+            // with anything other than Stopping if the request was successful, so it does not matter.
+            return apiServerExecution;
+        }
+        else
+        {
+            var responseContent = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return KubernetesJson.Deserialize<ApiServerExecution>(responseContent);
+        }
     }
 
     private sealed class QueryBuilder

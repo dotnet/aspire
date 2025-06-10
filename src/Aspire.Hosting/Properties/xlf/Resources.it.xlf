@@ -17,31 +17,14 @@
         <target state="translated">I montaggi di associazione devono specificare un percorso di origine.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">Non è stato possibile trovare il runtime del contenitore "{0}". Errore del controllo del runtime del contenitore: {1}.
-Vedere https://aka.ms/dotnet/aspire/containers per altri dettagli sui runtime del contenitore supportati.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">È stato trovato il runtime del contenitore "{0}", ma non è integro. Errore del controllo del runtime del contenitore: {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">È stato trovato il runtime del contenitore "{0}", ma non risponde. Il comando "{0}" non ha risposto entro {1} secondi.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">Il controllo delle dipendenze dell'agente di orchestrazione dell'applicazione ha restituito un errore: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
-        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="translated">Per eseguire l'applicazione, è necessaria una versione più recente del carico di lavoro di .NET Aspire. Per ottenerla, esegui "aggiornamento del carico di lavoro dotnet".</target>
+        <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
+        <target state="translated">Per eseguire l'applicazione, è necessaria una versione più recente del pacchetto Di hosting.AppHost. Assicurarsi di fare riferimento almeno alla versione '{0}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">

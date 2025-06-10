@@ -1,14 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "signalr1": {
+    "signalrDefault": {
       "type": "azure.bicep.v0",
-      "connectionString": "Endpoint=https://{signalr1.outputs.hostName};AuthType=azure",
-      "path": "signalr1.module.bicep",
-      "params": {
-        "principalType": "",
-        "principalId": ""
-      }
+      "connectionString": "Endpoint=https://{signalrDefault.outputs.hostName};AuthType=azure",
+      "path": "signalrDefault.module.bicep"
     },
     "webfrontend": {
       "type": "project.v0",
@@ -19,7 +15,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
-        "ConnectionStrings__signalr1": "{signalr1.connectionString}"
+        "ConnectionStrings__signalrDefault": "{signalrDefault.connectionString}"
       },
       "bindings": {
         "http": {
@@ -34,6 +30,55 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "signalrServerless": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalrServerless.outputs.hostName};AuthType=azure",
+      "path": "signalrServerless.module.bicep"
+    },
+    "webserverless": {
+      "type": "project.v0",
+      "path": "../SignalRServerlessWeb/SignalRServerlessWeb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{webserverless.bindings.http.targetPort}",
+        "ConnectionStrings__signalrServerless": "{signalrServerless.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "signalrDefault-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalrDefault-roles.module.bicep",
+      "params": {
+        "signalrdefault_outputs_name": "{signalrDefault.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "signalrServerless-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalrServerless-roles.module.bicep",
+      "params": {
+        "signalrserverless_outputs_name": "{signalrServerless.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

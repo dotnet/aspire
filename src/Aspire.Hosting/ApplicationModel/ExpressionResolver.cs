@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal class ExpressionResolver(string containerHostName, CancellationToken cancellationToken)
+internal class ExpressionResolver(string containerHostName, CancellationToken cancellationToken, bool sourceIsContainer)
 {
     class HostAndPortPresence
     {
@@ -44,14 +44,12 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             {
                 hostAndPortPresence.HasPort = true;
             }
-            else if (property == EndpointProperty.Url)
+            else if (property is EndpointProperty.Url or EndpointProperty.HostAndPort)
             {
                 hostAndPortPresence.HasHost = hostAndPortPresence.HasPort = true;
             }
-
             return string.Empty;
         }
-
         // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
         // Otherwise, we get the wrong values for IsContainer and Name
         var target = endpointReference.Resource.GetRootResource();
@@ -73,27 +71,50 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
                                             endpointReference.Scheme,
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
+            (EndpointProperty.HostAndPort, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
+                                            await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
+                                            await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
             _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
         };
     }
 
-    async Task<string?> EvalExpressionAsync(ReferenceExpression expr)
+    async Task<ResolvedValue> EvalExpressionAsync(ReferenceExpression expr)
     {
         // This logic is similar to ReferenceExpression.GetValueAsync, except that we recurse on
         // our own resolver method
         var args = new object?[expr.ValueProviders.Count];
+        var isSensitive = false;
 
         for (var i = 0; i < expr.ValueProviders.Count; i++)
         {
-            args[i] = await ResolveInternalAsync(expr.ValueProviders[i]).ConfigureAwait(false);
+            var result = await ResolveInternalAsync(expr.ValueProviders[i]).ConfigureAwait(false);
+            args[i] = result?.Value;
+            if (result?.IsSensitive is true)
+            {
+                isSensitive = true;
+            }
         }
 
-        return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+        // Identically to ReferenceExpression.GetValueAsync, we return null if the format is empty
+        var value = expr.Format.Length == 0 ? null : string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+
+        return new ResolvedValue(value, isSensitive);
     }
 
-    async Task<string?> EvalValueProvider(IValueProvider vp)
+    async Task<ResolvedValue> EvalValueProvider(IValueProvider vp)
     {
         var value = await vp.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+        if (vp is ParameterResource pr)
+        {
+            return new ResolvedValue(value, pr.Secret);
+        }
+
+        // No need to do extra work, since the below will only be valid for containers.
+        if (!sourceIsContainer)
+        {
+            return new ResolvedValue(value, false);
+        }
 
         if (vp is HostUrl && value != null)
         {
@@ -128,30 +149,45 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             }
         }
 
+        return new ResolvedValue(value, false);
+    }
+
+    async Task<ResolvedValue> ResolveConnectionStringReferenceAsync(ConnectionStringReference cs)
+    {
+        // We are substituting our own logic for ConnectionStringReference's GetValueAsync.
+        // However, ConnectionStringReference#GetValueAsync will throw if the connection string is not optional but is not present.
+        // so we need to do the same here.
+        var value = await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
+
+        // While pre-processing the endpoints, we never throw
+        if (!Preprocess && string.IsNullOrEmpty(value.Value) && !cs.Optional)
+        {
+            cs.ThrowConnectionStringUnavailableException();
+        }
+
         return value;
     }
 
     /// <summary>
-    /// Resolve an expression when it is being used from inside a container.
-    /// So it's either a container-to-container or container-to-exe communication.
+    /// Resolve an expression. When it is being used from inside a container, endpoints may be evaluated (either in a container-to-container or container-to-exe communication).
     /// </summary>
-    async ValueTask<string?> ResolveInternalAsync(object? value)
+    async ValueTask<ResolvedValue> ResolveInternalAsync(object? value)
     {
         return value switch
         {
-            ConnectionStringReference cs => await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false),
-            IResourceWithConnectionString cs => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs).ConfigureAwait(false),
+            IResourceWithConnectionString cs and not ConnectionStringParameterResource => await ResolveInternalAsync(cs.ConnectionStringExpression).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
-            EndpointReference endpointReference => await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
-            EndpointReferenceExpression ep => await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false),
+            EndpointReference endpointReference when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep when sourceIsContainer => new ResolvedValue(await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
             IValueProvider vp => await EvalValueProvider(vp).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
     }
 
-    static async ValueTask<string?> ResolveWithContainerSourceAsync(IValueProvider valueProvider, string containerHostName, CancellationToken cancellationToken)
+    static async ValueTask<ResolvedValue> ResolveWithContainerSourceAsync(IValueProvider valueProvider, string containerHostName, bool sourceIsContainer, CancellationToken cancellationToken)
     {
-        var resolver = new ExpressionResolver(containerHostName, cancellationToken);
+        var resolver = new ExpressionResolver(containerHostName, cancellationToken, sourceIsContainer);
 
         // Run the processing phase to know if the host and port properties are both used for each endpoint.
         resolver.Preprocess = true;
@@ -161,14 +197,10 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         return await resolver.ResolveInternalAsync(valueProvider).ConfigureAwait(false);
     }
 
-    internal static async ValueTask<string?> ResolveAsync(bool sourceIsContainer, IValueProvider valueProvider, string containerHostName, CancellationToken cancellationToken)
+    internal static async ValueTask<ResolvedValue> ResolveAsync(bool sourceIsContainer, IValueProvider valueProvider, string containerHostName, CancellationToken cancellationToken)
     {
-        return sourceIsContainer switch
-        {
-            // Exe -> Exe and Exe -> Container cases
-            false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-            // Container -> Exe and Container -> Container cases
-            true => await ResolveWithContainerSourceAsync(valueProvider, containerHostName, cancellationToken).ConfigureAwait(false)
-        };
+        return await ResolveWithContainerSourceAsync(valueProvider, containerHostName, sourceIsContainer, cancellationToken).ConfigureAwait(false);
     }
 }
+
+internal record ResolvedValue(string? Value, bool IsSensitive);

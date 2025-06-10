@@ -481,6 +481,11 @@
                     "DisableMetrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                    },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry traces are enabled or not.",
+                      "default": false
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Kafka message broker to consume messages."
@@ -945,6 +950,11 @@
                     "DisableMetrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": false
+                    },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry traces are enabled or not.",
                       "default": false
                     }
                   },

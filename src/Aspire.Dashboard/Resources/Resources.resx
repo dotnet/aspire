@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    Microsoft ResX Schema
-
+  <!-- 
+    Microsoft ResX Schema 
+    
     Version 2.0
-
-    The primary goals of this format is to allow a simple XML format
-    that is mostly human readable. The generation and parsing of the
-    various data types are done through the TypeConverter classes
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
     associated with the data types.
-
+    
     Example:
-
+    
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-
-    There are any number of "resheader" rows that contain simple
+                
+    There are any number of "resheader" rows that contain simple 
     name/value pairs.
-
-    Each data row contains a name, and value. The row also contains a
-    type or mimetype. Type corresponds to a .NET class that support
-    text/value conversion through the TypeConverter architecture.
-    Classes that don't support this are serialized and stored with the
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
     mimetype set.
-
-    The mimetype is used for serialized objects, and tells the
-    ResXResourceReader how to depersist the object. This is currently not
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
     extensible. For a given mimetype the value must be set accordingly:
-
-    Note - application/x-microsoft.net.object.binary.base64 is the format
-    that the ResXResourceWriter will generate, however the reader can
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
     read any of the formats listed below.
-
+    
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-
+    
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array
+    value   : The object must be serialized into a byte array 
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -124,18 +124,20 @@
   <data name="ResourcesHeader" xml:space="preserve">
     <value>Resources</value>
   </data>
-  <data name="ResourcesTypeFilterAllVisible" xml:space="preserve">
-    <value>Type filter: All types visible</value>
+  <data name="ResourcesNotFiltered" xml:space="preserve">
+    <value>No filters</value>
   </data>
-  <data name="ResourcesTypeFiltered" xml:space="preserve">
-    <value>Type filter: Filtered</value>
+  <data name="ResourcesFiltered" xml:space="preserve">
+    <value>Has filters</value>
   </data>
   <data name="ResourcesResourceTypesHeader" xml:space="preserve">
     <value>Resource types</value>
   </data>
-  <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
-    <value>Environment variables for {0}</value>
-    <comment>{0} is a resource</comment>
+  <data name="ResourcesResourceStatesHeader" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="ResourceFilterOptionEmpty" xml:space="preserve">
+    <value>(Unset)</value>
   </data>
   <data name="ResourcesStateColumnHeader" xml:space="preserve">
     <value>State</value>
@@ -152,23 +154,11 @@
   <data name="ResourcesSourceColumnHeader" xml:space="preserve">
     <value>Source</value>
   </data>
-  <data name="ResourcesEndpointsColumnHeader" xml:space="preserve">
-    <value>Endpoints</value>
-  </data>
-  <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
-    <value>Environment</value>
-  </data>
-  <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
-    <value>No environment variables</value>
+  <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
+    <value>URLs</value>
   </data>
   <data name="ResourcesNoResources" xml:space="preserve">
     <value>No resources found</value>
-  </data>
-  <data name="ResourceDetailsEndpointUrl" xml:space="preserve">
-    <value>Endpoint URL</value>
-  </data>
-  <data name="ResourceDetailsProxyUrl" xml:space="preserve">
-    <value>Proxy URL</value>
   </data>
   <data name="ResourcesDetailsContainerArgumentsProperty" xml:space="preserve">
     <value>Container arguments</value>
@@ -259,7 +249,29 @@
     <value>Waiting...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
   </data>
-  <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
-    <value>No telemetry found for this resource.</value>
+  <data name="ResourceCollapseAllChildren" xml:space="preserve">
+    <value>Collapse child resources</value>
+  </data>
+  <data name="ResourceExpandAllChildren" xml:space="preserve">
+    <value>Expand child resources</value>
+  </data>
+  <data name="ResourcesChangeViewOptions" xml:space="preserve">
+    <value>View options</value>
+    <comment>An icon allowing the user to expand or collapse all child resources.</comment>
+  </data>
+  <data name="ResourcesGraphZoomOutButton" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="ResourcesGraphZoomInButton" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="ResourcesGraphResetButton" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
   </data>
 </root>
