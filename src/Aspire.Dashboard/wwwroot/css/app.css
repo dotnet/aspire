@@ -816,7 +816,12 @@ fluent-tooltip[anchor="dialog_close"] > div {
     margin-right: 3px;
 }
 
-fluent-menu-item::part(content) {
+.aspire-menu-container > fluent-menu > fluent-menu-item::part(content) {
+    width: 100%;
+    text-overflow: ellipsis;
+}
+
+.overflow-fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
