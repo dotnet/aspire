@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Yarp.Tests;
 
@@ -231,7 +232,10 @@ public class YarpServiceDiscoveryTests
     [Fact]
     public async Task ServiceDiscoveryDestinationResolverTests_Dns()
     {
+        DnsResolver resolver = new DnsResolver(TimeProvider.System, NullLogger<DnsResolver>.Instance);
+
         await using var services = new ServiceCollection()
+            .AddSingleton<IDnsResolver>(resolver)
             .AddServiceDiscoveryCore()
             .AddDnsServiceEndpointProvider()
             .BuildServiceProvider();
