@@ -59,6 +59,10 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     public Service? Service { get; set; }
 
     /// <summary>
+    /// </summary>
+    public List<BaseKubernetesResource> Resources { get; } = [];
+
+    /// <summary>
     /// Gets the resource that is the target of this Kubernetes service.
     /// </summary>
     internal IResource TargetResource => resource;
@@ -94,6 +98,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         foreach (var volumeClaim in PersistentVolumeClaims)
         {
             yield return volumeClaim;
+        }
+
+        foreach (var resource in Resources)
+        {
+            yield return resource;
         }
     }
 
