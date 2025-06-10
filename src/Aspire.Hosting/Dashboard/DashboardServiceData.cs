@@ -15,18 +15,18 @@ internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
-    private readonly ResourceCommandService _commandExecutor;
+    private readonly ResourceCommandService _resourceCommandService;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        ResourceCommandService commandExecutor)
+        ResourceCommandService resourceCommandService)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
-        _commandExecutor = commandExecutor;
+        _resourceCommandService = resourceCommandService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -90,7 +90,7 @@ internal sealed class DashboardServiceData : IDisposable
     {
         try
         {
-            var result = await _commandExecutor.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            var result = await _resourceCommandService.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
             return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
         catch

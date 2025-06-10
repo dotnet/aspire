@@ -146,6 +146,6 @@ public class ResourceCommandService : IDisposable
         }
 
         logger.LogInformation("Command '{Type}' not available.", type);
-        return new ExecuteCommandResult { Success = false, ErrorMessage = "Command type not available." };
+        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Command '{type}' not available for resource '{resourceId}'." };
     }
 }
