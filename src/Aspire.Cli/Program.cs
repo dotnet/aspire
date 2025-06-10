@@ -13,11 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
-using Microsoft.Extensions.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Aspire.Cli.Utils;
 
 #if DEBUG
 using OpenTelemetry;
@@ -33,49 +33,22 @@ public class Program
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
-    /// <summary>
-    /// Sets up the application configuration by loading settings from .aspire/settings.json files.
-    /// Loads the nearest local settings file and global settings from $HOME/.aspire/settings.json,
-    /// with global settings taking precedence over local settings.
-    /// </summary>
-    private static void SetupAppHostOptions(HostApplicationBuilder builder)
+    private static string GetGlobalSettingsPath()
     {
-        // Find the nearest local settings file
-        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        FileInfo? localSettingsFile = null;
-
-        while (currentDirectory is not null)
-        {
-            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-
-            if (File.Exists(settingsFilePath))
-            {
-                localSettingsFile = new FileInfo(settingsFilePath);
-                break;
-            }
-
-            currentDirectory = currentDirectory.Parent;
-        }
-
-        // Add local settings first (if found)
-        if (localSettingsFile is not null)
-        {
-            builder.Configuration.AddJsonFile(localSettingsFile.FullName, optional: true);
-        }
-
-        // Then add global settings file (if it exists) - this will override local settings
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
-        if (File.Exists(globalSettingsPath))
-        {
-            builder.Configuration.AddJsonFile(globalSettingsPath, optional: true);
-        }
+        return globalSettingsPath;
     }
 
     private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
-        SetupAppHostOptions(builder);
+
+        // Set up settings with appropriate paths.
+        var globalSettingsFilePath = GetGlobalSettingsPath();
+        var globalSettingsFile = new FileInfo(globalSettingsFilePath);
+        var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
 
         builder.Logging.ClearProviders();
 
@@ -83,7 +56,7 @@ public class Program
         builder.Logging.AddOpenTelemetry(logging => {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
-            });
+        });
 
 #if DEBUG
         var otelBuilder = builder.Services
@@ -103,7 +76,7 @@ public class Program
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
 
-        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is { })
         {
             // NOTE: If we always enable the OTEL exporter it dramatically
             //       impacts the CLI in terms of exiting quickly because it
@@ -154,7 +127,8 @@ public class Program
 
     private static IConfigurationWriter BuildConfigurationWriter(IServiceProvider serviceProvider)
     {
-        return new ConfigurationWriter(new DirectoryInfo(Environment.CurrentDirectory));
+        var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
+        return new ConfigurationWriter(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
