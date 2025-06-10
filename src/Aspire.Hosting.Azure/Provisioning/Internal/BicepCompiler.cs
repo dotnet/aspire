@@ -14,12 +14,32 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 {
     public async Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {
-        var azPath = FindFullPathFromPath("az") ?? throw new AzureCliNotOnPathException();
+        // Try bicep command first for better performance
+        var bicepPath = FindFullPathFromPath("bicep");
+        string commandPath;
+        string arguments;
+
+        if (bicepPath is not null)
+        {
+            commandPath = bicepPath;
+            arguments = $"build \"{bicepFilePath}\" --stdout";
+        }
+        else
+        {
+            // Fall back to az bicep if bicep command is not available
+            var azPath = FindFullPathFromPath("az");
+            if (azPath is null)
+            {
+                throw new AzureCliNotOnPathException();
+            }
+            commandPath = azPath;
+            arguments = $"bicep build --file \"{bicepFilePath}\" --stdout";
+        }
 
         var armTemplateContents = new StringBuilder();
-        var templateSpec = new ProcessSpec(azPath)
+        var templateSpec = new ProcessSpec(commandPath)
         {
-            Arguments = $"bicep build --file \"{bicepFilePath}\" --stdout",
+            Arguments = arguments,
             OnOutputData = data => armTemplateContents.AppendLine(data),
             OnErrorData = data => { }, // Error handling will be done by the caller
         };
@@ -52,10 +72,10 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 
     private static string? FindFullPathFromPath(string command)
     {
-        return FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
+        return FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), File.Exists);
     }
 
-    private static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    private static string? FindFullPathFromPath(string command, string? pathVariable, Func<string, bool> fileExists)
     {
         Debug.Assert(!string.IsNullOrWhiteSpace(command));
 
@@ -64,7 +84,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
             command += ".cmd";
         }
 
-        foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator))
+        foreach (var directory in (pathVariable ?? string.Empty).Split(Path.PathSeparator))
         {
             var fullPath = Path.Combine(directory, command);
 

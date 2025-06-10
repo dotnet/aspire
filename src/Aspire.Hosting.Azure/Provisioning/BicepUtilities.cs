@@ -20,6 +20,7 @@ internal static class BicepUtilities
         AzureBicepResource.KnownParameters.PrincipalName,
         AzureBicepResource.KnownParameters.PrincipalId,
         AzureBicepResource.KnownParameters.PrincipalType,
+        AzureBicepResource.KnownParameters.UserPrincipalId,
         AzureBicepResource.KnownParameters.Location,
     ];
 
