@@ -15,7 +15,7 @@ param myidentity_outputs_id string
 
 param myidentity_outputs_clientid string
 
-resource myapp2 'Microsoft.App/containerApps@2024-03-01' = {
+resource myapp2 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'myapp2'
   location: location
   properties: {
@@ -56,6 +56,11 @@ resource myapp2 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       scale: {
         minReplicas: 1
+      }
+    }
+    runtime: {
+      dotnet: {
+        autoConfigureDataProtection: true
       }
     }
   }

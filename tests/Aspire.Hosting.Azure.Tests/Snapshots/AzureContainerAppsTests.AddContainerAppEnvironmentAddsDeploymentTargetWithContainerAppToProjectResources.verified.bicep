@@ -13,7 +13,7 @@ param api_containerimage string
 
 param api_containerport string
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api'
   location: location
   properties: {
@@ -63,6 +63,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       scale: {
         minReplicas: 1
+      }
+    }
+    runtime: {
+      dotnet: {
+        autoConfigureDataProtection: true
       }
     }
   }
