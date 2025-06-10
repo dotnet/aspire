@@ -89,7 +89,8 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                serviceResource.Deployment!.Spec.RevisionHistoryLimit = 5;
+                serviceResource.Workload!.GetPodTemplate().Spec.Containers[0].ImagePullPolicy = "Always";
+                (serviceResource.Workload as Deployment)!.Spec.RevisionHistoryLimit = 5;
             });
 
         var app = builder.Build();
@@ -117,8 +118,8 @@ public class KubernetesPublisherTests()
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
-            .PublishAsKubernetesService(resource => {
-                resource.Resources.Add(new Secret { Metadata = { Name = "mycustomresource"} });
+            .PublishAsKubernetesService(serviceResource => {
+                serviceResource.Resources.Add(new Secret { Metadata = { Name = "mycustomresource"} });
         });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)

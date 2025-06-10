@@ -28,20 +28,8 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
 
     /// <summary>
-    /// Gets or sets the Kubernetes <see cref="Deployment"/> associated with this resource.
     /// </summary>
-    /// <remarks>
-    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
-    /// </remarks>
-    public Deployment? Deployment { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Kubernetes <see cref="StatefulSet"/> associated with this resource.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
-    /// </remarks>
-    public StatefulSet? StatefulSet { get; set; }
+    public Workload? Workload { get; set; }
 
     /// <summary>
     /// Gets or sets the Kubernetes ConfigMap associated with this resource.
@@ -69,14 +57,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     internal IEnumerable<BaseKubernetesResource> GetTemplatedResources()
     {
-        if (Deployment is not null)
+        if (Workload is not null)
         {
-            yield return Deployment;
+            yield return Workload;
         }
-        if (StatefulSet is not null)
-        {
-            yield return StatefulSet;
-        }
+
         if (ConfigMap is not null)
         {
             yield return ConfigMap;
@@ -128,11 +113,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         if (resource is IResourceWithConnectionString)
         {
-            StatefulSet = resource.ToStatefulSet(this);
+            Workload = resource.ToStatefulSet(this);
             return;
         }
 
-        Deployment = resource.ToDeployment(this);
+        Workload = resource.ToDeployment(this);
     }
 
     internal string GetContainerImageName(IResource resourceInstance)
