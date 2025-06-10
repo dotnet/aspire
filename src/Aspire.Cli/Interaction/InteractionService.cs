@@ -83,9 +83,10 @@ internal class InteractionService : IInteractionService
 
         DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
-        _ansiConsole.MarkupLine($"\t[bold]" + InteractionServiceStrings.AspireHostingSDKVersion + $"[/]: {appHostHostingSdkVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]" + InteractionServiceStrings.AspireCLIVersion + $"[/]: {cliInformationalVersion}");
-        _ansiConsole.MarkupLine("\t[bold]" + InteractionServiceStrings.RequiredCapability + $"[/]: {ex.RequiredCapability}");
+        _ansiConsole.MarkupLine(
+            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingSdkVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -108,11 +109,13 @@ internal class InteractionService : IInteractionService
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]" + InteractionServiceStrings.Dashboard + "[/]:");
+        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
-            _ansiConsole.MarkupLine(":chart_increasing:  " + InteractionServiceStrings.DirectLink + ": $[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            _ansiConsole.MarkupLine(":chart_increasing:  " + InteractionServiceStrings.CodespacesLink + $": [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine(
+                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: $[link={{dashboardUrls.BaseUrlWithLoginToken}}]{{dashboardUrls.BaseUrlWithLoginToken}}[/]");
+            _ansiConsole.MarkupLine(
+                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
         }
         else
         {
@@ -140,7 +143,7 @@ internal class InteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
-        DisplayMessage("stop_sign", "[teal bold]" + InteractionServiceStrings.StoppingAspire + "[/]");
+        DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)

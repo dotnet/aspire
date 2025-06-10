@@ -207,7 +207,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                ":ice:  " + TemplatingStrings.GettingLatestTemplates,
+                $":ice:  {TemplatingStrings.GettingLatestTemplates}",
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -231,7 +231,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var newProjectCollector = new OutputCollector();
             var newProjectExitCode = await interactionService.ShowStatusAsync(
-                ":rocket:  " + TemplatingStrings.CreatingNewProject,
+                $":rocket:  {TemplatingStrings.CreatingNewProject}",
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
