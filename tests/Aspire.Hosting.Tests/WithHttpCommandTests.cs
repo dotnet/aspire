@@ -167,11 +167,15 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(command6);
     }
 
-    // NOTE: Don't test 5xx here to avoid resilience in HttpClient from retrying.
-    [Theory]
     [InlineData(200, true)]
     [InlineData(201, true)]
     [InlineData(400, false)]
+    [InlineData(401, false)]
+    [InlineData(403, false)]
+    [InlineData(404, false)]
+    [InlineData(500, false)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9670")]
+    [Theory]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
@@ -190,10 +194,11 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(expectSuccess, result.Success);
     }
 
-    [Theory]
     [InlineData(null, false)] // Default method is POST
     [InlineData("get", true)]
     [InlineData("post", false)]
+    [Theory]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9725")]
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
         // Arrange
