@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Xunit;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -23,30 +24,16 @@ internal static class CliTestHelper
 {
     public static IServiceCollection CreateServiceCollection(TemporaryWorkspace workspace, ITestOutputHelper outputHelper, Action<CliServiceCollectionTestOptions>? configure = null)
     {
-        var options = new CliServiceCollectionTestOptions(outputHelper);
-        options.WorkingDirectory = workspace.WorkspaceRoot;
+        var options = new CliServiceCollectionTestOptions(outputHelper, workspace.WorkspaceRoot);
         configure?.Invoke(options);
 
         var services = new ServiceCollection();
 
-        // Build configuration for testing
         var configBuilder = new ConfigurationBuilder();
-        
-        // Add local settings first (if provided)
-        if (!string.IsNullOrEmpty(options.LocalSettingsContent))
-        {
-            var localBytes = Encoding.UTF8.GetBytes(options.LocalSettingsContent);
-            var localStream = new MemoryStream(localBytes);
-            configBuilder.AddJsonStream(localStream);
-        }
 
-        // Then add global settings (if provided) - this will override local settings
-        if (!string.IsNullOrEmpty(options.GlobalSettingsContent))
-        {
-            var globalBytes = Encoding.UTF8.GetBytes(options.GlobalSettingsContent);
-            var globalStream = new MemoryStream(globalBytes);
-            configBuilder.AddJsonStream(globalStream);
-        }
+        var globalSettingsFilePath = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "settings.global.json");
+        var globalSettingsFile = new FileInfo(globalSettingsFilePath);
+        ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile);
         
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
@@ -82,20 +69,15 @@ internal sealed class CliServiceCollectionTestOptions
 {
     private readonly ITestOutputHelper _outputHelper;
 
-    public CliServiceCollectionTestOptions(ITestOutputHelper outputHelper)
+    public CliServiceCollectionTestOptions(ITestOutputHelper outputHelper, DirectoryInfo workingDirectory)
     {
         _outputHelper = outputHelper;
+        WorkingDirectory = workingDirectory;
 
-        // Create a unique temporary directory for this test
-        var tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(tempPath);
-        WorkingDirectory = new DirectoryInfo(tempPath);
         ProjectLocatorFactory = CreateDefaultProjectLocatorFactory;
         ConfigurationWriterFactory = CreateDefaultConfigurationWriterFactory;
     }
 
-    public string? LocalSettingsContent { get; set; }
-    public string? GlobalSettingsContent { get; set; }
     public DirectoryInfo WorkingDirectory { get; set; }
     
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
@@ -133,7 +115,13 @@ internal sealed class CliServiceCollectionTestOptions
 
     public IConfigurationWriter CreateDefaultConfigurationWriterFactory(IServiceProvider serviceProvider)
     {
-        return new ConfigurationWriter(WorkingDirectory);
+        return new ConfigurationWriter(WorkingDirectory, GetGlobalSettingsFile(WorkingDirectory));
+    }
+
+    private static FileInfo GetGlobalSettingsFile(DirectoryInfo workingDirectory)
+    {
+        var globalSettingsFilePath = Path.Combine(workingDirectory.FullName, ".aspire", "settings.global.json");
+        return new FileInfo(globalSettingsFilePath);
     }
 
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }

@@ -238,7 +238,12 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         };
 
         var interactionService = new TestInteractionService();
-        var configurationWriter = new ConfigurationWriter(workspace.WorkspaceRoot);
+
+        // Simulated global settings path for test isolation.
+        var globalSettingsFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.global.json");
+        var globalSettingsFile = new FileInfo(globalSettingsFilePath);
+        var configurationWriter = new ConfigurationWriter(workspace.WorkspaceRoot, globalSettingsFile);
+        
         var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationWriter);
 
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);

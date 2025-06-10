@@ -62,10 +62,11 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigCommandGetWithValidKey()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.LocalSettingsContent = """{"testKey": "testValue"}""";
-        });
+        var aspireSettingsDirectory = workspace.CreateDirectory(".aspire");
+        var settingsFilePath = Path.Combine(aspireSettingsDirectory.FullName, "settings.json");
+        await File.WriteAllTextAsync(settingsFilePath, """{"testKey": "testValue"}""");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -187,10 +188,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
 
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
-        {
-            options.WorkingDirectory = tempRepo.WorkspaceRoot;
-        });
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var configWriter = provider.GetRequiredService<IConfigurationWriter>();
@@ -205,10 +203,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         await configWriter.SetConfigurationAsync("key2", "value2");
 
         // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
-        {
-            options.WorkingDirectory = tempRepo.WorkspaceRoot;
-        });
+        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         provider = services.BuildServiceProvider();
         configuration = provider.GetRequiredService<IConfiguration>();
 

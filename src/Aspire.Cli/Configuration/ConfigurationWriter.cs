@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationWriter(DirectoryInfo currentDirectory) : IConfigurationWriter
+internal sealed class ConfigurationWriter(DirectoryInfo currentDirectory, FileInfo globalSettingsFile) : IConfigurationWriter
 {
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -78,8 +78,7 @@ internal sealed class ConfigurationWriter(DirectoryInfo currentDirectory) : ICon
     {
         if (isGlobal)
         {
-            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            return Path.Combine(homeDirectory, ".aspire", "settings.json");
+            return globalSettingsFile.FullName;
         }
         else
         {
