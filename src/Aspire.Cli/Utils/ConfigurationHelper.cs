@@ -27,16 +27,16 @@ internal static class ConfigurationHelper
             currentDirectory = currentDirectory.Parent;
         }
 
-        // Add local settings first (if found)
-        if (localSettingsFile is not null)
-        {
-            configuration.AddJsonFile(localSettingsFile.FullName, optional: true);
-        }
-
-        // Then add global settings file (if it exists) - this will override local settings
+        // Add global settings first (if it exists) - lower precedence
         if (File.Exists(globalSettingsFile.FullName))
         {
             configuration.AddJsonFile(globalSettingsFile.FullName, optional: true);
+        }
+
+        // Then add local settings (if found) - this will override global settings
+        if (localSettingsFile is not null)
+        {
+            configuration.AddJsonFile(localSettingsFile.FullName, optional: true);
         }
     }
 }
