@@ -4,7 +4,6 @@
 using System.Net;
 using System.Net.Sockets;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
