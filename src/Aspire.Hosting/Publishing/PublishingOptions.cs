@@ -17,9 +17,14 @@ public class PublishingOptions
     /// Gets or sets the name of the publisher responsible for publishing the application.
     /// </summary>
     public string? Publisher { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the path to the directory where the published output will be written.
     /// </summary>
     public string? OutputPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the application should be deployed after publishing.
+    /// </summary>
+    public bool Deploy { get; set; }
 }
