@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Xunit;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Aspire.Hosting.Yarp.Tests;
