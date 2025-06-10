@@ -766,7 +766,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         ResourceViewModel? TryGetSingleResource()
         {
-            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden()).ToList();
+            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden(showHiddenResources: _showHiddenResources)).ToList();
             return actualResources.Count == 1 ? actualResources[0] : null;
         }
     }
