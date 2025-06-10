@@ -162,13 +162,13 @@ public class ProvisioningContextTests
 public class ProvisioningServicesTests
 {
     [Fact]
-    public void TestProvisioningServices_CanCreateAllInterfaces()
+    public void ProvisioningTestHelpers_CanCreateAllInterfaces()
     {
         // Arrange & Act
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var secretClientProvider = TestProvisioningServices.CreateSecretClientProvider();
-        var bicepCliExecutor = TestProvisioningServices.CreateBicepCompiler();
-        var userSecretsManager = TestProvisioningServices.CreateUserSecretsManager();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var secretClientProvider = ProvisioningTestHelpers.CreateSecretClientProvider();
+        var bicepCliExecutor = ProvisioningTestHelpers.CreateBicepCompiler();
+        var userSecretsManager = ProvisioningTestHelpers.CreateUserSecretsManager();
 
         // Assert
         Assert.NotNull(armClientProvider);
@@ -181,7 +181,7 @@ public class ProvisioningServicesTests
     public async Task TestBicepCliExecutor_ReturnsValidJson()
     {
         // Arrange
-        var executor = TestProvisioningServices.CreateBicepCompiler();
+        var executor = ProvisioningTestHelpers.CreateBicepCompiler();
 
         // Act
         var result = await executor.CompileBicepToArmAsync("test.bicep");
@@ -200,7 +200,7 @@ public class ProvisioningServicesTests
     public async Task TestUserSecretsManager_CanSaveAndLoad()
     {
         // Arrange
-        var manager = TestProvisioningServices.CreateUserSecretsManager();
+        var manager = ProvisioningTestHelpers.CreateUserSecretsManager();
         var secrets = new JsonObject { ["Azure"] = new JsonObject { ["SubscriptionId"] = "test-id" } };
 
         // Act
@@ -216,7 +216,7 @@ public class ProvisioningServicesTests
     public async Task TestUserPrincipalProvider_CanGetUserPrincipal()
     {
         // Arrange
-        var provider = TestProvisioningServices.CreateUserPrincipalProvider();
+        var provider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
 
         // Act
         var principal = await provider.GetUserPrincipalAsync();

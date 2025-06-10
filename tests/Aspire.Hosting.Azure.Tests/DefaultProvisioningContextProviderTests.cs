@@ -21,9 +21,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions();
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -57,9 +57,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions(subscriptionId: null);
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -83,9 +83,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions(location: null);
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -109,9 +109,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions(resourceGroup: null);
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -143,9 +143,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions(resourceGroup: resourceGroupName);
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -171,9 +171,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions();
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
@@ -200,9 +200,9 @@ public class DefaultProvisioningContextProviderTests
         var options = CreateOptions();
         var environment = CreateEnvironment();
         var logger = CreateLogger();
-        var armClientProvider = TestProvisioningServices.CreateArmClientProvider();
-        var userPrincipalProvider = TestProvisioningServices.CreateUserPrincipalProvider();
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(

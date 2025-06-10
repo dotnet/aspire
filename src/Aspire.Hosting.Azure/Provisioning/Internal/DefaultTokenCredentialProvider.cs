@@ -3,11 +3,10 @@
 
 using Azure.Core;
 using Azure.Identity;
-using Aspire.Hosting.Azure.Provisioning.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Azure.Provisioning;
+namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
 internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
 {

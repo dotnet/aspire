@@ -14,7 +14,7 @@ public class DefaultUserPrincipalProviderTests
     public async Task GetUserPrincipalAsync_ReturnsValidUserPrincipal()
     {
         // Arrange
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var provider = new DefaultUserPrincipalProvider(tokenCredentialProvider);
 
         // Act
@@ -22,8 +22,8 @@ public class DefaultUserPrincipalProviderTests
 
         // Assert
         Assert.NotNull(principal);
-        Assert.NotEqual(Guid.Empty, principal.Id);
-        Assert.NotNull(principal.Name);
+        Assert.Equal(Guid.Parse("11111111-2222-3333-4444-555555555555"), principal.Id);
+        Assert.Equal("test@example.com", principal.Name);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class DefaultUserPrincipalProviderTests
     public async Task GetUserPrincipalAsync_HandlesCancellation()
     {
         // Arrange
-        var tokenCredentialProvider = TestProvisioningServices.CreateTokenCredentialProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var provider = new DefaultUserPrincipalProvider(tokenCredentialProvider);
         using var cts = new CancellationTokenSource();
         cts.Cancel();

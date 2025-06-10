@@ -44,6 +44,15 @@ internal static class ProvisioningTestHelpers
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());
     }
+    
+    // Factory methods for test implementations of provisioning services interfaces
+    public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
+    public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
+    public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
+    public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
+    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
+    public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 }
 
 /// <summary>
@@ -240,20 +249,6 @@ internal sealed class MockResponse(int status) : Response
         return false;
     }
     public override void Dispose() { }
-}
-
-/// <summary>
-/// Test implementations for the provisioning services interfaces.
-/// </summary>
-internal static class TestProvisioningServices
-{
-    public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
-    public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
-    public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
-    public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
-    public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
-    public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 }
 
 internal sealed class TestArmClientProvider : IArmClientProvider
