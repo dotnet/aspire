@@ -64,7 +64,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
             if (result.ExitCode != 0)
             {
-                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, Strings.FailedToSearchForPackages, result));
+                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, Strings.FailedToSearchForPackages, result.ExitCode));
             }
             else
             {
