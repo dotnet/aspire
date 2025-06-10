@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param cosmos_kv_outputs_name string
@@ -51,6 +51,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         paths: [
           'mypartitionkeypath'
         ]
+        kind: 'Hash'
       }
     }
   }

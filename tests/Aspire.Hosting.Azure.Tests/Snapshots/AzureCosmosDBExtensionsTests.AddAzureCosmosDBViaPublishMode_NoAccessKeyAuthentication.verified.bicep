@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
@@ -49,6 +49,7 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
         paths: [
           'mypartitionkeypath'
         ]
+        kind: 'Hash'
       }
     }
   }
