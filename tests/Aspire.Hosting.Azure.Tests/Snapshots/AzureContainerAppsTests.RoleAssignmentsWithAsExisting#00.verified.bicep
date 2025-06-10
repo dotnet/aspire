@@ -27,6 +27,11 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           identity: env_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: env_outputs_azure_container_apps_environment_id
     template: {
@@ -56,11 +61,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
       ]
       scale: {
         minReplicas: 1
-      }
-    }
-    runtime: {
-      dotnet: {
-        autoConfigureDataProtection: true
       }
     }
   }
