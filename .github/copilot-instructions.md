@@ -6,6 +6,11 @@
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
 * Never change global.json unless explicitly asked to.
+* Avoid breaking changes on public APIs. When adding new members to existing public types:
+  * Add new properties rather than positional parameters to records
+  * Add new optional parameters at the end of method signatures
+  * Use overloads instead of changing existing method signatures
+  * Consider backward compatibility and existing consumers
 
 ## Formatting
 
