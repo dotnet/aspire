@@ -431,9 +431,24 @@ public class ResourceNotificationService : IDisposable
     private readonly object _onResourceUpdatedLock = new();
 
     /// <summary>
+    /// Get current state of resources.
+    /// </summary>
+    public IEnumerable<ResourceEvent> GetCurrentState()
+    {
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is { } snapshot)
+            {
+                yield return new ResourceEvent(resource, resourceId, snapshot);
+            }
+        }
+    }
+
+    /// <summary>
     /// Watch for changes to the state for all resources.
     /// </summary>
-    /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<ResourceEvent>();

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -9,29 +8,17 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service to execute resource commands.
 /// </summary>
-public class ResourceCommandService : IDisposable
+public class ResourceCommandService
 {
-    private readonly ConcurrentDictionary<string, IResource> _resources;
-    private readonly CancellationTokenSource _cts;
+    private readonly ResourceNotificationService _resourceNotificationService;
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly IServiceProvider _serviceProvider;
 
     internal ResourceCommandService(ResourceNotificationService resourceNotificationService, ResourceLoggerService resourceLoggerService, IServiceProvider serviceProvider)
     {
+        _resourceNotificationService = resourceNotificationService;
         _resourceLoggerService = resourceLoggerService;
         _serviceProvider = serviceProvider;
-        _cts = new();
-        _resources = new ConcurrentDictionary<string, IResource>(StringComparers.ResourceName);
-
-        var cancellationToken = _cts.Token;
-
-        Task.Run(async () =>
-        {
-            await foreach (var @event in resourceNotificationService.WatchAsync().WithCancellation(cancellationToken).ConfigureAwait(false))
-            {
-                _resources[@event.ResourceId] = @event.Resource;
-            }
-        }, cancellationToken);
     }
 
     /// <summary>
@@ -43,12 +30,13 @@ public class ResourceCommandService : IDisposable
     /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
     public async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, string commandName, CancellationToken cancellationToken = default)
     {
-        if (!_resources.TryGetValue(resourceId, out var resource))
+        var resourceState = _resourceNotificationService.GetCurrentState().SingleOrDefault(r => r.ResourceId == resourceId);
+        if (resourceState == null)
         {
             return new ExecuteCommandResult { Success = false, ErrorMessage = $"Resource '{resourceId}' not found." };
         }
 
-        return await ExecuteCommandCoreAsync(resourceId, resource, commandName, cancellationToken).ConfigureAwait(false);
+        return await ExecuteCommandCoreAsync(resourceState.ResourceId, resourceState.Resource, commandName, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -103,11 +91,6 @@ public class ResourceCommandService : IDisposable
         }
     }
 
-    void IDisposable.Dispose()
-    {
-        _cts.Cancel();
-    }
-
     internal async Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string commandName, CancellationToken cancellationToken)
     {
         var logger = _resourceLoggerService.GetLogger(resourceId);
@@ -134,7 +117,7 @@ public class ResourceCommandService : IDisposable
                 }
                 else
                 {
-                    logger.LogInformation("Failure executed command '{CommandName}'. Error message: {ErrorMessage}", commandName, result.ErrorMessage);
+                    logger.LogInformation("Failure executing command '{CommandName}'. Error message: {ErrorMessage}", commandName, result.ErrorMessage);
                     return result;
                 }
             }
