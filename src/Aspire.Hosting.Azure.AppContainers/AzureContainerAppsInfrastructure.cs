@@ -27,51 +27,48 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
-        // TODO: We need to support direct association between a compute resource and the container app environment.
-        // Right now we support a single container app environment as the one we want to use and we'll fall back to
-        // azd based environment if we don't have one.
-
         var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
-        if (caes.Length > 1)
+        foreach (var environment in caes)
         {
-            throw new NotSupportedException("Multiple container app environments are not supported.");
+            var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
+                logger,
+                executionContext,
+                environment);
+
+            foreach (var r in appModel.GetComputeResources())
+            {
+                var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
+
+                // Capture information about the container registry used by the
+                // container app environment in the deployment target information
+                // associated with each compute resource that needs an image
+                r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
+                {
+                    ContainerRegistry = environment,
+                    ComputeEnvironment = environment
+                });
+            }
         }
 
-        var environment = caes.FirstOrDefault();
+        EnsurePublishAsAcaAnnoationsMatch(appModel, hasAcaEnvironments: caes.Length > 0);
+    }
 
-        if (environment is null)
+    private static void EnsurePublishAsAcaAnnoationsMatch(DistributedApplicationModel appModel, bool hasAcaEnvironments)
+    {
+        foreach (var r in appModel.GetComputeResources())
         {
-            return;
-        }
-
-        var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
-            logger,
-            executionContext,
-            environment);
-
-        foreach (var r in appModel.Resources)
-        {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>())
             {
-                continue;
+                var deploymentTarget = r.GetDeploymentTargetAnnotation();
+                if (deploymentTarget == null || deploymentTarget.ComputeEnvironment is not AzureContainerAppEnvironmentResource)
+                {
+                    var message = hasAcaEnvironments ?
+                        $"Resource '{r.Name}' is configured to publish as an Azure Container App, but it is not associated with an Azure Container App Environment. Ensure you have configured it correctly by calling '{nameof(ResourceBuilderExtensions.WithComputeEnvironment)}'." :
+                        $"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.";
+                    throw new InvalidOperationException(message);
+                }
             }
-
-            if (!r.IsContainer() && r is not ProjectResource)
-            {
-                continue;
-            }
-
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
-
-            // Capture information about the container registry used by the
-            // container app environment in the deployment target information
-            // associated with each compute resource that needs an image
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
-            {
-                ContainerRegistry = environment,
-                ComputeEnvironment = environment
-            });
         }
     }
 }

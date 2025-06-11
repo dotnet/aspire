@@ -481,33 +481,6 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public void MultipleCallsToAddAzureContainerAppEnvironmentThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        builder.AddAzureContainerAppEnvironment("env1");
-        var ex = Assert.Throws<NotSupportedException>(() => builder.AddAzureContainerAppEnvironment("env2"));
-
-        Assert.Equal("Only one container app environment is supported at this time. Found: env1", ex.Message);
-    }
-
-    [Fact]
-    public async Task MultipleAzureContainerAppEnvironmentThrows()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        builder.AddAzureContainerAppEnvironment("env1");
-
-        builder.Resources.Add(new AzureContainerAppEnvironmentResource("env2", infra => { }));
-
-        using var app = builder.Build();
-
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
-
-        Assert.Equal("Multiple container app environments are not supported.", ex.Message);
-    }
-
-    [Fact]
     public async Task PublishAsContainerAppInfluencesContainerAppDefinition()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -1445,7 +1418,7 @@ public class AzureContainerAppsTests
         builder.AddAzureContainerAppEnvironment("env");
 
         var customProvider = new CustomManifestExpressionProvider();
-        
+
         builder.AddContainer("api", "myimage")
                .WithEnvironment(context =>
                {
@@ -1534,5 +1507,79 @@ public class AzureContainerAppsTests
         // Also, we need to ensure the new default version isn't newer than the preview version used to set autoConfigureDataProtection/kind because
         // callers will get new APIs that may not work with the preview version we are using.
         Assert.True(containerApp.ResourceVersion == "2024-03-01", "When we get a new ResourceVersion for ContainerApps, ensure the version used by ContainerAppContext.CreateContainerApp() still works correctly.");
+    }
+
+    [Fact]
+    public async Task PublishAsAzureContainerApp_ThrowsIfNoEnvironment()
+    {
+        static async Task RunTest(Action<IDistributedApplicationBuilder> action)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+            // Do not add AzureContainerAppEnvironment
+
+            action(builder);
+
+            using var app = builder.Build();
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+            Assert.Contains("there are no 'AzureContainerAppEnvironmentResource' resources", ex.Message);
+        }
+
+        await RunTest(builder =>
+            builder.AddProject<Projects.ServiceA>("ServiceA")
+                .PublishAsAzureContainerApp((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddContainer("api", "myimage")
+                .PublishAsAzureContainerApp((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddExecutable("exe", "path/to/executable", ".")
+                .PublishAsDockerFile()
+                .PublishAsAzureContainerApp((_, _) => { }));
+    }
+
+    [Fact]
+    public async Task PublishAsAzureContainerApp_ThrowsIfWrongEnvironment()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acaEnv = builder.AddAzureContainerAppEnvironment("acaEnv");
+        var appServiceEnv = builder.AddAzureAppServiceEnvironment("appServiceEnv");
+
+        builder.AddContainer("api1", "myimage")
+            .PublishAsAzureContainerApp((_, _) => { })
+            .WithComputeEnvironment(appServiceEnv);
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Contains("it is not associated with an Azure Container App Environment", ex.Message);
+    }
+
+    [Fact]
+    public async Task MultipleAzureContainerAppEnvironmentsSupported()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path);
+
+        var env1 = builder.AddAzureContainerAppEnvironment("env1");
+        var env2 = builder.AddAzureContainerAppEnvironment("env2");
+
+        builder.AddContainer("api1", "myimage")
+            .WithComputeEnvironment(env1);
+
+        builder.AddContainer("api2", "myimage")
+            .WithComputeEnvironment(env2);
+
+        using var app = builder.Build();
+
+        // Publishing will stop the app when it is done
+        await app.RunAsync();
+
+        await VerifyFile(Path.Combine(tempDir.Path, "aspire-manifest.json"));
     }
 }
