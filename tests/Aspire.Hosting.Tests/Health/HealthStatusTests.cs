@@ -3,7 +3,6 @@
 
 using System.Collections.Immutable;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Health;
 
