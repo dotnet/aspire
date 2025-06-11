@@ -257,23 +257,6 @@ jobs:
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
-      # Save the result of the previous steps - success or failure
-      # in the form of a file result-success/result-failure -{name}.rst
-      - name: Store result - success
-        if: ${{ success() }}
-        run: touch result-success-${{ inputs.testShortName }}.rst
-      - name: Store result - failure
-        if: ${{ !success() }}
-        run: touch result-failed-${{ inputs.testShortName }}.rst
-
-      # Upload that result file to artifact named test-job-result-{name}
-      - name: Upload test result
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: test-job-result-${{ inputs.testShortName }}-${{ inputs.os }}
-          path: result-*.rst
-
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |

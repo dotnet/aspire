@@ -404,7 +404,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
                 dashboard.WithImage("custom-dashboard:latest")
                     .WithContainerName("custom-dashboard")
                     .WithEnvironment("CUSTOM_VAR", "custom-value")
-                    .WithBrowserPort(8081);
+                    .WithHostPort(8081);
             });
 
         var app = builder.Build();

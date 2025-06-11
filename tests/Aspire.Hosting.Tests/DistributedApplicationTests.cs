@@ -297,6 +297,94 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [RequiresDocker]
+    public async Task ExplicitStart_StartPersistentContainer()
+    {
+        foreach (var firstRun in new[] { true, false })
+        {
+            const string testName = "explicit-start-persistent-container";
+            using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+            SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+            var notStartedResourceName = $"{testName}-redis";
+            var dependentResourceName = $"{testName}-serviceb";
+
+            var containerBuilder = AddRedisContainer(testProgram.AppBuilder, notStartedResourceName)
+                .WithContainerName(notStartedResourceName)
+                .WithLifetime(ContainerLifetime.Persistent)
+                .WithEndpoint(port: 6379, targetPort: 6379, name: "tcp", env: "REDIS_PORT")
+                .WithExplicitStart();
+
+            containerBuilder.WithExplicitStart();
+            testProgram.ServiceBBuilder.WaitFor(containerBuilder);
+
+            using var app = testProgram.Build();
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+            var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
+
+            var startTask = app.StartAsync();
+
+            ResourceEvent? notStartedResourceEvent = null;
+            ResourceEvent? dependentResourceEvent = null;
+            if (firstRun)
+            {
+                // On start, one resource won't be started and the other is waiting on it.
+                notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+                dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+
+                Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
+                {
+                    Assert.Equal("tcp://localhost:6379", u.Url);
+                    Assert.True(u.IsInactive);
+                });
+                Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
+                {
+                    Assert.Equal("http://localhost:5254", u.Url);
+                    Assert.Equal("http", u.Name);
+                    Assert.True(u.IsInactive);
+                });
+
+                // Source should be populated on non-started resources.
+                Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+                Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
+                logger.LogInformation("Start explicit start resource.");
+                await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            }
+
+            var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+            {
+                Assert.Equal("tcp://localhost:6379", u.Url);
+            });
+
+            // Dependent resource should now run.
+            var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
+            {
+                Assert.Equal("http://localhost:5254", u.Url);
+                Assert.Equal("http", u.Name);
+            });
+
+            logger.LogInformation("Stop resource.");
+            await orchestrator.StopResourceAsync(runningResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Exited).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+
+            // Stop the continer if this isn't the first run otherwise it'll stay running
+            if (firstRun)
+            {
+                logger.LogInformation("Start resource again");
+                await orchestrator.StartResourceAsync(runningResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+                await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            }
+
+            await startTask.DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            await app.StopAsync().DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+        }
+    }
+
+    [Fact]
     public void RegisteredLifecycleHookIsExecutedWhenRunSynchronously()
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
@@ -1175,6 +1263,40 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout));
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task PersistentNetworkCreatedIfPersistentContainers(bool createPersistentContainer)
+    {
+        const string testName = "persistent-network-if-persistent-containers";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        if (createPersistentContainer)
+        {
+            builder.AddContainer($"{testName}-persistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+                .WithLifetime(ContainerLifetime.Persistent);
+        }
+
+        builder.AddContainer($"{testName}-nonpersistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var networks = await s.ListAsync<ContainerNetwork>().DefaultTimeout();
+
+        if (createPersistentContainer)
+        {
+            Assert.Single(networks, n => n.Spec.Persistent == true);
+        }
+        else
+        {
+            Assert.Single(networks, n => n.Spec.Persistent.GetValueOrDefault(false) == false);
+        }
     }
 
     [Fact]

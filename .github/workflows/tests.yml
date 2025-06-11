@@ -178,7 +178,7 @@ jobs:
       requiresTestSdk: true
 
   endtoend_tests:
-    name: EndToEnd ${{ matrix.os }}
+    name: EndToEnd Linux
     uses: ./.github/workflows/run-tests.yml
     needs: build_packages
     with:
@@ -188,21 +188,49 @@ jobs:
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
 
+  extension_tests_win:
+    name: Run VS Code extension tests (Windows)
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./extension
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: yarn install
+      - name: Run tests
+        run: yarn test
+      - name: Package VSIX
+        run: npx @vscode/vsce package --yarn --pre-release -o out/aspire-extension.vsix
+      - name: Upload VSIX
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: aspire-extension
+          path: extension/out/aspire-extension.vsix
+
   results: # This job is used for branch protection. It ensures all the above tests passed
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [ integrations_test_lin, integrations_test_win, integrations_test_macos, templates_test_lin, templates_test_win, templates_test_macos, endtoend_tests ]
+    needs: [
+      endtoend_tests,
+      extension_tests_win,
+      integrations_test_lin,
+      integrations_test_macos,
+      integrations_test_win,
+      templates_test_lin,
+      templates_test_macos,
+      templates_test_win
+    ]
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      # get all the test-job-result* artifacts into a single directory
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          pattern: test-job-result-*
-          merge-multiple: true
-          path: test-job-result
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
@@ -241,7 +269,10 @@ jobs:
           ${{ github.workspace }}/testresults
           --combined
 
-      # return success if zero result-failed-* files are found
-      - name: Compute result
+      - name: Fail if any dependency failed
+        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
+        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
+        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
         run: |
-          [ 0 -eq $(find test-job-result -name 'result-failed-*' | wc -l) ]
+          echo "One or more dependent jobs failed."
+          exit 1

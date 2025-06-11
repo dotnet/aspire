@@ -35,7 +35,8 @@ public static class SeqBuilderExtensions
             .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
             .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
             .WithImageRegistry(SeqContainerImageTags.Registry)
-            .WithEnvironment("ACCEPT_EULA", "Y");
+            .WithEnvironment("ACCEPT_EULA", "Y")
+            .WithHttpHealthCheck("/health"); // Add health check for Seq's /health endpoint
 
         return resourceBuilder;
     }

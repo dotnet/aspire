@@ -330,7 +330,7 @@
     <Project Path="tests/Aspire.Azure.Security.KeyVault.Tests/Aspire.Azure.Security.KeyVault.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj" />
-    <Project Path="tests/Aspire.Components.Common.Tests/Aspire.Components.Common.Tests.csproj" />
+    <Project Path="tests/Aspire.Components.Common.TestUtilities/Aspire.Components.Common.TestUtilities.csproj" />
     <Project Path="tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj" />
     <Project Path="tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj" />

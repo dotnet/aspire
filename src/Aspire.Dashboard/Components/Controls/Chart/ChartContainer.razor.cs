@@ -225,7 +225,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 {
                     var text = v switch
                     {
-                        null => Loc[nameof(ControlsStrings.LabelUnset)],
+                        null => Loc[nameof(ControlsStrings.LabelValueUnset)],
                         { Length: 0 } => Loc[nameof(ControlsStrings.LabelEmpty)],
                         _ => v
                     };
