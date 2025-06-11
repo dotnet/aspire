@@ -1,0 +1,12 @@
+git bisect start
+# status: waiting for both good and bad commits
+# bad: [f5f349b2d5bb9ecf46444cf7304979a90a8cd7b2] Add IAzureComputeEnvironmentResource interface for Azure-backed compute (#9700)
+git bisect bad f5f349b2d5bb9ecf46444cf7304979a90a8cd7b2
+# status: waiting for good commit(s), bad commit known
+# good: [bc97b8f6bfe8e59e4acdfaa1b7fc86700088c610] Use a persistent container network if there are persistent container resources (#9715)
+git bisect good bc97b8f6bfe8e59e4acdfaa1b7fc86700088c610
+# bad: [cdd4d3c2d6349b628a23ec62892a59d02a2014ba] more instructions (#9726)
+git bisect bad cdd4d3c2d6349b628a23ec62892a59d02a2014ba
+# bad: [59415490abd9049e4b3331cff47f8fd0550a977d] Quarantine flaky test CanOverrideLaunchProfileViaArgsAdHocBuilder (#9721)
+git bisect bad 59415490abd9049e4b3331cff47f8fd0550a977d
+# first bad commit: [59415490abd9049e4b3331cff47f8fd0550a977d] Quarantine flaky test CanOverrideLaunchProfileViaArgsAdHocBuilder (#9721)
