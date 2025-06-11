@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -12,6 +11,7 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Models;
 using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -106,7 +106,7 @@ internal sealed class TestTokenCredential : TokenCredential
 }
 
 /// <summary>
-/// Test implementation that provides static instances for testing using protected constructors.
+/// Test implementation that provides static instances for testing.
 /// </summary>
 internal static class TestAzureResources
 {
@@ -114,18 +114,47 @@ internal static class TestAzureResources
     
     public static SubscriptionResource CreateTestSubscriptionResource()
     {
-        return new TestSubscriptionResource();
+        // For unit testing, we create a simple wrapper that just exposes the test data
+        // More complex operations that require Azure SDK internals should be integration tested
+        return new TestSubscriptionResourceWrapper();
     }
     
     public static ResourceGroupResource CreateTestResourceGroupResource()
     {
-        return new TestResourceGroupResource();
+        return new TestResourceGroupResourceWrapper();
     }
     
     public static TenantResource CreateTestTenantResource()
     {
-        return new TestTenantResource();
+        return new TestTenantResourceWrapper();
     }
+}
+
+/// <summary>
+/// Simple wrapper for SubscriptionResource for unit testing.
+/// Only provides access to test data - complex Azure SDK operations not supported.
+/// </summary>
+internal sealed class TestSubscriptionResourceWrapper : SubscriptionResource
+{
+    public override SubscriptionData Data => TestSubscriptionData.Instance;
+}
+
+/// <summary>
+/// Simple wrapper for ResourceGroupResource for unit testing.
+/// Only provides access to test data - complex Azure SDK operations not supported.
+/// </summary>
+internal sealed class TestResourceGroupResourceWrapper : ResourceGroupResource
+{
+    public override ResourceGroupData Data => TestResourceGroupData.Instance;
+}
+
+/// <summary>
+/// Simple wrapper for TenantResource for unit testing.
+/// Only provides access to test data - complex Azure SDK operations not supported.
+/// </summary>
+internal sealed class TestTenantResourceWrapper : TenantResource
+{
+    public override TenantData Data => TestTenantData.Instance;
 }
 
 /// <summary>
@@ -244,179 +273,37 @@ internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
 }
 
 /// <summary>
-/// Test implementation of SubscriptionResource using Azure SDK testing patterns.
-/// </summary>
-internal sealed class TestSubscriptionResource : SubscriptionResource
-{
-    // Use public constructor for testing
-    public TestSubscriptionResource()
-    {
-    }
-
-    // Override Data property to return test data
-    public override SubscriptionData Data => TestSubscriptionData.Instance;
-}
-
-/// <summary>
-/// Test implementation of ResourceGroupResource using Azure SDK testing patterns.
-/// </summary>
-internal sealed class TestResourceGroupResource : ResourceGroupResource
-{
-    // Use public constructor for testing
-    public TestResourceGroupResource()
-    {
-    }
-
-    // Override Data property to return test data
-    public override ResourceGroupData Data => TestResourceGroupData.Instance;
-}
-
-/// <summary>
-/// Test implementation of TenantResource using Azure SDK testing patterns.
-/// </summary>
-internal sealed class TestTenantResource : TenantResource
-{
-    // Use public constructor for testing
-    public TestTenantResource()
-    {
-    }
-
-    // Override Data property to return test data
-    public override TenantData Data => TestTenantData.Instance;
-}
-
-/// <summary>
-/// Test data for SubscriptionResource using reflection to create instances.
+/// Test data for SubscriptionResource using Azure SDK ResourceManagerModelFactory.
 /// </summary>
 internal static class TestSubscriptionData
 {
-    public static SubscriptionData Instance { get; } = CreateTestSubscriptionData();
-
-    private static SubscriptionData CreateTestSubscriptionData()
-    {
-        // Use reflection to create SubscriptionData with internal constructor
-        var type = typeof(SubscriptionData);
-        var ctors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-        
-        // Find the most appropriate constructor (likely one with location parameter)
-        var ctor = ctors.FirstOrDefault();
-        
-        if (ctor is not null)
-        {
-            var parameters = ctor.GetParameters();
-            var args = new object?[parameters.Length];
-            
-            // Fill parameters with appropriate test values
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var param = parameters[i];
-                args[i] = param.ParameterType.Name switch
-                {
-                    nameof(ResourceIdentifier) => ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012"),
-                    nameof(String) => param.Name switch
-                    {
-                        "subscriptionId" => "12345678-1234-1234-1234-123456789012",
-                        "displayName" => "Test Subscription",
-                        _ => "test-value"
-                    },
-                    "Guid" => Guid.Parse("87654321-4321-4321-4321-210987654321"),
-                    "Nullable`1" when param.ParameterType.GetGenericArguments()[0] == typeof(Guid) => 
-                        Guid.Parse("87654321-4321-4321-4321-210987654321"),
-                    _ => param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null
-                };
-            }
-            
-            return (SubscriptionData)ctor.Invoke(args);
-        }
-        
-        // Fallback - this should not happen with Azure SDK types
-        throw new InvalidOperationException("Could not create test SubscriptionData using reflection");
-    }
+    public static SubscriptionData Instance { get; } = ResourceManagerModelFactory.SubscriptionData(
+        id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012"),
+        subscriptionId: "12345678-1234-1234-1234-123456789012", 
+        displayName: "Test Subscription",
+        tenantId: new Guid("87654321-4321-4321-4321-210987654321"));
 }
 
 /// <summary>
-/// Test data for ResourceGroupResource using reflection to create instances.
+/// Test data for ResourceGroupResource using Azure SDK ResourceManagerModelFactory.
 /// </summary>
 internal static class TestResourceGroupData
 {
-    public static ResourceGroupData Instance { get; } = CreateTestResourceGroupData();
-
-    private static ResourceGroupData CreateTestResourceGroupData()
-    {
-        var type = typeof(ResourceGroupData);
-        var ctors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-        var ctor = ctors.FirstOrDefault();
-        
-        if (ctor is not null)
-        {
-            var parameters = ctor.GetParameters();
-            var args = new object?[parameters.Length];
-            
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var param = parameters[i];
-                args[i] = param.ParameterType.Name switch
-                {
-                    nameof(AzureLocation) => AzureLocation.WestUS2,
-                    nameof(ResourceIdentifier) => ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg"),
-                    nameof(String) => param.Name switch
-                    {
-                        "name" => "test-rg",
-                        "type" => "Microsoft.Resources/resourceGroups",
-                        _ => "test-value"
-                    },
-                    _ => param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null
-                };
-            }
-            
-            return (ResourceGroupData)ctor.Invoke(args);
-        }
-        
-        throw new InvalidOperationException("Could not create test ResourceGroupData using reflection");
-    }
+    public static ResourceGroupData Instance { get; } = ResourceManagerModelFactory.ResourceGroupData(
+        id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg"),
+        name: "test-rg",
+        resourceType: "Microsoft.Resources/resourceGroups",
+        location: AzureLocation.WestUS2);
 }
 
 /// <summary>
-/// Test data for TenantResource using reflection to create instances.
+/// Test data for TenantResource using Azure SDK ResourceManagerModelFactory.
 /// </summary>
 internal static class TestTenantData
 {
-    public static TenantData Instance { get; } = CreateTestTenantData();
-
-    private static TenantData CreateTestTenantData()
-    {
-        var type = typeof(TenantData);
-        var ctors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-        var ctor = ctors.FirstOrDefault();
-        
-        if (ctor is not null)
-        {
-            var parameters = ctor.GetParameters();
-            var args = new object?[parameters.Length];
-            
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var param = parameters[i];
-                args[i] = param.ParameterType.Name switch
-                {
-                    nameof(ResourceIdentifier) => ResourceIdentifier.Parse("/tenants/87654321-4321-4321-4321-210987654321"),
-                    nameof(String) => param.Name switch
-                    {
-                        "tenantId" => "87654321-4321-4321-4321-210987654321",
-                        "defaultDomain" => "testdomain.onmicrosoft.com",
-                        "displayName" => "Test Tenant",
-                        _ => "test-value"
-                    },
-                    "Guid" => Guid.Parse("87654321-4321-4321-4321-210987654321"),
-                    "Nullable`1" when param.ParameterType.GetGenericArguments()[0] == typeof(Guid) => 
-                        Guid.Parse("87654321-4321-4321-4321-210987654321"),
-                    _ => param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null
-                };
-            }
-            
-            return (TenantData)ctor.Invoke(args);
-        }
-        
-        throw new InvalidOperationException("Could not create test TenantData using reflection");
-    }
+    public static TenantData Instance { get; } = ResourceManagerModelFactory.TenantData(
+        id: ResourceIdentifier.Parse("/providers/Microsoft.Resources/tenants/87654321-4321-4321-4321-210987654321"),
+        tenantId: new Guid("87654321-4321-4321-4321-210987654321"),
+        displayName: "Test Tenant", 
+        defaultDomain: "testdomain.onmicrosoft.com");
 }
