@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
-        <source>AppHost file was specified in {0} but it does not exist.</source>
-        <target state="new">AppHost file was specified in {0} but it does not exist.</target>
+        <source>AppHost file was specified in '{0}' but it does not exist at '{1}'.</source>
+        <target state="new">AppHost file was specified in '{0}' but it does not exist at '{1}'.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AspireSDKVersionNotSupported">

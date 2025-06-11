@@ -153,7 +153,7 @@
     <value>Finding app hosts...</value>
   </data>
   <data name="AppHostWasSpecifiedButDoesntExist" xml:space="preserve">
-    <value>AppHost file was specified in {0} but it does not exist.</value>
+    <value>AppHost file was specified in '{0}' but it does not exist at '{1}'.</value>
     <comment>{0} is a path</comment>
   </data>
   <data name="ProjectFileDoesntExist" xml:space="preserve">
