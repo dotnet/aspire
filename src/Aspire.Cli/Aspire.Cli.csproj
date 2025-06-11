@@ -68,7 +68,7 @@
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+      <LastGenOutput>ErrorStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\InteractionServiceStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
