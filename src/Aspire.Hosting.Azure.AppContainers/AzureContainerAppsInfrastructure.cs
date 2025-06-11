@@ -51,10 +51,10 @@ internal sealed class AzureContainerAppsInfrastructure(
             }
         }
 
-        EnsurePublishAsAcaAnnoationsMatch(appModel, hasAcaEnvironments: caes.Length > 0);
+        EnsurePublishAsAcaAnnotationsMatch(appModel, hasAcaEnvironments: caes.Length > 0);
     }
 
-    private static void EnsurePublishAsAcaAnnoationsMatch(DistributedApplicationModel appModel, bool hasAcaEnvironments)
+    private static void EnsurePublishAsAcaAnnotationsMatch(DistributedApplicationModel appModel, bool hasAcaEnvironments)
     {
         foreach (var r in appModel.GetComputeResources())
         {
