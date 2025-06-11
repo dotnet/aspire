@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Azure.Tests;
 /// </summary>
 internal sealed class ProvisioningTestHelpers
 {
-    private readonly TestAzureResourcesFactory _azureResourcesFactory;
+    internal readonly TestAzureResourcesFactory _azureResourcesFactory;
 
     public ProvisioningTestHelpers()
     {
@@ -104,13 +104,17 @@ internal sealed class ProvisioningTestHelpers
 
     private TenantResource CreateMockTenant(ArmClient client)
     {
-        // Create a minimal tenant for testing purposes
-        // This will allow property access but not complex operations
-        var tenantData = _azureResourcesFactory.CreateTenantData();
+        // For unit testing, we need to work around Azure SDK tenant limitations
+        // The most practical approach is to skip tenant-specific tests for unit testing
+        // and focus on integration tests for tenant operations
         
-        // For unit testing, we'll use a pragmatic approach and create a mock
-        // Complex tenant operations should be tested with integration tests
-        return new MockTenantResource(client, tenantData);
+        // Since TenantResource constructors are not accessible, we'll throw a descriptive error
+        // that guides users to the correct testing approach
+        throw new NotSupportedException(
+            "TenantResource mocking is not supported due to Azure SDK constructor limitations. " +
+            "For unit tests, verify tenant information through subscription.Data.TenantId. " +
+            "For tenant-specific operations, use integration tests with real Azure credentials. " +
+            "This aligns with Azure SDK recommended testing patterns.");
     }
 
     private TenantResource CreateBasicTestTenant(SubscriptionResource subscription)
@@ -377,15 +381,4 @@ internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
 internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
 {
     public TokenCredential TokenCredential => new TestTokenCredential();
-}
-
-/// <summary>
-/// Mock implementation of TenantResource for unit testing.
-/// Provides property access without requiring authenticated Azure context.
-/// </summary>
-internal sealed class MockTenantResource : TenantResource
-{
-    internal MockTenantResource(ArmClient client, TenantData data) : base(client, data)
-    {
-    }
 }
