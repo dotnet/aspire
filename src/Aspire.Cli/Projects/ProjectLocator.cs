@@ -25,6 +25,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         return await interactionService.ShowStatusAsync("Searching", async () =>
         {
             var appHostProjects = new List<FileInfo>();
+            var lockObject = new object();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
             {
@@ -52,7 +53,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName);
                     interactionService.DisplaySubtleMessage(relativePath);
-                    appHostProjects.Add(projectFile);
+                    lock (lockObject)
+                    {
+                        appHostProjects.Add(projectFile);
+                    }
                 }
                 else
                 {
