@@ -523,7 +523,7 @@ public class ResourceNotificationService : IDisposable
         var notificationState = GetResourceNotificationState(resourceId, resource);
         if (notificationState.Resource != resource)
         {
-            throw new InvalidOperationException($"Resource instance doesn't match resource registered with specified resource id '{resourceId}'.");
+            throw new InvalidOperationException($"Resource instance doesn't match resource previously registered with specified resource id '{resourceId}'.");
         }
 
         lock (notificationState)
