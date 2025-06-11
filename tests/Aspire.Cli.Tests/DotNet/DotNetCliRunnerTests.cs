@@ -5,7 +5,6 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Cli.Tests.DotNet;
 
