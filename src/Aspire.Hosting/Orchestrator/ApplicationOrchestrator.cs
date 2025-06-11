@@ -179,6 +179,9 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourcesPrepared(OnResourcesPreparedContext context)
     {
         await PublishResourcesInitialStateAsync(context.CancellationToken).ConfigureAwait(false);
+
+        var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
+        await _eventing.PublishAsync(afterResourcesCreatedEvent, context.CancellationToken).ConfigureAwait(false);
     }
 
     private async Task ProcessUrls(IResource resource, CancellationToken cancellationToken)
@@ -313,9 +316,6 @@ internal sealed class ApplicationOrchestrator
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
-        await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {
