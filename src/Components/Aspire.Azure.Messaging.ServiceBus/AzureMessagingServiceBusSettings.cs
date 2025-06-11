@@ -92,76 +92,69 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
-        if (!string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrEmpty(connectionString))
         {
-            // a service bus namespace can't contain ';'. if it is found assume it is a connection string
-            if (!connectionString.Contains(';'))
-            {
-                FullyQualifiedNamespace = connectionString;
-                return;
-            }
-
-            var connectionBuilder = new DbConnectionStringBuilder()
-            {
-                ConnectionString = connectionString
-            };
-
-            // Note: Strip out the EntityPath from the connection string in order
-            // to tell if we are left with just Endpoint.
-            // The EntityPath can contain a queue or topic name. And if it references a topic,
-            // it can contain {topic}/Subscriptions/{subscription}. See https://github.com/Azure/azure-sdk-for-net/pull/27070
-
-            if (connectionBuilder.TryGetValue("EntityPath", out var entityPath))
-            {
-                // Parse the EntityPath value to extract queue/topic and subscription names (new functionality)
-                ParseEntityPath(entityPath.ToString());
-                
-                // Remove EntityPath from the builder for endpoint-only detection
-                connectionBuilder.Remove("EntityPath");
-                
-                // Check if only Endpoint remains after removing EntityPath
-                if (connectionBuilder.Count == 1 &&
-                    connectionBuilder.TryGetValue("Endpoint", out var endpoint))
-                {
-                    // if all that's left is Endpoint, it is a fully qualified namespace
-                    // Extract just the hostname from the endpoint URL
-                    var endpointStr = endpoint.ToString();
-                    if (Uri.TryCreate(endpointStr, UriKind.Absolute, out var uri))
-                    {
-                        FullyQualifiedNamespace = uri.Host;
-                    }
-                    else
-                    {
-                        FullyQualifiedNamespace = endpointStr;
-                    }
-                    return;
-                }
-                
-                // Remove EntityPath from original connection string while preserving format
-                ConnectionString = RemoveEntityPathFromConnectionString(connectionString);
-            }
-            else if (connectionBuilder.Count == 1 &&
-                connectionBuilder.TryGetValue("Endpoint", out var endpoint2))
-            {
-                // if all that's left is Endpoint, it is a fully qualified namespace
-                // Extract just the hostname from the endpoint URL
-                var endpointStr = endpoint2.ToString();
-                if (Uri.TryCreate(endpointStr, UriKind.Absolute, out var uri))
-                {
-                    FullyQualifiedNamespace = uri.Host;
-                }
-                else
-                {
-                    FullyQualifiedNamespace = endpointStr;
-                }
-                return;
-            }
-            else
-            {
-                // No EntityPath to remove, use original connection string as-is
-                ConnectionString = connectionString;
-            }
+            return;
         }
+
+        // Format 1: Simple namespace (no semicolons and not starting with "Endpoint=")
+        // Example: "test.servicebus.windows.net"
+        if (!connectionString.Contains(';') && !connectionString.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
+        {
+            FullyQualifiedNamespace = connectionString;
+            return;
+        }
+
+        // Parse connection string parameters for all other formats
+        var connectionBuilder = new DbConnectionStringBuilder()
+        {
+            ConnectionString = connectionString
+        };
+
+        // Check if EntityPath is present and parse it
+        bool hasEntityPath = connectionBuilder.TryGetValue("EntityPath", out var entityPath);
+        if (hasEntityPath)
+        {
+            // Extract queue/topic and subscription names from EntityPath
+            // Format examples: "myqueue" or "mytopic/Subscriptions/mysub"
+            ParseEntityPath(entityPath?.ToString());
+            
+            // Remove EntityPath for endpoint-only detection
+            connectionBuilder.Remove("EntityPath");
+        }
+
+        // Format 2: Endpoint-only connection string (with or without EntityPath)
+        // Example: "Endpoint=sb://test.servicebus.windows.net/" 
+        // Example: "Endpoint=sb://test.servicebus.windows.net/;EntityPath=myqueue"
+        if (connectionBuilder.Count == 1 && connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+        {
+            FullyQualifiedNamespace = ExtractHostFromEndpoint(endpoint?.ToString() ?? string.Empty);
+            return;
+        }
+
+        // Format 3: Full connection string without EntityPath
+        // Example: "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key="
+        // Format 4: Full connection string with EntityPath (EntityPath gets removed)
+        // Example: "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key=;EntityPath=myqueue"
+        if (hasEntityPath)
+        {
+            // Remove EntityPath from original connection string while preserving format
+            ConnectionString = RemoveEntityPathFromConnectionString(connectionString);
+        }
+        else
+        {
+            // No EntityPath to remove, use original connection string as-is
+            ConnectionString = connectionString;
+        }
+    }
+
+    private static string ExtractHostFromEndpoint(string endpoint)
+    {
+        if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+        {
+            return uri.Host;
+        }
+        return endpoint;
     }
 
     private static string RemoveEntityPathFromConnectionString(string connectionString)

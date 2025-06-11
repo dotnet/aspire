@@ -57,9 +57,10 @@ public class AzureMessagingServiceBusSettingsTests
 
     [Theory]
     [InlineData("Endpoint=sb://test.servicebus.windows.net/;EntityPath=myqueue")]
+    [InlineData("Endpoint=sb://test.servicebus.windows.net/")]
     public void ParseConnectionString_SetsFullyQualifiedNamespaceWhenOnlyEndpointRemains(string connectionString)
     {
-        // Test the case where after removing EntityPath, only Endpoint remains,
+        // Test the case where after removing EntityPath (or when no EntityPath), only Endpoint remains,
         // so we should set FullyQualifiedNamespace instead of ConnectionString
         var settings = new AzureMessagingServiceBusSettings();
         
@@ -67,5 +68,21 @@ public class AzureMessagingServiceBusSettingsTests
         
         Assert.Equal("test.servicebus.windows.net", settings.FullyQualifiedNamespace);
         Assert.Null(settings.ConnectionString);
+    }
+
+    [Theory]
+    [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key=;EntityPath=mytopic/Subscriptions/mysub", 
+                "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key=", 
+                "mytopic", "mysub")]
+    public void ParseConnectionString_ParsesTopicAndSubscriptionFromEntityPath(string connectionString, string expectedConnectionString, string expectedTopic, string expectedSubscription)
+    {
+        // Test parsing topic and subscription from EntityPath format: "mytopic/Subscriptions/mysub"
+        var settings = new AzureMessagingServiceBusSettings();
+        
+        ((IConnectionStringSettings)settings).ParseConnectionString(connectionString);
+        
+        Assert.Equal(expectedConnectionString, settings.ConnectionString);
+        Assert.Equal(expectedTopic, settings.QueueOrTopicName);
+        Assert.Equal(expectedSubscription, settings.SubscriptionName);
     }
 }
