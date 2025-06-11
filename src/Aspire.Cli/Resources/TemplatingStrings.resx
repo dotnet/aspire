@@ -123,7 +123,7 @@
   <data name="AspireStarter_Description" xml:space="preserve">
     <value>Aspire Starter App</value>
   </data>
-  <data name="Aspire_Description" xml:space="preserve">
+  <data name="AspireEmpty_Description" xml:space="preserve">
     <value>Aspire Empty App</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">

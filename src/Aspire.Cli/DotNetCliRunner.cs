@@ -161,7 +161,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (watch && noBuild)
         {
-            var ex = new InvalidOperationException(Strings.CantUseBothWatchAndNoBuild);
+            var ex = new InvalidOperationException(ErrorStrings.CantUseBothWatchAndNoBuild);
             backchannelCompletionSource?.SetException(ex);
             throw ex;
         }
@@ -282,7 +282,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 // Throwing here because this should never happen - we don't want to return
                 // the zero exit code if we can't parse the version because its possibly a
                 // signal that the .NET SDK has changed.
-                throw new InvalidOperationException(Strings.FailedToParseTemplateVersionFromStdout);
+                throw new InvalidOperationException(ErrorStrings.FailedToParseTemplateVersionFromStdout);
             }
 
             return (exitCode, parsedVersion);

@@ -19,26 +19,26 @@ internal static class AppHostHelper
 
             if (appHostInformation.ExitCode != 0)
             {
-                interactionService.DisplayError(Strings.ProjectCouldNotBeAnalyzed);
+                interactionService.DisplayError(ErrorStrings.ProjectCouldNotBeAnalyzed);
                 return (false, false, null);
             }
 
             if (!appHostInformation.IsAspireHost)
             {
-                interactionService.DisplayError(Strings.ProjectIsNotAppHost);
+                interactionService.DisplayError(ErrorStrings.ProjectIsNotAppHost);
                 return (false, false, null);
             }
 
             if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
             {
-                interactionService.DisplayError(Strings.CouldNotParseAspireSDKVersion);
+                interactionService.DisplayError(ErrorStrings.CouldNotParseAspireSDKVersion);
                 return (false, false, null);
             }
 
             var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
             if (!aspireSdkVersion.Satisfies(compatibleRanges))
             {
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, Strings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingSdkVersion));
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingSdkVersion));
                 return (false, false, appHostInformation.AspireHostingSdkVersion);
             }
             else

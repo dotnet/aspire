@@ -7,6 +7,11 @@
         <target state="new">Aspire App Host</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireEmpty_Description">
+        <source>Aspire Empty App</source>
+        <target state="new">Aspire Empty App</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>Aspire Test Project (MSTest)</source>
         <target state="new">Aspire Test Project (MSTest)</target>
@@ -30,11 +35,6 @@
       <trans-unit id="AspireXUnit_Description">
         <source>Aspire Test Project (xUnit)</source>
         <target state="new">Aspire Test Project (xUnit)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Aspire_Description">
-        <source>Aspire Empty App</source>
-        <target state="new">Aspire Empty App</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">

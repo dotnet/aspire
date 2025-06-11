@@ -16,9 +16,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.NuGet;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Resources;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
@@ -217,12 +217,12 @@ public class Program
                     return true;
                 }
 
-                errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
                 return false;
             }
             catch (CultureNotFoundException)
             {
-                errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.InvalidLocaleProvided, localeOverride);
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidLocaleProvided, localeOverride);
                 return false;
             }
         }

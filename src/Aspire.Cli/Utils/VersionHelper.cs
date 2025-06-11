@@ -16,6 +16,6 @@ internal static class VersionHelper
             .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
             .FirstOrDefault()?.InformationalVersion;
 
-        return informationalVersion ?? throw new InvalidOperationException(Strings.UnableToRetrieveAssemblyVersion);
+        return informationalVersion ?? throw new InvalidOperationException(ErrorStrings.UnableToRetrieveAssemblyVersion);
     }
 }

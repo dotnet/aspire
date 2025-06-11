@@ -24,7 +24,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
 
         var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(
-            $":locked_with_key: {Strings.CheckingCertificates}",
+            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
             async () => {
                 var options = new DotNetCliRunnerInvocationOptions
                 {
@@ -46,7 +46,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
             };
 
             var trustExitCode = await interactionService.ShowStatusAsync(
-                $":locked_with_key: {Strings.TrustingCertificates}",
+                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));
@@ -54,7 +54,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, Strings.CertificatesMayNotBeFullyTrusted, trustExitCode));
+                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
             }
         }
     }

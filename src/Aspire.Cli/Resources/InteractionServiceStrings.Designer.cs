@@ -110,5 +110,41 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("BuildingAppHost", resourceCulture);
             }
         }
+        
+        public static string CheckingCertificates {
+            get {
+                return ResourceManager.GetString("CheckingCertificates", resourceCulture);
+            }
+        }
+        
+        public static string TrustingCertificates {
+            get {
+                return ResourceManager.GetString("TrustingCertificates", resourceCulture);
+            }
+        }
+        
+        public static string SearchingProjects {
+            get {
+                return ResourceManager.GetString("SearchingProjects", resourceCulture);
+            }
+        }
+        
+        public static string FindingAppHosts {
+            get {
+                return ResourceManager.GetString("FindingAppHosts", resourceCulture);
+            }
+        }
+        
+        public static string SelectAppHostToRun {
+            get {
+                return ResourceManager.GetString("SelectAppHostToRun", resourceCulture);
+            }
+        }
+        
+        public static string CreatedSettingsFile {
+            get {
+                return ResourceManager.GetString("CreatedSettingsFile", resourceCulture);
+            }
+        }
     }
 }

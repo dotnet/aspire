@@ -57,9 +57,9 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string Aspire_Description {
+        public static string AspireEmpty_Description {
             get {
-                return ResourceManager.GetString("Aspire_Description", resourceCulture);
+                return ResourceManager.GetString("AspireEmpty_Description", resourceCulture);
             }
         }
         

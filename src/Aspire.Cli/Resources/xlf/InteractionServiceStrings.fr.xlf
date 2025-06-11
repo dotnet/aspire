@@ -22,6 +22,11 @@
         <target state="new">Building app host...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingCertificates">
+        <source>Checking certificates...</source>
+        <target state="new">Checking certificates...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CheckingProjectType">
         <source>Checking project type...</source>
         <target state="new">Checking project type...</target>
@@ -31,6 +36,11 @@
         <source>Codespaces</source>
         <target state="new">Codespaces</target>
         <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="CreatedSettingsFile">
+        <source>Created settings file at {0}.</source>
+        <target state="new">Created settings file at {0}.</target>
+        <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
@@ -42,6 +52,11 @@
         <target state="new">Direct</target>
         <note>Represents a type of link</note>
       </trans-unit>
+      <trans-unit id="FindingAppHosts">
+        <source>Finding app hosts...</source>
+        <target state="new">Finding app hosts...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
         <target state="new">No items available for selection: {0}</target>
@@ -52,9 +67,24 @@
         <target state="new">Required Capability</target>
         <note />
       </trans-unit>
+      <trans-unit id="SearchingProjects">
+        <source>Searching...</source>
+        <target state="new">Searching...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHostToRun">
+        <source>Select app host to run</source>
+        <target state="new">Select app host to run</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StoppingAspire">
         <source>Stopping Aspire.</source>
         <target state="new">Stopping Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TrustingCertificates">
+        <source>Trusting certificates...</source>
+        <target state="new">Trusting certificates...</target>
         <note />
       </trans-unit>
     </body>

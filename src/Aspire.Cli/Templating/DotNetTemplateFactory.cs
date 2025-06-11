@@ -27,7 +27,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         yield return new CallbackTemplate(
             "aspire",
-            TemplatingStrings.Aspire_Description,
+            TemplatingStrings.AspireEmpty_Description,
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync

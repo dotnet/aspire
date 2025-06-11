@@ -28,7 +28,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
         {
             return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
-        }) ?? throw new NuGetPackageCacheException(Strings.FailedToRetrieveCachedTemplatePackages);
+        }) ?? throw new NuGetPackageCacheException(ErrorStrings.FailedToRetrieveCachedTemplatePackages);
 
         return packages;
     }
@@ -64,7 +64,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
             if (result.ExitCode != 0)
             {
-                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, Strings.FailedToSearchForPackages, result.ExitCode));
+                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToSearchForPackages, result.ExitCode));
             }
             else
             {

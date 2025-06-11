@@ -108,7 +108,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
             if (_rpcTaskCompletionSource.Task.IsCompleted)
             {
-                throw new InvalidOperationException(Strings.AlreadyConnectedToBackchannel);
+                throw new InvalidOperationException(ErrorStrings.AlreadyConnectedToBackchannel);
             }
 
             logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
@@ -128,7 +128,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             if (!capabilities.Any(s => s == BaselineCapability))
             {
                 throw new AppHostIncompatibleException(
-                    string.Format(CultureInfo.CurrentCulture, Strings.AppHostIncompatibleWithCli, BaselineCapability),
+                    string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostIncompatibleWithCli, BaselineCapability),
                     BaselineCapability
                     );
             }
@@ -139,7 +139,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         {
             logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the {BaselineCapability} capability.", BaselineCapability);
             throw new AppHostIncompatibleException(
-                string.Format(CultureInfo.CurrentCulture, Strings.AppHostIncompatibleWithCli, BaselineCapability),
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostIncompatibleWithCli, BaselineCapability),
                 BaselineCapability
                 );
         }

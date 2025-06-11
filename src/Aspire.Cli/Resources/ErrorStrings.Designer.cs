@@ -14,21 +14,21 @@ namespace Aspire.Cli.Resources {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Strings {
+    public class ErrorStrings {
         
         private static System.Resources.ResourceManager resourceMan;
         
         private static System.Globalization.CultureInfo resourceCulture;
         
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Strings() {
+        internal ErrorStrings() {
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.Strings", typeof(Strings).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.ErrorStrings", typeof(ErrorStrings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -69,18 +69,6 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string CheckingCertificates {
-            get {
-                return ResourceManager.GetString("CheckingCertificates", resourceCulture);
-            }
-        }
-        
-        public static string TrustingCertificates {
-            get {
-                return ResourceManager.GetString("TrustingCertificates", resourceCulture);
-            }
-        }
-        
         public static string CertificatesMayNotBeFullyTrusted {
             get {
                 return ResourceManager.GetString("CertificatesMayNotBeFullyTrusted", resourceCulture);
@@ -99,18 +87,6 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string SearchingProjects {
-            get {
-                return ResourceManager.GetString("SearchingProjects", resourceCulture);
-            }
-        }
-        
-        public static string FindingAppHosts {
-            get {
-                return ResourceManager.GetString("FindingAppHosts", resourceCulture);
-            }
-        }
-        
         public static string AppHostWasSpecifiedButDoesntExist {
             get {
                 return ResourceManager.GetString("AppHostWasSpecifiedButDoesntExist", resourceCulture);
@@ -120,18 +96,6 @@ namespace Aspire.Cli.Resources {
         public static string ProjectFileDoesntExist {
             get {
                 return ResourceManager.GetString("ProjectFileDoesntExist", resourceCulture);
-            }
-        }
-        
-        public static string SelectAppHostToRun {
-            get {
-                return ResourceManager.GetString("SelectAppHostToRun", resourceCulture);
-            }
-        }
-        
-        public static string CreatedSettingsFile {
-            get {
-                return ResourceManager.GetString("CreatedSettingsFile", resourceCulture);
             }
         }
         
