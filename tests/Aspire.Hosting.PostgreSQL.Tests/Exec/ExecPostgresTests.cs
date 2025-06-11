@@ -37,6 +37,10 @@ public class ExecPostgresTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
+        var miniPostgres = builder
+            .AddPostgres("miniPostgres")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
         var postgres = builder
             .AddPostgres("postgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
