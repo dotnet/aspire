@@ -108,7 +108,7 @@ public class KubernetesPublisherTests()
     }
 
     [Fact]
-    public async Task PublishAsync_GeneratesAdditionalResourcesInChart()
+    public async Task PublishAsync_CustomWorkloadAndResourceType()
     {
         using var tempDir = new TempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
@@ -120,7 +120,13 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
             .PublishAsKubernetesService(serviceResource => {
-                serviceResource.AdditionalResources.Add(new TestCustomResource { Metadata = { Name = "myapp-mycustomresource"}, CustomProperty = "custom" });
+                serviceResource.Workload = new ArgoRollout {
+                    Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
+                    Spec = { Template = serviceResource.Workload!.PodTemplate, Selector = { MatchLabels = serviceResource.Labels.ToDictionary() } }
+                };
+                serviceResource.AdditionalResources.Add(new KedaScaledObject {
+                    Metadata = { Name = "myapp-scaler"},
+                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }});
         });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)
@@ -133,7 +139,12 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "templates/myapp/mycustomresource.yaml"
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/rollout.yaml",
+            "templates/myapp/service.yaml",
+            "templates/myapp/config.yaml",
+            "templates/myapp/scaler.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -156,10 +167,54 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
-    private sealed class TestCustomResource() : BaseKubernetesResource("custom/v1", "Custom")
+    private sealed class KedaScaledObject() : BaseKubernetesResource("keda.sh/v1alpha1", "ScaledObject")
     {
-        [YamlMember(Alias = "custom")]
-        public string CustomProperty { get; set; } = "";
+        [YamlMember(Alias = "spec")]
+        public KedaScaledObjectSpec Spec { get; set; } = new();
+
+        public sealed class KedaScaledObjectSpec
+        {
+            [YamlMember(Alias = "scaleTargetRef")]
+            public ScaleTargetRefSpec ScaleTargetRef { get; set; } = new();
+
+            [YamlMember(Alias = "minReplicaCount")]
+            public int MinReplicaCount { get; set; } = 1;
+
+            [YamlMember(Alias = "maxReplicaCount")]
+            public int MaxReplicaCount { get; set; } = 1;
+
+            public sealed class ScaleTargetRefSpec
+            {
+                [YamlMember(Alias = "name")]
+                public string Name { get; set; } = null!;
+                [YamlMember(Alias = "kind")]
+                public string Kind { get; set; } = "Deployment";
+            }
+
+            // Omitted other properties for brevity
+        }
+    }
+
+    private sealed class ArgoRollout() : Workload("argoproj.io/v1alpha1", "Rollout")
+    {
+        public ArgoRolloutSpec Spec { get; set; } = new();
+
+        public sealed class ArgoRolloutSpec
+        {
+            [YamlMember(Alias = "replicas")]
+            public int Replicas { get; set; } = 1;
+
+            [YamlMember(Alias = "template")]
+            public PodTemplateSpecV1 Template { get; set; } = new();
+
+            [YamlMember(Alias = "selector")]
+            public LabelSelectorV1 Selector { get; set; } = new();
+
+            // Omitted other properties for brevity
+        }
+
+        [YamlIgnore]
+        public override PodTemplateSpecV1 PodTemplate => Spec.Template;
     }
 
     private sealed class TestProject : IProjectMetadata

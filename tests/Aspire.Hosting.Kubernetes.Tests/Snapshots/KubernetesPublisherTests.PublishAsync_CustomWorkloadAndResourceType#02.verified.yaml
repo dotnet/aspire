@@ -1,0 +1,31 @@
+---
+apiVersion: "argoproj.io/v1alpha1"
+kind: "Rollout"
+metadata:
+  name: "myapp-rollout"
+  labels:
+    app: "aspire"
+    component: "myapp"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "myapp"
+    spec:
+      containers:
+        - image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+          name: "myapp"
+          envFrom:
+            - configMapRef:
+                name: "myapp-config"
+          ports:
+            - name: "http"
+              protocol: "TCP"
+              containerPort: "8080"
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "myapp"

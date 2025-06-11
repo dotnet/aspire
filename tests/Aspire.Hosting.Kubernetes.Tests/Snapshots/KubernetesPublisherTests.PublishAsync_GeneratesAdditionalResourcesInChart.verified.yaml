@@ -1,6 +1,0 @@
----
-apiVersion: "custom/v1"
-kind: "Custom"
-metadata:
-  name: "myapp-mycustomresource"
-custom: "custom"
