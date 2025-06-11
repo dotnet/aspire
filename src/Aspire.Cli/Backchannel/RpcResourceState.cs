@@ -33,3 +33,17 @@ internal class RpcResourceState
     /// </summary>
     public string? Health { get; init; }
 }
+
+internal class DashboardUrls
+{
+    public required string BaseUrlWithLoginToken { get; init; }
+    public string? CodespacesUrlWithLoginToken { get; init; }
+}
+
+internal class PublishingActivity
+{
+    public required string Id { get; init; }
+    public required string StatusText { get; init; }
+    public bool IsComplete { get; init; }
+    public bool IsError { get; init; }
+}

@@ -20,6 +20,8 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
+    <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,6 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="StreamJsonRpc" />
+    <Reference Include="D:\git\vs-streamjsonrpc\bin\StreamJsonRpc\Release\net8.0\StreamJsonRpc.dll" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
@@ -43,4 +46,9 @@
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
   </ItemGroup>
 
-</Project>
+  <Target Name="HackIt" BeforeTargets="PrepareForILLink">
+    <ItemGroup>
+      <IlcReference Remove="D:\packages\NuGet\cache\streamjsonrpc\2.22.11\lib\net8.0\StreamJsonRpc.dll" />
+    </ItemGroup>
+  </Target>
+  </Project>

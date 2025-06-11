@@ -108,7 +108,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.8.37" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.4" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
-    <PackageVersion Include="StreamJsonRpc" Version="2.21.69" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.22.11" />
     <PackageVersion Include="Semver" Version="3.0.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.3" />

@@ -104,7 +104,6 @@ public class Program
         builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
-        builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddMemoryCache();

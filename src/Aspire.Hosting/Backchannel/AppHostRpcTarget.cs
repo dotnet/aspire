@@ -21,9 +21,9 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options
-    ) 
+    )
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
@@ -36,14 +36,15 @@ internal class AppHostRpcTarget(
                 yield break;
             }
 
-            yield return (
-                publishingActivityStatus.Activity.Id,
-                publishingActivityStatus.StatusText,
-                publishingActivityStatus.IsComplete,
-                publishingActivityStatus.IsError
-            );
+            yield return new PublishingActivity
+            {
+                Id = publishingActivityStatus.Activity.Id,
+                StatusText = publishingActivityStatus.StatusText,
+                IsComplete = publishingActivityStatus.IsComplete,
+                IsError = publishingActivityStatus.IsError
+            };
 
-            if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
+            if (publishingActivityStatus.Activity.IsPrimary && (publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
@@ -52,7 +53,7 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -69,7 +70,7 @@ internal class AppHostRpcTarget(
                 logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
-    
+
             var endpointUris = endpoints
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
@@ -77,7 +78,7 @@ internal class AppHostRpcTarget(
 
             // Compute health status
             var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
-            
+
             yield return new RpcResourceState
             {
                 Resource = resourceEvent.Resource.Name,
@@ -103,12 +104,12 @@ internal class AppHostRpcTarget(
         return Task.FromResult(timestamp);
     }
 
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
+    public Task<DashboardUrls> GetDashboardUrlsAsync()
     {
         return GetDashboardUrlsAsync(CancellationToken.None);
     }
 
-    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public async Task<DashboardUrls> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
         {
@@ -134,7 +135,7 @@ internal class AppHostRpcTarget(
         if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
         {
             logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");            
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
         var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
@@ -144,11 +145,18 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return (baseUrlWithLoginToken, null);
+            return new DashboardUrls
+            {
+                BaseUrlWithLoginToken = baseUrlWithLoginToken
+            };
         }
         else
         {
-            return (baseUrlWithLoginToken, codespacesUrlWithLoginToken);
+            return new DashboardUrls
+            {
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
+            };
         }
     }
 

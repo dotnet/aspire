@@ -2,10 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
+using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -20,7 +24,7 @@ internal interface IAppHostBackchannel
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
 }
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : IAppHostBackchannel
 {
     private const string BaselineCapability = "baseline.v2";
 
@@ -69,15 +73,15 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         logger.LogDebug("Requesting dashboard URL");
 
-        var url = await rpc.InvokeWithCancellationAsync<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)>(
+        var url = await rpc.InvokeWithCancellationAsync<DashboardUrls>(
             "GetDashboardUrlsAsync",
             Array.Empty<object>(),
             cancellationToken);
 
-        return url;
+        return (url.BaseUrlWithLoginToken, url.CodespacesUrlWithLoginToken);
     }
 
-    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -116,7 +120,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
 
             var stream = new NetworkStream(socket, true);
-            var rpc = JsonRpc.Attach(stream, target);
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, CreateMessageFormatter()));
+            rpc.StartListening();
 
             var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
                 "GetCapabilitiesAsync",
@@ -143,7 +148,14 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Using the Json source generator.")]
+    [UnconditionalSuppressMessage("Trimming", "IL3050", Justification = "Using the Json source generator.")]
+    private static SystemTextJsonFormatter CreateMessageFormatter() => new()
+    {
+        JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default }
+    };
+
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -151,7 +163,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         logger.LogDebug("Requesting publishing activities.");
 
-        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)>>(
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<PublishingActivity>>(
             "GetPublishingActivitiesAsync",
             Array.Empty<object>(),
             cancellationToken);
@@ -160,7 +172,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         await foreach (var state in resourceStates.WithCancellation(cancellationToken))
         {
-            yield return state;
+            yield return (
+                state.Id,
+                state.StatusText,
+                state.IsComplete,
+                state.IsError);
         }
     }
 
@@ -180,3 +196,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return capabilities;
     }
 }
+
+[JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(DashboardUrls))]
+[JsonSerializable(typeof(JsonElement))]
+[JsonSerializable(typeof(IAsyncEnumerable<RpcResourceState>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<RpcResourceState>))]
+[JsonSerializable(typeof(IAsyncEnumerable<PublishingActivity>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
+[JsonSerializable(typeof(RequestId))]
+internal partial class SourceGenerationContext : JsonSerializerContext;
