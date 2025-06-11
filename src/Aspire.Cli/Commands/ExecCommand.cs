@@ -30,39 +30,19 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal class ExecCommand : BaseCommand
 {
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable CA1823 // Avoid unused private fields
     private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
-    private readonly INuGetPackageCache _nuGetPackageCache;
-    private readonly ICertificateService _certificateService;
-    private readonly INewCommandPrompter _prompter;
-    private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
-#pragma warning restore IDE0051 // Remove unused private members
-#pragma warning restore CA1823 // Avoid unused private fields
 
     public ExecCommand(
         IProjectLocator projectLocator,
-        IDotNetCliRunner runner,
-        INuGetPackageCache nuGetPackageCache,
-        INewCommandPrompter prompter,
-        IInteractionService interactionService,
-        ICertificateService certificateService)
+        IDotNetCliRunner runner)
         : base("exec", "Perform operation against target resource.")
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
 
         _runner = runner;
-        _nuGetPackageCache = nuGetPackageCache;
-        _certificateService = certificateService;
-        _prompter = prompter;
-        _interactionService = interactionService;
         _projectLocator = projectLocator;
 
         var appHostProjectOption = new Option<FileInfo?>("--project");

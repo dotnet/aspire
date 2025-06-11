@@ -5,6 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Dcp;
 
+/// <summary>
+/// Defines a mechanism to select resources from a collection.
+/// </summary>
 internal interface IResourcesSelector
 {
     IResourceCollection Select(IResourceCollection resources);

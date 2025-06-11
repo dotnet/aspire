@@ -8,11 +8,11 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Exec;
 
-internal class ExecResourcesSelector : IResourcesSelector
+internal class TargetResourceSelector : IResourcesSelector
 {
     private readonly ExecOptions _execOptions;
 
-    public ExecResourcesSelector(IOptions<ExecOptions> execOptions)
+    public TargetResourceSelector(IOptions<ExecOptions> execOptions)
     {
         _execOptions = execOptions.Value;
     }
@@ -28,8 +28,7 @@ internal class ExecResourcesSelector : IResourcesSelector
         var targetResource = resources.FirstOrDefault(r => r.Name == _execOptions.Resource);
         if (targetResource is null)
         {
-            // resource is not found - maybe show it in logs? Or throw exception?
-            // i guess we can blindly return model resources as default option for now
+            // there is no such a resource, so running in the context of AppHost
             return resources;
         }
 

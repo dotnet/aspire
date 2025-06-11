@@ -515,7 +515,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         // we will need to filter out only specific resources
-        _innerBuilder.Services.AddSingleton<IResourcesSelector, ExecResourcesSelector>();
+        _innerBuilder.Services.AddSingleton<IResourcesSelector, TargetResourceSelector>();
 
         _innerBuilder.Configuration.AddCommandLine(options.Args!, switchMappings);
         _innerBuilder.Services.Configure<ExecOptions>(_innerBuilder.Configuration.GetSection(sectionName));

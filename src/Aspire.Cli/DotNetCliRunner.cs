@@ -181,7 +181,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         return await ExecuteAsync(
-            args: cliArgs.ToArray(),
+            args: cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToArray(),
             env: env,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
