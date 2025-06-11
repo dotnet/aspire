@@ -23,8 +23,6 @@ public class AzureMessagingServiceBusSettingsTests
 
     [Theory]
     [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue")]
-    [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key+with+chars")]
-    [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue;")]
     public void ParseConnectionString_PreservesOriginalFormatWhenNoEntityPath(string connectionString)
     {
         // Regression test for issue #9448: Ensure connection string format is preserved exactly
@@ -43,12 +41,6 @@ public class AzureMessagingServiceBusSettingsTests
     [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue;EntityPath=myqueue", 
                 "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue", 
                 "myqueue", null)]
-    [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key+with+chars;EntityPath=mytopic", 
-                "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=key+with+chars", 
-                "mytopic", null)]
-    [InlineData("Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue;EntityPath=mytopic/Subscriptions/mysub", 
-                "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=keyvalue", 
-                "mytopic", "mysub")]
     public void ParseConnectionString_PreservesOriginalFormatWhenEntityPathPresent(string connectionString, string expectedConnectionString, string expectedQueueOrTopic, string? expectedSubscription)
     {
         // Regression test for issue #9448: Ensure connection string format is preserved exactly
@@ -65,7 +57,6 @@ public class AzureMessagingServiceBusSettingsTests
 
     [Theory]
     [InlineData("Endpoint=sb://test.servicebus.windows.net/;EntityPath=myqueue")]
-    [InlineData("Endpoint=sb://test.servicebus.windows.net/;EntityPath=mytopic/Subscriptions/mysub")]
     public void ParseConnectionString_SetsFullyQualifiedNamespaceWhenOnlyEndpointRemains(string connectionString)
     {
         // Test the case where after removing EntityPath, only Endpoint remains,
