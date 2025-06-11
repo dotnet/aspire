@@ -141,4 +141,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             return ["baseline.v2"];
         }
     }
+
+    public string BaselineCapability => "baseline.v2";
+    public void CheckCapabilities(string[] capabilities)
+    {
+    }
 }
