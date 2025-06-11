@@ -82,8 +82,12 @@ public sealed class ResourceViewModel
         return null;
     }
 
-    public bool IsResourceHidden()
+    public bool IsResourceHidden(bool showHiddenResources)
     {
+        if (showHiddenResources)
+        {
+            return false;
+        }
         return IsHidden || KnownState is KnownResourceState.Hidden;
     }
 
@@ -103,17 +107,17 @@ public sealed class ResourceViewModel
               ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources, bool showHiddenResources = false)
     {
         return GetResourceName(resource, allResources.Values);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources, bool showHiddenResources = false)
     {
         var count = 0;
         foreach (var item in allResources)
         {
-            if (item.IsResourceHidden())
+            if (item.IsResourceHidden(showHiddenResources))
             {
                 continue;
             }
