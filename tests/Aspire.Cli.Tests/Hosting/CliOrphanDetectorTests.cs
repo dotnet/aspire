@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
+using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -10,7 +14,7 @@ using Xunit;
 
 namespace Aspire.Cli.Tests;
 
-public class CliOrphanDetectorTests()
+public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task CliOrphanDetectorCompletesWhenNoPidEnvironmentVariablePresent()
@@ -88,7 +92,7 @@ public class CliOrphanDetectorTests()
         Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
     }
 
-    // [Fact]
+    [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
