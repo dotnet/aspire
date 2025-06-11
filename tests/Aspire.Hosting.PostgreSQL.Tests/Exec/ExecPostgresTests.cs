@@ -26,7 +26,9 @@ public class ExecPostgresTests(ITestOutputHelper output)
             // what resource to target
             "--resource", "mywebapp1",
             // command to execute against resource
-            "--command", "dotnet ef migrations add Initial"
+            // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
+            // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932
+            "--command", "dotnet ef migrations add Init --msbuildprojectextensionspath C:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp"
         ];
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {
@@ -40,10 +42,12 @@ public class ExecPostgresTests(ITestOutputHelper output)
         var miniPostgres = builder
             .AddPostgres("miniPostgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+        miniPostgres.AddDatabase("miniDb");
 
         var postgres = builder
             .AddPostgres("postgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+        postgres.AddDatabase("mainDb");
 
         var project = builder
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
