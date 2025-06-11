@@ -47,6 +47,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     public Service? Service { get; set; }
 
     /// <summary>
+    /// Additional resources that are part of this Kubernetes service.
     /// </summary>
     public List<BaseKubernetesResource> Resources { get; } = [];
 

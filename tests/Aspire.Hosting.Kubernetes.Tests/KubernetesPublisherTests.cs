@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Utils;
+using YamlDotNet.Serialization;
 
 namespace Aspire.Hosting.Kubernetes.Tests;
 
@@ -119,7 +120,7 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
             .PublishAsKubernetesService(serviceResource => {
-                serviceResource.Resources.Add(new Secret { Metadata = { Name = "mycustomresource"} });
+                serviceResource.Resources.Add(new TestCustomResource { Metadata = { Name = "myapp-mycustomresource"}, CustomProperty = "custom" });
         });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)
@@ -153,6 +154,12 @@ public class KubernetesPublisherTests()
         }
 
         await settingsTask;
+    }
+
+    private sealed class TestCustomResource() : BaseKubernetesResource("custom/v1", "Custom")
+    {
+        [YamlMember(Alias = "custom")]
+        public string CustomProperty { get; set; } = "";
     }
 
     private sealed class TestProject : IProjectMetadata
