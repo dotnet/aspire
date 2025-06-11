@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService) : IProjectLocator
 {
     private readonly ActivitySource _activitySource = new(nameof(ProjectLocator));
 
@@ -169,21 +170,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
-        if (!settingsFile.Directory!.Exists)
-        {
-            settingsFile.Directory.Create();
-        }
+        var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory!.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
 
-        var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-
-        // Get the relative path and normalize it to use '/' as the separator
-        var settings = new CliSettings
-        {
-            AppHostPath = relativePathToProjectFile
-        };
-
-        using var stream = settingsFile.OpenWrite();
-        await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
+        // Use the configuration writer to set the appHostPath, which will merge with any existing settings
+        await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
         
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", $"Created settings file at [bold]'{relativeSettingsFilePath}'[/].");
