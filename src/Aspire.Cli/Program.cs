@@ -168,16 +168,7 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        var localeOverride = Environment.GetEnvironmentVariable(KnownConfigNames.CliLocaleOverride)
-                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
-                             ?? Environment.GetEnvironmentVariable("DOTNET_CLI_UI_LANGUAGE");
-        if (localeOverride is not null)
-        {
-            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
-            {
-                await Console.Error.WriteLineAsync(errorMessage);
-            }
-        }
+        await TrySetLocaleOverrideAsync();
 
         using var app = BuildApplication(args);
 
@@ -197,26 +188,43 @@ public class Program
 
     private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
 
-    private static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
+    private static async Task TrySetLocaleOverrideAsync()
     {
-        try
+        var localeOverride = Environment.GetEnvironmentVariable(KnownConfigNames.CliLocaleOverride)
+                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
+                             ?? Environment.GetEnvironmentVariable(KnownConfigNames.DotnetCliUiLanguage);
+        if (localeOverride is not null)
         {
-            var cultureInfo = new CultureInfo(localeOverride);
-            if (s_supportedLocales.Contains(cultureInfo.Name) || s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
+            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
             {
-                CultureInfo.CurrentUICulture = cultureInfo;
-                CultureInfo.CurrentCulture = cultureInfo;
-                errorMessage = null;
-                return true;
+                await Console.Error.WriteLineAsync(errorMessage);
             }
-
-            errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
-            return false;
         }
-        catch (CultureNotFoundException)
+
+        return;
+
+        static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
         {
-            errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.InvalidLocaleProvided, localeOverride);
-            return false;
+            try
+            {
+                var cultureInfo = new CultureInfo(localeOverride);
+                if (s_supportedLocales.Contains(cultureInfo.Name) ||
+                    s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
+                {
+                    CultureInfo.CurrentUICulture = cultureInfo;
+                    CultureInfo.CurrentCulture = cultureInfo;
+                    errorMessage = null;
+                    return true;
+                }
+
+                errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
+                return false;
+            }
+            catch (CultureNotFoundException)
+            {
+                errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.InvalidLocaleProvided, localeOverride);
+                return false;
+            }
         }
     }
 }

@@ -30,6 +30,7 @@ internal static class KnownConfigNames
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
 
     public const string CliLocaleOverride = "ASPIRE_CLI_LOCALE_OVERRIDE";
+    public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
 
     public static class Legacy
     {
