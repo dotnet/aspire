@@ -49,7 +49,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     /// <summary>
     /// Additional resources that are part of this Kubernetes service.
     /// </summary>
-    public List<BaseKubernetesResource> Resources { get; } = [];
+    public List<BaseKubernetesResource> AdditionalResources { get; } = [];
 
     /// <summary>
     /// Gets the resource that is the target of this Kubernetes service.
@@ -86,7 +86,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             yield return volumeClaim;
         }
 
-        foreach (var resource in Resources)
+        foreach (var resource in AdditionalResources)
         {
             yield return resource;
         }

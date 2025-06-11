@@ -90,7 +90,7 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                serviceResource.Workload!.GetPodTemplate().Spec.Containers[0].ImagePullPolicy = "Always";
+                serviceResource.Workload!.PodTemplate.Spec.Containers[0].ImagePullPolicy = "Always";
                 (serviceResource.Workload as Deployment)!.Spec.RevisionHistoryLimit = 5;
             });
 
@@ -120,7 +120,7 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
             .PublishAsKubernetesService(serviceResource => {
-                serviceResource.Resources.Add(new TestCustomResource { Metadata = { Name = "myapp-mycustomresource"}, CustomProperty = "custom" });
+                serviceResource.AdditionalResources.Add(new TestCustomResource { Metadata = { Name = "myapp-mycustomresource"}, CustomProperty = "custom" });
         });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)

@@ -31,8 +31,5 @@ public sealed class Deployment() : Workload("apps/v1", "Deployment")
     /// <summary>
     /// Gets the pod template specification for the Deployment.
     /// </summary>
-    public override PodTemplateSpecV1 GetPodTemplate()
-    {
-        return Spec.Template;
-    }
+    public override PodTemplateSpecV1 PodTemplate => Spec.Template;
 }

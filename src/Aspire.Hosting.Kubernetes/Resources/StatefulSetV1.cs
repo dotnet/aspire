@@ -40,8 +40,5 @@ public sealed class StatefulSet() : Workload("apps/v1", "StatefulSet")
     /// <summary>
     /// Gets the pod template specification for the StatefulSet.
     /// </summary>
-    public override PodTemplateSpecV1 GetPodTemplate()
-    {
-        return Spec.Template;
-    }
+    public override PodTemplateSpecV1 PodTemplate => Spec.Template;
 }
