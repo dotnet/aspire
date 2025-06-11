@@ -47,7 +47,8 @@
     "aspire-exec-testingAppHost1": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\" --resource mywebapp1 --command \"ls\"",
+      "commandLineArgs": "exec --with-postgres-dependency --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\" --resource mywebapp1 --command \"dotnet ef migrations add Init --msbuildprojectextensionspath C:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"",
+      "--with-postgres-dependency\",": null,
       "environmentVariables": {
       }
     }

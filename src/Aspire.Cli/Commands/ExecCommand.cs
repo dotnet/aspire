@@ -71,13 +71,14 @@ internal class ExecCommand : BaseCommand
 
         var targetResourceOption = new Option<string>("--resource", "-r");
         targetResourceOption.Description = "The target resource to perform an operation against.";
-        // targetResourceOption.Recursive = true; ?
         Options.Add(targetResourceOption);
 
         var commandOption = new Option<string?>("--command", "-c");
         commandOption.Description = "The command to perform against the target resource.";
-        // commandOption.Recursive = true; ?
         Options.Add(commandOption);
+
+        // we will parse some of the tokens and just pass down the rest
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -104,6 +105,7 @@ internal class ExecCommand : BaseCommand
         }
 
         // build stuff here. environment, flags, etc
+        var watch = parseResult.GetValue<bool>("--watch");
         var env = new Dictionary<string, string>();
         var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
         var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -116,8 +118,8 @@ internal class ExecCommand : BaseCommand
 
         var pendingRun = _runner.RunAsync(
             effectiveAppHostProjectFile,
-            watch: false, // for now
-            noBuild: true, // for now
+            watch: watch,
+            noBuild: !watch,
             args: ["--operation", "exec", "--command", command, ..unmatchedTokens],
             env: env,
             backchannelCompletionSource: backchannelCompletionSource,

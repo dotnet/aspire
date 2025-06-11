@@ -10,8 +10,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
-
 builder.AddConnectionString("cs2", ReferenceExpression.Create($"Value={builder.AddParameter("p", "this is a value")}"));
+
+IResourceBuilder<PostgresServerResource>? postgresServerResource = null;
+if (args.Contains("--with-postgres-dependency"))
+{
+    postgresServerResource = builder.AddPostgres("postgres");
+    postgresServerResource.AddDatabase("mainDb");
+}
 
 if (args.Contains("--add-redis"))
 {
@@ -21,6 +27,11 @@ if (args.Contains("--add-redis"))
 var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
     .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
+
+if (postgresServerResource is not null)
+{
+    webApp.WithReference(postgresServerResource);
+}
 
 if (builder.Configuration.GetValue("USE_HTTPS", false))
 {
