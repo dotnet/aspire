@@ -16,10 +16,18 @@ public static class ContainerResourceExtensions
     /// <param name="model">The distributed application model to search for container resources.</param>
     /// <returns>A collection of container resources in the specified distributed application model.</returns>
     public static IEnumerable<IResource> GetContainerResources(this DistributedApplicationModel model)
-    {
-        ArgumentNullException.ThrowIfNull(model);
+        => GetContainerResources(model.Resources);
 
-        foreach (var resource in model.Resources)
+    /// <summary>
+    /// Returns a collection of container resources in the specified resource collection.
+    /// </summary>
+    /// <param name="resources">Resource collection where to search for container resources.</param>
+    /// <returns>A collection of container resources in the specified resource collection.</returns>
+    public static IEnumerable<IResource> GetContainerResources(this IResourceCollection resources)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+
+        foreach (var resource in resources)
         {
             if (resource.Annotations.OfType<ContainerImageAnnotation>().Any())
             {

@@ -50,6 +50,10 @@ public class ExecPostgresTests(ITestOutputHelper output)
             .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"])
             .WithReference(postgres);
 
+        // independent resource
+        builder
+            .AddProject<TestingAppHost1_MyWorker>("myworker");
+
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 

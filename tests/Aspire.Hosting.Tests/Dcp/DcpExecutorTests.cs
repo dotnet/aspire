@@ -1267,7 +1267,7 @@ public class DcpExecutorTests
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
-            distributedAppModel,
+            new ModelResourcesProvider(distributedAppModel, resourcesSelectors: Array.Empty<IResourcesSelector>()),
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new DistributedApplicationOptions(),

@@ -180,6 +180,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         string[] args,
         Assembly entryPointAssembly)
     {
+        // duplicates args here?
         hostBuilderOptions.Args = hostBuilderOptions.Args switch
         {
             { } existing => [.. existing, .. args],

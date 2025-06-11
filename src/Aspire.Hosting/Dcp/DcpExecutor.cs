@@ -43,9 +43,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly IConfiguration _configuration;
     private readonly ResourceLoggerService _loggerService;
     private readonly IDcpDependencyCheckService _dcpDependencyCheckService;
+    private readonly ModelResourcesProvider _modelResourcesProvider;
     private readonly DcpNameGenerator _nameGenerator;
     private readonly ILogger<DcpExecutor> _logger;
-    private readonly DistributedApplicationModel _model;
     private readonly DistributedApplicationOptions _distributedApplicationOptions;
     private readonly IOptions<DcpOptions> _options;
     private readonly DistributedApplicationExecutionContext _executionContext;
@@ -72,7 +72,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     public DcpExecutor(ILogger<DcpExecutor> logger,
                        ILogger<DistributedApplication> distributedApplicationLogger,
-                       DistributedApplicationModel model,
+                       ModelResourcesProvider modelResourcesProvider,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
                        DistributedApplicationOptions distributedApplicationOptions,
@@ -91,11 +91,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         _nameGenerator = nameGenerator;
         _executorEvents = executorEvents;
         _logger = logger;
-        _model = model;
+        _modelResourcesProvider = modelResourcesProvider;
         _distributedApplicationOptions = distributedApplicationOptions;
         _options = options;
         _executionContext = executionContext;
-        _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
+        _resourceState = new(modelResourcesProvider.ModelResources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
@@ -754,7 +754,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private void PrepareServices()
     {
-        var serviceProducers = _model.Resources
+        var serviceProducers = _modelResourcesProvider.GetAllResources()
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
 
@@ -804,7 +804,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private void PreparePlainExecutables()
     {
-        var modelExecutableResources = _model.GetExecutableResources();
+        var modelExecutableResources = _modelResourcesProvider.GetExecutableResources();
 
         foreach (var executable in modelExecutableResources)
         {
@@ -830,7 +830,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private void PrepareProjectExecutables()
     {
-        var modelProjectResources = _model.GetProjectResources();
+        var modelProjectResources = _modelResourcesProvider.GetProjectResources();
 
         foreach (var project in modelProjectResources)
         {
@@ -1108,7 +1108,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private void PrepareContainers()
     {
-        var modelContainerResources = _model.GetContainerResources();
+        var modelContainerResources = _modelResourcesProvider.GetContainerResources();
 
         foreach (var container in modelContainerResources)
         {

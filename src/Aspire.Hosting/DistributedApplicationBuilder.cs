@@ -15,6 +15,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
@@ -193,6 +194,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
         // Set configuration
+        ConfigureExecOptions(options);
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -344,6 +346,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
+            // resources
+            _innerBuilder.Services.AddSingleton<ModelResourcesProvider>();
+
             // DCP stuff
             _innerBuilder.Services.AddSingleton<IDcpExecutor, DcpExecutor>();
             _innerBuilder.Services.AddSingleton<DcpExecutorEvents>();
@@ -487,6 +492,22 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+    }
+
+    private void ConfigureExecOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>
+        {
+            { "--operation", "AppHost:Operation" },
+            { "--resource", $"{ExecOptions.Exec}:Resource" },
+            { "--command", $"{ExecOptions.Exec}:Command" },
+        };
+
+        // we will need to filter out only specific resources
+        _innerBuilder.Services.AddSingleton<IResourcesSelector, ExecResourcesSelector>();
+
+        _innerBuilder.Configuration.AddCommandLine(options.Args!, switchMappings);
+        _innerBuilder.Services.Configure<ExecOptions>(_innerBuilder.Configuration.GetSection(ExecOptions.Exec));
     }
 
     /// <inheritdoc />
