@@ -113,17 +113,47 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 
             if (connectionBuilder.TryGetValue("EntityPath", out var entityPath))
             {
+                // Parse the EntityPath value to extract queue/topic and subscription names (new functionality)
                 ParseEntityPath(entityPath.ToString());
                 
-                // Instead of using connectionBuilder.ConnectionString which normalizes the format,
-                // manually remove EntityPath from the original connection string to preserve casing and quoting
+                // Remove EntityPath from the builder for endpoint-only detection
+                connectionBuilder.Remove("EntityPath");
+                
+                // Check if only Endpoint remains after removing EntityPath
+                if (connectionBuilder.Count == 1 &&
+                    connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+                {
+                    // if all that's left is Endpoint, it is a fully qualified namespace
+                    // Extract just the hostname from the endpoint URL
+                    var endpointStr = endpoint.ToString();
+                    if (Uri.TryCreate(endpointStr, UriKind.Absolute, out var uri))
+                    {
+                        FullyQualifiedNamespace = uri.Host;
+                    }
+                    else
+                    {
+                        FullyQualifiedNamespace = endpointStr;
+                    }
+                    return;
+                }
+                
+                // Remove EntityPath from original connection string while preserving format
                 ConnectionString = RemoveEntityPathFromConnectionString(connectionString);
             }
             else if (connectionBuilder.Count == 1 &&
-                connectionBuilder.TryGetValue("Endpoint", out var endpoint))
+                connectionBuilder.TryGetValue("Endpoint", out var endpoint2))
             {
                 // if all that's left is Endpoint, it is a fully qualified namespace
-                FullyQualifiedNamespace = endpoint.ToString();
+                // Extract just the hostname from the endpoint URL
+                var endpointStr = endpoint2.ToString();
+                if (Uri.TryCreate(endpointStr, UriKind.Absolute, out var uri))
+                {
+                    FullyQualifiedNamespace = uri.Host;
+                }
+                else
+                {
+                    FullyQualifiedNamespace = endpointStr;
+                }
                 return;
             }
             else
