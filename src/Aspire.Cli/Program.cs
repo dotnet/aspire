@@ -16,8 +16,10 @@ using Spectre.Console;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Extension;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 
 #if DEBUG
 using OpenTelemetry;
@@ -95,11 +97,11 @@ public class Program
 
         // Shared services.
         builder.Services.AddSingleton(BuildAnsiConsole);
+        AddInteractionServices(builder);
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
-        builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
@@ -160,6 +162,20 @@ public class Program
         return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService);
     }
 
+    private static void AddInteractionServices(HostApplicationBuilder builder)
+    {
+        var extensionEndpoint = Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionEndpoint);
+
+        if (extensionEndpoint is not null)
+        {
+            builder.Services.AddSingleton<ExtensionBackchannel>();
+            builder.Services.AddHostedService<ExtensionBackchannelConnector>();
+
+            var extensionPromptEnabled = Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionPromptEnabled) is "true";
+
+        }
+    }
+
     public static async Task<int> Main(string[] args)
     {
         System.Console.OutputEncoding = Encoding.UTF8;
@@ -171,7 +187,7 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        
+
         using var activity = s_activitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 

@@ -7,11 +7,11 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal class InteractionService : IInteractionService
+internal class ConsoleInteractionService : IInteractionService
 {
     private readonly IAnsiConsole _ansiConsole;
 
-    public InteractionService(IAnsiConsole ansiConsole)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         _ansiConsole = ansiConsole;
