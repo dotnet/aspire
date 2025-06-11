@@ -145,6 +145,7 @@ public class StableConnectionStringBuilderTests
     [InlineData("A=1;A=2;A=3")]
     [InlineData("A=1;A=2;B=3")]
     [InlineData("A=1;A=2;B=3;b=3;")]
+    [InlineData("A=1; A =2")]
     public void Throws_On_Duplicate_Keys(string connectionString)
     {
         var ex = Assert.Throws<ArgumentException>(() =>
@@ -237,5 +238,66 @@ public class StableConnectionStringBuilderTests
         var result = StableConnectionStringBuilder.TryParse(invalid, out var builder);
         Assert.False(result);
         Assert.Null(builder);
+    }
+
+    [Theory]
+    [InlineData("A= 1 ;B=2 ;")]
+    [InlineData("A=1;B=2 ;")]
+    [InlineData("A=1 ;B=2")]
+    [InlineData("A=1 ;B=2 ")]
+    [InlineData(" A =1 ; B =2")]
+    public void Spaces_Are_Preserved(string connectionString)
+    {
+        var builder = new StableConnectionStringBuilder(connectionString);
+        Assert.Equal(connectionString, builder.ToString());
+    }
+
+    [Theory]
+    [InlineData(@"A="""";B=""b""")]
+    [InlineData("A==.{}@1=';;B==.{}@1=';;")]
+    public void Special_Chars_Are_Preserved(string connectionString)
+    {
+        var builder = new StableConnectionStringBuilder(connectionString);
+        Assert.Equal(connectionString, builder.ToString());
+        Assert.True(builder.TryGetValue("A", out _));
+        Assert.True(builder.TryGetValue("B", out _));
+    }
+
+    [Fact]
+    public void Keys_With_Space_Can_Be_Replaced()
+    {
+        var builder = new StableConnectionStringBuilder(" A =1;B=2");
+        builder["A"] = "3 ";
+        Assert.Equal(" A =3 ;B=2", builder.ToString());
+    }
+
+    [Fact]
+    public void Create_With_Empty_ConnectionString()
+    {
+        var builder = new StableConnectionStringBuilder();
+        Assert.Equal("", builder.ToString());
+        Assert.Empty(builder.ToList());
+        builder["A"] = "1";
+        Assert.Equal("A=1;", builder.ToString());
+    }
+
+    [Fact]
+    public void Spaces_Are_Not_Altered_On_Updates()
+    {
+        var builder = new StableConnectionStringBuilder(" A = 1 ; B = 2; C = 3;");
+        Assert.Equal(" A = 1 ; B = 2; C = 3;", builder.ToString());
+        builder["a"] = " 4 ";
+        Assert.Equal(" A = 4 ; B = 2; C = 3;", builder.ToString());
+    }
+
+    [Fact]
+    public void Keys_Are_Trimmed_When_Enumerated()
+    {
+        var builder = new StableConnectionStringBuilder("  A = 1 ; B = 2; c = 3;");
+        var keys = builder.ToList();
+        Assert.Equal(3, keys.Count);
+        Assert.Equal("A", keys[0].Key);
+        Assert.Equal("B", keys[1].Key);
+        Assert.Equal("c", keys[2].Key);
     }
 }

@@ -3,6 +3,7 @@
 
 using System.Collections;
 using System.Text;
+using Microsoft.Identity.Client;
 
 namespace Aspire;
 
@@ -36,7 +37,16 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
     }
 
     /// <summary>
-    /// Tries to parse the given connection string into a StableConnectionStringBuilder.
+    /// Initializes a new empty instance of the <see cref="StableConnectionStringBuilder"/> class.
+    /// </summary>
+    public StableConnectionStringBuilder()
+    {
+        _connectionString = "";
+        _segments = [];
+    }
+
+    /// <summary>
+    /// Tries to parse the given connection string into a <see cref="StableConnectionStringBuilder"/>.
     /// Returns true if parsing succeeds, false otherwise.
     /// </summary>
     public static bool TryParse(string connectionString, out StableConnectionStringBuilder? builder)
@@ -62,6 +72,8 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
     {
         get
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
             var idx = FindKeyIndex(key);
             if (idx >= 0)
             {
@@ -104,8 +116,10 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
     /// </summary>
     public bool Remove(string key)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         var idx = FindKeyIndex(key);
-        if (idx >= 0 && _segments[idx].Key != null)
+        if (idx >= 0)
         {
             RemoveKeyAndSemicolon(idx);
             return true;
@@ -118,8 +132,10 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
     /// </summary>
     public bool TryGetValue(string key, out string value)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         var idx = FindKeyIndex(key);
-        if (idx >= 0 && _segments[idx].Key != null)
+        if (idx >= 0)
         {
             value = _segments[idx].Value ?? string.Empty;
             return true;
@@ -139,7 +155,7 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
         {
             if (seg != ConnectionStringSegment.SemiColon)
             {
-                yield return new KeyValuePair<string, string>(seg.Key, seg.Value ?? string.Empty);
+                yield return new KeyValuePair<string, string>(seg.Key.Trim(), seg.Value ?? string.Empty);
             }
         }
     }
@@ -168,15 +184,15 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
             var keyAndValue = part.Split('=', 2);
             if (keyAndValue.Length > 1)
             {
-                var key = keyAndValue[0].Trim();
-                var value = keyAndValue[1].Trim();
+                var key = keyAndValue[0];
+                var value = keyAndValue[1];
 
                 if (string.IsNullOrEmpty(key))
                 {
                     // If the key is empty, treat this as an invalid segment
                     throw new ArgumentException($"Invalid segment in connection string: '{part}'", nameof(connectionString));
                 }
-                else if (segments.Any(s => s.Key != null && string.Equals(s.Key, key, StringComparison.OrdinalIgnoreCase)))
+                else if (segments.Any(s => s.Key != null && KeyEquals(s.Key, key)))
                 {
                     // If a key already exists, throw an exception
                     throw new ArgumentException($"Duplicate key in connection string: '{key}'", nameof(connectionString));
@@ -198,6 +214,11 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
         }
 
         return segments;
+    }
+
+    private static bool KeyEquals(string key1, string key2)
+    {
+        return key1.Trim().Equals(key2.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     private void UpdateConnectionString()
@@ -223,7 +244,7 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
     {
         for (var i = 0; i < _segments.Count; i++)
         {
-            if (_segments[i].Key != null && string.Equals(_segments[i].Key, key, StringComparison.OrdinalIgnoreCase))
+            if (_segments[i].Key != null && KeyEquals(_segments[i].Key, key))
             {
                 return i;
             }
@@ -269,18 +290,22 @@ internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<s
         UpdateConnectionString();
     }
 
-    private sealed class ConnectionStringSegment
+    private sealed class ConnectionStringSegment(string key, string value)
     {
         public static readonly ConnectionStringSegment SemiColon = new(null!, null!);
 
-        public string Key { get; set; }
+        public string Key { get; set; } = key;
 
-        public string Value { get; set; }
+        public string Value { get; set; } = value;
 
-        public ConnectionStringSegment(string key, string value)
+        public override string ToString()
         {
-            Key = key;
-            Value = value;
+            if (this == SemiColon)
+            {
+                return ";";
+            }
+
+            return $"{Key}={Value}";
         }
     }
 }
