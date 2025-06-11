@@ -14,6 +14,10 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManager> logger) : IUserSecretsManager
 {
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
+    {
+        WriteIndented = true
+    };
     private static string? GetUserSecretsPath()
     {
         return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
@@ -55,7 +59,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
             
             // Ensure directory exists before attempting to create secrets file
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
