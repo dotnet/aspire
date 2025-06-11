@@ -187,7 +187,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
         {
             State = new ResourceStateSnapshot(KnownResourceStates.Running, null),
-            HealthReports = [new HealthReportSnapshot("healthcheck_a", Status: null, Description: null, ExceptionText: null)]
+            HealthReports = [new HealthReportSnapshot("healthcheck_a", Status: null, Description: null, ExceptionText: null, LastRun: null)]
         });
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync("resource").DefaultTimeout();

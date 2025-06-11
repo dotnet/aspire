@@ -1183,7 +1183,7 @@ namespace Aspire.Hosting.ApplicationModel
     }
 
     [System.Diagnostics.DebuggerDisplay("{Status}", Name = "{Name}")]
-    public sealed partial record HealthReportSnapshot(string Name, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? Status, string? Description, string? ExceptionText)
+    public sealed partial record HealthReportSnapshot(string Name, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? Status, string? Description, string? ExceptionText, System.DateTime? LastRun)
     {
     }
 

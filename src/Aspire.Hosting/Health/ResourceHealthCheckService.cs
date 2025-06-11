@@ -272,10 +272,11 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
     private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
     {
         var builder = healthReports.ToBuilder();
+        var now = DateTime.UtcNow;
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString(), now);
 
             var found = false;
             for (var i = 0; i < builder.Count; i++)
