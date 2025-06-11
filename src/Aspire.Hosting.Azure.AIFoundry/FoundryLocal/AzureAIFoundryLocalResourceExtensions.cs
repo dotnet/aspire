@@ -5,7 +5,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -221,20 +220,10 @@ public static partial class AzureAIFoundryLocalResourceExtensions
             return Task.CompletedTask;
         });
 
-        var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-                .Add(new HealthCheckRegistration(
-                    healthCheckKey,
-                    sp => new ModelHealthCheck(model, sp.GetRequiredService<FoundryLocalManager>()),
-                    failureStatus: default,
-                    tags: default,
-                    timeout: default
-                    ));
-
+        
         return builder.ApplicationBuilder
             .AddResource(modelResource)
-            .WithParentRelationship(builder.Resource)
-            .WithHealthCheck(healthCheckKey);
+            .WithParentRelationship(builder.Resource);
     }
 
     ///// <summary>

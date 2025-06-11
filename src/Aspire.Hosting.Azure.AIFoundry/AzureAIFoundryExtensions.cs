@@ -8,6 +8,9 @@ using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Microsoft.AI.Foundry.Local;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
@@ -144,7 +147,19 @@ public static class AzureAIFoundryExtensions
         var innerModel = innerBuilder.AddModel(name, modelName);
         deployment.SetInnerResource(innerModel.Resource);
 
-        return builder.ApplicationBuilder.CreateResourceBuilder(deployment);
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+                .Add(new HealthCheckRegistration(
+                    healthCheckKey,
+                    sp => new ModelHealthCheck(innerModel.Resource.ModelId ?? throw new DistributedApplicationException("ModelId not set on Local Foundry model"), sp.GetRequiredService<FoundryLocalManager>()),
+                    failureStatus: default,
+                    tags: default,
+                    timeout: default
+                    ));
+
+        return builder.ApplicationBuilder
+            .CreateResourceBuilder(deployment)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
