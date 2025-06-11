@@ -15,7 +15,7 @@ public partial class AspireMenuButton : FluentComponentBase
 
     private bool _visible;
     private Icon? _icon;
-    private IReadOnlyList<MenuButtonItem> _items = [];
+    private MenuButtonItem[] _items = [];
     private bool _disabled;
 
     [Parameter]
@@ -54,8 +54,10 @@ public partial class AspireMenuButton : FluentComponentBase
 
         if (Items != null && !_items.SequenceEqual(Items))
         {
-            _items = Items.ToList();
-            _disabled = !_items.Where(i => !i.IsDivider).Any();
+            _items = Items.ToArray();
+
+            // Disabled if there are no actionable items
+            _disabled = !_items.Any(i => !i.IsDivider);
         }
     }
 
