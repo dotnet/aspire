@@ -329,6 +329,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Icon = new Icons.Regular.Size16.ArrowDownload()
         });
 
+        _logsMenuItems.Add(new()
+        {
+            IsDivider = true
+        });
+
         CommonMenuItems.AddToggleHiddenResourcesMenuItem(
             _logsMenuItems,
             ControlsStringsLoc,
@@ -349,11 +354,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 return Task.CompletedTask;
             });
-
-        _logsMenuItems.Add(new()
-        {
-            IsDivider = true
-        });
 
         _logsMenuItems.Add(new()
         {
