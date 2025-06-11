@@ -40,7 +40,7 @@ public static class ModelTestHelpers
             State = state?.ToString(),
             KnownState = state,
             StateStyle = stateStyle,
-            HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
+            HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null, null)],
             Commands = commands ?? [],
             Relationships = relationships ?? [],
             IsHidden = hidden

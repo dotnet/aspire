@@ -233,7 +233,8 @@
                                    Value="@(context.HealthStatus?.Humanize() ?? Loc[nameof(Resources.WaitingHealthDataStatusMessage)])"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter"
-                                   TextVisualizerTitle="@context.Name">
+                                   TextVisualizerTitle="@context.Name"
+                                   ToolTip="@GetHealthCheckTooltip(context)">
                             <ContentBeforeValue>
                                 @if (context.HealthStatus is null)
                                 {
@@ -328,5 +329,16 @@
             }
             return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.DisplayName</a>;
         }
+    }
+
+    private string? GetHealthCheckTooltip(HealthReportViewModel healthReport)
+    {
+        if (healthReport.LastRun.HasValue)
+        {
+            // Convert UTC to local time zone
+            var lastRunLocal = TimeZoneInfo.ConvertTimeFromUtc(healthReport.LastRun.Value, TimeZoneInfo.Local);
+            return $"Last check: {lastRunLocal:yyyy-MM-dd HH:mm:ss}";
+        }
+        return null;
     }
 }
