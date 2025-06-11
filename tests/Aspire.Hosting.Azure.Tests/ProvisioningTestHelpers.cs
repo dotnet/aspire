@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -106,29 +106,74 @@ internal sealed class TestTokenCredential : TokenCredential
 }
 
 /// <summary>
-/// Test implementation that provides static instances for testing.
+/// Test implementation that provides instances for testing.
 /// </summary>
 internal static class TestAzureResources
 {
-    private static readonly TestArmClient s_testArmClient = new();
-
-    public static ArmClient CreateTestArmClient() => s_testArmClient;
+    public static ArmClient CreateTestArmClient() => new TestArmClient();
     
     public static SubscriptionResource CreateTestSubscriptionResource()
     {
-        return s_testArmClient.GetDefaultSubscription();
+        // Create a proper subscription resource using ResourceManagerModelFactory
+        var subscriptionData = TestSubscriptionData.Instance;
+        return CreateSubscriptionResourceFromData(subscriptionData);
     }
     
     public static ResourceGroupResource CreateTestResourceGroupResource()
     {
-        // Create through the subscription's resource groups
-        var subscription = s_testArmClient.GetDefaultSubscription();
-        return subscription.GetResourceGroups().First();
+        // Create a proper resource group resource using ResourceManagerModelFactory  
+        var resourceGroupData = TestResourceGroupData.Instance;
+        return CreateResourceGroupResourceFromData(resourceGroupData);
     }
     
     public static TenantResource CreateTestTenantResource()
     {
-        return s_testArmClient.GetTenants().First();
+        // Create a proper tenant resource using ResourceManagerModelFactory
+        var tenantData = TestTenantData.Instance;
+        return CreateTenantResourceFromData(tenantData);
+    }
+
+    // Helper methods using reflection to create Azure SDK resources
+    private static SubscriptionResource CreateSubscriptionResourceFromData(SubscriptionData data)
+    {
+        // Use reflection to create the resource with proper initialization
+        var ctor = typeof(SubscriptionResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .FirstOrDefault(c => c.GetParameters().Length == 2);
+        
+        if (ctor != null)
+        {
+            return (SubscriptionResource)ctor.Invoke([new TestArmClient(), data]);
+        }
+        
+        throw new InvalidOperationException("Could not create SubscriptionResource");
+    }
+
+    private static ResourceGroupResource CreateResourceGroupResourceFromData(ResourceGroupData data)
+    {
+        // Use reflection to create the resource with proper initialization
+        var ctor = typeof(ResourceGroupResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .FirstOrDefault(c => c.GetParameters().Length == 2);
+        
+        if (ctor != null)
+        {
+            return (ResourceGroupResource)ctor.Invoke([new TestArmClient(), data]);
+        }
+        
+        throw new InvalidOperationException("Could not create ResourceGroupResource");
+    }
+
+    private static TenantResource CreateTenantResourceFromData(TenantData data)
+    {
+        // Use reflection to create the resource with proper initialization
+        var ctor = typeof(TenantResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .FirstOrDefault(c => c.GetParameters().Length == 2);
+        
+        if (ctor != null)
+        {
+            return (TenantResource)ctor.Invoke([new TestArmClient(), data]);
+        }
+        
+        throw new InvalidOperationException("Could not create TenantResource");
     }
 }
 
@@ -143,102 +188,13 @@ internal sealed class TestArmClient : ArmClient
 
     public override SubscriptionResource GetDefaultSubscription(CancellationToken cancellationToken = default)
     {
-        // Create a subscription resource using the SDK's internal mechanisms
-        // For testing purposes, we'll return the subscription from the base client
-        return GetSubscriptions().First();
+        return TestAzureResources.CreateTestSubscriptionResource();
     }
 
     public override Task<SubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(GetDefaultSubscription(cancellationToken));
     }
-
-    public override SubscriptionCollection GetSubscriptions()
-    {
-        // For testing, return a mock collection that contains our test subscription
-        return new TestSubscriptionCollection();
-    }
-
-    public override TenantCollection GetTenants()
-    {
-        // For testing, return a mock collection that contains our test tenant
-        return new TestTenantCollection();
-    }
-}
-
-/// <summary>
-/// Test implementation of SubscriptionCollection for testing.
-/// </summary>
-internal sealed class TestSubscriptionCollection : SubscriptionCollection
-{
-    public override AsyncPageable<SubscriptionResource> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var testSubscription = new TestSubscriptionResourceWrapper();
-        return AsyncPageable<SubscriptionResource>.FromPages(new[] 
-        { 
-            Page<SubscriptionResource>.FromValues(new[] { testSubscription }, null, new MockResponse(200)) 
-        });
-    }
-
-    public override Pageable<SubscriptionResource> GetAll(CancellationToken cancellationToken = default)
-    {
-        var testSubscription = new TestSubscriptionResourceWrapper();
-        return Pageable<SubscriptionResource>.FromPages(new[] 
-        { 
-            Page<SubscriptionResource>.FromValues(new[] { testSubscription }, null, new MockResponse(200)) 
-        });
-    }
-}
-
-/// <summary>
-/// Test implementation of TenantCollection for testing.
-/// </summary>
-internal sealed class TestTenantCollection : TenantCollection
-{
-    public override AsyncPageable<TenantResource> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var testTenant = new TestTenantResourceWrapper();
-        return AsyncPageable<TenantResource>.FromPages(new[] 
-        { 
-            Page<TenantResource>.FromValues(new[] { testTenant }, null, new MockResponse(200)) 
-        });
-    }
-
-    public override Pageable<TenantResource> GetAll(CancellationToken cancellationToken = default)
-    {
-        var testTenant = new TestTenantResourceWrapper();
-        return Pageable<TenantResource>.FromPages(new[] 
-        { 
-            Page<TenantResource>.FromValues(new[] { testTenant }, null, new MockResponse(200)) 
-        });
-    }
-}
-
-/// <summary>
-/// Simple wrapper for SubscriptionResource for unit testing.
-/// Only provides access to test data - complex Azure SDK operations not supported.
-/// </summary>
-internal sealed class TestSubscriptionResourceWrapper : SubscriptionResource
-{
-    public override SubscriptionData Data => TestSubscriptionData.Instance;
-}
-
-/// <summary>
-/// Simple wrapper for ResourceGroupResource for unit testing.
-/// Only provides access to test data - complex Azure SDK operations not supported.
-/// </summary>
-internal sealed class TestResourceGroupResourceWrapper : ResourceGroupResource
-{
-    public override ResourceGroupData Data => TestResourceGroupData.Instance;
-}
-
-/// <summary>
-/// Simple wrapper for TenantResource for unit testing.
-/// Only provides access to test data - complex Azure SDK operations not supported.
-/// </summary>
-internal sealed class TestTenantResourceWrapper : TenantResource
-{
-    public override TenantData Data => TestTenantData.Instance;
 }
 
 /// <summary>
@@ -283,12 +239,12 @@ internal sealed class MockResponse(int status) : Response
 
     protected override bool ContainsHeader(string name) => false;
     protected override IEnumerable<HttpHeader> EnumerateHeaders() => Enumerable.Empty<HttpHeader>();
-    protected override bool TryGetHeader(string name, [NotNullWhen(true)] out string? value)
+    protected override bool TryGetHeader(string name, out string? value)
     {
         value = default;
         return false;
     }
-    protected override bool TryGetHeaderValues(string name, [NotNullWhen(true)] out IEnumerable<string>? values)
+    protected override bool TryGetHeaderValues(string name, out IEnumerable<string>? values)
     {
         values = default;
         return false;
