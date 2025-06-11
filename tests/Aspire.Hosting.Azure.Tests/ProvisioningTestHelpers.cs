@@ -110,23 +110,107 @@ internal sealed class TestTokenCredential : TokenCredential
 /// </summary>
 internal static class TestAzureResources
 {
-    public static ArmClient CreateTestArmClient() => new(new TestTokenCredential(), "12345678-1234-1234-1234-123456789012");
+    private static readonly TestArmClient s_testArmClient = new();
+
+    public static ArmClient CreateTestArmClient() => s_testArmClient;
     
     public static SubscriptionResource CreateTestSubscriptionResource()
     {
-        // For unit testing, we create a simple wrapper that just exposes the test data
-        // More complex operations that require Azure SDK internals should be integration tested
-        return new TestSubscriptionResourceWrapper();
+        return s_testArmClient.GetDefaultSubscription();
     }
     
     public static ResourceGroupResource CreateTestResourceGroupResource()
     {
-        return new TestResourceGroupResourceWrapper();
+        // Create through the subscription's resource groups
+        var subscription = s_testArmClient.GetDefaultSubscription();
+        return subscription.GetResourceGroups().First();
     }
     
     public static TenantResource CreateTestTenantResource()
     {
-        return new TestTenantResourceWrapper();
+        return s_testArmClient.GetTenants().First();
+    }
+}
+
+/// <summary>
+/// Test implementation of ArmClient that returns test resources.
+/// </summary>
+internal sealed class TestArmClient : ArmClient
+{
+    public TestArmClient() : base(new TestTokenCredential(), "12345678-1234-1234-1234-123456789012")
+    {
+    }
+
+    public override SubscriptionResource GetDefaultSubscription(CancellationToken cancellationToken = default)
+    {
+        // Create a subscription resource using the SDK's internal mechanisms
+        // For testing purposes, we'll return the subscription from the base client
+        return GetSubscriptions().First();
+    }
+
+    public override Task<SubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(GetDefaultSubscription(cancellationToken));
+    }
+
+    public override SubscriptionCollection GetSubscriptions()
+    {
+        // For testing, return a mock collection that contains our test subscription
+        return new TestSubscriptionCollection();
+    }
+
+    public override TenantCollection GetTenants()
+    {
+        // For testing, return a mock collection that contains our test tenant
+        return new TestTenantCollection();
+    }
+}
+
+/// <summary>
+/// Test implementation of SubscriptionCollection for testing.
+/// </summary>
+internal sealed class TestSubscriptionCollection : SubscriptionCollection
+{
+    public override AsyncPageable<SubscriptionResource> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var testSubscription = new TestSubscriptionResourceWrapper();
+        return AsyncPageable<SubscriptionResource>.FromPages(new[] 
+        { 
+            Page<SubscriptionResource>.FromValues(new[] { testSubscription }, null, new MockResponse(200)) 
+        });
+    }
+
+    public override Pageable<SubscriptionResource> GetAll(CancellationToken cancellationToken = default)
+    {
+        var testSubscription = new TestSubscriptionResourceWrapper();
+        return Pageable<SubscriptionResource>.FromPages(new[] 
+        { 
+            Page<SubscriptionResource>.FromValues(new[] { testSubscription }, null, new MockResponse(200)) 
+        });
+    }
+}
+
+/// <summary>
+/// Test implementation of TenantCollection for testing.
+/// </summary>
+internal sealed class TestTenantCollection : TenantCollection
+{
+    public override AsyncPageable<TenantResource> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var testTenant = new TestTenantResourceWrapper();
+        return AsyncPageable<TenantResource>.FromPages(new[] 
+        { 
+            Page<TenantResource>.FromValues(new[] { testTenant }, null, new MockResponse(200)) 
+        });
+    }
+
+    public override Pageable<TenantResource> GetAll(CancellationToken cancellationToken = default)
+    {
+        var testTenant = new TestTenantResourceWrapper();
+        return Pageable<TenantResource>.FromPages(new[] 
+        { 
+            Page<TenantResource>.FromValues(new[] { testTenant }, null, new MockResponse(200)) 
+        });
     }
 }
 
