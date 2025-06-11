@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
 
@@ -49,6 +50,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9833")]
     public async Task ExecuteCommandAsync_HasReplicas_Success_CalledPerReplica()
     {
         // Arrange
@@ -94,6 +96,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9834")]
     public async Task ExecuteCommandAsync_HasReplicas_Failure_CalledPerReplica()
     {
         // Arrange
