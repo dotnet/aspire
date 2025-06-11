@@ -14,6 +14,7 @@ public class ResourceCommandService
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly IServiceProvider _serviceProvider;
 
+    // Constructor is pureposefully internal so adding new dependencies in the future isn't a public API change.
     internal ResourceCommandService(ResourceNotificationService resourceNotificationService, ResourceLoggerService resourceLoggerService, IServiceProvider serviceProvider)
     {
         _resourceNotificationService = resourceNotificationService;
