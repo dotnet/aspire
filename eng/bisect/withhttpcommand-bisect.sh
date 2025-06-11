@@ -46,7 +46,7 @@ run_test_iterations() {
         if ! timeout 300 "$REPO_ROOT/dotnet.sh" test "$REPO_ROOT/$TEST_PROJECT" \
             --no-build \
             --logger "console;verbosity=quiet" \
-            -- --filter "$TEST_FILTER" > /dev/null 2>&1; then
+            -- --filter-method "*$TEST_FILTER*" > /dev/null 2>&1; then
             log "Test failed on iteration $i (may have timed out after 5 minutes)"
             return 1
         fi
@@ -147,7 +147,7 @@ run_test_iterations() {
         if ! timeout 300 "$REPO_ROOT/dotnet.sh" test "$REPO_ROOT/$TEST_PROJECT" \
             --no-build \
             --logger "console;verbosity=quiet" \
-            -- --filter "$TEST_FILTER" > /dev/null 2>&1; then
+            -- --filter-method "*$TEST_FILTER*" > /dev/null 2>&1; then
             log "Test failed on iteration $i (may have timed out after 5 minutes)"
             return 1
         fi

@@ -53,7 +53,7 @@ for /l %%i in (1,1,%ITERATIONS%) do (
     call :log "Iteration %%i/%ITERATIONS%"
     
     REM Run the specific test (note: Windows timeout command syntax is different)
-    "%REPO_ROOT%dotnet.cmd" test "%REPO_ROOT%%TEST_PROJECT%" --no-build --logger "console;verbosity=quiet" -- --filter "%TEST_FILTER%" >nul 2>&1
+    "%REPO_ROOT%dotnet.cmd" test "%REPO_ROOT%%TEST_PROJECT%" --no-build --logger "console;verbosity=quiet" -- --filter-method "*%TEST_FILTER%*" >nul 2>&1
     if !errorlevel! neq 0 (
         call :log "Test failed on iteration %%i"
         exit /b 1
