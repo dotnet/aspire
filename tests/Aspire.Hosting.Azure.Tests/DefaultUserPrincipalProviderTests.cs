@@ -14,7 +14,7 @@ public class DefaultUserPrincipalProviderTests
     public async Task GetUserPrincipalAsync_ReturnsValidUserPrincipal()
     {
         // Arrange
-        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.Instance.CreateTokenCredentialProvider();
         var provider = new DefaultUserPrincipalProvider(tokenCredentialProvider);
 
         // Act
@@ -66,7 +66,7 @@ public class DefaultUserPrincipalProviderTests
     public async Task GetUserPrincipalAsync_HandlesCancellation()
     {
         // Arrange
-        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.Instance.CreateTokenCredentialProvider();
         var provider = new DefaultUserPrincipalProvider(tokenCredentialProvider);
         using var cts = new CancellationTokenSource();
         cts.Cancel();

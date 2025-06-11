@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -18,13 +17,22 @@ namespace Aspire.Hosting.Azure.Tests;
 
 /// <summary>
 /// Test helpers for creating testable provisioning services.
+/// Uses ResourceManagerModelFactory for test data and avoids static usage.
 /// </summary>
-internal static class ProvisioningTestHelpers
+internal sealed class ProvisioningTestHelpers
 {
+    private readonly TestAzureResourcesFactory _azureResourcesFactory;
+
+    public ProvisioningTestHelpers()
+    {
+        _azureResourcesFactory = new TestAzureResourcesFactory();
+    }
+
     /// <summary>
     /// Creates a test-friendly ProvisioningContext.
+    /// Note: TenantResource creation requires authenticated context, so tests should verify tenant information through subscription.Data.TenantId.
     /// </summary>
-    public static ProvisioningContext CreateTestProvisioningContext(
+    public ProvisioningContext CreateTestProvisioningContext(
         TokenCredential? credential = null,
         ArmClient? armClient = null,
         SubscriptionResource? subscription = null,
@@ -34,25 +42,107 @@ internal static class ProvisioningTestHelpers
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null)
     {
+        // For tenant, if not provided, we'll skip it in unit tests due to authentication complexity
+        var testSubscription = subscription ?? _azureResourcesFactory.CreateTestSubscriptionResource();
+        TenantResource? testTenant = null;
+        
+        if (tenant is not null)
+        {
+            testTenant = tenant;
+        }
+        else
+        {
+            // Skip tenant creation for unit tests - it requires authentication
+            // Tests should verify tenant ID through subscription.Data.TenantId instead
+            throw new NotSupportedException(
+                "TenantResource creation requires authenticated context. " +
+                "For unit tests, provide a tenant parameter or verify tenant information through subscription.Data.TenantId. " +
+                "Use CreateTestProvisioningContextWithoutTenant() for basic testing.");
+        }
+        
         return new ProvisioningContext(
-            credential ?? new TestTokenCredential(),
-            armClient ?? TestAzureResources.CreateTestArmClient(),
-            subscription ?? TestAzureResources.CreateTestSubscriptionResource(),
-            resourceGroup ?? TestAzureResources.CreateTestResourceGroupResource(),
-            tenant ?? TestAzureResources.CreateTestTenantResource(),
+            credential ?? CreateTokenCredential(),
+            armClient ?? _azureResourcesFactory.CreateTestArmClient(),
+            testSubscription,
+            resourceGroup ?? _azureResourcesFactory.CreateTestResourceGroupResource(),
+            testTenant,
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());
     }
+
+    /// <summary>
+    /// Creates a test-friendly ProvisioningContext for basic unit testing.
+    /// Note: Tenant operations require authenticated Azure context, so this creates a mock tenant for property access only.
+    /// </summary>
+    public ProvisioningContext CreateTestProvisioningContextWithoutTenant(
+        TokenCredential? credential = null,
+        ArmClient? armClient = null,
+        SubscriptionResource? subscription = null,
+        ResourceGroupResource? resourceGroup = null,
+        AzureLocation? location = null,
+        UserPrincipal? principal = null,
+        JsonObject? userSecrets = null)
+    {
+        var client = armClient ?? _azureResourcesFactory.CreateTestArmClient();
+        var testSubscription = subscription ?? _azureResourcesFactory.CreateTestSubscriptionResource();
+        
+        // For tenant, we'll create a minimal mock since real tenant access requires authentication
+        // This is acceptable for unit testing where we focus on property access rather than operations
+        var mockTenant = CreateMockTenant(client);
+        
+        return new ProvisioningContext(
+            credential ?? CreateTokenCredential(),
+            client,
+            testSubscription,
+            resourceGroup ?? _azureResourcesFactory.CreateTestResourceGroupResource(),
+            mockTenant,
+            location ?? AzureLocation.WestUS2,
+            principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
+            userSecrets ?? new JsonObject());
+    }
+
+    private TenantResource CreateMockTenant(ArmClient client)
+    {
+        // Create a minimal tenant for testing purposes
+        // This will allow property access but not complex operations
+        var tenantData = _azureResourcesFactory.CreateTenantData();
+        
+        // For unit testing, we'll use a pragmatic approach and create a mock
+        // Complex tenant operations should be tested with integration tests
+        return new MockTenantResource(client, tenantData);
+    }
+
+    private TenantResource CreateBasicTestTenant(SubscriptionResource subscription)
+    {
+        // For testing purposes, create a minimal tenant resource
+        // This avoids complex authentication issues while still providing a testable tenant
+        var client = _azureResourcesFactory.CreateTestArmClient();
+        var tenantId = subscription.Data.TenantId ?? Guid.Parse("87654321-4321-4321-4321-210987654321");
+        
+        // Create a minimal tenant resource for testing
+        // Note: This approach may have limitations and complex tenant operations should use integration tests
+        var tenantData = _azureResourcesFactory.CreateTenantData();
+        
+        // For unit testing, we'll use a simple approach that focuses on property access rather than operations
+        // Complex tenant operations are not suitable for unit testing with Azure SDK
+        throw new NotSupportedException(
+            "TenantResource requires authenticated Azure context for proper functionality. " +
+            "For unit tests, verify tenant ID through subscription.Data.TenantId. " +
+            "Use integration tests for tenant operations.");
+    }
     
     // Factory methods for test implementations of provisioning services interfaces
-    public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
-    public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
-    public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
-    public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
-    public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
-    public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
+    public IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider(_azureResourcesFactory);
+    public ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
+    public ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
+    public IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
+    public IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
+    public TokenCredential CreateTokenCredential() => new TestTokenCredential();
+
+    // Static helper for tests that don't need instance methods
+    public static ProvisioningTestHelpers Instance { get; } = new();
 }
 
 /// <summary>
@@ -106,95 +196,83 @@ internal sealed class TestTokenCredential : TokenCredential
 }
 
 /// <summary>
-/// Test implementation that provides instances for testing.
+/// Factory for creating test implementations of Azure SDK types.
+/// Uses ResourceManagerModelFactory and avoids reflection and static usage.
 /// </summary>
-internal static class TestAzureResources
+internal sealed class TestAzureResourcesFactory
 {
-    public static ArmClient CreateTestArmClient() => new TestArmClient();
-    
-    public static SubscriptionResource CreateTestSubscriptionResource()
+    public ArmClient CreateTestArmClient()
     {
-        // Create a proper subscription resource using ResourceManagerModelFactory
-        var subscriptionData = TestSubscriptionData.Instance;
+        // For ArmClient, we can create a real instance with test credentials
+        return new ArmClient(new TestTokenCredential(), "12345678-1234-1234-1234-123456789012");
+    }
+    
+    public SubscriptionResource CreateTestSubscriptionResource()
+    {
+        var subscriptionData = CreateSubscriptionData();
         return CreateSubscriptionResourceFromData(subscriptionData);
     }
     
-    public static ResourceGroupResource CreateTestResourceGroupResource()
+    public ResourceGroupResource CreateTestResourceGroupResource()
     {
-        // Create a proper resource group resource using ResourceManagerModelFactory  
-        var resourceGroupData = TestResourceGroupData.Instance;
+        var resourceGroupData = CreateResourceGroupData();
         return CreateResourceGroupResourceFromData(resourceGroupData);
     }
     
-    public static TenantResource CreateTestTenantResource()
+    public TenantResource CreateTestTenantResource()
     {
-        // Create a proper tenant resource using ResourceManagerModelFactory
-        var tenantData = TestTenantData.Instance;
-        return CreateTenantResourceFromData(tenantData);
+        // For testing purposes, return null as tenant operations require complex authentication
+        // Tests should verify tenant properties through subscription data instead
+        // This aligns with Azure SDK recommended patterns where tenant access is limited
+        throw new NotSupportedException(
+            "TenantResource creation requires authenticated context. " +
+            "For testing, access tenant information through subscription.Data.TenantId. " +
+            "Complex tenant operations should use integration tests.");
     }
 
-    // Helper methods using reflection to create Azure SDK resources
-    private static SubscriptionResource CreateSubscriptionResourceFromData(SubscriptionData data)
+    // Test data creation using ResourceManagerModelFactory
+    public SubscriptionData CreateSubscriptionData()
     {
-        // Use reflection to create the resource with proper initialization
-        var ctor = typeof(SubscriptionResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .FirstOrDefault(c => c.GetParameters().Length == 2);
-        
-        if (ctor != null)
-        {
-            return (SubscriptionResource)ctor.Invoke([new TestArmClient(), data]);
-        }
-        
-        throw new InvalidOperationException("Could not create SubscriptionResource");
+        return ResourceManagerModelFactory.SubscriptionData(
+            id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012"),
+            subscriptionId: "12345678-1234-1234-1234-123456789012", 
+            displayName: "Test Subscription",
+            tenantId: new Guid("87654321-4321-4321-4321-210987654321"));
     }
 
-    private static ResourceGroupResource CreateResourceGroupResourceFromData(ResourceGroupData data)
+    public ResourceGroupData CreateResourceGroupData()
     {
-        // Use reflection to create the resource with proper initialization
-        var ctor = typeof(ResourceGroupResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .FirstOrDefault(c => c.GetParameters().Length == 2);
-        
-        if (ctor != null)
-        {
-            return (ResourceGroupResource)ctor.Invoke([new TestArmClient(), data]);
-        }
-        
-        throw new InvalidOperationException("Could not create ResourceGroupResource");
+        return ResourceManagerModelFactory.ResourceGroupData(
+            id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg"),
+            name: "test-rg",
+            resourceType: "Microsoft.Resources/resourceGroups",
+            location: AzureLocation.WestUS2);
     }
 
-    private static TenantResource CreateTenantResourceFromData(TenantData data)
+    public TenantData CreateTenantData()
     {
-        // Use reflection to create the resource with proper initialization
-        var ctor = typeof(TenantResource).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .FirstOrDefault(c => c.GetParameters().Length == 2);
-        
-        if (ctor != null)
-        {
-            return (TenantResource)ctor.Invoke([new TestArmClient(), data]);
-        }
-        
-        throw new InvalidOperationException("Could not create TenantResource");
-    }
-}
-
-/// <summary>
-/// Test implementation of ArmClient that returns test resources.
-/// </summary>
-internal sealed class TestArmClient : ArmClient
-{
-    public TestArmClient() : base(new TestTokenCredential(), "12345678-1234-1234-1234-123456789012")
-    {
+        return ResourceManagerModelFactory.TenantData(
+            id: ResourceIdentifier.Parse("/providers/Microsoft.Resources/tenants/87654321-4321-4321-4321-210987654321"),
+            tenantId: new Guid("87654321-4321-4321-4321-210987654321"),
+            displayName: "Test Tenant", 
+            defaultDomain: "testdomain.onmicrosoft.com");
     }
 
-    public override SubscriptionResource GetDefaultSubscription(CancellationToken cancellationToken = default)
+    // Create Azure SDK resources using the SDK properly - no reflection needed
+    private SubscriptionResource CreateSubscriptionResourceFromData(SubscriptionData data)
     {
-        return TestAzureResources.CreateTestSubscriptionResource();
+        var client = CreateTestArmClient();
+        return client.GetSubscriptionResource(data.Id);
     }
 
-    public override Task<SubscriptionResource> GetDefaultSubscriptionAsync(CancellationToken cancellationToken = default)
+    private ResourceGroupResource CreateResourceGroupResourceFromData(ResourceGroupData data)
     {
-        return Task.FromResult(GetDefaultSubscription(cancellationToken));
+        var client = CreateTestArmClient();
+        return client.GetResourceGroupResource(data.Id);
     }
+
+    // Note: TenantResource creation removed due to Azure SDK authentication complexity
+    // Tests should access tenant information through subscription.Data.TenantId
 }
 
 /// <summary>
@@ -217,17 +295,6 @@ internal sealed class TestArmOperation<T>(T value) : ArmOperation<T>
 }
 
 /// <summary>
-/// Test implementation of ArmDeploymentResource for testing.
-/// </summary>
-internal sealed class TestArmDeploymentResource
-{
-    public static ArmDeploymentResource Create(string name)
-    {
-        throw new NotSupportedException("Creating test ArmDeploymentResource requires using Azure SDK test helpers");
-    }
-}
-
-/// <summary>
 /// Mock Response implementation for testing.
 /// </summary>
 internal sealed class MockResponse(int status) : Response
@@ -239,24 +306,24 @@ internal sealed class MockResponse(int status) : Response
 
     protected override bool ContainsHeader(string name) => false;
     protected override IEnumerable<HttpHeader> EnumerateHeaders() => Enumerable.Empty<HttpHeader>();
-    protected override bool TryGetHeader(string name, out string? value)
+    protected override bool TryGetHeader(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value)
     {
-        value = default;
+        value = null;
         return false;
     }
-    protected override bool TryGetHeaderValues(string name, out IEnumerable<string>? values)
+    protected override bool TryGetHeaderValues(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IEnumerable<string>? values)
     {
-        values = default;
+        values = null;
         return false;
     }
     public override void Dispose() { }
 }
 
-internal sealed class TestArmClientProvider : IArmClientProvider
+internal sealed class TestArmClientProvider(TestAzureResourcesFactory factory) : IArmClientProvider
 {
     public ArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
-        return TestAzureResources.CreateTestArmClient();
+        return factory.CreateTestArmClient();
     }
 }
 
@@ -313,37 +380,12 @@ internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
 }
 
 /// <summary>
-/// Test data for SubscriptionResource using Azure SDK ResourceManagerModelFactory.
+/// Mock implementation of TenantResource for unit testing.
+/// Provides property access without requiring authenticated Azure context.
 /// </summary>
-internal static class TestSubscriptionData
+internal sealed class MockTenantResource : TenantResource
 {
-    public static SubscriptionData Instance { get; } = ResourceManagerModelFactory.SubscriptionData(
-        id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012"),
-        subscriptionId: "12345678-1234-1234-1234-123456789012", 
-        displayName: "Test Subscription",
-        tenantId: new Guid("87654321-4321-4321-4321-210987654321"));
-}
-
-/// <summary>
-/// Test data for ResourceGroupResource using Azure SDK ResourceManagerModelFactory.
-/// </summary>
-internal static class TestResourceGroupData
-{
-    public static ResourceGroupData Instance { get; } = ResourceManagerModelFactory.ResourceGroupData(
-        id: ResourceIdentifier.Parse("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg"),
-        name: "test-rg",
-        resourceType: "Microsoft.Resources/resourceGroups",
-        location: AzureLocation.WestUS2);
-}
-
-/// <summary>
-/// Test data for TenantResource using Azure SDK ResourceManagerModelFactory.
-/// </summary>
-internal static class TestTenantData
-{
-    public static TenantData Instance { get; } = ResourceManagerModelFactory.TenantData(
-        id: ResourceIdentifier.Parse("/providers/Microsoft.Resources/tenants/87654321-4321-4321-4321-210987654321"),
-        tenantId: new Guid("87654321-4321-4321-4321-210987654321"),
-        displayName: "Test Tenant", 
-        defaultDomain: "testdomain.onmicrosoft.com");
+    internal MockTenantResource(ArmClient client, TenantData data) : base(client, data)
+    {
+    }
 }
