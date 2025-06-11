@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
@@ -92,33 +93,78 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
-    public async Task AppHostExitsWhenCliProcessPidDies()
+    public async Task AppHostExitsWhenCliProcessPidDies(int runNumber)
     {
-        using var fakeCliProcess = RemoteExecutor.Invoke(
-            static () => Thread.Sleep(Timeout.Infinite),
-            new RemoteInvokeOptions { CheckExitCode = false }
-            );
-            
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
+        testOutputHelper.WriteLine($"=== Starting AppHostExitsWhenCliProcessPidDies run #{runNumber} ===");
+        var stopwatch = Stopwatch.StartNew();
         
-        var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
-            resourcesCreatedTcs.SetResult();
-            return Task.CompletedTask;
-        });
+        try
+        {
+            testOutputHelper.WriteLine($"[Run {runNumber}] Creating fake CLI process...");
+            using var fakeCliProcess = RemoteExecutor.Invoke(
+                static () => Thread.Sleep(Timeout.Infinite),
+                new RemoteInvokeOptions { CheckExitCode = false }
+                );
+            
+            var cliProcessId = fakeCliProcess.Process.Id;
+            testOutputHelper.WriteLine($"[Run {runNumber}] Created fake CLI process with PID: {cliProcessId}");
+            testOutputHelper.WriteLine($"[Run {runNumber}] Process running: {!fakeCliProcess.Process.HasExited}");
+            
+            testOutputHelper.WriteLine($"[Run {runNumber}] Creating TestDistributedApplicationBuilder...");
+            using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+            builder.Configuration["ASPIRE_CLI_PID"] = cliProcessId.ToString();
+            
+            var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+                testOutputHelper.WriteLine($"[Run {runNumber}] AfterResourcesCreatedEvent fired at {stopwatch.Elapsed}");
+                resourcesCreatedTcs.SetResult();
+                return Task.CompletedTask;
+            });
 
-        using var app = builder.Build();
-        var pendingRun = app.RunAsync();
+            testOutputHelper.WriteLine($"[Run {runNumber}] Building application...");
+            using var app = builder.Build();
+            
+            testOutputHelper.WriteLine($"[Run {runNumber}] Starting application async at {stopwatch.Elapsed}...");
+            var pendingRun = app.RunAsync();
 
-        // Wait until the apphost is spun up and then kill off the stub
-        // process so everything is torn down.
-        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fakeCliProcess.Process.Kill();
+            testOutputHelper.WriteLine($"[Run {runNumber}] Waiting for resources to be created (timeout: 10s)...");
+            await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            testOutputHelper.WriteLine($"[Run {runNumber}] Resources created after {stopwatch.Elapsed}");
+            
+            // Verify the CLI process is still running before killing it
+            testOutputHelper.WriteLine($"[Run {runNumber}] CLI process status before kill: HasExited={fakeCliProcess.Process.HasExited}");
+            if (fakeCliProcess.Process.HasExited)
+            {
+                testOutputHelper.WriteLine($"[Run {runNumber}] WARNING: CLI process already exited with code: {fakeCliProcess.Process.ExitCode}");
+            }
+            
+            testOutputHelper.WriteLine($"[Run {runNumber}] Killing CLI process at {stopwatch.Elapsed}...");
+            fakeCliProcess.Process.Kill();
+            
+            // Wait a moment for the kill to be processed
+            await Task.Delay(100);
+            testOutputHelper.WriteLine($"[Run {runNumber}] CLI process killed. HasExited={fakeCliProcess.Process.HasExited}");
 
-        await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
+            testOutputHelper.WriteLine($"[Run {runNumber}] Waiting for app to exit (timeout: 10s)...");
+            await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
+            testOutputHelper.WriteLine($"[Run {runNumber}] App exited successfully after {stopwatch.Elapsed}");
+        }
+        catch (Exception ex)
+        {
+            testOutputHelper.WriteLine($"[Run {runNumber}] EXCEPTION after {stopwatch.Elapsed}: {ex.GetType().Name}: {ex.Message}");
+            testOutputHelper.WriteLine($"[Run {runNumber}] Stack trace: {ex.StackTrace}");
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            testOutputHelper.WriteLine($"=== Completed AppHostExitsWhenCliProcessPidDies run #{runNumber} in {stopwatch.Elapsed} ===");
+        }
     }
 }
 
