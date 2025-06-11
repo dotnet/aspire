@@ -21,5 +21,5 @@ public class ExecOptions
     /// <summary>
     /// Command to exec against the target resource.
     /// </summary>
-    public string? Command { get; set; }
+    public required string Command { get; set; }
 }

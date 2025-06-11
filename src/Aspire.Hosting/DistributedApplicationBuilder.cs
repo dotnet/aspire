@@ -376,6 +376,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
         }
 
+        if (ExecutionContext.IsExecMode)
+        {
+            _innerBuilder.Services.AddSingleton<IDistributedApplicationLifecycleHook, DefaultCommandExecutor>();
+        }
+
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
