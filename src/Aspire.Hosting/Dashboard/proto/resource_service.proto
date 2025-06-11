@@ -166,8 +166,6 @@ message HealthReport {
     string description = 3;
     // Any exception details.
     string exception = 4;
-    // The timestamp when this health check was last executed.
-    optional google.protobuf.Timestamp last_run = 5;
 }
 
 enum HealthStatus {

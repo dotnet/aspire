@@ -31,7 +31,7 @@ public partial class ResourcesTests : DashboardTestContext
                 "Resource1",
                 "Type1",
                 "Running",
-                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null, null))),
+                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null))),
         };
         var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: () => channel);
@@ -73,7 +73,7 @@ public partial class ResourcesTests : DashboardTestContext
                     "Resource2",
                     "Type2",
                     "Running",
-                    ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null, null))))
+                    ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null))))
             ]);
 
         cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
@@ -120,17 +120,17 @@ public partial class ResourcesTests : DashboardTestContext
                 "Resource1",
                 "Type1",
                 "Running",
-                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null, null))),
+                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null))),
             CreateResource(
                 "Resource2",
                 "Type2",
                 "Running",
-                ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null, null))),
+                ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description2", null))),
             CreateResource(
                 "Resource3",
                 "Type3",
                 "Stopping",
-                ImmutableArray.Create(new HealthReportViewModel("Degraded", HealthStatus.Degraded, "Description3", null, null))),
+                ImmutableArray.Create(new HealthReportViewModel("Degraded", HealthStatus.Degraded, "Description3", null))),
         };
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
         ResourceSetupHelpers.SetupResourcesPage(
@@ -182,7 +182,7 @@ public partial class ResourcesTests : DashboardTestContext
                 "Resource1",
                 "Type1",
                 "Running",
-                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null, null))),
+                ImmutableArray.Create(new HealthReportViewModel("Null", null, "Description1", null))),
         };
         var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
         ResourceSetupHelpers.SetupResourcesPage(

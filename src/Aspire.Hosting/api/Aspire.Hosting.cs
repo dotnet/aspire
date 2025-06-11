@@ -1185,7 +1185,6 @@ namespace Aspire.Hosting.ApplicationModel
     [System.Diagnostics.DebuggerDisplay("{Status}", Name = "{Name}")]
     public sealed partial record HealthReportSnapshot(string Name, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? Status, string? Description, string? ExceptionText)
     {
-        public System.DateTime? LastRun { get; init; }
     }
 
     public partial record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider

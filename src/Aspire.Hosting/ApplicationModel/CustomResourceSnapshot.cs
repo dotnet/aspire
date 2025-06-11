@@ -292,13 +292,7 @@ public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState S
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
 [DebuggerDisplay("{Status}", Name = "{Name}")]
-public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText)
-{
-    /// <summary>
-    /// The timestamp when this health check was last executed, or <see langword="null"/> if it has never run.
-    /// </summary>
-    public DateTime? LastRun { get; init; }
-}
+public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
 
 /// <summary>
 /// The state of a resource command.
