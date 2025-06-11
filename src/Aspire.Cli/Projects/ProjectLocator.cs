@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService) : IProjectLocator
 {
     private readonly ActivitySource _activitySource = new(nameof(ProjectLocator));
 
@@ -26,6 +27,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         return await interactionService.ShowStatusAsync(Strings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
+            var lockObject = new object();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
             {
@@ -43,7 +45,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            await Parallel.ForEachAsync(projectFiles, async (projectFile, ct) =>
+            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
             {
                 logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
                 var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
@@ -53,7 +55,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName);
                     interactionService.DisplaySubtleMessage(relativePath);
-                    appHostProjects.Add(projectFile);
+                    lock (lockObject)
+                    {
+                        appHostProjects.Add(projectFile);
+                    }
                 }
                 else
                 {
@@ -94,7 +99,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     }
                     else
                     {
-                        throw new ProjectLocatorException(string.Format(CultureInfo.CurrentCulture, Strings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName));
+                        // AppHost file was specified but doesn't exist, return null to trigger fallback logic
+                        interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, Strings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
+                        return null;
                     }
                 }
             }
@@ -171,21 +178,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
-        if (!settingsFile.Directory!.Exists)
-        {
-            settingsFile.Directory.Create();
-        }
+        var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory!.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
 
-        var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-
-        // Get the relative path and normalize it to use '/' as the separator
-        var settings = new CliSettings
-        {
-            AppHostPath = relativePathToProjectFile
-        };
-
-        using var stream = settingsFile.OpenWrite();
-        await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.CliSettings, cancellationToken);
+        // Use the configuration writer to set the appHostPath, which will merge with any existing settings
+        await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
 
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, Strings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));

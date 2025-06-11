@@ -6,6 +6,7 @@
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
 * Never change global.json unless explicitly asked to.
+* Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
 
 ## Formatting
 
@@ -15,6 +16,7 @@
 * Ensure that the final return statement of a method is on its own line.
 * Use pattern matching and switch expressions wherever possible.
 * Use `nameof` instead of string literals when referring to member names.
+* Place private class declarations at the bottom of the file.
 
 ### Nullable Reference Types
 
@@ -35,6 +37,7 @@ In building and testing, never use `dotnet` without extension. Use `dotnet.sh` o
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Do not use Directory.SetCurrentDirectory in tests as it can cause side effects when tests execute concurrently.
 
 ## Running tests
 
@@ -54,6 +57,14 @@ Note that tests for a project can be executed without first building from the ro
 - A github issue url is used with the attribute
 
 Example: `[QuarantinedTest("..issue url..")]`
+
+## Snapshot Testing with Verify
+
+* We use the Verify library (Verify.XunitV3) for snapshot testing in several test projects.
+* Snapshot files are stored in `Snapshots` directories within test projects.
+* When tests that use snapshot testing are updated and generate new output, the snapshots need to be accepted.
+* Use `dotnet verify accept -y` to accept all pending snapshot changes after running tests.
+* The verify tool is available globally as part of the copilot setup.
 
 ## Editing resources
 

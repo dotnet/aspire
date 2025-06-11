@@ -23,7 +23,6 @@ internal class InteractionService : IInteractionService
     {
         return await _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
             .StartAsync(statusText, (context) => action());
     }
 
@@ -31,7 +30,6 @@ internal class InteractionService : IInteractionService
     {
         _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
-            .SpinnerStyle(Style.Parse("purple"))
             .Start(statusText, (context) => action());
     }
 
@@ -71,8 +69,7 @@ internal class InteractionService : IInteractionService
             .UseConverter(choiceFormatter)
             .AddChoices(choices)
             .PageSize(10)
-            .EnableSearch()
-            .HighlightStyle(Style.Parse("darkmagenta"));
+            .EnableSearch();
 
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }

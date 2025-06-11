@@ -12,7 +12,7 @@
     };
 }
 
-<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@(!Items.Where(i => !i.IsDivider).Any())" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconStart="@IconStart" @onclick="ToggleMenu" Disabled="@_disabled" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
     @if (string.IsNullOrWhiteSpace(Text))
     {
         <FluentIcon Value="@_icon" Color="@IconColor" />
@@ -28,4 +28,4 @@
     }
 </FluentButton>
 
-<AspireMenu Anchor="@MenuButtonId" @bind-Open="@_visible" Items="Items" />
+<AspireMenu Anchor="@MenuButtonId" @bind-Open="@_visible" Items="_items" />
