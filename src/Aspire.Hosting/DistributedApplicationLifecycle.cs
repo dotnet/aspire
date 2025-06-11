@@ -20,7 +20,7 @@ internal sealed class DistributedApplicationLifecycle(
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        if (executionContext.IsRunMode)
+        if (executionContext.IsRunMode || executionContext.IsExecMode)
         {
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }

@@ -18,13 +18,9 @@ public class ExecPostgresTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Postgre()
     {
-        // if you run aspire.cli against some random appHost csproj,
-        // it will end up running something like:
-        // 'run --no-build  --project C:\code\aspire\tests\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj --'
-
         string[] args = [
             // separate type of command 'exec'
-            "exec",
+            "--operation", "exec",
             // what AppHost to target
             "--project", @"C:\code\aspire\tests\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj",
             // what resource to target
@@ -47,7 +43,6 @@ public class ExecPostgresTests(ITestOutputHelper output)
 
         var project = builder
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
-            .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"])
             .WithReference(postgres);
 
         // independent resource

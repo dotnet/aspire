@@ -11,7 +11,7 @@ public class ExecOptions
     /// <summary>
     /// The name of the exec section in the configuration
     /// </summary>
-    public const string Exec = "exec";
+    public const string SectionName = "exec";
 
     /// <summary>
     /// Target resource to exec the command against.

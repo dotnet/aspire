@@ -120,10 +120,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             };
         }
 
-        var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
+        var operation = operationConfiguration?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
             "run" => DistributedApplicationOperation.Run,
+            "exec" => DistributedApplicationOperation.Exec,
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
@@ -131,7 +132,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
+            DistributedApplicationOperation.Exec => new DistributedApplicationExecutionContextOptions(operation),
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'run', or 'exec'.")
         };
     }
 
@@ -342,6 +344,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
+            // Devcontainers & Codespaces
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
+        }
+
+        if (ExecutionContext.IsRunMode || ExecutionContext.IsExecMode)
+        {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
@@ -359,16 +374,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
-
-            // Devcontainers & Codespaces
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
-            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
-            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
-            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
-
-            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         // Publishing support
@@ -496,18 +501,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void ConfigureExecOptions(DistributedApplicationOptions options)
     {
+        var sectionName = ExecOptions.SectionName;
         var switchMappings = new Dictionary<string, string>
         {
             { "--operation", "AppHost:Operation" },
-            { "--resource", $"{ExecOptions.Exec}:Resource" },
-            { "--command", $"{ExecOptions.Exec}:Command" },
+            { "--resource", $"{sectionName}:Resource" },
+            { "--command", $"{sectionName}:Command" },
         };
 
         // we will need to filter out only specific resources
         _innerBuilder.Services.AddSingleton<IResourcesSelector, ExecResourcesSelector>();
 
         _innerBuilder.Configuration.AddCommandLine(options.Args!, switchMappings);
-        _innerBuilder.Services.Configure<ExecOptions>(_innerBuilder.Configuration.GetSection(ExecOptions.Exec));
+        _innerBuilder.Services.Configure<ExecOptions>(_innerBuilder.Configuration.GetSection(sectionName));
     }
 
     /// <inheritdoc />

@@ -169,10 +169,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
 
-        string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
+        List<string> cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName];
+        if (args.Length > 0 && args[0].StartsWith("--"))
+        {
+            cliArgs.AddRange(args);
+        }
+        else if (args.Length > 0)
+        {
+            cliArgs.Add("--");
+            cliArgs.AddRange(args);
+        }
 
         return await ExecuteAsync(
-            args: cliArgs,
+            args: cliArgs.ToArray(),
             env: env,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,

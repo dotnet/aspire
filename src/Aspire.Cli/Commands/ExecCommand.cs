@@ -86,8 +86,8 @@ internal class ExecCommand : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
-        var resource = parseResult.GetValue<string?>("--resource");
-        // resource can be missing; if missing it just executes in the context of the apphost
+        // resource can be missing;
+        // if missing it just executes in the context of the apphost
 
         var command = parseResult.GetValue<string?>("--command");
         if (string.IsNullOrEmpty(command))
@@ -118,7 +118,7 @@ internal class ExecCommand : BaseCommand
             effectiveAppHostProjectFile,
             watch: false, // for now
             noBuild: false, // for now
-            args: unmatchedTokens,
+            args: ["--operation", "exec", "--command", command, ..unmatchedTokens],
             env: env,
             backchannelCompletionSource: backchannelCompletionSource,
             options: runOptions,

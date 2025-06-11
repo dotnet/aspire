@@ -17,6 +17,11 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (executionContext.IsExecMode)
+        {
+
+        }
+
         if (executionContext.IsPublishMode)
         {
             // If we are running in publish mode and are being driven by the

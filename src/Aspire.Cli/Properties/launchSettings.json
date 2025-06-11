@@ -33,9 +33,21 @@
     "aspire-run-testingAppHost1": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      //C:\code\aspire\artifacts\bin\Aspire.Cli\Debug\net8.0
-      //C:\code\aspire\artifacts\bin\TestingAppHost1.AppHost\Debug\net8.0
       "commandLineArgs": "run --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\"",
+      "environmentVariables": {
+      }
+    },
+    "aspire-publish-testingAppHost1": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "publish --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\"",
+      "environmentVariables": {
+      }
+    },
+    "aspire-exec-testingAppHost1": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project \"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj\" --resource mywebapp1 --command \"ls\"",
       "environmentVariables": {
       }
     }
