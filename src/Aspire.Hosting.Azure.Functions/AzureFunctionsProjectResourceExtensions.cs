@@ -91,6 +91,7 @@ public static class AzureFunctionsProjectResourceExtensions
 
         return builder.AddResource(resource)
             .WithAnnotation(new TProject())
+            .WithAnnotation(new AzureFunctionsAnnotation())
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"] = "true";

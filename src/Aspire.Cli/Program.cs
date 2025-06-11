@@ -13,10 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
-using Microsoft.Extensions.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Aspire.Cli.Utils;
 
 #if DEBUG
 using OpenTelemetry;
@@ -32,45 +33,22 @@ public class Program
 {
     private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
-    /// <summary>
-    /// This method walks up the directory tree looking for the .aspire/settings.json files
-    /// and then adds them to the host as a configuration source. This means that the settings
-    /// architecture for the CLI will just be standard .NET configuraiton.
-    /// </summary>
-    private static void SetupAppHostOptions(HostApplicationBuilder builder)
+    private static string GetGlobalSettingsPath()
     {
-        var settingsFiles = new List<FileInfo>();
-        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-
-        while (true)
-        {
-            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
-
-            if (File.Exists(settingsFilePath))
-            {
-                var settingsFile = new FileInfo(settingsFilePath);
-                settingsFiles.Add(settingsFile);
-            }
-
-            if (currentDirectory.Parent is null)
-            {
-                break;
-            }
-
-            currentDirectory = currentDirectory.Parent;
-        }
-
-        settingsFiles.Reverse();
-        foreach (var settingsFile in settingsFiles)
-        {
-            builder.Configuration.AddJsonFile(settingsFile.FullName);
-        }
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        return globalSettingsPath;
     }
 
     private static IHost BuildApplication(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
-        SetupAppHostOptions(builder);
+
+        // Set up settings with appropriate paths.
+        var globalSettingsFilePath = GetGlobalSettingsPath();
+        var globalSettingsFile = new FileInfo(globalSettingsFilePath);
+        var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
 
         builder.Logging.ClearProviders();
 
@@ -78,7 +56,7 @@ public class Program
         builder.Logging.AddOpenTelemetry(logging => {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
-            });
+        });
 
 #if DEBUG
         var otelBuilder = builder.Services
@@ -98,7 +76,7 @@ public class Program
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
 
-        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is {})
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is { })
         {
             // NOTE: If we always enable the OTEL exporter it dramatically
             //       impacts the CLI in terms of exiting quickly because it
@@ -123,6 +101,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
+        builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -139,10 +118,17 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
+        builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
         return app;
+    }
+
+    private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
+    {
+        var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
+        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
@@ -170,7 +156,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService);
+        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService);
     }
 
     public static async Task<int> Main(string[] args)

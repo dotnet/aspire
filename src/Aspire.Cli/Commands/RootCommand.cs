@@ -16,13 +16,16 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    private readonly IInteractionService _interactionService;    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, IInteractionService interactionService)
+    private readonly IInteractionService _interactionService;
+    
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, ConfigCommand configCommand, IInteractionService interactionService)
         : base(CliStrings.RootCommand_Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
+        ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(interactionService);
         
         _interactionService = interactionService;        var debugOption = new Option<bool>("--debug", "-d");
@@ -62,5 +65,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
+        Subcommands.Add(configCommand);
     }
 }
