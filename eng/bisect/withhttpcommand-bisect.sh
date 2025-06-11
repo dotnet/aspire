@@ -70,26 +70,6 @@ build_project() {
     return 0
 }
 
-# Bisect test function (used by git bisect run)
-bisect_test() {
-    log "Testing commit: $(git rev-parse --short HEAD)"
-    
-    # Try to build first
-    if ! build_project; then
-        log "Build failed - skipping this commit"
-        exit 125  # Tell git bisect to skip this commit
-    fi
-    
-    # Run the test iterations
-    if run_test_iterations; then
-        log "This commit is GOOD"
-        exit 0  # Good commit
-    else
-        log "This commit is BAD"
-        exit 1  # Bad commit
-    fi
-}
-
 # Main function
 main() {
     if [ $# -lt 1 ] || [ $# -gt 2 ]; then
@@ -145,16 +125,102 @@ main() {
     git bisect bad "$BAD_COMMIT"
     git bisect good "$GOOD_COMMIT"
     
-    # Export the function so it can be called by git bisect run
-    export -f log
-    export -f run_test_iterations
-    export -f build_project
-    export -f bisect_test
+    # Create a temporary bisect test script
+    BISECT_SCRIPT="/tmp/bisect-test-$$"
+    cat > "$BISECT_SCRIPT" << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Function to log messages with timestamps
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+# Function to run the test multiple times
+run_test_iterations() {
+    log "Running test $ITERATIONS times..."
+    
+    for i in $(seq 1 $ITERATIONS); do
+        log "Iteration $i/$ITERATIONS"
+        
+        # Run the specific test with timeout
+        if ! timeout 300 "$REPO_ROOT/dotnet.sh" test "$REPO_ROOT/$TEST_PROJECT" \
+            --no-build \
+            --logger "console;verbosity=quiet" \
+            -- --filter "$TEST_FILTER" > /dev/null 2>&1; then
+            log "Test failed on iteration $i (may have timed out after 5 minutes)"
+            return 1
+        fi
+        
+        # Small delay between iterations to avoid potential timing issues
+        sleep 1
+    done
+    
+    log "All $ITERATIONS iterations passed"
+    return 0
+}
+
+# Function to build the project
+build_project() {
+    log "Building project..."
+    if ! timeout 1800 "$REPO_ROOT/build.sh" --configuration Debug > /dev/null 2>&1; then
+        log "Build failed (may have timed out after 30 minutes)"
+        return 1
+    fi
+    log "Build successful"
+    return 0
+}
+
+# Bisect test function (used by git bisect run)
+bisect_test() {
+    log "Testing commit: $(git rev-parse --short HEAD)"
+    
+    # Try to build first
+    if ! build_project; then
+        log "Build failed - skipping this commit"
+        exit 125  # Tell git bisect to skip this commit
+    fi
+    
+    # Run the test iterations
+    if run_test_iterations; then
+        log "This commit is GOOD"
+        exit 0  # Good commit
+    else
+        log "This commit is BAD"
+        exit 1  # Bad commit
+    fi
+}
+
+# Export variables
+REPO_ROOT="$REPO_ROOT"
+TEST_PROJECT="$TEST_PROJECT"
+TEST_FILTER="$TEST_FILTER"
+ITERATIONS="$ITERATIONS"
+
+# Run the bisect test
+bisect_test
+EOF
+    
+    # Make the script executable
+    chmod +x "$BISECT_SCRIPT"
+    
+    # Export variables for the script
     export REPO_ROOT TEST_PROJECT TEST_FILTER ITERATIONS
+    
+    # Update cleanup to remove the script
+    cleanup() {
+        log "Cleaning up..."
+        git bisect reset >/dev/null 2>&1 || true
+        if git rev-parse --verify "$ORIGINAL_REF" >/dev/null 2>&1; then
+            git checkout "$ORIGINAL_REF" >/dev/null 2>&1 || true
+        fi
+        rm -f "$BISECT_SCRIPT"
+        log "Repository state restored"
+    }
     
     # Run the bisect
     log "Running automated bisect..."
-    if ! git bisect run bash -c "bisect_test"; then
+    if ! git bisect run "$BISECT_SCRIPT"; then
         log "Bisect run failed or was interrupted"
         return 1
     fi
@@ -176,7 +242,9 @@ main() {
 
 # Check if this script is being called by git bisect run
 if [ "${1:-}" = "bisect_test" ]; then
-    bisect_test
+    # This should not happen anymore as we use a separate script
+    echo "Error: This script should not be called with bisect_test argument anymore"
+    exit 1
 else
     main "$@"
 fi
