@@ -150,7 +150,15 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
             }
         }
         
-        return string.Join(";", filteredParts);
+        var result = string.Join(";", filteredParts);
+        
+        // Handle edge case where original string ended with ';' but EntityPath was the last part
+        if (connectionString.EndsWith(';') && !result.EndsWith(';'))
+        {
+            result += ";";
+        }
+        
+        return result;
     }
 
     private void ParseEntityPath(string? entityPath)
