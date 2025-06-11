@@ -68,7 +68,12 @@ sealed partial class TestSummaryGenerator
                                 ? "mac"
                                 : throw new InvalidOperationException($"Could not determine OS from file path: {filePath}");
 
-            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {(failed > 0 ? "❌" : "✅")} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
+            var icon = total == 0 ? "⚠️"
+                        : failed > 0 ? "❌"
+                            : passed > 0 ? "✅"
+                                : "❓";
+
+            tableBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {icon} [{os}] {GetTestTitle(filePath)} | {passed} | {failed} | {skipped} | {total} |");
         }
 
         var overallTableBuilder = new StringBuilder();

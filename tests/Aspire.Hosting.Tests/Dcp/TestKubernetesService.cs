@@ -162,7 +162,17 @@ internal sealed class TestKubernetesService : IKubernetesService
         }
     }
 
-    public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, bool? timestamps = false, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<Stream> GetLogStreamAsync<T>(
+        T obj,
+        string logStreamType,
+        CancellationToken cancellationToken = default,
+        bool? follow = true,
+        bool? timestamps = false,
+        bool? lineNumbers = false,
+        long? limit = null,
+        long? tail = null,
+        long? skip = null
+    ) where T : CustomResource
     {
         return Task.FromResult(_startStream(obj, logStreamType));
     }

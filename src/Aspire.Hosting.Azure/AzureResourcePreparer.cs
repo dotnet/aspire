@@ -148,6 +148,12 @@ internal sealed class AzureResourcePreparer(
                         .ToLookup(a => a.Target);
                 foreach (var azureReference in azureReferences.OfType<AzureProvisioningResource>())
                 {
+                    if (azureReference.IsContainer())
+                    {
+                        // Skip emulators
+                        continue;
+                    }
+
                     var roleAssignments = azureReferencesWithRoleAssignments[azureReference];
                     if (roleAssignments.Any())
                     {
@@ -445,6 +451,12 @@ internal sealed class AzureResourcePreparer(
             {
                 ProcessAzureReferences(azureReferences, vp);
             }
+            return;
+        }
+
+        if (value is IManifestExpressionProvider)
+        {
+            // Unknown manifest expression providers don't have Azure references to track
             return;
         }
 

@@ -18,7 +18,7 @@ internal sealed class ContainerAppEnvironmentContext(
 
     public AzureContainerAppEnvironmentResource Environment => environment;
 
-    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceComparer());
+    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceNameComparer());
 
     public ContainerAppContext GetContainerAppContext(IResource resource)
     {

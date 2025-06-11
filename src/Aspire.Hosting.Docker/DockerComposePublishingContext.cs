@@ -71,7 +71,11 @@ internal sealed class DockerComposePublishingContext(
         var composeFile = new ComposeFile();
         composeFile.AddNetwork(defaultNetwork);
 
-        foreach (var resource in model.Resources)
+        IEnumerable<IResource> resources = environment.Dashboard?.Resource is IResource r
+                ? [r, .. model.Resources]
+                : model.Resources;
+
+        foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {

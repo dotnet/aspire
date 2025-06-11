@@ -78,6 +78,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         _durations = new List<SelectViewModel<TimeSpan>>
         {
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
@@ -109,8 +111,6 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             UpdateApplications();
             StateHasChanged();
         }));
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -138,6 +138,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public Task UpdateViewModelFromQueryAsync(MetricsViewModel viewModel)
     {
+        if (ApplicationName is null && TryGetSingleResource() is { } r)
+        {
+            // If there is no app selected and there is only one application available, select it.
+            PageViewModel.SelectedApplication = r;
+            ApplicationName = r.Name;
+            return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+        }
+
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
 
@@ -156,6 +164,12 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             }
         }
         return Task.CompletedTask;
+
+        SelectViewModel<ResourceTypeDetails>? TryGetSingleResource()
+        {
+            var apps = _applicationViewModels.Where(e => e != _selectApplication).ToList();
+            return apps.Count == 1 ? apps[0] : null;
+        }
     }
 
     private void UpdateInstruments(MetricsViewModel viewModel)
@@ -335,6 +349,6 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty((PageViewModel.Instruments?.Count ?? -1).ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString(), AspireTelemetryPropertyType.UserSetting)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting))
-        ]);
+        ], Logger);
     }
 }

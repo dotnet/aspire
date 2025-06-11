@@ -1,9 +1,9 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param existingResourceName string
 
-param keyVaultName string
+param cosmos_kv_outputs_name string
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
   name: existingResourceName
@@ -30,6 +30,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -37,7 +38,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: cosmos_kv_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

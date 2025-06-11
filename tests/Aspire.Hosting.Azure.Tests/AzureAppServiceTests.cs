@@ -140,7 +140,7 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    public async Task AzureAppServiceDoesNotSupportBaitAndSwitchResources()
+    public async Task AzureAppServiceSupportBaitAndSwitchResources()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -148,7 +148,8 @@ public class AzureAppServiceTests
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .PublishAsDockerFile()
-            .WithHttpEndpoint(env: "PORT");
+            .WithHttpEndpoint(env: "PORT", targetPort: 80)
+            .WithExternalHttpEndpoints();
 
         using var app = builder.Build();
 
@@ -162,7 +163,93 @@ public class AzureAppServiceTests
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
 
-        Assert.Null(resource);
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddDockerfileWithAppServiceInfrastructureAddsDeploymentTargetWithAppServiceToContainerResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var directory = Directory.CreateTempSubdirectory(".aspire-test");
+
+        // Contents of the Dockerfile are not important for this test
+        File.WriteAllText(Path.Combine(directory.FullName, "Dockerfile"), "");
+
+        builder.AddDockerfile("api", directory.FullName)
+               .WithHttpEndpoint(targetPort: 85, env: "PORT")
+               .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task UnknownManifestExpressionProviderIsHandledWithAllocateParameter()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var customProvider = new CustomManifestExpressionProvider();
+        
+        var apiProject = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["CUSTOM_VALUE"] = customProvider;
+            })
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public void AzureAppServiceEnvironmentImplementsIAzureComputeEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        Assert.IsAssignableFrom<IAzureComputeEnvironmentResource>(env.Resource);
+        Assert.IsAssignableFrom<IComputeEnvironmentResource>(env.Resource);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
@@ -171,5 +258,10 @@ public class AzureAppServiceTests
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "/foo/bar/project.csproj";
+    }
+
+    private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
+    {
+        public string ValueExpression => "{customValue}";
     }
 }

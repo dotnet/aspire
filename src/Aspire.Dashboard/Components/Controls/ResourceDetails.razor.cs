@@ -25,6 +25,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
+    [Parameter]
+    public bool ShowHiddenResources { get; set; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
@@ -36,6 +39,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required ILogger<ResourceDetails> Logger { get; init; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
@@ -159,8 +165,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     protected override void OnInitialized()
     {
-        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
         TelemetryContextProvider.Initialize(TelemetryContext);
+        (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlStringsLoc);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
@@ -176,7 +182,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         {
             var matches = ResourceByName.Values
                 .Where(r => string.Equals(r.DisplayName, resourceRelationships.Key, StringComparisons.ResourceName))
-                .Where(r => r.KnownState != KnownResourceState.Hidden)
+                .Where(r => !r.IsResourceHidden(ShowHiddenResources))
                 .ToList();
 
             foreach (var match in matches)
@@ -199,7 +205,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
         var otherResources = ResourceByName.Values
             .Where(r => r != Resource)
-            .Where(r => r.KnownState != KnownResourceState.Hidden);
+            .Where(r => !r.IsResourceHidden(ShowHiddenResources));
 
         foreach (var otherResource in otherResources)
         {
@@ -279,7 +285,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(Resource.ResourceType, Resource.SupportsDetailedTelemetry))),
-        ]);
+        ], Logger);
     }
 
     public void Dispose()

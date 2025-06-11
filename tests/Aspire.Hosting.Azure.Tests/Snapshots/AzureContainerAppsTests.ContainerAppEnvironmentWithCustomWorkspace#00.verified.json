@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "env.module.bicep",
+  "params": {
+    "customworkspace_outputs_name": "{customworkspace.outputs.name}",
+    "userPrincipalId": ""
+  }
+}

@@ -34,7 +34,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     public bool BuildContainerImages { get; set; } = true;
 
+    /// <summary>
+    /// Determines whether to include an Aspire dashboard for telemetry visualization in this environment.
+    /// </summary>
+    public bool DashboardEnabled { get; set; } = true;
+
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
+
+    internal IResourceBuilder<DockerComposeAspireDashboardResource>? Dashboard { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.
@@ -42,7 +49,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     internal Dictionary<string, (string? Description, string? DefaultValue, object? Source)> CapturedEnvironmentVariables { get; } = [];
 
-    internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceComparer());
+    internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
     internal PortAllocator PortAllocator { get; } = new();
 

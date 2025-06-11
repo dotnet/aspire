@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
@@ -48,12 +48,30 @@ internal interface IKubernetesService
         string? namespaceParameter = null,
         CancellationToken cancellationToken = default)
         where T : CustomResource;
+
+    /// <summary>
+    /// Returns a log stream for the specified resource.
+    /// </summary>
+    /// <param name="obj">The resource to get the log stream for.</param>
+    /// <param name="logStreamType">The type of log stream to retrieve ("stdout", "stderr", "startup_stdout", or "startup_stderr", see <see cref="Aspire.Hosting.Dcp.Model.Logs"/>).</param>
+    /// <param name="cancellationToken">The cancellation token for the stream retrieval operation (does not affect the returned stream).</param>
+    /// <param name="follow">If true, the log stream will be followed until the resource is deleted or the stream is disposed of.</param>
+    /// <param name="timestamps">If true, timestamps (RFC3339) will be included in the log stream.</param>
+    /// <param name="lineNumbers">If true, line numbers will be included in the log stream.</param>
+    /// <param name="limit">If specified, limits the number of log linets returned. Cannot be used with "follow".</param>
+    /// <param name="tail">If specified, limits the response to at most N existing, NEWEST log lines. If "follow" is true, new log lines that appear after the log stream was created do not count against the limit, and will be streamed until the client closes the stream.</param>
+    /// <param name="skip">If specified, skips the first N log lines in the result set. Cannot be used together with "tail".</param>
     Task<Stream> GetLogStreamAsync<T>(
         T obj,
         string logStreamType,
+        CancellationToken cancellationToken = default,
         bool? follow = true,
         bool? timestamps = false,
-        CancellationToken cancellationToken = default) where T : CustomResource;
+        bool? lineNumbers = false,
+        long? limit = null,
+        long? tail = null,
+        long? skip = null
+    ) where T : CustomResource;
     Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
     Task CleanupResourcesAsync(CancellationToken cancellationToken = default);
 }
@@ -281,18 +299,38 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     public Task<Stream> GetLogStreamAsync<T>(
         T obj,
         string logStreamType,
+        CancellationToken cancellationToken = default,
         bool? follow = true,
         bool? timestamps = false,
-        CancellationToken cancellationToken = default) where T : CustomResource
+        bool? lineNumbers = false,
+        long? limit = null,
+        long? tail = null,
+        long? skip = null) where T : CustomResource
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
 
-        ImmutableArray<(string name, string value)>? queryParams = [
+        List<(string name, string value)> queryParams = [
             (name: "follow", value: follow == true ? "true": "false"),
             (name: "timestamps", value: timestamps == true ? "true" : "false"),
-            (name: "source", value: logStreamType)
+            (name: "source", value: logStreamType),
+            (name: "line_numbers", value: lineNumbers == true ? "true" : "false"),
         ];
+        if (limit.HasValue)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(limit.Value, 1, nameof(limit));
+            queryParams.Add((name: "limit", value: limit.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+        if (tail.HasValue)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(tail.Value, 1, nameof(tail));
+            queryParams.Add((name: "tail", value: tail.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+        if (skip.HasValue)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(skip.Value, 1, nameof(skip));
+            queryParams.Add((name: "skip", value: skip.Value.ToString(CultureInfo.InvariantCulture)));
+        }
 
         return ExecuteWithRetry(
             DcpApiOperationType.GetLogSubresource,
@@ -469,7 +507,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             })
             .AddRetry(new RetryStrategyOptions()
             {
-                ShouldHandle = new PredicateBuilder().Handle<Exception>(isRetryable),
+                ShouldHandle = new PredicateBuilder().Handle(isRetryable),
                 BackoffType = DelayBackoffType.Exponential,
                 MaxRetryAttempts = int.MaxValue,
                 Delay = s_initialRetryDelay,

@@ -10,7 +10,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureRedisExtensionsTests(ITestOutputHelper output)
+public class AzureRedisExtensionsTests
 {
     /// <summary>
     /// Test both with and without ACA infrastructure because the role assignments
@@ -72,8 +72,6 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
 
         if (kvName is null)
         {
-            kvName = "redis-cache-kv";
-
             redis.WithAccessKeyAuthentication();
         }
         else
@@ -81,23 +79,10 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
             redis.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
         }
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
-        var expectedManifest = $$"""
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{{{kvName}}.secrets.connectionstrings--redis-cache}",
-              "path": "redis-cache.module.bicep",
-              "params": {
-                "keyVaultName": "{{{kvName}}.outputs.name}"
-              }
-            }
-            """;
-        var m = manifest.ManifestNode.ToString();
-        output.WriteLine(m);
-        Assert.Equal(expectedManifest, m);
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+                  .AppendContentAsFile(manifest.ToString(), "json");
 
     }
 

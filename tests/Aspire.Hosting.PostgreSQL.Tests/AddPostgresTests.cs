@@ -369,16 +369,13 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public async Task WithPgAdminAddsContainer()
+    public void WithPgAdminAddsContainer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithHostPort(8081));
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        // The mount annotation is added in the AfterEndpointsAllocatedEvent.
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var container = builder.Resources.Single(r => r.Name == "pgadmin");
         var createFile = container.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
@@ -468,8 +465,6 @@ public class AddPostgresTests
 
         using var app = builder.Build();
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var pgadmin = builder.Resources.Single(r => r.Name.Equals("pgadmin"));
 
         var createServers = pgadmin.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
@@ -530,8 +525,6 @@ public class AddPostgresTests
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var pgweb = builder.Resources.Single(r => r.Name.Equals("pgweb"));
         var createBookmarks = pgweb.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();

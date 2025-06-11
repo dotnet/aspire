@@ -16,6 +16,10 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IAzureKeyVaultResource
 {
     /// <summary>
+    /// The secrets for this Key Vault.
+    /// </summary>
+    internal List<AzureKeyVaultSecretResource> Secrets { get; } = [];
+    /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
     /// </summary>
     public BicepOutputReference VaultUri => new("vaultUri", this);

@@ -1,7 +1,7 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
+param mykeyvault_outputs_name string
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
@@ -11,6 +11,11 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       {
         locationName: location
         failoverPriority: 0
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
       }
     ]
     consistencyPolicy: {
@@ -46,6 +51,7 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
         paths: [
           'mypartitionkeypath'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -53,7 +59,7 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+  name: mykeyvault_outputs_name
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {

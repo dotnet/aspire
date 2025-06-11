@@ -99,7 +99,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: null, // App Service manages internal port mapping
+                TargetPort: endpoint.TargetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }
@@ -179,6 +179,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             }
 
             return (new BicepFormatString(expr.Format, args), finalSecretType);
+        }
+
+        if (value is IManifestExpressionProvider manifestExpressionProvider)
+        {
+            return (AllocateParameter(manifestExpressionProvider, secretType), secretType);
         }
 
         throw new NotSupportedException($"Unsupported value type {value.GetType()}");
