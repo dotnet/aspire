@@ -417,7 +417,7 @@ internal sealed class ApplicationOrchestrator
             return [];
         }
 
-        var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null, null));
+        var reports = annotations.Select(annotation => new HealthReportSnapshot(annotation.Key, null, null, null));
         return [.. reports];
     }
 

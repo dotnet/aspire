@@ -23,7 +23,7 @@ public class HealthStatusTests
     [InlineData(RunningState, HealthStatus.Degraded, new string?[] {"Healthy", "Degraded"})]
     public void Resource_WithHealthReportAndState_ReturnsCorrectHealthStatus(string? state, HealthStatus? expectedStatus, string?[]? healthStatusStrings)
     {
-        var reports = healthStatusStrings?.Select<string?, HealthReportSnapshot>((h, i) => new HealthReportSnapshot(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null, null)).ToImmutableArray() ?? [];
+        var reports = healthStatusStrings?.Select<string?, HealthReportSnapshot>((h, i) => new HealthReportSnapshot(i.ToString(), h is null ? null : Enum.Parse<HealthStatus>(h), null, null)).ToImmutableArray() ?? [];
         var actualStatus = CustomResourceSnapshot.ComputeHealthStatus(reports, state);
         Assert.Equal(expectedStatus, actualStatus);
     }

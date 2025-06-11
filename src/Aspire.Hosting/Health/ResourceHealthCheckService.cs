@@ -276,7 +276,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString(), now);
+            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString()) { LastRun = now };
 
             var found = false;
             for (var i = 0; i < builder.Count; i++)
