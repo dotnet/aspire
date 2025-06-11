@@ -30,13 +30,12 @@ public class ResourceCommandService
     /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
     public async Task<ExecuteCommandResult> ExecuteCommandAsync(string resourceId, string commandName, CancellationToken cancellationToken = default)
     {
-        var resourceState = _resourceNotificationService.GetCurrentState().SingleOrDefault(r => r.ResourceId == resourceId);
-        if (resourceState == null)
+        if (!_resourceNotificationService.TryGetCurrentState(resourceId, out var resourceEvent))
         {
             return new ExecuteCommandResult { Success = false, ErrorMessage = $"Resource '{resourceId}' not found." };
         }
 
-        return await ExecuteCommandCoreAsync(resourceState.ResourceId, resourceState.Resource, commandName, cancellationToken).ConfigureAwait(false);
+        return await ExecuteCommandCoreAsync(resourceEvent.ResourceId, resourceEvent.Resource, commandName, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
