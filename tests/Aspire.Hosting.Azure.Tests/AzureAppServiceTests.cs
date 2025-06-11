@@ -242,6 +242,16 @@ public class AzureAppServiceTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public void AzureAppServiceEnvironmentImplementsIAzureComputeEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        Assert.IsAssignableFrom<IAzureComputeEnvironmentResource>(env.Resource);
+        Assert.IsAssignableFrom<IComputeEnvironmentResource>(env.Resource);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 

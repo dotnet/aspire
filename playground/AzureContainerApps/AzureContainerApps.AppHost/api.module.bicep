@@ -42,7 +42,7 @@ resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVau
   parent: account_kv_outputs_name_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api'
   location: location
   properties: {
@@ -81,6 +81,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: infra_outputs_azure_container_apps_environment_id
     template: {
@@ -138,6 +143,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       scale: {
         minReplicas: 0
+      }
+    }
+    runtime: {
+      dotnet: {
+        autoConfigureDataProtection: true
       }
     }
   }

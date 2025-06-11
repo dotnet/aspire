@@ -11,6 +11,11 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
         failoverPriority: 0
       }
     ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }

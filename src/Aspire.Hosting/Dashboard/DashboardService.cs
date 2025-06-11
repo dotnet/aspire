@@ -165,9 +165,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);
         var responseKind = result switch
         {
-            DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,
-            DashboardServiceData.ExecuteCommandResult.Canceled => ResourceCommandResponseKind.Cancelled,
-            DashboardServiceData.ExecuteCommandResult.Failure => ResourceCommandResponseKind.Failed,
+            ExecuteCommandResultType.Success => ResourceCommandResponseKind.Succeeded,
+            ExecuteCommandResultType.Canceled => ResourceCommandResponseKind.Cancelled,
+            ExecuteCommandResultType.Failure => ResourceCommandResponseKind.Failed,
             _ => ResourceCommandResponseKind.Undefined
         };
 

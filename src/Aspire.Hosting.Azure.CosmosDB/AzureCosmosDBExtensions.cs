@@ -122,11 +122,7 @@ public static class AzureCosmosExtensions
 
                     foreach (var container in database.Containers)
                     {
-                        var containerProperties = new ContainerProperties
-                        {
-                            Id = container.ContainerName,
-                            PartitionKeyPaths = container.PartitionKeyPaths
-                        };
+                        var containerProperties = container.ContainerProperties;
 
                         await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                     }
@@ -322,7 +318,7 @@ public static class AzureCosmosExtensions
         // Use the resource name as the container name if it's not provided
         containerName ??= name;
 
-        var container = new AzureCosmosDBContainerResource(name, containerName, [partitionKeyPath], builder.Resource);
+        var container = new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, builder.Resource);
         builder.Resource.Containers.Add(container);
 
         return builder.ApplicationBuilder.AddResource(container);
@@ -360,6 +356,17 @@ public static class AzureCosmosExtensions
         builder.Resource.Containers.Add(container);
 
         return builder.ApplicationBuilder.AddResource(container);
+    }
+
+    /// <summary>
+    /// Configures the Azure Cosmos DB resource to be deployed use the default SKU provided by Azure.
+    /// </summary>
+    /// <param name="builder">The builder for the Azure Cosmos DB resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> WithDefaultAzureSku(this IResourceBuilder<AzureCosmosDBResource> builder)
+    {
+        builder.Resource.UseDefaultAzureSku = true;
+        return builder;
     }
 
     /// <summary>
@@ -483,6 +490,10 @@ public static class AzureCosmosExtensions
             (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                Capabilities = azureResource.UseDefaultAzureSku ? [] : new BicepList<CosmosDBAccountCapability>
+                {
+                    new CosmosDBAccountCapability { Name = CosmosConstants.EnableServerlessCapability }
+                },
                 ConsistencyPolicy = new ConsistencyPolicy()
                 {
                     DefaultConsistencyLevel = DefaultConsistencyLevel.Session
@@ -522,9 +533,19 @@ public static class AzureCosmosExtensions
                     Resource = new CosmosDBSqlContainerResourceInfo()
                     {
                         ContainerName = container.ContainerName,
-                        PartitionKey = new CosmosDBContainerPartitionKey { Paths = [.. container.PartitionKeyPaths] }
+                        PartitionKey = new CosmosDBContainerPartitionKey
+                        {
+                            Paths = [.. container.PartitionKeyPaths],
+                            Kind = container.PartitionKeyPaths.Count > 1 ? CosmosDBPartitionKind.MultiHash : CosmosDBPartitionKind.Hash,
+                        }
                     }
                 };
+
+                if (container.ContainerProperties.PartitionKeyDefinitionVersion is { } version)
+                {
+                    cosmosContainer.Resource.PartitionKey.Version = (int)version;
+                }
+
                 infrastructure.Add(cosmosContainer);
             }
         }

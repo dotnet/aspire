@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param cosmos_kv_outputs_name string
@@ -11,6 +11,11 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       {
         locationName: location
         failoverPriority: 0
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
       }
     ]
     consistencyPolicy: {
@@ -46,6 +51,7 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
         paths: [
           'mypartitionkeypath'
         ]
+        kind: 'Hash'
       }
     }
   }

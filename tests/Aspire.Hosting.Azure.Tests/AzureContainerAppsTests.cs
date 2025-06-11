@@ -1471,6 +1471,16 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public void AzureContainerAppEnvironmentImplementsIAzureComputeEnvironmentResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        Assert.IsAssignableFrom<IAzureComputeEnvironmentResource>(env.Resource);
+        Assert.IsAssignableFrom<IComputeEnvironmentResource>(env.Resource);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
@@ -1479,8 +1489,50 @@ public class AzureContainerAppsTests
         public string ProjectPath => "project";
     }
 
+    [Fact]
+    public async Task ContainerAppWithUppercaseName_ShouldUseLowercaseInManifest()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        // This is the problematic case - uppercase name "WebFrontEnd"
+        builder.AddContainer("WebFrontEnd", "myimage");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
     private sealed class CustomManifestExpressionProvider : IManifestExpressionProvider
     {
         public string ValueExpression => "{customValue}";
+    }
+
+    [Fact]
+    public void FailForNewContainerAppVersions()
+    {
+        var containerApp = new ContainerApp("app");
+
+        // In order to set autoConfigureDataProtection and kind=functionapp, we need to use a preview API ContainerApp version.
+        // This test fails on new default versions for ContainerApp so we check if autoConfigureDataProtection/kind exists on the new Azure.Provisioning version.
+        // Also, we need to ensure the new default version isn't newer than the preview version used to set autoConfigureDataProtection/kind because
+        // callers will get new APIs that may not work with the preview version we are using.
+        Assert.True(containerApp.ResourceVersion == "2024-03-01", "When we get a new ResourceVersion for ContainerApps, ensure the version used by ContainerAppContext.CreateContainerApp() still works correctly.");
     }
 }

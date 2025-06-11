@@ -1,13 +1,14 @@
-import { getAppHostProject } from '../utils/projects';
+import * as vscode from 'vscode';
 import { getAspireTerminal } from '../utils/terminal';
+import { isWorkspaceOpen } from '../utils/vsc';
 
 export async function runCommand() {
-    const terminal = getAspireTerminal();
-    // Show a quick pick to the user to select a project
-    const selectedProject = await getAppHostProject();
-
-    if (selectedProject) {
-        terminal.sendText(`aspire run --project "${selectedProject}"`);
-        terminal.show();
+    if (!isWorkspaceOpen()) {
+        return;
     }
+
+    const terminal = getAspireTerminal();
+
+    terminal.sendText(`aspire run`);
+    terminal.show();
 };
