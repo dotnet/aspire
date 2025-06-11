@@ -42,12 +42,12 @@ run_test_iterations() {
     for i in $(seq 1 $ITERATIONS); do
         log "Iteration $i/$ITERATIONS"
         
-        # Run the specific test
-        if ! "$REPO_ROOT/dotnet.sh" test "$REPO_ROOT/$TEST_PROJECT" \
+        # Run the specific test with timeout
+        if ! timeout 300 "$REPO_ROOT/dotnet.sh" test "$REPO_ROOT/$TEST_PROJECT" \
             --no-build \
             --logger "console;verbosity=quiet" \
             -- --filter "$TEST_FILTER" > /dev/null 2>&1; then
-            log "Test failed on iteration $i"
+            log "Test failed on iteration $i (may have timed out after 5 minutes)"
             return 1
         fi
         
@@ -62,8 +62,8 @@ run_test_iterations() {
 # Function to build the project
 build_project() {
     log "Building project..."
-    if ! "$REPO_ROOT/build.sh" --configuration Debug > /dev/null 2>&1; then
-        log "Build failed"
+    if ! timeout 1800 "$REPO_ROOT/build.sh" --configuration Debug > /dev/null 2>&1; then
+        log "Build failed (may have timed out after 30 minutes)"
         return 1
     fi
     log "Build successful"
@@ -154,17 +154,24 @@ main() {
     
     # Run the bisect
     log "Running automated bisect..."
-    git bisect run bash -c "bisect_test"
+    if ! git bisect run bash -c "bisect_test"; then
+        log "Bisect run failed or was interrupted"
+        return 1
+    fi
     
     # Show the result
-    log "Bisect completed!"
-    log "The problematic commit is:"
-    git show --no-patch --format="%H %s" HEAD
-    
-    # Save bisect log
-    BISECT_LOG="$REPO_ROOT/bisect-withhttpcommand-$(date +%Y%m%d-%H%M%S).log"
-    git bisect log > "$BISECT_LOG"
-    log "Bisect log saved to: $BISECT_LOG"
+    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+        log "Bisect completed!"
+        log "The problematic commit is:"
+        git show --no-patch --format="%H %s" HEAD
+        
+        # Save bisect log
+        BISECT_LOG="$REPO_ROOT/bisect-withhttpcommand-$(date +%Y%m%d-%H%M%S).log"
+        git bisect log > "$BISECT_LOG"
+        log "Bisect log saved to: $BISECT_LOG"
+    else
+        log "Bisect may not have completed successfully. Check the git state."
+    fi
 }
 
 # Check if this script is being called by git bisect run

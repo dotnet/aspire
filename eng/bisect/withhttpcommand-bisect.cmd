@@ -52,7 +52,7 @@ call :log "Running test %ITERATIONS% times..."
 for /l %%i in (1,1,%ITERATIONS%) do (
     call :log "Iteration %%i/%ITERATIONS%"
     
-    REM Run the specific test
+    REM Run the specific test (note: Windows timeout command syntax is different)
     "%REPO_ROOT%dotnet.cmd" test "%REPO_ROOT%%TEST_PROJECT%" --no-build --logger "console;verbosity=quiet" -- --filter "%TEST_FILTER%" >nul 2>&1
     if !errorlevel! neq 0 (
         call :log "Test failed on iteration %%i"
@@ -68,6 +68,8 @@ exit /b 0
 
 :build_project
 call :log "Building project..."
+REM Note: Windows timeout doesn't work the same way as Unix timeout
+REM Just run the build directly - timeout handling should be done externally if needed
 "%REPO_ROOT%build.cmd" --configuration Debug >nul 2>&1
 if !errorlevel! neq 0 (
     call :log "Build failed"
@@ -154,24 +156,29 @@ echo call "%~f0" bisect_test >> "%TEMP_SCRIPT%"
 REM Run the bisect
 call :log "Running automated bisect..."
 git bisect run "%TEMP_SCRIPT%"
+set "BISECT_EXIT_CODE=!errorlevel!"
 
 REM Cleanup temp script
 if exist "%TEMP_SCRIPT%" del "%TEMP_SCRIPT%"
 
 REM Show the result
-call :log "Bisect completed!"
-call :log "The problematic commit is:"
-for /f "tokens=*" %%a in ('git show --no-patch --format^="%%H %%s" HEAD') do call :log "%%a"
-
-REM Save bisect log
-for /f "tokens=2 delims= " %%a in ('date /t') do set "CURRENT_DATE=%%a"
-for /f "tokens=1 delims= " %%a in ('time /t') do set "CURRENT_TIME=%%a"
-set "CURRENT_DATE=!CURRENT_DATE:/=!"
-set "CURRENT_TIME=!CURRENT_TIME::=!"
-set "CURRENT_TIME=!CURRENT_TIME:.=!"
-set "BISECT_LOG=%REPO_ROOT%bisect-withhttpcommand-!CURRENT_DATE!-!CURRENT_TIME!.log"
-git bisect log > "!BISECT_LOG!"
-call :log "Bisect log saved to: !BISECT_LOG!"
+if !BISECT_EXIT_CODE! equ 0 (
+    call :log "Bisect completed!"
+    call :log "The problematic commit is:"
+    for /f "tokens=*" %%a in ('git show --no-patch --format^="%%H %%s" HEAD') do call :log "%%a"
+    
+    REM Save bisect log
+    for /f "tokens=2 delims= " %%a in ('date /t') do set "CURRENT_DATE=%%a"
+    for /f "tokens=1 delims= " %%a in ('time /t') do set "CURRENT_TIME=%%a"
+    set "CURRENT_DATE=!CURRENT_DATE:/=!"
+    set "CURRENT_TIME=!CURRENT_TIME::=!"
+    set "CURRENT_TIME=!CURRENT_TIME:.=!"
+    set "BISECT_LOG=%REPO_ROOT%bisect-withhttpcommand-!CURRENT_DATE!-!CURRENT_TIME!.log"
+    git bisect log > "!BISECT_LOG!"
+    call :log "Bisect log saved to: !BISECT_LOG!"
+) else (
+    call :log "Bisect may not have completed successfully. Check the git state."
+)
 
 REM Cleanup
 call :log "Cleaning up..."

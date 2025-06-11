@@ -47,10 +47,14 @@ eng\bisect\withhttpcommand-bisect.cmd <good-commit> [bad-commit]
 2. **Git Bisect Setup**: Starts `git bisect` with the provided good and bad commits
 3. **Automated Testing**: For each commit tested:
    - Builds the project using the appropriate build script (`build.sh` or `build.cmd`)
+     - Unix version has a 30-minute timeout for builds
+     - Windows version runs without explicit timeout (relies on build system timeouts)
    - Runs the `WithHttpCommand_ResultsInExpectedResultForHttpMethod` test **10 times**
+     - Unix version has a 5-minute timeout per test run
+     - Windows version relies on test framework timeouts
    - Marks the commit as:
      - **Good**: If all 10 iterations pass
-     - **Bad**: If any iteration fails
+     - **Bad**: If any iteration fails or times out
      - **Skip**: If the build fails (commit will be skipped)
 4. **Result**: Reports the first bad commit that introduced the repeated failures
 5. **Cleanup**: Automatically resets the repository state and saves a bisect log
@@ -87,7 +91,8 @@ bisect-withhttpcommand-YYYYMMDD-HHMMSS.log
    - This is normal for bisecting across major refactoring periods
 
 3. **Test timeouts or infrastructure failures**
-   - The script may need adjustment of timeout values for slower CI environments
+   - Unix scripts include timeouts (5 minutes per test, 30 minutes per build)
+   - Windows scripts rely on the system and framework timeouts
    - Consider running on a dedicated build machine for consistency
 
 ### Customization
