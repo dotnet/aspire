@@ -16,8 +16,10 @@
         <p class="components-reconnect-failed-visible">
             @((MarkupString)Loc[nameof(Layout.ReconnectFailedText)].Value)
         </p>
-        <button id="components-reconnect-button" class="components-reconnect-failed-visible">
-            @Loc[nameof(Layout.ReconnectRetryButtonText)]
-        </button>
+        <div class="components-reconnect-failed-visible">
+            <FluentButton Id="components-reconnect-button" Appearance="Appearance.Accent">
+                @Loc[nameof(Layout.ReconnectRetryButtonText)]
+            </FluentButton>
+        </div>
     </div>
 </dialog>

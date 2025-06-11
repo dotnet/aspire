@@ -247,10 +247,10 @@
         <target state="translated">(Nessuno)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LabelUnset">
+      <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
-        <target state="translated">(Annulla)</target>
-        <note />
+        <target state="new">(Unset)</target>
+        <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>

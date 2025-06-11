@@ -10,6 +10,9 @@ param ChatForAspire_url_0 string
 resource wps1 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
   location: location
+  properties: {
+    disableLocalAuth: true
+  }
   sku: {
     name: sku
     capacity: capacity

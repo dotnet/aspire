@@ -1,0 +1,197 @@
+{
+  "ReverseProxy": {
+    "Clusters": {
+      "cluster1": {
+        "LoadBalancingPolicy": "Random",
+        "SessionAffinity": {
+          "Enabled": true,
+          "Policy": "Cookie",
+          "FailurePolicy": "Return503Error",
+          "AffinityKeyName": "Key1",
+          "Cookie": {
+            "Path": "mypath",
+            "Domain": "localhost",
+            "HttpOnly": true,
+            "SecurePolicy": "None",
+            "SameSite": "Strict",
+            "Expiration": "03:00:00",
+            "MaxAge": "1.00:00:00",
+            "IsEssential": true
+          }
+        },
+        "HealthCheck": {
+          "Passive": {
+            "Enabled": true,
+            "Policy": "FailureRate",
+            "ReactivationPeriod": "00:05:00"
+          },
+          "Active": {
+            "Enabled": true,
+            "Interval": "00:00:04",
+            "Timeout": "00:00:06",
+            "Policy": "Any5xxResponse",
+            "Path": "healthCheckPath",
+            "Query": "?key=value"
+          },
+          "AvailableDestinationsPolicy": "HealthyOrPanic"
+        },
+        "HttpClient": {
+          "SslProtocols": [
+            "Tls12",
+            "Tls13"
+          ],
+          "DangerousAcceptAnyServerCertificate": true,
+          "MaxConnectionsPerServer": 10,
+          "WebProxy": {
+            "Address": "http://localhost:8080",
+            "BypassOnLocal": true,
+            "UseDefaultCredentials": true
+          },
+          "EnableMultipleHttp2Connections": true,
+          "RequestHeaderEncoding": "utf-8",
+          "ResponseHeaderEncoding": "utf-8"
+        },
+        "HttpRequest": {
+          "ActivityTimeout": "00:01:00",
+          "Version": "1.0",
+          "VersionPolicy": "RequestVersionExact",
+          "AllowResponseBuffering": true
+        },
+        "Destinations": {
+          "destinationA": {
+            "Address": "https://localhost:10000/destA",
+            "Health": "https://localhost:20000/destA",
+            "Metadata": {
+              "destA-K1": "destA-V1",
+              "destA-K2": "destA-V2"
+            },
+            "Host": "localhost"
+          },
+          "destinationB": {
+            "Address": "https://localhost:10000/destB",
+            "Health": "https://localhost:20000/destB",
+            "Metadata": {
+              "destB-K1": "destB-V1",
+              "destB-K2": "destB-V2"
+            },
+            "Host": "localhost"
+          }
+        },
+        "Metadata": {
+          "cluster1-K1": "cluster1-V1",
+          "cluster1-K2": "cluster1-V2"
+        }
+      },
+      "cluster2": {
+        "LoadBalancingPolicy": "RoundRobin",
+        "Destinations": {
+          "destinationC": {
+            "Address": "https://localhost:10001/destC",
+            "Host": "localhost"
+          },
+          "destinationD": {
+            "Address": "https://localhost:10000/destB",
+            "Host": "remotehost"
+          }
+        }
+      }
+    },
+    "Routes": {
+      "routeA": {
+        "Match": {
+          "Methods": [
+            "GET",
+            "POST",
+            "DELETE"
+          ],
+          "Hosts": [
+            "host-A"
+          ],
+          "Path": "/apis/entities",
+          "QueryParameters": [
+            {
+              "Name": "queryparam1",
+              "Values": [
+                "value1"
+              ],
+              "Mode": "Contains",
+              "IsCaseSensitive": true
+            }
+          ],
+          "Headers": [
+            {
+              "Name": "header1",
+              "Values": [
+                "value1"
+              ],
+              "Mode": "HeaderPrefix",
+              "IsCaseSensitive": true
+            }
+          ]
+        },
+        "Order": -1,
+        "ClusterId": "cluster1",
+        "AuthorizationPolicy": "Default",
+        "RateLimiterPolicy": "Default",
+        "OutputCachePolicy": "Default",
+        "TimeoutPolicy": "Default",
+        "Timeout": "00:00:01",
+        "CorsPolicy": "Default",
+        "MaxRequestBodySize": -1,
+        "Metadata": {
+          "routeA-K1": "routeA-V1",
+          "routeA-K2": "routeA-V2"
+        },
+        "Transforms": [
+          {
+            "RequestHeadersCopy": "true"
+          },
+          {
+            "PathRemovePrefix": "/apis"
+          },
+          {
+            "PathPrefix": "/apis"
+          },
+          {
+            "RequestHeader": "header1",
+            "Append": "foo"
+          }
+        ]
+      },
+      "routeB": {
+        "Match": {
+          "Methods": [
+            "GET"
+          ],
+          "Hosts": [
+            "host-B"
+          ],
+          "Path": "/apis/users",
+          "QueryParameters": [
+            {
+              "Name": "queryparam2",
+              "Values": [
+                "value2"
+              ],
+              "Mode": "Contains",
+              "IsCaseSensitive": true
+            }
+          ],
+          "Headers": [
+            {
+              "Name": "header2",
+              "Values": [
+                "value2"
+              ],
+              "Mode": "ExactHeader",
+              "IsCaseSensitive": false
+            }
+          ]
+        },
+        "Order": 2,
+        "ClusterId": "cluster2",
+        "MaxRequestBodySize": 1
+      }
+    }
+  }
+}

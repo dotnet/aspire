@@ -399,8 +399,9 @@
   <data name="LabelEmpty" xml:space="preserve">
     <value>(Empty)</value>
   </data>
-  <data name="LabelUnset" xml:space="preserve">
+  <data name="LabelValueUnset" xml:space="preserve">
     <value>(Unset)</value>
+    <comment>Unset is a noun, not a verb, to indicate that the value has not been set.</comment>
   </data>
   <data name="ActionsColumnHeader" xml:space="preserve">
     <value>Actions</value>
