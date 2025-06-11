@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
+using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -119,7 +120,7 @@ internal sealed class BicepProvisioner(
             Properties = state.Properties.SetResourcePropertyRange([
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", resourceGroup.Id.Name),
-                new("azure.tenant.domain", context.Tenant.DefaultDomain),
+                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
                 new("azure.location", context.Location.ToString()),
             ])
         }).ConfigureAwait(false);
@@ -160,7 +161,7 @@ internal sealed class BicepProvisioner(
         })
         .ConfigureAwait(false);
 
-        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Data.Name);
 
         var deployments = resourceGroup.GetArmDeployments();
 
@@ -190,7 +191,7 @@ internal sealed class BicepProvisioner(
         await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Data.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -202,7 +203,7 @@ internal sealed class BicepProvisioner(
         }
         else
         {
-            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -210,7 +211,7 @@ internal sealed class BicepProvisioner(
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
         var az = context.UserSecrets.Prop("Azure");
-        az["Tenant"] = context.Tenant.DefaultDomain;
+        az["Tenant"] = context.Tenant.Data.DefaultDomain;
 
         var resourceConfig = context.UserSecrets
             .Prop("Azure")
@@ -312,12 +313,12 @@ internal sealed class BicepProvisioner(
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
 
-    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, IResourceGroupResource resourceGroup, string deploymentName)
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, ResourceGroupResource resourceGroup, string deploymentName)
     {
         var prefix = PortalDeploymentOverviewUrl;
 
         var subId = provisioningContext.Subscription.Id.ToString();
-        var rgName = resourceGroup.Name;
+        var rgName = resourceGroup.Data.Name;
         var subAndRg = $"{subId}/resourceGroups/{rgName}";
 
         var deployId = deploymentName;

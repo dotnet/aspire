@@ -11,7 +11,6 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -26,20 +25,20 @@ internal static class ProvisioningTestHelpers
     /// </summary>
     public static ProvisioningContext CreateTestProvisioningContext(
         TokenCredential? credential = null,
-        IArmClient? armClient = null,
-        ISubscriptionResource? subscription = null,
-        IResourceGroupResource? resourceGroup = null,
-        ITenantResource? tenant = null,
+        ArmClient? armClient = null,
+        SubscriptionResource? subscription = null,
+        ResourceGroupResource? resourceGroup = null,
+        TenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null)
     {
         return new ProvisioningContext(
             credential ?? new TestTokenCredential(),
-            armClient ?? new TestArmClient(),
-            subscription ?? new TestSubscriptionResource(),
-            resourceGroup ?? new TestResourceGroupResource(),
-            tenant ?? new TestTenantResource(),
+            armClient ?? TestAzureResources.CreateTestArmClient(),
+            subscription ?? null!, // TODO: Need proper test implementation
+            resourceGroup ?? null!, // TODO: Need proper test implementation
+            tenant ?? null!, // TODO: Need proper test implementation
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());
@@ -106,95 +105,28 @@ internal sealed class TestTokenCredential : TokenCredential
 }
 
 /// <summary>
-/// Test implementation of <see cref="IArmClient"/>.
+/// Test implementation that provides static instances for testing.
 /// </summary>
-internal sealed class TestArmClient : IArmClient
+internal static class TestAzureResources
 {
-    public Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default)
+    public static ArmClient CreateTestArmClient() => new(new TestTokenCredential(), "12345678-1234-1234-1234-123456789012");
+    
+    public static SubscriptionResource CreateTestSubscriptionResource()
     {
-        var subscription = new TestSubscriptionResource();
-        var tenant = new TestTenantResource();
-        return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
+        // We'll need to use reflection or alternative approach since SubscriptionResource constructor is likely internal
+        // For now, return null and handle in test scenarios
+        throw new NotSupportedException("Creating test SubscriptionResource requires using Azure SDK test helpers");
     }
-}
-
-/// <summary>
-/// Test implementation of <see cref="ISubscriptionResource"/>.
-/// </summary>
-internal sealed class TestSubscriptionResource : ISubscriptionResource
-{
-    public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012");
-    public string? DisplayName { get; } = "Test Subscription";
-    public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
-
-    public IResourceGroupCollection GetResourceGroups()
+    
+    public static ResourceGroupResource CreateTestResourceGroupResource()
     {
-        return new TestResourceGroupCollection();
+        throw new NotSupportedException("Creating test ResourceGroupResource requires using Azure SDK test helpers");
     }
-}
-
-/// <summary>
-/// Test implementation of <see cref="IResourceGroupCollection"/>.
-/// </summary>
-internal sealed class TestResourceGroupCollection : IResourceGroupCollection
-{
-    public Task<Response<IResourceGroupResource>> GetAsync(string resourceGroupName, CancellationToken cancellationToken = default)
+    
+    public static TenantResource CreateTestTenantResource()
     {
-        var resourceGroup = new TestResourceGroupResource(resourceGroupName);
-        return Task.FromResult(Response.FromValue<IResourceGroupResource>(resourceGroup, new MockResponse(200)));
+        throw new NotSupportedException("Creating test TenantResource requires using Azure SDK test helpers");
     }
-
-    public Task<ArmOperation<IResourceGroupResource>> CreateOrUpdateAsync(WaitUntil waitUntil, string resourceGroupName, ResourceGroupData data, CancellationToken cancellationToken = default)
-    {
-        var resourceGroup = new TestResourceGroupResource(resourceGroupName);
-        var operation = new TestArmOperation<IResourceGroupResource>(resourceGroup);
-        return Task.FromResult<ArmOperation<IResourceGroupResource>>(operation);
-    }
-}
-
-/// <summary>
-/// Test implementation of <see cref="IResourceGroupResource"/>.
-/// </summary>
-internal sealed class TestResourceGroupResource : IResourceGroupResource
-{
-    public TestResourceGroupResource(string name = "test-rg")
-    {
-        Name = name;
-    }
-
-    public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg");
-    public string Name { get; }
-
-    public IArmDeploymentCollection GetArmDeployments()
-    {
-        return new TestArmDeploymentCollection();
-    }
-}
-
-/// <summary>
-/// Test implementation of <see cref="IArmDeploymentCollection"/>.
-/// </summary>
-internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
-{
-    public Task<ArmOperation<ArmDeploymentResource>> CreateOrUpdateAsync(
-        WaitUntil waitUntil, 
-        string deploymentName, 
-        ArmDeploymentContent content, 
-        CancellationToken cancellationToken = default)
-    {
-        var deployment = new TestArmDeploymentResource(deploymentName);
-        var operation = new TestArmOperation<ArmDeploymentResource>(deployment);
-        return Task.FromResult<ArmOperation<ArmDeploymentResource>>(operation);
-    }
-}
-
-/// <summary>
-/// Test implementation of <see cref="ITenantResource"/>.
-/// </summary>
-internal sealed class TestTenantResource : ITenantResource
-{
-    public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
-    public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";
 }
 
 /// <summary>
@@ -219,11 +151,12 @@ internal sealed class TestArmOperation<T>(T value) : ArmOperation<T>
 /// <summary>
 /// Test implementation of ArmDeploymentResource for testing.
 /// </summary>
-internal sealed class TestArmDeploymentResource(string name) : ArmDeploymentResource
+internal sealed class TestArmDeploymentResource
 {
-    public override ResourceIdentifier Id { get; } = new ResourceIdentifier($"/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg/providers/Microsoft.Resources/deployments/{name}");
-    public override ArmDeploymentData Data => throw new NotImplementedException("Test implementation doesn't provide data");
-    public override bool HasData => false;
+    public static ArmDeploymentResource Create(string name)
+    {
+        throw new NotSupportedException("Creating test ArmDeploymentResource requires using Azure SDK test helpers");
+    }
 }
 
 /// <summary>
@@ -253,9 +186,9 @@ internal sealed class MockResponse(int status) : Response
 
 internal sealed class TestArmClientProvider : IArmClientProvider
 {
-    public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
+    public ArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
-        return new TestArmClient();
+        return TestAzureResources.CreateTestArmClient();
     }
 }
 

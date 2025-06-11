@@ -3,7 +3,8 @@
 
 using System.Text.Json.Nodes;
 using Azure.Core;
-using Aspire.Hosting.Azure.Provisioning.Internal;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Resources;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -11,19 +12,19 @@ internal sealed record UserPrincipal(Guid Id, string Name);
 
 internal sealed class ProvisioningContext(
     TokenCredential credential,
-    IArmClient armClient,
-    ISubscriptionResource subscription,
-    IResourceGroupResource resourceGroup,
-    ITenantResource tenant,
+    ArmClient armClient,
+    SubscriptionResource subscription,
+    ResourceGroupResource resourceGroup,
+    TenantResource tenant,
     AzureLocation location,
     UserPrincipal principal,
     JsonObject userSecrets)
 {
     public TokenCredential Credential => credential;
-    public IArmClient ArmClient => armClient;
-    public ISubscriptionResource Subscription => subscription;
-    public ITenantResource Tenant => tenant;
-    public IResourceGroupResource ResourceGroup => resourceGroup;
+    public ArmClient ArmClient => armClient;
+    public SubscriptionResource Subscription => subscription;
+    public TenantResource Tenant => tenant;
+    public ResourceGroupResource ResourceGroup => resourceGroup;
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;
