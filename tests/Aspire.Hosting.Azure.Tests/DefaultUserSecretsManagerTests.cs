@@ -29,12 +29,8 @@ public class DefaultUserSecretsManagerTests
             }
         };
 
-        // Use reflection to access the private method for testing
-        var method = typeof(DefaultUserSecretsManager).GetMethod("FlattenJsonObject", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
         // Act
-        var result = (JsonObject)method!.Invoke(null, [userSecrets])!;
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("existing-flat-value", result["Azure:SubscriptionId"]!.ToString());
@@ -57,12 +53,8 @@ public class DefaultUserSecretsManagerTests
             ["Azure:Location"] = "eastus2"
         };
 
-        // Use reflection to access the private method for testing
-        var method = typeof(DefaultUserSecretsManager).GetMethod("FlattenJsonObject", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
         // Act
-        var result = (JsonObject)method!.Invoke(null, [userSecrets])!;
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -77,12 +69,8 @@ public class DefaultUserSecretsManagerTests
         // Arrange
         var userSecrets = new JsonObject();
 
-        // Use reflection to access the private method for testing
-        var method = typeof(DefaultUserSecretsManager).GetMethod("FlattenJsonObject", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
         // Act
-        var result = (JsonObject)method!.Invoke(null, [userSecrets])!;
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Empty(result);
@@ -106,12 +94,8 @@ public class DefaultUserSecretsManagerTests
             }
         };
 
-        // Use reflection to access the private method for testing
-        var method = typeof(DefaultUserSecretsManager).GetMethod("FlattenJsonObject", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
         // Act
-        var result = (JsonObject)method!.Invoke(null, [userSecrets])!;
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Single(result);
@@ -135,19 +119,98 @@ public class DefaultUserSecretsManagerTests
             }
         };
 
-        // Use reflection to access the private method for testing
-        var method = typeof(DefaultUserSecretsManager).GetMethod("FlattenJsonObject", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
         // Act
-        var result = (JsonObject)method!.Invoke(null, [userSecrets])!;
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("text", result["StringValue"]!.ToString());
         Assert.Equal("42", result["NumberValue"]!.ToString());
-        Assert.Equal("True", result["BoolValue"]!.ToString());
+        Assert.Equal("true", result["BoolValue"]!.ToString());
         Assert.Null(result["NullValue"]);
         Assert.Equal("inner-text", result["Nested:InnerString"]!.ToString());
         Assert.Null(result["Nested:InnerNull"]);
+    }
+
+    [Fact]
+    public void FlattenJsonObject_HandlesArraysWithPrimitiveValues()
+    {
+        // Arrange
+        var userSecrets = new JsonObject
+        {
+            ["SimpleArray"] = new JsonArray("value1", "value2", "value3"),
+            ["NumberArray"] = new JsonArray(1, 2, 3),
+            ["MixedArray"] = new JsonArray("text", 42, true, null)
+        };
+
+        // Act
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
+
+        // Assert
+        Assert.Equal("value1", result["SimpleArray:0"]!.ToString());
+        Assert.Equal("value2", result["SimpleArray:1"]!.ToString());
+        Assert.Equal("value3", result["SimpleArray:2"]!.ToString());
+        
+        Assert.Equal("1", result["NumberArray:0"]!.ToString());
+        Assert.Equal("2", result["NumberArray:1"]!.ToString());
+        Assert.Equal("3", result["NumberArray:2"]!.ToString());
+        
+        Assert.Equal("text", result["MixedArray:0"]!.ToString());
+        Assert.Equal("42", result["MixedArray:1"]!.ToString());
+        Assert.Equal("true", result["MixedArray:2"]!.ToString());
+        Assert.Null(result["MixedArray:3"]);
+    }
+
+    [Fact]
+    public void FlattenJsonObject_HandlesArraysWithObjects()
+    {
+        // Arrange
+        var userSecrets = new JsonObject
+        {
+            ["ObjectArray"] = new JsonArray(
+                new JsonObject { ["Name"] = "Item1", ["Value"] = "Value1" },
+                new JsonObject { ["Name"] = "Item2", ["Value"] = "Value2" }
+            ),
+            ["NestedConfig"] = new JsonObject
+            {
+                ["Items"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["Id"] = "1",
+                        ["Settings"] = new JsonObject { ["Enabled"] = true }
+                    }
+                )
+            }
+        };
+
+        // Act
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
+
+        // Assert
+        Assert.Equal("Item1", result["ObjectArray:0:Name"]!.ToString());
+        Assert.Equal("Value1", result["ObjectArray:0:Value"]!.ToString());
+        Assert.Equal("Item2", result["ObjectArray:1:Name"]!.ToString());
+        Assert.Equal("Value2", result["ObjectArray:1:Value"]!.ToString());
+        
+        Assert.Equal("1", result["NestedConfig:Items:0:Id"]!.ToString());
+        Assert.Equal("true", result["NestedConfig:Items:0:Settings:Enabled"]!.ToString());
+    }
+
+    [Fact]
+    public void FlattenJsonObject_HandlesEmptyArrays()
+    {
+        // Arrange
+        var userSecrets = new JsonObject
+        {
+            ["EmptyArray"] = new JsonArray(),
+            ["OtherValue"] = "test"
+        };
+
+        // Act
+        var result = DefaultUserSecretsManager.FlattenJsonObject(userSecrets);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("test", result["OtherValue"]!.ToString());
+        Assert.False(result.ContainsKey("EmptyArray"));
     }
 }

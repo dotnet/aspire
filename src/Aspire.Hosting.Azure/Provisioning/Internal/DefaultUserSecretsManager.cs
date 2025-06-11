@@ -73,7 +73,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
     /// Flattens a JsonObject to use colon-separated keys for configuration compatibility.
     /// This ensures all secrets are stored in the flat format expected by .NET configuration.
     /// </summary>
-    private static JsonObject FlattenJsonObject(JsonObject source)
+    internal static JsonObject FlattenJsonObject(JsonObject source)
     {
         var result = new JsonObject();
         FlattenJsonObjectRecursive(source, string.Empty, result);
@@ -89,6 +89,22 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
             if (kvp.Value is JsonObject nestedObject)
             {
                 FlattenJsonObjectRecursive(nestedObject, key, result);
+            }
+            else if (kvp.Value is JsonArray array)
+            {
+                // Flatten arrays using index-based keys (standard .NET configuration format)
+                for (int i = 0; i < array.Count; i++)
+                {
+                    var arrayKey = $"{key}:{i}";
+                    if (array[i] is JsonObject arrayObject)
+                    {
+                        FlattenJsonObjectRecursive(arrayObject, arrayKey, result);
+                    }
+                    else
+                    {
+                        result[arrayKey] = array[i]?.DeepClone();
+                    }
+                }
             }
             else
             {
