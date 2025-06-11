@@ -24,5 +24,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Azure.Messaging.ServiceBus.Tests" />
+  </ItemGroup>
   
 </Project>
