@@ -20,7 +20,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ResourceNotificationService : IDisposable
 {
-    // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
+    // Resource state is keyed by the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<string, ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
