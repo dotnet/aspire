@@ -50,9 +50,12 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
                 throw new InvalidOperationException("User secrets path could not be determined.");
             }
             
+            // Normalize to flat configuration format with colon separators
+            var flattenedSecrets = FlattenJsonObject(userSecrets);
+            
             // Ensure directory exists before attempting to create secrets file
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
@@ -63,6 +66,34 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save user secrets.");
+        }
+    }
+
+    /// <summary>
+    /// Flattens a JsonObject to use colon-separated keys for configuration compatibility.
+    /// This ensures all secrets are stored in the flat format expected by .NET configuration.
+    /// </summary>
+    private static JsonObject FlattenJsonObject(JsonObject source)
+    {
+        var result = new JsonObject();
+        FlattenJsonObjectRecursive(source, string.Empty, result);
+        return result;
+    }
+
+    private static void FlattenJsonObjectRecursive(JsonObject source, string prefix, JsonObject result)
+    {
+        foreach (var kvp in source)
+        {
+            var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
+            
+            if (kvp.Value is JsonObject nestedObject)
+            {
+                FlattenJsonObjectRecursive(nestedObject, key, result);
+            }
+            else
+            {
+                result[key] = kvp.Value?.DeepClone();
+            }
         }
     }
 }
