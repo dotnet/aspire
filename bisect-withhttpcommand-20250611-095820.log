@@ -1,0 +1,12 @@
+git bisect start
+# status: waiting for both good and bad commits
+# bad: [283ef4dbf4d8b9791c0d7fd5880cfc377a60da79] Temporarily remove ActiveIssue to test bisect script
+git bisect bad 283ef4dbf4d8b9791c0d7fd5880cfc377a60da79
+# status: waiting for good commit(s), bad commit known
+# good: [3ef38f52deaa5177bb3f2ac37c70f8a3ebe8f85a] Rename unset so that it gets re-translated (#9793)
+git bisect good 3ef38f52deaa5177bb3f2ac37c70f8a3ebe8f85a
+# bad: [a5f9d4c21e39dc888542bae98650ae37176efcb0] Add git bisect helper scripts and documentation for WithHttpCommand test investigation
+git bisect bad a5f9d4c21e39dc888542bae98650ae37176efcb0
+# bad: [7e9d4f018133bd359539242d72d5c9eee1bf1468] Initial plan for issue
+git bisect bad 7e9d4f018133bd359539242d72d5c9eee1bf1468
+# first bad commit: [7e9d4f018133bd359539242d72d5c9eee1bf1468] Initial plan for issue
