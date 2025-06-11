@@ -521,6 +521,10 @@ public class ResourceNotificationService : IDisposable
     public Task PublishUpdateAsync(IResource resource, string resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
         var notificationState = GetResourceNotificationState(resourceId, resource);
+        if (notificationState.Resource != resource)
+        {
+            throw new InvalidOperationException($"Resource instance doesn't match resource registered with specified resource id '{resourceId}'.");
+        }
 
         lock (notificationState)
         {
