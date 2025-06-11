@@ -114,22 +114,43 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
             if (connectionBuilder.TryGetValue("EntityPath", out var entityPath))
             {
                 ParseEntityPath(entityPath.ToString());
-                connectionBuilder.Remove("EntityPath");
+                
+                // Instead of using connectionBuilder.ConnectionString which normalizes the format,
+                // manually remove EntityPath from the original connection string to preserve casing and quoting
+                ConnectionString = RemoveEntityPathFromConnectionString(connectionString);
             }
-
-            if (connectionBuilder.Count == 1 &&
+            else if (connectionBuilder.Count == 1 &&
                 connectionBuilder.TryGetValue("Endpoint", out var endpoint))
             {
                 // if all that's left is Endpoint, it is a fully qualified namespace
                 FullyQualifiedNamespace = endpoint.ToString();
                 return;
             }
-
-            // Use the connection string with the entitypath removed to
-            // support configuring processors/receivers/etc from the service
-            // bus client with names derived from settings.
-            ConnectionString = connectionBuilder.ConnectionString;
+            else
+            {
+                // No EntityPath to remove, use original connection string as-is
+                ConnectionString = connectionString;
+            }
         }
+    }
+
+    private static string RemoveEntityPathFromConnectionString(string connectionString)
+    {
+        // Find EntityPath parameter and remove it while preserving original format
+        var parts = connectionString.Split(';');
+        var filteredParts = new List<string>();
+        
+        foreach (var part in parts)
+        {
+            var trimmedPart = part.Trim();
+            if (!string.IsNullOrEmpty(trimmedPart) && 
+                !trimmedPart.StartsWith("EntityPath=", StringComparison.OrdinalIgnoreCase))
+            {
+                filteredParts.Add(part);
+            }
+        }
+        
+        return string.Join(";", filteredParts);
     }
 
     private void ParseEntityPath(string? entityPath)
