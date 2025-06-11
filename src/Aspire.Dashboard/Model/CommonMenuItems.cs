@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -15,9 +16,8 @@ public static class CommonMenuItems
         IStringLocalizer<ControlsStrings> loc,
         bool showHiddenResources,
         IEnumerable<ResourceViewModel> resources,
-        Action updateMenuButtons,
         ISessionStorage sessionStorage,
-        Func<bool, Task> refreshFunction)
+        EventCallback<bool> refreshFunction)
     {
         var areResourcesHidden = resources.Any(r => r.IsResourceHidden(false));
         if (!showHiddenResources)
@@ -43,8 +43,7 @@ public static class CommonMenuItems
         {
             showHiddenResources = !showHiddenResources;
             await sessionStorage.SetAsync(BrowserStorageKeys.ResourcesShowHiddenResources, showHiddenResources).ConfigureAwait(true);
-            await refreshFunction(showHiddenResources).ConfigureAwait(true);
-            updateMenuButtons();
+            await refreshFunction.InvokeAsync(showHiddenResources).ConfigureAwait(true);
         }
     }
 }

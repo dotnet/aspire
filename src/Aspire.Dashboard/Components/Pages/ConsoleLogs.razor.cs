@@ -339,8 +339,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             ControlsStringsLoc,
             _showHiddenResources,
             _resourceByName.Values,
-            UpdateMenuButtons,
             SessionStorage,
+            EventCallback.Factory.Create<bool>(this, async
             value =>
             {
                 _showHiddenResources = value;
@@ -349,11 +349,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 {
                     PageViewModel.SelectedResource = null;
                     PageViewModel.SelectedOption = _noSelection;
-                    return this.AfterViewModelChangedAsync(_contentLayout, false);
+                    await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
 
-                return Task.CompletedTask;
-            });
+                UpdateMenuButtons();
+            }));
 
         _logsMenuItems.Add(new()
         {

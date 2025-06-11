@@ -35,6 +35,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private Subscription? _logsSubscription;
     private IList<GridColumn>? _gridColumns;
+    private EventCallback _onToggleCollapseAllCallback;
+    private EventCallback _onToggleResourceTypeCallback;
     private bool _hideResourceGraph;
     private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
@@ -180,6 +182,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
 
+        _onToggleCollapseAllCallback = EventCallback.Factory.Create(this, OnToggleCollapseAll);
+        _onToggleResourceTypeCallback = EventCallback.Factory.Create(this, OnToggleResourceType);
+
         _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
 
         PageViewModel = new ResourcesViewModel
@@ -188,7 +193,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         };
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-        UpdateMenuButtons();
 
         var showResourceTypeColumn = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowResourceTypes);
         if (showResourceTypeColumn.Success)
@@ -201,6 +205,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         {
             _showHiddenResources = showHiddenResources.Value;
         }
+        UpdateMenuButtons();
 
         if (DashboardClient.IsEnabled)
         {
@@ -427,7 +432,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _resourcesMenuItems.Add(new MenuButtonItem
             {
                 IsDisabled = false,
-                OnClick = OnToggleCollapseAll,
+                OnClick = _onToggleCollapseAllCallback.InvokeAsync,
                 Text = Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)],
                 Icon = new Icons.Regular.Size16.Eye()
             });
@@ -437,7 +442,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _resourcesMenuItems.Add(new MenuButtonItem
             {
                 IsDisabled = false,
-                OnClick = OnToggleCollapseAll,
+                OnClick = _onToggleCollapseAllCallback.InvokeAsync,
                 Text = Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)],
                 Icon = new Icons.Regular.Size16.EyeOff()
             });
@@ -448,7 +453,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
              _resourcesMenuItems.Add(new MenuButtonItem
             {
                 IsDisabled = false,
-                OnClick = OnToggleResourceType,
+                OnClick = _onToggleResourceTypeCallback.InvokeAsync,
                 Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesHideTypes)],
                 Icon = new Icons.Regular.Size16.EyeOff()
             });
@@ -458,7 +463,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _resourcesMenuItems.Add(new MenuButtonItem
             {
                 IsDisabled = false,
-                OnClick = OnToggleResourceType,
+                OnClick = _onToggleResourceTypeCallback.InvokeAsync,
                 Text = Loc[nameof(Dashboard.Resources.Resources.ResourcesShowTypes)],
                 Icon = new Icons.Regular.Size16.Eye()
             });
@@ -469,13 +474,14 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             ControlsStringsLoc,
             _showHiddenResources,
             _resourceByName.Values,
-            UpdateMenuButtons,
             SessionStorage,
-            value =>
+            EventCallback.Factory.Create<bool>(this,
+            async value =>
             {
                 _showHiddenResources = value;
-                return _dataGrid.SafeRefreshDataAsync();
-            });
+                UpdateMenuButtons();
+                await _dataGrid.SafeRefreshDataAsync();
+            }));
     }
 
     private bool HasCollapsedResources()
