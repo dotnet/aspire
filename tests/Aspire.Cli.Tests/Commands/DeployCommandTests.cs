@@ -16,7 +16,9 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -29,8 +31,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandFailsWithInvalidProjectFile()
     {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -59,8 +63,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandFailsWhenAppHostIsNotCompatible()
     {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -91,8 +97,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandFailsWhenAppHostBuildFails()
     {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -123,8 +131,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandSucceedsEndToEnd()
     {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -185,8 +195,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
