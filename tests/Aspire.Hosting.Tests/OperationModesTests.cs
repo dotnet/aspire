@@ -21,11 +21,13 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         
@@ -50,11 +52,13 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
             .WithTestAndResourceLogging(outputHelper);
         
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         
@@ -79,11 +83,13 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
             .WithTestAndResourceLogging(outputHelper);
         
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         

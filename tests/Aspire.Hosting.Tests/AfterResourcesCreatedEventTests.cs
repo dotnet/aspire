@@ -19,11 +19,13 @@ public class AfterResourcesCreatedEventTests(ITestOutputHelper testOutputHelper)
         var one = builder.AddContainer("one", "nginx");
         var two = builder.AddContainer("two", "nginx");
 
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent>((evt, ct) =>
         {
             eventFired.TrySetResult(true);
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         
@@ -73,11 +75,13 @@ public class AfterResourcesCreatedEventTests(ITestOutputHelper testOutputHelper)
         // Use WaitFor which used to block the event
         two.WaitFor(one);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent>((evt, ct) =>
         {
             eventFired.TrySetResult(true);
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         

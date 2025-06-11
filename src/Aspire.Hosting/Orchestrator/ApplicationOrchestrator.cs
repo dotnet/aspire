@@ -180,7 +180,9 @@ internal sealed class ApplicationOrchestrator
     {
         await PublishResourcesInitialStateAsync(context.CancellationToken).ConfigureAwait(false);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
+#pragma warning restore CS0618 // Type or member is obsolete
         await _eventing.PublishAsync(afterResourcesCreatedEvent, context.CancellationToken).ConfigureAwait(false);
     }
 
