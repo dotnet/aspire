@@ -72,6 +72,31 @@ public class UserSecretsParameterDefaultTests
         var _ = userSecretDefault.GetDefaultValue();
     }
 
+    [Fact]
+    public async Task SecretsStore_Save_DoesNotEscapeAmpersandAndPlusCharacters()
+    {
+        // This test verifies that SecretsStore.Save() doesn't escape & and + characters
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        DeleteUserSecretsFile(userSecretsId);
+
+        var secretsStore = new SecretsStore(userSecretsId);
+        secretsStore.Set("Parameters:token", "some=thing&looking=url&like=true");
+        secretsStore.Set("Parameters:password", "P+qMWNzkn*xm1rhXNF5st0");
+
+        // Save to file 
+        secretsStore.Save();
+
+        // Read the file content directly to verify encoding
+        var secretsPath = secretsStore.SecretsFilePath;
+        var fileContent = await File.ReadAllTextAsync(secretsPath);
+
+        // Verify the content with snapshot testing
+        await Verify(fileContent, "json");
+
+        // Clean up
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
     private static void EnsureUserSecretsDirectory(string secretsFilePath)
     {
         var directoryName = Path.GetDirectoryName(secretsFilePath);

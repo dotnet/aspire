@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
@@ -14,52 +15,62 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManager> logger) : IUserSecretsManager
 {
-    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
+    private static string? GetUserSecretsId()
     {
-        WriteIndented = true
-    };
-    private static string? GetUserSecretsPath()
-    {
-        return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
-        {
-            null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
-            string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
-        };
+        return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
+               ?? Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID");
     }
 
-    public async Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
+    public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
     {
-        var userSecretsPath = GetUserSecretsPath();
-        
-        var jsonDocumentOptions = new JsonDocumentOptions
+        var userSecretsId = GetUserSecretsId();
+        if (userSecretsId is null)
         {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
+            return Task.FromResult<JsonObject>([]);
+        }
 
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
-                documentOptions: jsonDocumentOptions)!.AsObject()
-            : [];
-        return userSecrets;
+        try
+        {
+            var secretsStore = new SecretsStore(userSecretsId);
+            
+            var result = new JsonObject();
+            foreach (var secret in secretsStore.AsEnumerable())
+            {
+                if (secret.Value is not null)
+                {
+                    result[secret.Key] = secret.Value;
+                }
+            }
+            
+            return Task.FromResult(result);
+        }
+        catch (Exception)
+        {
+            // If we can't load secrets, return empty object
+            return Task.FromResult<JsonObject>([]);
+        }
     }
 
-    public async Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
         try
         {
-            var userSecretsPath = GetUserSecretsPath();
-            if (userSecretsPath is null)
+            var userSecretsId = GetUserSecretsId();
+            if (userSecretsId is null)
             {
-                throw new InvalidOperationException("User secrets path could not be determined.");
+                throw new InvalidOperationException("User secrets ID could not be determined.");
             }
             
-            // Normalize to flat configuration format with colon separators
-            var flattenedSecrets = FlattenJsonObject(userSecrets);
+            var secretsStore = new SecretsStore(userSecretsId);
             
-            // Ensure directory exists before attempting to create secrets file
-            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
+            // Clear existing secrets before adding new ones
+            secretsStore.Clear();
+            
+            // Set flattened secrets using SecretsStore's flattening logic
+            secretsStore.SetFromJsonObject(userSecrets);
+            
+            // Save to file
+            secretsStore.Save();
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
@@ -71,49 +82,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         {
             logger.LogWarning(ex, "Failed to save user secrets.");
         }
-    }
-
-    /// <summary>
-    /// Flattens a JsonObject to use colon-separated keys for configuration compatibility.
-    /// This ensures all secrets are stored in the flat format expected by .NET configuration.
-    /// </summary>
-    internal static JsonObject FlattenJsonObject(JsonObject source)
-    {
-        var result = new JsonObject();
-        FlattenJsonObjectRecursive(source, string.Empty, result);
-        return result;
-    }
-
-    private static void FlattenJsonObjectRecursive(JsonObject source, string prefix, JsonObject result)
-    {
-        foreach (var kvp in source)
-        {
-            var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
-            
-            if (kvp.Value is JsonObject nestedObject)
-            {
-                FlattenJsonObjectRecursive(nestedObject, key, result);
-            }
-            else if (kvp.Value is JsonArray array)
-            {
-                // Flatten arrays using index-based keys (standard .NET configuration format)
-                for (int i = 0; i < array.Count; i++)
-                {
-                    var arrayKey = $"{key}:{i}";
-                    if (array[i] is JsonObject arrayObject)
-                    {
-                        FlattenJsonObjectRecursive(arrayObject, arrayKey, result);
-                    }
-                    else
-                    {
-                        result[arrayKey] = array[i]?.DeepClone();
-                    }
-                }
-            }
-            else
-            {
-                result[key] = kvp.Value?.DeepClone();
-            }
-        }
+        
+        return Task.CompletedTask;
     }
 }
