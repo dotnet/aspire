@@ -185,7 +185,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ChartContainerOverflowTitle", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to Show count.
@@ -467,6 +466,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hide hidden resources.
+        /// </summary>
+        public static string HideHiddenResources {
+            get {
+                return ResourceManager.GetString("HideHiddenResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (All).
         /// </summary>
         public static string LabelAll {
@@ -496,9 +504,9 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to (Unset).
         /// </summary>
-        public static string LabelUnset {
+        public static string LabelValueUnset {
             get {
-                return ResourceManager.GetString("LabelUnset", resourceCulture);
+                return ResourceManager.GetString("LabelValueUnset", resourceCulture);
             }
         }
         
@@ -546,7 +554,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricTableNoMetricsFound", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to Only show value updates.
@@ -819,6 +826,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show hidden resources.
+        /// </summary>
+        public static string ShowHiddenResources {
+            get {
+                return ResourceManager.GetString("ShowHiddenResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Backlinks.
         /// </summary>
         public static string SpanDetailsBacklinksHeader {
@@ -934,9 +950,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnHeader", resourceCulture);
             }
         }
-
-
-
         
         /// <summary>
         ///   Looks up a localized string similar to Context.
@@ -1054,7 +1067,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TotalItemsFooterText", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to View.

@@ -10,6 +10,13 @@ internal sealed class AzureCliNotOnPathException : DistributedApplicationExcepti
     public AzureCliNotOnPathException(string message, Exception inner) : base(message, inner) { }
 }
 
+internal sealed class MissingConfigurationException : DistributedApplicationException
+{
+    public MissingConfigurationException() { }
+    public MissingConfigurationException(string message) : base(message) { }
+    public MissingConfigurationException(string message, Exception inner) : base(message, inner) { }
+}
+
 internal sealed class FailedToApplyEnvironmentException : DistributedApplicationException
 {
     public FailedToApplyEnvironmentException() { }

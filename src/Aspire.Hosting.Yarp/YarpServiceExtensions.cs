@@ -47,23 +47,7 @@ public static class YarpServiceExtensions
         // Map the configuration file
         yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
-            string contents;
-            if (yarpBuilder.Resource.ConfigFilePath != null)
-            {
-                try
-                {
-                    contents = await File.ReadAllTextAsync(yarpBuilder.Resource.ConfigFilePath, ct).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    throw new DistributedApplicationException($"Error when reading the YARP config file '{yarpBuilder.Resource.ConfigFilePath}'", ex);
-                }
-            }
-            else
-            {
-                // TODO: build dynamically the config file if none provided.
-                throw new DistributedApplicationException($"No configuration provided for YARP instance \"{yarpBuilder.Resource.Name}\"");
-            }
+            var contents = await yarpBuilder.Resource.ConfigurationBuilder.Build(ct).ConfigureAwait(false);
 
             var configFile = new ContainerFile
             {
@@ -85,7 +69,19 @@ public static class YarpServiceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
     {
-        builder.Resource.ConfigFilePath = configFilePath;
+        builder.Resource.ConfigurationBuilder.WithConfigFile(configFilePath);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configure the YARP resource.
+    /// </summary>
+    /// <param name="builder">The YARP resource to configure.</param>
+    /// <param name="configurationBuilder">The delegate to configure YARP.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
+    {
+        configurationBuilder(builder.Resource.ConfigurationBuilder);
         return builder;
     }
 }
