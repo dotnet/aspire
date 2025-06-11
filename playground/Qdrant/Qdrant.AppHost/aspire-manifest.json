@@ -4,7 +4,7 @@
     "qdrant": {
       "type": "container.v0",
       "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
-      "image": "docker.io/qdrant/qdrant:v1.13.6",
+      "image": "docker.io/qdrant/qdrant:v1.14.1",
       "volumes": [
         {
           "name": "qdrant-data",

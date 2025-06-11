@@ -145,11 +145,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         minReplicas: 0
       }
     }
-    runtime: {
-      dotnet: {
-        autoConfigureDataProtection: true
-      }
-    }
   }
   identity: {
     type: 'UserAssigned'
