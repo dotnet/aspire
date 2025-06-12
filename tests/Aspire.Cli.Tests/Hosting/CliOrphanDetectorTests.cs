@@ -111,12 +111,12 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var pendingRun = app.RunAsync();
 
-    // Wait until the apphost is spun up and then kill off the stub
-    // process so everything is torn down.
+        // Wait until the apphost is spun up and then kill off the stub
+        // process so everything is torn down.
         await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(60));
         fakeCliProcess.Process.Kill();
         
-    await pendingRun.WaitAsync(TimeSpan.FromSeconds(60));
+        await pendingRun.WaitAsync(TimeSpan.FromSeconds(60));
     }
 }
 
