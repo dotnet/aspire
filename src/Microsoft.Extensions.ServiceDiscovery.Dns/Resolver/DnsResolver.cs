@@ -25,27 +25,17 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
     private bool _disposed;
     private readonly ResolverOptions _options;
     private readonly CancellationTokenSource _pendingRequestsCts = new();
-    private TimeProvider _timeProvider = TimeProvider.System;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<DnsResolver> _logger;
-
-    internal void SetTimeProvider(TimeProvider timeProvider)
-    {
-        _timeProvider = timeProvider;
-    }
 
     public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger) : this(timeProvider, logger, OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() ? ResolvConf.GetOptions() : NetworkInfo.GetOptions())
     {
     }
 
-    public DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger, ResolverOptions options) : this(options)
+    internal DnsResolver(TimeProvider timeProvider, ILogger<DnsResolver> logger, ResolverOptions options)
     {
         _timeProvider = timeProvider;
         _logger = logger;
-    }
-
-    internal DnsResolver(ResolverOptions options)
-    {
-        _logger = NullLogger<DnsResolver>.Instance;
         _options = options;
         Debug.Assert(_options.Servers.Count > 0);
 
@@ -54,6 +44,10 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Timeout, TimeSpan.Zero);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(options.Timeout, s_maxTimeout);
         }
+    }
+
+    internal DnsResolver(ResolverOptions options) : this(TimeProvider.System, NullLogger<DnsResolver>.Instance, options)
+    {
     }
 
     internal DnsResolver(IEnumerable<IPEndPoint> servers) : this(new ResolverOptions(servers.ToArray()))

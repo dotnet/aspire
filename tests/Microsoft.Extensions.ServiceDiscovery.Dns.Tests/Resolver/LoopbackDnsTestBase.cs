@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Time.Testing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
@@ -16,9 +17,6 @@ public abstract class LoopbackDnsTestBase : IDisposable
     internal DnsResolver Resolver => _resolverLazy.Value;
     internal ResolverOptions Options { get; }
     protected readonly FakeTimeProvider TimeProvider;
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "SetTimeProvider")]
-    static extern void MockTimeProvider(DnsResolver instance, TimeProvider provider);
 
     public LoopbackDnsTestBase(ITestOutputHelper output)
     {
@@ -35,8 +33,11 @@ public abstract class LoopbackDnsTestBase : IDisposable
 
     DnsResolver InitializeResolver()
     {
-        var resolver = new DnsResolver(Options);
-        MockTimeProvider(resolver, TimeProvider);
+        ServiceCollection services = new();
+        services.AddXunitLogging(Output);
+
+        // construct DnsResolver manually via internal constructor which accepts ResolverOptions
+        var resolver = new DnsResolver(TimeProvider, services.BuildServiceProvider().GetRequiredService<ILogger<DnsResolver>>(), Options);
         return resolver;
     }
 
