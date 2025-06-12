@@ -71,9 +71,6 @@ public class TcpFailoverTests : LoopbackDnsTestBase
             return Task.CompletedTask;
         });
 
-        // turn off TCP support the server
-        DnsServer.DisableTcpFallback();
-
         AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
         Assert.Empty(results);
     }

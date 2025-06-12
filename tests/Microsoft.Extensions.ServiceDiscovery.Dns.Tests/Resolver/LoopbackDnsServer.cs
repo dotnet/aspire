@@ -12,8 +12,8 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Resolver.Tests;
 
 internal sealed class LoopbackDnsServer : IDisposable
 {
-    readonly Socket _dnsSocket;
-    readonly Socket _tcpSocket;
+    private readonly Socket _dnsSocket;
+    private Socket? _tcpSocket;
 
     public IPEndPoint DnsEndPoint => (IPEndPoint)_dnsSocket.LocalEndPoint!;
 
@@ -21,21 +21,12 @@ internal sealed class LoopbackDnsServer : IDisposable
     {
         _dnsSocket = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         _dnsSocket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-
-        _tcpSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        _tcpSocket.Bind(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)_dnsSocket.LocalEndPoint!).Port));
-        _tcpSocket.Listen();
     }
 
     public void Dispose()
     {
         _dnsSocket.Dispose();
-        _tcpSocket.Dispose();
-    }
-
-    public void DisableTcpFallback()
-    {
-        _tcpSocket.Close();
+        _tcpSocket?.Dispose();
     }
 
     private static async Task<int> ProcessRequestCore(IPEndPoint remoteEndPoint, ArraySegment<byte> message, Func<LoopbackDnsResponseBuilder, IPEndPoint, Task> action, Memory<byte> responseBuffer)
@@ -83,6 +74,13 @@ internal sealed class LoopbackDnsServer : IDisposable
 
     public async Task ProcessTcpRequest(Func<LoopbackDnsResponseBuilder, IPEndPoint, Task> action)
     {
+        if (_tcpSocket is null)
+        {
+            _tcpSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _tcpSocket.Bind(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)_dnsSocket.LocalEndPoint!).Port));
+            _tcpSocket.Listen();
+        }
+
         using Socket tcpClient = await _tcpSocket.AcceptAsync();
 
         byte[] buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
