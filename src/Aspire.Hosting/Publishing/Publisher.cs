@@ -15,7 +15,7 @@ internal class Publisher(
     DistributedApplicationExecutionContext executionContext,
     IServiceProvider serviceProvider) : IDistributedApplicationPublisher
 {
-    public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (options.Value.OutputPath == null)
         {
@@ -24,7 +24,16 @@ internal class Publisher(
             );
         }
 
-        var context = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, Path.GetFullPath(options.Value.OutputPath));
-        return context.WriteModelAsync(model);
+        var outputPath = Path.GetFullPath(options.Value.OutputPath);
+
+        var publishingContext = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
+        await publishingContext.WriteModelAsync(model).ConfigureAwait(false);
+
+        // If deployment is enabled, run deploying callbacks after publishing
+        if (options.Value.Deploy)
+        {
+            var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
+            await deployingContext.WriteModelAsync(model).ConfigureAwait(false);
+        }
     }
 }
