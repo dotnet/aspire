@@ -29,6 +29,12 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
+        if (caes.Length == 0)
+        {
+            EnsureNoPublishAsAcaAnnotations(appModel);
+            return;
+        }
+
         foreach (var environment in caes)
         {
             var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
@@ -50,24 +56,15 @@ internal sealed class AzureContainerAppsInfrastructure(
                 });
             }
         }
-
-        EnsurePublishAsAcaAnnotationsMatch(appModel, hasAcaEnvironments: caes.Length > 0);
     }
 
-    private static void EnsurePublishAsAcaAnnotationsMatch(DistributedApplicationModel appModel, bool hasAcaEnvironments)
+    private static void EnsureNoPublishAsAcaAnnotations(DistributedApplicationModel appModel)
     {
         foreach (var r in appModel.GetComputeResources())
         {
             if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>())
             {
-                var deploymentTarget = r.GetDeploymentTargetAnnotation();
-                if (deploymentTarget == null || deploymentTarget.ComputeEnvironment is not AzureContainerAppEnvironmentResource)
-                {
-                    var message = hasAcaEnvironments ?
-                        $"Resource '{r.Name}' is configured to publish as an Azure Container App, but it is not associated with an Azure Container App Environment. Ensure you have configured it correctly by calling '{nameof(ResourceBuilderExtensions.WithComputeEnvironment)}'." :
-                        $"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.";
-                    throw new InvalidOperationException(message);
-                }
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.");
             }
         }
     }

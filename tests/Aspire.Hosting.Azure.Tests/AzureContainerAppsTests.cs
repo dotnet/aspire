@@ -1541,25 +1541,6 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task PublishAsAzureContainerApp_ThrowsIfWrongEnvironment()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var acaEnv = builder.AddAzureContainerAppEnvironment("acaEnv");
-        var appServiceEnv = builder.AddAzureAppServiceEnvironment("appServiceEnv");
-
-        builder.AddContainer("api1", "myimage")
-            .PublishAsAzureContainerApp((_, _) => { })
-            .WithComputeEnvironment(appServiceEnv);
-
-        using var app = builder.Build();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
-
-        Assert.Contains("it is not associated with an Azure Container App Environment", ex.Message);
-    }
-
-    [Fact]
     public async Task MultipleAzureContainerAppEnvironmentsSupported()
     {
         using var tempDir = new TempDirectory();
