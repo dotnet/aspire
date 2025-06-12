@@ -89,7 +89,25 @@ builder.AddYarp("apigateway")
 // dashboard launch experience, Refer to Directory.Build.props for the path to
 // the dashboard binary (defaults to the Aspire.Dashboard bin output in the
 // artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard)
+       .WithCommand(
+           name: "resource-stop-all",
+           displayName: "Stop all resources",
+           executeCommand: async (c) =>
+           {
+               await ResourceCommands.ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-stop", c.CancellationToken);
+               return CommandResults.Success();
+           },
+           commandOptions: new() { IconName = "Stop", IconVariant = IconVariant.Filled })
+       .WithCommand(
+           name: "resource-start-all",
+           displayName: "Start all resources",
+           executeCommand: async (c) =>
+           {
+               await ResourceCommands.ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-start", c.CancellationToken);
+               return CommandResults.Success();
+           },
+           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled });
 #endif
 
 builder.Build().Run();
