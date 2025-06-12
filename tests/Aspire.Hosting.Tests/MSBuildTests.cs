@@ -133,6 +133,24 @@ builder.Build().Run();
         var repoRoot = MSBuildUtils.GetRepoRoot();
         using var tempDirectory = new TempDirectory();
 
+        var appDirectory = Path.Combine(tempDirectory.Path, "App");
+        Directory.CreateDirectory(appDirectory);
+
+        File.WriteAllText(Path.Combine(appDirectory, "App.csproj"), """
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
+""");
+        File.WriteAllText(Path.Combine(appDirectory, "Program.cs"), """
+Console.WriteLine("Hello, Aspire!");
+""");
+
         var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
         Directory.CreateDirectory(appHostDirectory);
 
@@ -156,6 +174,7 @@ builder.Build().Run();
 
   <ItemGroup>
     <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\App\App.csproj" />
   </ItemGroup>
 
 </Project>
@@ -211,7 +230,22 @@ builder.Build().Run();
 
         Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
 
-        var projectMetadata = await File.ReadAllTextAsync(Path.Combine(appHostDirectory, "obj", "Debug", "net8.0", "Aspire", "references", "_AppHost.ProjectMetadata.g.cs"));
-        await Verify(projectMetadata);
+        var metadataDirectory = Path.Combine(appHostDirectory, "obj", "Debug", "net8.0", "Aspire", "references");
+        var appHostMetadata = await File.ReadAllTextAsync(Path.Combine(metadataDirectory, "_AppHost.ProjectMetadata.g.cs"));
+        var appMetadata = await File.ReadAllTextAsync(Path.Combine(metadataDirectory, "App.ProjectMetadata.g.cs"));
+
+        await Verify(new
+        {
+            AppHost = appHostMetadata,
+            App = appMetadata
+        }).ScrubLinesWithReplace(line =>
+            {
+                var temp = tempDirectory?.Path;
+                if (temp is not null)
+                {
+                    line = line.Replace(temp, "{AspirePath}");
+                }
+                return line;
+            });
     }
 }
