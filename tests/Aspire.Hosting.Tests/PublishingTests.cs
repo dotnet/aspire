@@ -241,4 +241,41 @@ public class PublishingTests
         var publishingOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.True(publishingOptions.Value.Deploy, "Deploy should be true when set via command line.");
     }
+
+    [Fact]
+    public async Task DeployingCallbacks_ThrowsIfNoResourceHasDeployingCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        builder.Configuration["Publishing:Deploy"] = "true";
+        builder.AddContainer("cache", "redis"); // No DeployingCallbackAnnotation
+        using var app = builder.Build();
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(() => app.RunAsync());
+        Assert.Contains("No resources in the distributed application model support deployment", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployingCallback_Throws_PropagatesException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        builder.Configuration["Publishing:Deploy"] = "true";
+        builder.AddContainer("cache", "redis")
+               .WithAnnotation(new DeployingCallbackAnnotation(_ => throw new InvalidOperationException("Deploy failed!")));
+        using var app = builder.Build();
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(() => app.RunAsync());
+        Assert.Contains("Deploy failed!", ex.Message);
+    }
+
+    [Fact]
+    public void DeployingCallback_OnlyLastAnnotationIsUsed()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        builder.Configuration["Publishing:Deploy"] = "true";
+        var called = string.Empty;
+        builder.AddContainer("cache", "redis")
+               .WithAnnotation(new DeployingCallbackAnnotation(_ => { called = "first"; return Task.CompletedTask; }))
+               .WithAnnotation(new DeployingCallbackAnnotation(_ => { called = "second"; return Task.CompletedTask; }));
+        using var app = builder.Build();
+        app.Run();
+        Assert.Equal("second", called);
+    }
 }
