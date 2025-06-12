@@ -3,14 +3,19 @@
 
 using System.Collections;
 using System.Text;
-using Microsoft.Identity.Client;
 
 namespace Aspire;
 
 /// <summary>
 /// Parses and manages connection strings in the form: Key1=Value1;Key2=Value2;...
-/// Preserves the exact placement of empty segments and semicolons.
+/// Preserves the exact placement of empty segments and semicolons. It also preserves
+/// spaces and case in keys and values.
 /// </summary>
+/// <remarks>
+/// This connection string builder should be used when you need to maintain the exact format of a connection string
+/// while adding or removing keys and values. When only parsing/reading connection string it is recommended to use
+/// <see cref="System.Data.Common.DbConnectionStringBuilder"/> as it handles escaping too.
+/// </remarks>
 internal sealed class StableConnectionStringBuilder : IEnumerable<KeyValuePair<string, string>>
 {
     private string _connectionString;
