@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Kubernetes.Resources;
 /// It uses the "apps/v1" API version and the resource kind "Deployment".
 /// </remarks>
 [YamlSerializable]
-public sealed class Deployment() : BaseKubernetesResource("apps/v1", "Deployment")
+public sealed class Deployment() : Workload("apps/v1", "Deployment")
 {
     /// <summary>
     /// Gets or sets the specification of the Kubernetes Deployment resource.
@@ -27,4 +27,9 @@ public sealed class Deployment() : BaseKubernetesResource("apps/v1", "Deployment
     /// </remarks>
     [YamlMember(Alias = "spec")]
     public DeploymentSpecV1 Spec { get; set; } = new();
+
+    /// <summary>
+    /// Gets the pod template specification for the Deployment.
+    /// </summary>
+    public override PodTemplateSpecV1 PodTemplate => Spec.Template;
 }

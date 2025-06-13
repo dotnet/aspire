@@ -70,7 +70,8 @@ public class Program
                     nameof(NewCommand),
                     nameof(RunCommand),
                     nameof(AddCommand),
-                    nameof(PublishCommand)
+                    nameof(PublishCommand),
+                    nameof(DeployCommand)
                     );
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
@@ -119,6 +120,7 @@ public class Program
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
+        builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
@@ -171,7 +173,7 @@ public class Program
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
-        
+
         using var activity = s_activitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
