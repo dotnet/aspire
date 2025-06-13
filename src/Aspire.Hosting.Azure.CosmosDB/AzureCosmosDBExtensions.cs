@@ -122,7 +122,11 @@ public static class AzureCosmosExtensions
 
                     foreach (var container in database.Containers)
                     {
-                        var containerProperties = container.ContainerProperties;
+                        var containerProperties = container.ContainerProperties ?? new ContainerProperties
+                        {
+                            Id = container.ContainerName,
+                            PartitionKeyPaths = container.PartitionKeyPaths
+                        };
 
                         await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                     }
