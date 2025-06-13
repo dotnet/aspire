@@ -4,6 +4,7 @@
 using Aspire.Hosting.Testing.Tests;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

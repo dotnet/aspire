@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Interaction;
 using Spectre.Console;
+using Xunit;
 
 namespace Aspire.Cli.Tests.Interaction;
 

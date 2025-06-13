@@ -10,6 +10,7 @@ using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Runtime.CompilerServices;
+using Xunit;
 
 namespace Aspire.Hosting.Python.Tests;
 

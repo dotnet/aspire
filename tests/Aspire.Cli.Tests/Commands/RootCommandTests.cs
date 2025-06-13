@@ -4,6 +4,7 @@
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 

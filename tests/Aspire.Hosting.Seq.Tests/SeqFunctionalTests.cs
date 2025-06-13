@@ -6,6 +6,7 @@ using System.Text.Json;
 using Aspire.TestUtilities;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.Seq.Tests;
 

@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

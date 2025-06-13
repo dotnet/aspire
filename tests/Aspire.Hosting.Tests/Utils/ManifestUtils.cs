@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 using System.Text.Json.Nodes;
 using System.Text.Json;
+using Xunit;
 
 namespace Aspire.Hosting.Utils;
 

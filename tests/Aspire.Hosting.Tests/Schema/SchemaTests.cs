@@ -8,6 +8,7 @@ using Aspire.Hosting.Utils;
 using Azure.Provisioning.KeyVault;
 using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Schema;
 

@@ -16,6 +16,7 @@ using StackExchange.Redis;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
 using Polly;
+using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
 

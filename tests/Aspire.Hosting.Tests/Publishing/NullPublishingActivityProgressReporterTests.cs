@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using Aspire.Hosting.Publishing;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Publishing;
 

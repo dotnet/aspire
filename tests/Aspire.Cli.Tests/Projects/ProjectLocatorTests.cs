@@ -10,6 +10,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
 
 namespace Aspire.Cli.Tests.Projects;
 

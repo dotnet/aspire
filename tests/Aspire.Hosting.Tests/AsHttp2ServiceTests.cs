@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

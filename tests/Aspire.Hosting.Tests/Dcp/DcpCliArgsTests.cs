@@ -4,6 +4,7 @@
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
 

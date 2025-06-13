@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using System.Globalization;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Utils;
 

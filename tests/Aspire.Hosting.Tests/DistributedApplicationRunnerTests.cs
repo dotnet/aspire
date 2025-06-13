@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

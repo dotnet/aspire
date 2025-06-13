@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Orchestrator;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 

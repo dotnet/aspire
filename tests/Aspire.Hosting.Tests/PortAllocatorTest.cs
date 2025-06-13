@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Publishing;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

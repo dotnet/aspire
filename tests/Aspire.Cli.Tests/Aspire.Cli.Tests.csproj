@@ -23,4 +23,8 @@
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Remove="Xunit" />
+  </ItemGroup>
+
 </Project>

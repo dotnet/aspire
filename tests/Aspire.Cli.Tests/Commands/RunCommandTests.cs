@@ -8,6 +8,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 

@@ -7,6 +7,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Milvus.Client;
+using Xunit;
 
 namespace Aspire.Hosting.Milvus.Tests;
 

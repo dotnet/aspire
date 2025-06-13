@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 

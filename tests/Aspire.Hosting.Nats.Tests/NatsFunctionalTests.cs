@@ -11,6 +11,7 @@ using NATS.Client.JetStream.Models;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Aspire.Hosting.Tests.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.Nats.Tests;
 

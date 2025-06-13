@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
+using Xunit;
 
 namespace Aspire.Cli.Tests.Utils;
 

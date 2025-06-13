@@ -7,6 +7,7 @@ using System.Text;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

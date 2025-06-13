@@ -5,6 +5,7 @@ using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.ApplicationModel;
+using Xunit;
 
 namespace Aspire.Hosting.Keycloak.Tests;
 
