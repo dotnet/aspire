@@ -22,8 +22,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
+    private readonly AspireCliActivityTelemetry _telemetry;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliActivityTelemetry telemetry)
         : base("run", "Run an Aspire app host in development mode.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -31,12 +32,14 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
+        _telemetry = telemetry;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
@@ -57,7 +60,7 @@ internal sealed class RunCommand : BaseCommand
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
         {
-            using var activity = AspireCliActivitySource.Instance.StartActivity();
+            using var activity = _telemetry.ActivitySource.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
@@ -104,7 +107,7 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
             
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {

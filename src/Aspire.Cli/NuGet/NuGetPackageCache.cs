@@ -13,7 +13,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliActivityTelemetry telemetry) : INuGetPackageCache
 {
 
     private const int SearchPageSize = 1000;
@@ -37,7 +37,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
     internal async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         logger.LogDebug("Getting integrations from NuGet");
 

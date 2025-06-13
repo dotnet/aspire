@@ -11,9 +11,9 @@ namespace Aspire.Cli.Utils;
 internal static class AppHostHelper
 {
 
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliActivityTelemetry telemetry, CancellationToken cancellationToken)
     {
-            var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, cancellationToken);
+            var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, cancellationToken);
 
             if (appHostInformation.ExitCode != 0)
             {
@@ -47,9 +47,9 @@ internal static class AppHostHelper
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliActivityTelemetry telemetry, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
             ":microscope: Checking project type...",

@@ -13,12 +13,12 @@ internal interface ICertificateService
     Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService) : ICertificateService
+internal sealed class CertificateService(IInteractionService interactionService, AspireCliActivityTelemetry telemetry) : ICertificateService
 {
 
     public async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 
         var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(

@@ -19,8 +19,9 @@ internal sealed class NewCommand : BaseCommand
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
+    private readonly AspireCliActivityTelemetry _telemetry;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliActivityTelemetry telemetry)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -29,12 +30,14 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
         _interactionService = interactionService;
+        _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = "The name of the project to create.";
@@ -83,7 +86,7 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity();
+        using var activity = _telemetry.ActivitySource.StartActivity();
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);

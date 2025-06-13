@@ -14,12 +14,12 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService, AspireCliActivityTelemetry telemetry) : IProjectLocator
 {
 
     private async Task<List<FileInfo>> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         return await interactionService.ShowStatusAsync("Searching", async () =>
         {

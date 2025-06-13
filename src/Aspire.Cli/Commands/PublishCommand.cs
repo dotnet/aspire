@@ -4,6 +4,7 @@
 using System.CommandLine.Parsing;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 
 namespace Aspire.Cli.Commands;
 
@@ -29,8 +30,8 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter)
-        : base("publish", "Generates deployment artifacts for an Aspire app host project.", runner, interactionService, projectLocator)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliActivityTelemetry telemetry)
+        : base("publish", "Generates deployment artifacts for an Aspire app host project.", runner, interactionService, projectLocator, telemetry)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;

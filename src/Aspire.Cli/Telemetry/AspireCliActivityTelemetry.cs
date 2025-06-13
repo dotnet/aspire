@@ -8,10 +8,10 @@ namespace Aspire.Cli.Telemetry;
 /// <summary>
 /// Provides a single ActivitySource for all Aspire CLI components.
 /// </summary>
-internal static class AspireCliActivitySource
+internal sealed class AspireCliActivityTelemetry
 {
     /// <summary>
-    /// The shared ActivitySource instance for all CLI components.
+    /// The ActivitySource instance for all CLI components.
     /// </summary>
-    public static readonly ActivitySource Instance = new("Aspire.Cli");
+    public ActivitySource ActivitySource { get; } = new("Aspire.Cli");
 }

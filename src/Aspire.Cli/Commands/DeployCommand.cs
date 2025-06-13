@@ -4,13 +4,14 @@
 using System.CommandLine.Parsing;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PublishCommandBase
 {
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator)
-        : base("deploy", "Deploy an Aspire app host project to its supported deployment targets.", runner, interactionService, projectLocator)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliActivityTelemetry telemetry)
+        : base("deploy", "Deploy an Aspire app host project to its supported deployment targets.", runner, interactionService, projectLocator, telemetry)
     {
     }
 

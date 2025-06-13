@@ -20,8 +20,9 @@ internal sealed class AddCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
+    private readonly AspireCliActivityTelemetry _telemetry;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliActivityTelemetry telemetry)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -29,12 +30,14 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;
+        _telemetry = telemetry;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = "The name of the integration to add (e.g. redis, postgres).";
@@ -56,7 +59,7 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = AspireCliActivitySource.Instance.StartActivity();
+        using var activity = _telemetry.ActivitySource.StartActivity();
 
         var outputCollector = new OutputCollector();
 
