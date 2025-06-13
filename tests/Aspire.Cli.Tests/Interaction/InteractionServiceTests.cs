@@ -13,7 +13,15 @@ public class InteractionServiceTests
     public async Task PromptForSelectionAsync_EmptyChoices_ThrowsEmptyChoicesException()
     {
         // Arrange
-        var interactionService = new InteractionService(AnsiConsole.Console);
+        var settings = new AnsiConsoleSettings()
+        {
+            Ansi = AnsiSupport.Yes,
+            Interactive = InteractionSupport.Yes,
+            ColorSystem = ColorSystemSupport.Standard,
+            Out = new AnsiConsoleOutput(new StringWriter())
+        };
+        var ansiConsole = AnsiConsole.Create(settings);
+        var interactionService = new InteractionService(ansiConsole);
         var choices = Array.Empty<string>();
 
         // Act & Assert
