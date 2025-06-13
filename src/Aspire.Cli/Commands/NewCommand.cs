@@ -2,18 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
@@ -84,7 +83,7 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);

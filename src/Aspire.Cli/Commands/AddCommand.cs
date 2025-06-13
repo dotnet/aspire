@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
 using Spectre.Console;
@@ -15,7 +15,6 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(AddCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly IInteractionService _interactionService;
@@ -57,7 +56,7 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var outputCollector = new OutputCollector();
 

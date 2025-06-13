@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
@@ -23,13 +23,11 @@ internal interface IAppHostBackchannel
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
 {
     private const string BaselineCapability = "baseline.v2";
-
-    private readonly ActivitySource _activitySource = new(nameof(AppHostBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -49,7 +47,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         // of the AppHost process. The AppHost process will then trigger the shutdown
         // which will allow the CLI to await the pending run.
 
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -63,7 +61,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -79,7 +77,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -102,7 +100,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
     {
         try
         {
-            using var activity = _activitySource.StartActivity();
+            using var activity = AspireCliActivitySource.Instance.StartActivity();
 
             if (_rpcTaskCompletionSource.Task.IsCompleted)
             {
@@ -145,7 +143,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -166,7 +164,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
     public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = AspireCliActivitySource.Instance.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
 

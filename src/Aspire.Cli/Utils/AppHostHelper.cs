@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Telemetry;
 using Semver;
 using System.Diagnostics;
 
@@ -9,7 +10,6 @@ namespace Aspire.Cli.Utils;
 
 internal static class AppHostHelper
 {
-    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(AppHostHelper));
 
     internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
     {
@@ -49,7 +49,7 @@ internal static class AppHostHelper
 
     internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
     {
-        using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+        using var activity = AspireCliActivitySource.Instance.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
             ":microscope: Checking project type...",

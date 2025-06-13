@@ -3,10 +3,10 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -15,7 +15,6 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
-    private readonly ActivitySource _activitySource;
     protected readonly IDotNetCliRunner _runner;
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
@@ -27,7 +26,6 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
 
-        _activitySource = new ActivitySource(GetType().Name);
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
@@ -63,7 +61,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
         try
         {
-            using var activity = _activitySource.StartActivity();
+            using var activity = AspireCliActivitySource.Instance.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);

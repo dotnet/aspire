@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -17,7 +17,6 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RunCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
@@ -58,7 +57,7 @@ internal sealed class RunCommand : BaseCommand
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
         try
         {
-            using var activity = _activitySource.StartActivity();
+            using var activity = AspireCliActivitySource.Instance.StartActivity();
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
