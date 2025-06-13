@@ -477,4 +477,10 @@
   <data name="ToggleNesting" xml:space="preserve">
     <value>Toggle nesting</value>
   </data>
+  <data name="ShowHiddenResources" xml:space="preserve">
+    <value>Show hidden resources</value>
+  </data>
+  <data name="HideHiddenResources" xml:space="preserve">
+    <value>Hide hidden resources</value>
+  </data>
 </root>

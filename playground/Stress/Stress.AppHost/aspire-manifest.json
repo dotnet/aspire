@@ -11,6 +11,10 @@
         }
       }
     },
+    "hiddenContainer": {
+      "type": "container.v0",
+      "image": "alpine:latest"
+    },
     "stress-apiservice": {
       "type": "project.v0",
       "path": "../Stress.ApiService/Stress.ApiService.csproj",

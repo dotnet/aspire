@@ -111,6 +111,50 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UseOrFindAppHostProjectFileFallsBackWhenSettingsFileSpecifiesNonexistentAppHost()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a real apphost project file that can be discovered by scanning
+        var realAppHostProjectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "RealAppHost.csproj"));
+        await File.WriteAllTextAsync(realAppHostProjectFile.FullName, "Not a real apphost project");
+
+        // Create settings file that points to a non-existent apphost file
+        var workspaceSettingsDirectory = workspace.CreateDirectory(".aspire");
+        var aspireSettingsFile = new FileInfo(Path.Combine(workspaceSettingsDirectory.FullName, "settings.json"));
+
+        using var writer = aspireSettingsFile.OpenWrite();
+        await JsonSerializer.SerializeAsync(writer, new
+        {
+            appHostPath = "NonexistentAppHost/NonexistentAppHost.csproj"
+        });
+        writer.Close();
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) => {
+            if (projectFile.FullName == realAppHostProjectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                return (0, false, null);
+            }
+        };
+
+        var interactionService = new TestInteractionService();
+        var configurationService = new TestConfigurationService();
+        var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService);
+
+        // This should fallback to scanning and find the real apphost project
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+
+        Assert.Equal(realAppHostProjectFile.FullName, foundAppHost?.FullName);
+    }
+
+    [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9652")]
     public async Task UseOrFindAppHostProjectFilePromptsWhenMultipleFilesFound()
     {

@@ -9,6 +9,7 @@
 
 <FluentSelect Items="Resources"
               Disabled="@(Resources is null)"
+              @key="@Resources?.Count()"
               Id="@_selectId"
               OptionValue="@(c => c!.Name)"
               OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpApplicationType.ResourceGrouping)"

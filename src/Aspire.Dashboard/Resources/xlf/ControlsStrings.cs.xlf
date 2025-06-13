@@ -227,6 +227,11 @@
         <target state="translated">Zobrazit hodnotu</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(vše)</target>
@@ -420,6 +425,11 @@
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">Vybrat aplikaci</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">

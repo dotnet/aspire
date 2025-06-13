@@ -27,6 +27,13 @@ for (var i = 0; i < 5; i++)
 }
 
 builder.AddParameter("testParameterResource", () => "value", secret: true);
+builder.AddContainer("hiddenContainer", "alpine")
+    .WithInitialState(new CustomResourceSnapshot
+    {
+        ResourceType = "CustomHiddenContainerType",
+        Properties = [],
+        IsHidden = true
+    });
 
 // TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
 // See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100

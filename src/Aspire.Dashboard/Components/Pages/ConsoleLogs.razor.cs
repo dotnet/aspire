@@ -115,6 +115,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
+    private bool _showHiddenResources;
     private bool _showTimestamp;
     private bool _isTimestampUtc;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -148,6 +149,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
+        }
+
+        var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
+        if (showHiddenResources.Success)
+        {
+            _showHiddenResources = showHiddenResources.Value;
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
@@ -327,6 +334,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDivider = true
         });
 
+        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+            _logsMenuItems,
+            ControlsStringsLoc,
+            _showHiddenResources,
+            _resourceByName.Values,
+            SessionStorage,
+            EventCallback.Factory.Create<bool>(this, async
+            value =>
+            {
+                _showHiddenResources = value;
+
+                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                {
+                    PageViewModel.SelectedResource = null;
+                    PageViewModel.SelectedOption = _noSelection;
+                    await this.AfterViewModelChangedAsync(_contentLayout, false);
+                }
+
+                UpdateMenuButtons();
+            }));
+
         _logsMenuItems.Add(new()
         {
             OnClick = () => ToggleTimestampAsync(showTimestamp: !_showTimestamp, isTimestampUtc: _isTimestampUtc),
@@ -390,12 +418,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
-        string resourceUnknownStateText)
+        string resourceUnknownStateText,
+        bool showHiddenResources)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsResourceHidden())
+            .Where(r => !r.Value.IsResourceHidden(showHiddenResources))
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
@@ -456,7 +485,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
+    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -737,7 +766,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         ResourceViewModel? TryGetSingleResource()
         {
-            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden()).ToList();
+            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden(showHiddenResources: _showHiddenResources)).ToList();
             return actualResources.Count == 1 ? actualResources[0] : null;
         }
     }

@@ -97,7 +97,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     }
                     else
                     {
-                        throw new ProjectLocatorException($"AppHost file was specified in '{settingsFile.FullName}' but it does not exist.");
+                        // AppHost file was specified but doesn't exist, return null to trigger fallback logic
+                        interactionService.DisplayMessage("warning", $"AppHost file was specified in '{settingsFile.FullName}' but it does not exist at '{qualifiedAppHostPath}'.");
+                        return null;
                     }
                 }
             }
