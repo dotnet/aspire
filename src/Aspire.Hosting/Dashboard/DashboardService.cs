@@ -7,6 +7,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static Aspire.Hosting.ApplicationModel.Interaction;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -50,6 +51,129 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             };
         }
     }
+
+    public override async Task WatchInteractions(IAsyncStreamReader<WatchInteractionsRequestUpdate> requestStream, IServerStreamWriter<WatchInteractionsResponseUpdate> responseStream, ServerCallContext context)
+    {
+        await ExecuteAsync(
+            WatchInteractionsInternal,
+            context).ConfigureAwait(false);
+
+        async Task WatchInteractionsInternal(CancellationToken cancellationToken)
+        {
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var updates = serviceData.SubscribeInteractionUpdates();
+
+            // Send
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach (var interaction in updates.WithCancellation(cts.Token).ConfigureAwait(false))
+                    {
+                        var change = new WatchInteractionsResponseUpdate();
+                        change.InteractionId = interaction.Id;
+
+                        if (interaction.State == InteractionState.Canceled)
+                        {
+                            change.Cancellation = new InteractionCancellation();
+                        }
+                        else if (interaction.State == InteractionState.Complete)
+                        {
+                            change.Complete = new InteractionComplete();
+                        }
+                        else if (interaction.InteractionInfo is ConfirmationInteractionInfo confirmation)
+                        {
+                            change.Confirmation = new InteractionConfirmation
+                            {
+                                Title = confirmation.Title,
+                                Message = confirmation.Message
+                            };
+                        }
+                        else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
+                        {
+                            change.Inputs = new InteractionInputs
+                            {
+                                Title = inputs.Title,
+                                Message = inputs.Message
+                            };
+
+                            var inputInstances = inputs.Inputs.Select(input =>
+                            {
+                                var dto = new InteractionInput
+                                {
+                                    InputType = MapInputType(input.InputType),
+                                    Required = input.Required
+                                };
+                                if (input.Label != null)
+                                {
+                                    dto.Label = input.Label;
+                                }
+                                if (input.Placeholder != null)
+                                {
+                                    dto.Placeholder = input.Placeholder;
+                                }
+                                if (input.Value != null)
+                                {
+                                    dto.Value = input.Value;
+                                }
+                                if (input.Options != null)
+                                {
+                                    dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                return dto;
+                            }).ToList();
+                            change.Inputs.Inputs.AddRange(inputInstances);
+                        }
+
+                        await responseStream.WriteAsync(change, cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "Error while watching interactions.");
+                }
+                finally
+                {
+                    cts.Cancel();
+                }
+            }, cts.Token);
+
+            // Receive
+            try
+            {
+                await foreach (var request in requestStream.ReadAllAsync(cts.Token).ConfigureAwait(false))
+                {
+                    await serviceData.SendInteractionRequestAsync(request).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                // Ensure the write task is cancelled if we exit the loop.
+                cts.Cancel();
+            }
+        }
+    }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private static InputType MapInputType(ApplicationModel.InputType inputType)
+    {
+        switch (inputType)
+        {
+            case ApplicationModel.InputType.Text:
+                return InputType.Text;
+            case ApplicationModel.InputType.Password:
+                return InputType.Password;
+            case ApplicationModel.InputType.Select:
+                return InputType.Select;
+            case ApplicationModel.InputType.Checkbox:
+                return InputType.Checkbox;
+            case ApplicationModel.InputType.Number:
+                return InputType.Number;
+            default:
+                throw new InvalidOperationException($"Unexpected input type: {inputType}");
+        }
+    }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(
         WatchResourcesRequest request,
@@ -196,7 +320,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error executing service method '{serverCallContext.Method}'.");
+            logger.LogError(ex, "Error executing service method '{Method}'.", serverCallContext.Method);
             throw;
         }
     }

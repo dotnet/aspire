@@ -3,6 +3,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
@@ -113,7 +116,77 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                await ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-start", c.CancellationToken);
                return CommandResults.Success();
            },
-           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled });
+           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled })
+       .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var resultTask1 = interactionService.PromptConfirmationAsync("Are you sure?", "Command confirmation", commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptConfirmationAsync("Are you really sure?", "Command confirmation", commandContext.CancellationToken);
+
+           await Task.WhenAll(resultTask1, resultTask2);
+
+           if (resultTask1.Result.Canceled || resultTask2.Result.Canceled)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           return CommandResults.Success();
+       })
+       .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var result = await interactionService.PromptInputAsync(
+               message: "Provide your name",
+               title: "Text request",
+               inputLabel: "Name",
+               placeHolder: "Enter your name",
+               commandContext.CancellationToken);
+
+           if (result.Canceled)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+           var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+           var updatedInputs = (IList<InteractionInput>)result.Data!;
+           foreach (var updatedInput in updatedInputs)
+           {
+               logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+           }
+
+           return CommandResults.Success();
+       })
+       .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var inputs = new List<InteractionInput>
+           {
+               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
+               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
+               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options = [KeyValuePair.Create("pizza", "Pizza"), KeyValuePair.Create("fried-chicken", "Fried chicken")] },
+               new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
+               new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
+           };
+           var result = await interactionService.PromptInputsAsync("Provide your name", "Input request", inputs, commandContext.CancellationToken);
+
+           if (result.Canceled)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+           var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+           var updatedInputs = (IList<InteractionInput>)result.Data!;
+           foreach (var updatedInput in updatedInputs)
+           {
+               logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+           }
+
+           return CommandResults.Success();
+       });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -158,3 +231,5 @@ static async Task ExecuteCommandForAllResourcesAsync(IServiceProvider servicePro
     }
     await Task.WhenAll(commandTasks).ConfigureAwait(false);
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

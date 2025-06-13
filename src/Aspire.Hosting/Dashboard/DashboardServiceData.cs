@@ -3,9 +3,12 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.ResourceService.Proto.V1;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 /// <summary>
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
@@ -16,17 +19,20 @@ internal sealed class DashboardServiceData : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
     private readonly ResourceCommandService _resourceCommandService;
+    private readonly InteractionService _interactionService;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        ResourceCommandService resourceCommandService)
+        ResourceCommandService resourceCommandService,
+        InteractionService interactionService)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _resourceCommandService = resourceCommandService;
+        _interactionService = interactionService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -100,6 +106,11 @@ internal sealed class DashboardServiceData : IDisposable
         }
     }
 
+    internal IAsyncEnumerable<Interaction> SubscribeInteractionUpdates()
+    {
+        return _interactionService.SubscribeInteractionUpdates();
+    }
+
     internal ResourceSnapshotSubscription SubscribeResources()
     {
         return _resourcePublisher.Subscribe();
@@ -138,6 +149,40 @@ internal sealed class DashboardServiceData : IDisposable
             }
         }
     }
+
+    internal Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request)
+    {
+        _interactionService.CompleteInteraction(request.InteractionId, interaction =>
+        {
+            switch (request.KindCase)
+            {
+                case WatchInteractionsRequestUpdate.KindOneofCase.Confirmation:
+                    return InteractionResult.Ok(true);
+                case WatchInteractionsRequestUpdate.KindOneofCase.Inputs:
+                    var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+                    for (var i = 0; i < inputsInfo.Inputs.Count; i++)
+                    {
+                        var modelInput = inputsInfo.Inputs[i];
+                        var requestInput = request.Inputs.Inputs[i];
+
+                        var incomingValue = requestInput.Value;
+
+                        // Ensure checkbox value is either true or false.
+                        if (requestInput.InputType == ResourceService.Proto.V1.InputType.Checkbox)
+                        {
+                            incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+                        }
+
+                        modelInput.SetValue(incomingValue);
+                    }
+                    return InteractionResult.Ok(inputsInfo.Inputs);
+                default:
+                    return InteractionResult.Cancel();
+            }
+        });
+
+        return Task.CompletedTask;
+    }
 }
 
 internal enum ExecuteCommandResultType
@@ -146,3 +191,5 @@ internal enum ExecuteCommandResultType
     Failure,
     Canceled
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

@@ -314,6 +314,56 @@ message WatchResourceConsoleLogsUpdate {
     repeated ConsoleLogLine log_lines = 1;
 }
 
+message WatchInteractionsRequestUpdate {
+    int32 interaction_id = 1;
+
+    oneof kind {
+        InteractionConfirmation confirmation = 2;
+        InteractionInputs inputs = 3;
+        InteractionCancellation cancellation = 4;
+        InteractionComplete complete = 5;
+    }
+}
+message WatchInteractionsResponseUpdate {
+    int32 interaction_id = 1;
+
+    oneof kind {
+        InteractionConfirmation confirmation = 2;
+        InteractionInputs inputs = 3;
+        InteractionCancellation cancellation = 4;
+        InteractionComplete complete = 5;
+    }
+}
+message InteractionConfirmation {
+    string title = 1;
+    string message = 2;
+}
+message InteractionInputs {
+    string title = 1;
+    string message = 2;
+    repeated InteractionInput inputs = 3;
+}
+message InteractionInput {
+    string label = 1;
+    string placeholder = 2;
+    InputType input_type = 3;
+    bool required = 4;
+    map<string, string> options = 5;
+    string value = 6;
+}
+enum InputType {
+    UNSPECIFIED = 0;
+    TEXT = 1;
+    PASSWORD = 2;
+    SELECT = 3;
+    CHECKBOX = 4;
+    NUMBER = 5;
+}
+message InteractionCancellation {
+}
+message InteractionComplete {
+}
+
 ////////////////////////////////////////////
 
 service DashboardService {
@@ -321,4 +371,5 @@ service DashboardService {
     rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
     rpc WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest) returns (stream WatchResourceConsoleLogsUpdate);
     rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
+    rpc WatchInteractions(stream WatchInteractionsRequestUpdate) returns (stream WatchInteractionsResponseUpdate);
 }
