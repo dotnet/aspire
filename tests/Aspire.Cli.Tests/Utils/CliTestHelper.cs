@@ -135,12 +135,12 @@ internal sealed class CliServiceCollectionTestOptions
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationService, telemetry);
     }
 
-    public Func<IServiceProvider, AspireCliActivityTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) => {
-        return new AspireCliActivityTelemetry();
+    public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) => {
+        return new AspireCliTelemetry();
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
@@ -150,13 +150,13 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var interactiveService = serviceProvider.GetRequiredService<IInteractionService>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new CertificateService(interactiveService, telemetry);
     };
 
     public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new DotNetCliRunner(logger, serviceProvider, telemetry);
     };
 
@@ -164,7 +164,7 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new NuGetPackageCache(logger, runner, cache, telemetry);
     };
 
@@ -172,7 +172,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
         var rpcTarget = serviceProvider.GetService<CliRpcTarget>() ?? throw new InvalidOperationException("CliRpcTarget not registered");
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new AppHostBackchannel(logger, rpcTarget, telemetry);
     };
 

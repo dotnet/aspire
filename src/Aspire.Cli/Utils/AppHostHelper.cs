@@ -11,7 +11,7 @@ namespace Aspire.Cli.Utils;
 internal static class AppHostHelper
 {
 
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliActivityTelemetry telemetry, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, cancellationToken);
 
@@ -47,7 +47,7 @@ internal static class AppHostHelper
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliActivityTelemetry telemetry, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 

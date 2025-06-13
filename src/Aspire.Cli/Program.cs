@@ -92,7 +92,7 @@ public class Program
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
-        builder.Services.AddSingleton<AspireCliActivityTelemetry>();
+        builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -149,7 +149,7 @@ public class Program
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
     }
 
@@ -165,7 +165,7 @@ public class Program
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
 
-        var telemetry = app.Services.GetRequiredService<AspireCliActivityTelemetry>();
+        var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 

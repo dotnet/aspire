@@ -31,7 +31,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliActivityTelemetry(),
+            new AspireCliTelemetry(),
             (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -58,7 +58,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 internal sealed class AssertingDotNetCliRunner(
     ILogger<DotNetCliRunner> logger,
     IServiceProvider serviceProvider,
-    AspireCliActivityTelemetry telemetry,
+    AspireCliTelemetry telemetry,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry)

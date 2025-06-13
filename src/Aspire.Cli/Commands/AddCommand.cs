@@ -20,9 +20,9 @@ internal sealed class AddCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
-    private readonly AspireCliActivityTelemetry _telemetry;
+    private readonly AspireCliTelemetry _telemetry;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliActivityTelemetry telemetry)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry)
         : base("add", "Add an integration to the Aspire project.")
     {
         ArgumentNullException.ThrowIfNull(runner);

@@ -18,9 +18,9 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IDotNetCliRunner _runner;
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
-    protected readonly AspireCliActivityTelemetry _telemetry;
+    protected readonly AspireCliTelemetry _telemetry;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliActivityTelemetry telemetry)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
         : base(name, description)
     {
         ArgumentNullException.ThrowIfNull(runner);

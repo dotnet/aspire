@@ -10,7 +10,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PublishCommandBase
 {
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliActivityTelemetry telemetry)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
         : base("deploy", "Deploy an Aspire app host project to its supported deployment targets.", runner, interactionService, projectLocator, telemetry)
     {
     }

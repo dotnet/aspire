@@ -30,7 +30,7 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliActivityTelemetry telemetry)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry)
         : base("publish", "Generates deployment artifacts for an Aspire app host project.", runner, interactionService, projectLocator, telemetry)
     {
         ArgumentNullException.ThrowIfNull(prompter);

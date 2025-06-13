@@ -19,9 +19,9 @@ internal sealed class NewCommand : BaseCommand
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
-    private readonly AspireCliActivityTelemetry _telemetry;
+    private readonly AspireCliTelemetry _telemetry;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliActivityTelemetry telemetry)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliTelemetry telemetry)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner);

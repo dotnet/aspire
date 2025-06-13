@@ -20,7 +20,7 @@ internal interface IAppHostBackchannel
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
 }
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target, AspireCliActivityTelemetry telemetry) : IAppHostBackchannel
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target, AspireCliTelemetry telemetry) : IAppHostBackchannel
 {
     private const string BaselineCapability = "baseline.v2";
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();

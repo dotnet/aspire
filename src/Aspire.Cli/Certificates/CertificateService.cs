@@ -13,7 +13,7 @@ internal interface ICertificateService
     Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService, AspireCliActivityTelemetry telemetry) : ICertificateService
+internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
 {
 
     public async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
