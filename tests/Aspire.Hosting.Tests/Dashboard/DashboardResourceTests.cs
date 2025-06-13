@@ -11,8 +11,8 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit.Sdk;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 

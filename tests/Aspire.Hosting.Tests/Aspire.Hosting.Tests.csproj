@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Remove implicit Xunit using to avoid updating all test files since Verify.Xunit auto imports this using -->
     <Using Remove="Xunit" />
   </ItemGroup>
 
