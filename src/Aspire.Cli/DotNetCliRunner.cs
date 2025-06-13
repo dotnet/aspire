@@ -16,7 +16,7 @@ namespace Aspire.Cli;
 
 internal interface IDotNetCliRunner
 {
-    Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -42,35 +42,26 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
-    public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
-        string[] cliArgs = ["msbuild", "-getproperty:IsAspireHost,AspireHostingSDKVersion", projectFile.FullName];
+        // Get both properties and PackageReference items to determine Aspire.Hosting version
+        var (exitCode, jsonDocument) = await GetProjectItemsAndPropertiesAsync(
+            projectFile, 
+            ["PackageReference", "AspireProjectOrPackageReference"], 
+            ["IsAspireHost", "AspireHostingSDKVersion"], 
+            options, 
+            cancellationToken);
 
-        // Syphon off the stdout from this execution to build the JSON document
-        // containing the information we need for the apphost, but allow it to
-        // flow up to the invoker if they have a callback.
-        var stdoutBuilder = new StringBuilder();
-        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) => {
-            stdoutBuilder.AppendLine(line);
-            existingStandardOutputCallback?.Invoke(line);
-        };
-
-        var exitCode = await ExecuteAsync(
-            args: cliArgs,
-            env: null,
-            workingDirectory: projectFile.Directory!,
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-
-        if (exitCode == 0)
+        if (exitCode == 0 && jsonDocument != null)
         {
-            var stdout = stdoutBuilder.ToString();
-            var json = JsonDocument.Parse(stdout);
-            var properties = json.RootElement.GetProperty("Properties");
+            var rootElement = jsonDocument.RootElement;
+            
+            if (!rootElement.TryGetProperty("Properties", out var properties))
+            {
+                return (exitCode, false, null);
+            }
 
             if (!properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
             {
@@ -79,15 +70,49 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
             if (isAspireHostElement.GetString() == "true")
             {
-                if (properties.TryGetProperty("AspireHostingSDKVersion", out var aspireHostingSdkVersionElement))
+                // Try to get Aspire.Hosting version from PackageReference items
+                string? aspireHostingVersion = null;
+                
+                if (rootElement.TryGetProperty("Items", out var items))
                 {
-                    var aspireHostingSdkVersion = aspireHostingSdkVersionElement.GetString();
-                    return (exitCode, true, aspireHostingSdkVersion);
+                    // Check PackageReference items first
+                    if (items.TryGetProperty("PackageReference", out var packageReferences))
+                    {
+                        foreach (var packageRef in packageReferences.EnumerateArray())
+                        {
+                            if (packageRef.TryGetProperty("Identity", out var identity) && 
+                                identity.GetString() == "Aspire.Hosting" &&
+                                packageRef.TryGetProperty("Version", out var version))
+                            {
+                                aspireHostingVersion = version.GetString();
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Fallback to AspireProjectOrPackageReference items if not found
+                    if (aspireHostingVersion == null && items.TryGetProperty("AspireProjectOrPackageReference", out var aspireProjectOrPackageReferences))
+                    {
+                        foreach (var aspireRef in aspireProjectOrPackageReferences.EnumerateArray())
+                        {
+                            if (aspireRef.TryGetProperty("Identity", out var identity) && 
+                                identity.GetString() == "Aspire.Hosting" &&
+                                aspireRef.TryGetProperty("Version", out var version))
+                            {
+                                aspireHostingVersion = version.GetString();
+                                break;
+                            }
+                        }
+                    }
                 }
-                else
+                
+                // If no package version found, fallback to SDK version
+                if (aspireHostingVersion == null && properties.TryGetProperty("AspireHostingSDKVersion", out var aspireHostingSdkVersionElement))
                 {
-                    return (exitCode, true, null);
+                    aspireHostingVersion = aspireHostingSdkVersionElement.GetString();
                 }
+
+                return (exitCode, true, aspireHostingVersion);
             }
             else
             {

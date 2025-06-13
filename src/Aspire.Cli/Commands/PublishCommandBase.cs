@@ -59,7 +59,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var operationOutputCollector = new OutputCollector();
 
-        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
 
         try
         {
@@ -188,7 +188,7 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             return _interactionService.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException("AspireHostingVersion is null")
                 );
         }
         catch (FailedToConnectBackchannelConnection ex)

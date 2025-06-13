@@ -72,13 +72,13 @@ internal class InteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 
         DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
         Console.WriteLine();
-        _ansiConsole.MarkupLine($"\t[bold]Aspire Hosting SDK Version[/]: {appHostHostingSdkVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]Aspire.Hosting Version[/]: {appHostHostingVersion}");
         _ansiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
         _ansiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
         Console.WriteLine();
