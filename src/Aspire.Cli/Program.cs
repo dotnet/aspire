@@ -111,6 +111,7 @@ public class Program
         // Commands.
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<RunCommand>();
+        builder.Services.AddTransient<RunExperimentalCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();

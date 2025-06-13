@@ -18,7 +18,7 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IInteractionService interactionService)
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IInteractionService interactionService, RunExperimentalCommand runExperimentalCommand)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -73,6 +73,7 @@ internal sealed class RootCommand : BaseRootCommand
 
         Subcommands.Add(newCommand);
         Subcommands.Add(runCommand);
+        Subcommands.Add(runExperimentalCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
