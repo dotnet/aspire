@@ -23,8 +23,20 @@ internal class RunExperimentalRenderable : FocusableRenderable
         throw new NotImplementedException();
     }
 
+    public void MakeDirty()
+    {
+        MarkAsDirty();
+    }
+
     protected override IRenderable Build()
     {
-        return new RunSplashRenderable();
+        if (_state.StatusMessage is not null)
+        {
+            return new StatusBarRenderable(_state.StatusMessage);
+        }
+        else
+        {
+            return new RunSplashRenderable();
+        }
     }
 }
