@@ -1270,6 +1270,7 @@ public class DcpExecutorTests
             distributedAppModel,
             kubernetesService ?? new TestKubernetesService(),
             configuration,
+            new Hosting.Eventing.DistributedApplicationEventing(),
             new DistributedApplicationOptions(),
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
