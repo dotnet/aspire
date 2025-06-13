@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
 
@@ -94,17 +93,15 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     {
         if (!string.IsNullOrEmpty(connectionString))
         {
-            // a service bus namespace can't contain ';'. if it is found assume it is a connection string
-            if (!connectionString.Contains(';'))
+            // Format 1: Simple namespace (no semicolons and not starting with "Endpoint=")
+            // Example: "test.servicebus.windows.net"
+            if (!connectionString.Contains(';') && !StableConnectionStringBuilder.TryParse(connectionString, out var _))
             {
                 FullyQualifiedNamespace = connectionString;
                 return;
             }
 
-            var connectionBuilder = new DbConnectionStringBuilder()
-            {
-                ConnectionString = connectionString
-            };
+            var connectionBuilder = new StableConnectionStringBuilder(connectionString);
 
             // Note: Strip out the EntityPath from the connection string in order
             // to tell if we are left with just Endpoint.
@@ -117,11 +114,12 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
                 connectionBuilder.Remove("EntityPath");
             }
 
-            if (connectionBuilder.Count == 1 &&
+            if (connectionBuilder.Count() == 1 &&
                 connectionBuilder.TryGetValue("Endpoint", out var endpoint))
             {
-                // if all that's left is Endpoint, it is a fully qualified namespace
-                FullyQualifiedNamespace = endpoint.ToString();
+                // Example: "Endpoint=sb://test.servicebus.windows.net/"
+                // Note that the ServiceBusClient can handle URIs too
+                FullyQualifiedNamespace = ExtractHostFromEndpoint(endpoint);
                 return;
             }
 
@@ -155,5 +153,14 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
             // when ServiceBusSender is constructed so we set that here.
             QueueOrTopicName = entityPath;
         }
+    }
+
+    private static string ExtractHostFromEndpoint(string endpoint)
+    {
+        if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+        {
+            return uri.Host;
+        }
+        return endpoint;
     }
 }

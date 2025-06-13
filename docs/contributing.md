@@ -48,6 +48,27 @@ injected. An example is below:
 Note that injection doesn't happen until a component's `OnInitialized`, so if you are referencing a string from codebehind, you must wait to do that
 until `OnInitialized`.
 
+## Testing
+
+### Running Tests
+
+To run tests, use the build script:
+
+```bash
+./build.sh --test  # Linux/macOS
+./build.cmd --test # Windows
+```
+
+### Quarantined Tests
+
+Flaky tests may be marked as quarantined to prevent them from blocking CI while being investigated and fixed. See [quarantined-tests.md](quarantined-tests.md) for more information on working with quarantined tests.
+
+When running tests locally or in automated environments, use the quarantine filter to exclude known flaky tests:
+
+```bash
+dotnet test --filter-not-trait "quarantined=true"
+```
+
 ## Integrations (Formerly Components)
 
 Please check the [.NET Aspire integrations contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.

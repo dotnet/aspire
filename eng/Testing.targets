@@ -71,7 +71,7 @@
     <SkipTests Condition=" '$(IsLocalDevLoop)' == 'true' ">false</SkipTests>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(IsTestProject)' == 'true' and '$(IncludeTestUtilities)' == 'true' ">
+  <ItemGroup Condition=" ('$(IsTestProject)' == 'true' or '$(IsTestUtilityProject)' == 'true') and '$(IncludeTestUtilities)' == 'true' and '$(MSBuildProjectName)' != 'Aspire.TestUtilities' ">
     <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
   </ItemGroup>
 

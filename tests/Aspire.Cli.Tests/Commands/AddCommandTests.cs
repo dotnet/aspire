@@ -15,7 +15,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -28,7 +29,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommandInteractiveFlowSmokeTest()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -93,7 +95,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     {
         IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
         
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -164,7 +167,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     {
         IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
         
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -243,7 +247,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     {
         var promptedForIntegrationPackages = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -318,7 +323,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var promptedForIntegrationPackages = false;
         var promptedForVersion = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -401,7 +407,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         string? addedPackageName = null;
         string? addedPackageVersion = null;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -485,7 +492,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         string? addUsedSource = null;
         const string expectedSource = "https://custom-nuget-source.test/v3/index.json";
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.AddCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
@@ -546,7 +554,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     {
         string? displayedErrorMessage = null;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
                 var testInteractionService = new TestInteractionService();
                 testInteractionService.DisplayErrorCallback = (message) => {

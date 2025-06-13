@@ -1,0 +1,10 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "myapp-config"
+  labels:
+    app: "aspire"
+    component: "myapp"
+data:
+  ASPNETCORE_ENVIRONMENT: "{{ .Values.config.myapp.ASPNETCORE_ENVIRONMENT }}"

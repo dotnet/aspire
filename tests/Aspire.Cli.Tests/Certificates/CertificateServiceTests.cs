@@ -14,7 +14,8 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task EnsureCertificatesTrustedAsyncSucceedsOnNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetCliRunnerFactory = sp =>
             {

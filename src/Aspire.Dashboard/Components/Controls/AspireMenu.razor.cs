@@ -31,7 +31,7 @@ public partial class AspireMenu : FluentComponentBase
     public EventCallback<bool> OpenChanged { get; set; }
 
     [Parameter]
-    public required IList<MenuButtonItem> Items { get; set; }
+    public required IReadOnlyList<MenuButtonItem> Items { get; set; }
 
     public async Task CloseAsync()
     {

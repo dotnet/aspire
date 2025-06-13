@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Yarp;
 public class YarpResource(string name) : ContainerResource(name)
 {
     /// <summary>
-    /// File path of the config file for this YARP resource.
+    /// Configuration builder used to build the config file for the YARP resource
     /// </summary>
-    internal string? ConfigFilePath { get; set; }
+    internal YarpConfigurationBuilder ConfigurationBuilder { get; } = new YarpConfigurationBuilder();
 }

@@ -27,51 +27,45 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
-        // TODO: We need to support direct association between a compute resource and the container app environment.
-        // Right now we support a single container app environment as the one we want to use and we'll fall back to
-        // azd based environment if we don't have one.
-
         var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
-        if (caes.Length > 1)
+        if (caes.Length == 0)
         {
-            throw new NotSupportedException("Multiple container app environments are not supported.");
-        }
-
-        var environment = caes.FirstOrDefault();
-
-        if (environment is null)
-        {
+            EnsureNoPublishAsAcaAnnotations(appModel);
             return;
         }
 
-        var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
-            logger,
-            executionContext,
-            environment);
-
-        foreach (var r in appModel.Resources)
+        foreach (var environment in caes)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
+                logger,
+                executionContext,
+                environment);
+
+            foreach (var r in appModel.GetComputeResources())
             {
-                continue;
+                var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
+
+                // Capture information about the container registry used by the
+                // container app environment in the deployment target information
+                // associated with each compute resource that needs an image
+                r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
+                {
+                    ContainerRegistry = environment,
+                    ComputeEnvironment = environment
+                });
             }
+        }
+    }
 
-            if (!r.IsContainer() && r is not ProjectResource)
+    private static void EnsureNoPublishAsAcaAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
+        {
+            if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>())
             {
-                continue;
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.");
             }
-
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
-
-            // Capture information about the container registry used by the
-            // container app environment in the deployment target information
-            // associated with each compute resource that needs an image
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
-            {
-                ContainerRegistry = environment,
-                ComputeEnvironment = environment
-            });
         }
     }
 }

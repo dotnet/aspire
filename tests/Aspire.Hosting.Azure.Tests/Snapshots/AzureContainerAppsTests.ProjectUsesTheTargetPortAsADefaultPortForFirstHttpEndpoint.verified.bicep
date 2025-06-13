@@ -13,7 +13,7 @@ param api_containerimage string
 
 param api_containerport string
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api'
   location: location
   properties: {
@@ -30,6 +30,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           identity: env_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: env_outputs_azure_container_apps_environment_id
     template: {

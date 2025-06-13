@@ -33,27 +33,27 @@
 
             @if (PageViewModel.SelectedResource is { } selectedResource)
             {
-                if (_highlightedCommands.Count > 0)
+                if (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0)
                 {
                     <span style="margin-left: 10px;">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsResourceActions)]</span>
+                }
 
-                    @foreach (var command in _highlightedCommands)
-                    {
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Title="@(!string.IsNullOrEmpty(command.GetDisplayDescription(CommandsLoc)) ? command.GetDisplayDescription(CommandsLoc) : command.GetDisplayName(CommandsLoc))"
-                                      Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selectedResource.Name, command.Name))"
-                                      OnClick="@(() => ExecuteResourceCommandAsync(command))"
-                                      Class="highlighted-command">
-                            @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
-                            {
-                                <FluentIcon Value="@icon" Width="16px" />
-                            }
-                            else
-                            {
-                                @command.GetDisplayName(CommandsLoc)
-                            }
-                        </FluentButton>
-                    }
+                @foreach (var command in _highlightedCommands)
+                {
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  Title="@(!string.IsNullOrEmpty(command.GetDisplayDescription(CommandsLoc)) ? command.GetDisplayDescription(CommandsLoc) : command.GetDisplayName(CommandsLoc))"
+                                  Disabled="@(command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selectedResource.Name, command.Name))"
+                                  OnClick="@(() => ExecuteResourceCommandAsync(command))"
+                                  Class="highlighted-command">
+                        @if (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } icon)
+                        {
+                            <FluentIcon Value="@icon" Width="16px" />
+                        }
+                        else
+                        {
+                            @command.GetDisplayName(CommandsLoc)
+                        }
+                    </FluentButton>
                 }
 
                 if (_resourceMenuItems.Count > 0)

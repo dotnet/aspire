@@ -8,7 +8,7 @@ import { RpcServerInformation, setupRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
 
-let rpcServerInfo: RpcServerInformation | undefined;
+export let rpcServerInfo: RpcServerInformation | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));

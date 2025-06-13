@@ -4,7 +4,7 @@
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:17.4",
+      "image": "docker.io/library/postgres:17.5",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-postgres-data",

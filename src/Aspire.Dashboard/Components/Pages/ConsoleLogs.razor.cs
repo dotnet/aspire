@@ -115,6 +115,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
+    private bool _showHiddenResources;
     private bool _showTimestamp;
     private bool _isTimestampUtc;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -148,6 +149,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
+        }
+
+        var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
+        if (showHiddenResources.Success)
+        {
+            _showHiddenResources = showHiddenResources.Value;
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
@@ -327,6 +334,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDivider = true
         });
 
+        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+            _logsMenuItems,
+            ControlsStringsLoc,
+            _showHiddenResources,
+            _resourceByName.Values,
+            SessionStorage,
+            EventCallback.Factory.Create<bool>(this, async
+            value =>
+            {
+                _showHiddenResources = value;
+
+                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                {
+                    PageViewModel.SelectedResource = null;
+                    PageViewModel.SelectedOption = _noSelection;
+                    await this.AfterViewModelChangedAsync(_contentLayout, false);
+                }
+
+                UpdateMenuButtons();
+            }));
+
         _logsMenuItems.Add(new()
         {
             OnClick = () => ToggleTimestampAsync(showTimestamp: !_showTimestamp, isTimestampUtc: _isTimestampUtc),
@@ -390,12 +418,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
-        string resourceUnknownStateText)
+        string resourceUnknownStateText,
+        bool showHiddenResources)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsResourceHidden())
+            .Where(r => !r.Value.IsResourceHidden(showHiddenResources))
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
@@ -456,7 +485,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
+    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -713,20 +742,33 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
-        if (_resources is not null && ResourceName is not null)
+        if (_resources is not null)
         {
-            viewModel.SelectedOption = GetSelectedOption();
-            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
-            viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
-        }
-        else
-        {
-            viewModel.SelectedOption = _noSelection;
-            viewModel.SelectedResource = null;
-            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            if (ResourceName is not null)
+            {
+                viewModel.SelectedOption = GetSelectedOption();
+                viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
+                viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+                return Task.CompletedTask;
+            }
+            else if (TryGetSingleResource() is { } r)
+            {
+                // If there is no app selected and there is only one application available, select it.
+                viewModel.SelectedResource = r;
+                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+            }
         }
 
+        viewModel.SelectedOption = _noSelection;
+        viewModel.SelectedResource = null;
+        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         return Task.CompletedTask;
+
+        ResourceViewModel? TryGetSingleResource()
+        {
+            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden(showHiddenResources: _showHiddenResources)).ToList();
+            return actualResources.Count == 1 ? actualResources[0] : null;
+        }
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)

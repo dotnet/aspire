@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +17,13 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     private readonly ContainerAppEnvironmentContext _containerAppEnvironmentContext = containerAppEnvironmentContext;
 
     public IResource Resource => resource;
+
+    /// <summary>
+    /// The normalized container app name (lowercase) that will be used consistently 
+    /// throughout the container app creation process for both the resource identifier 
+    /// and endpoint mapping host names.
+    /// </summary>
+    public string NormalizedContainerAppName => resource.Name.ToLowerInvariant();
 
     // Endpoint state after processing
     record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
@@ -56,10 +64,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerImageParam = AllocateContainerImageParameter();
         }
 
-        var containerAppResource = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
-        {
-            Name = resource.Name.ToLowerInvariant()
-        };
+        var containerAppResource = CreateContainerApp();
 
         BicepValue<string>? containerAppIdentityId = null;
 
@@ -79,11 +84,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         containerAppResource.EnvironmentId = containerAppIdParam;
 
-        var configuration = new ContainerAppConfiguration()
-        {
-            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
-        };
-        containerAppResource.Configuration = configuration;
+        var configuration = containerAppResource.Configuration;
 
         AddIngress(configuration);
 
@@ -101,7 +102,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         template.Containers = [containerAppContainer];
 
         containerAppContainer.Image = containerImageParam is null ? containerImageName! : containerImageParam;
-        containerAppContainer.Name = resource.Name;
+        containerAppContainer.Name = NormalizedContainerAppName;
 
         SetEntryPoint(containerAppContainer);
         AddEnvironmentVariablesAndCommandLineArgs(
@@ -120,6 +121,44 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 a.Configure(infra, containerAppResource);
             }
         }
+    }
+
+    private ContainerApp CreateContainerApp()
+    {
+        var containerApp = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
+        {
+            Name = NormalizedContainerAppName
+        };
+
+        var configuration = new ContainerAppConfiguration()
+        {
+            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
+        };
+        containerApp.Configuration = configuration;
+
+        const string latestPreview = "2025-02-02-preview"; // these properties are currently only available in preview
+
+        // default autoConfigureDataProtection to true for .NET projects
+        if (resource is ProjectResource)
+        {
+            containerApp.ResourceVersion = latestPreview;
+
+            var value = new BicepValue<bool>(true);
+            ((IBicepValue)value).Self = new BicepValueReference(configuration, "AutoConfigureDataProtection", ["runtime", "dotnet", "autoConfigureDataProtection"]);
+            configuration.ProvisionableProperties["AutoConfigureDataProtection"] = value;
+        }
+
+        // default kind to functionapp for Azure Functions
+        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
+        {
+            containerApp.ResourceVersion = latestPreview;
+
+            var value = new BicepValue<string>("functionapp");
+            ((IBicepValue)value).Self = new BicepValueReference(containerApp, "Kind", ["kind"]);
+            containerApp.ProvisionableProperties["Kind"] = value;
+        }
+
+        return containerApp;
     }
 
     private void AddVolumes(ContainerAppTemplate template, ContainerAppContainer containerAppContainer)
@@ -353,7 +392,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 // For the http ingress port is always 80 or 443
                 var port = e.UriScheme is "http" ? 80 : 443;
 
-                _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, true, httpIngress.External);
+                _endpointMapping[e.Name] = new(e.UriScheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
             }
         }
 
@@ -373,7 +412,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
             foreach (var e in g.Endpoints)
             {
-                _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
+                _endpointMapping[e.Name] = new(e.UriScheme, NormalizedContainerAppName, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
             }
         }
     }

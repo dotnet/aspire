@@ -1,0 +1,11 @@
+---
+apiVersion: "keda.sh/v1alpha1"
+kind: "ScaledObject"
+metadata:
+  name: "myapp-scaler"
+spec:
+  scaleTargetRef:
+    name: "myapp-rollout"
+    kind: "Rollout"
+  minReplicaCount: 1
+  maxReplicaCount: 3

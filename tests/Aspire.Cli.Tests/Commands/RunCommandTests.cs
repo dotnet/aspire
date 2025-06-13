@@ -17,7 +17,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -30,7 +31,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenNoProjectFileFound_ReturnsNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
         });
@@ -46,7 +48,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenMultipleProjectFilesFound_ReturnsNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new MultipleProjectFilesProjectLocator();
         });
@@ -62,7 +65,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenProjectFileDoesNotExist_ReturnsNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new ProjectFileDoesNotExistLocator();
         });
@@ -98,7 +102,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.CertificateServiceFactory = _ => new ThrowingCertificateService();
             options.DotNetCliRunnerFactory = runnerFactory;
@@ -181,7 +186,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
         
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = projectLocatorFactory;
             options.AppHostBackchannelFactory = backchannelFactory;
@@ -237,7 +243,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
         
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = projectLocatorFactory;
             options.AppHostBackchannelFactory = backchannelFactory;

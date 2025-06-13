@@ -158,6 +158,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="$(MicrosoftExtensionsFileProvidersEmbeddedVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- EF -->

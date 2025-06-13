@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
@@ -19,8 +20,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ResourceNotificationService : IDisposable
 {
-    // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
-    private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+    // Resource state is keyed by the unique name of the resource. This could be the name of the resource, or a replica ID.
+    private readonly ConcurrentDictionary<string, ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _disposing = new();
@@ -431,9 +432,29 @@ public class ResourceNotificationService : IDisposable
     private readonly object _onResourceUpdatedLock = new();
 
     /// <summary>
+    /// Attempts to retrieve the current state of a resource by resourceId.
+    /// </summary>
+    /// <param name="resourceId">The resource id.</param>
+    /// <param name="resourceEvent">When this method returns, contains the <see cref="ResourceEvent"/> for the specified resource id, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if specified resource id was found; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetCurrentState(string resourceId, [NotNullWhen(true)] out ResourceEvent? resourceEvent)
+    {
+        if (_resourceNotificationStates.TryGetValue(resourceId, out var state))
+        {
+            if (state.LastSnapshot is { } snapshot)
+            {
+                resourceEvent = new ResourceEvent(state.Resource, resourceId, snapshot);
+                return true;
+            }
+        }
+
+        resourceEvent = null;
+        return false;
+    }
+
+    /// <summary>
     /// Watch for changes to the state for all resources.
     /// </summary>
-    /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<ResourceEvent>();
@@ -450,17 +471,17 @@ public class ResourceNotificationService : IDisposable
         // We do this after subscribing to the event to avoid missing any updates.
 
         // Keep track of the versions we have seen so far to avoid duplicates.
-        var versionsSeen = new Dictionary<(IResource, string), long>();
+        var versionsSeen = new Dictionary<string, long>();
 
         foreach (var state in _resourceNotificationStates)
         {
-            var (resource, resourceId) = state.Key;
+            var resourceId = state.Key;
 
             if (state.Value.LastSnapshot is { } snapshot)
             {
-                versionsSeen[state.Key] = snapshot.Version;
+                versionsSeen[resourceId] = snapshot.Version;
 
-                yield return new ResourceEvent(resource, resourceId, snapshot);
+                yield return new ResourceEvent(state.Value.Resource, resourceId, snapshot);
             }
         }
 
@@ -469,11 +490,11 @@ public class ResourceNotificationService : IDisposable
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 // Skip events that are older than the max version we have seen so far. This avoids duplicates.
-                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
+                if (versionsSeen.TryGetValue(item.ResourceId, out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
                 {
                     // We can remove the version from the seen list since we have seen it already.
                     // We only care about events we have returned to the caller
-                    versionsSeen.Remove((item.Resource, item.ResourceId));
+                    versionsSeen.Remove(item.ResourceId);
                     continue;
                 }
 
@@ -499,7 +520,11 @@ public class ResourceNotificationService : IDisposable
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
     public Task PublishUpdateAsync(IResource resource, string resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        var notificationState = GetResourceNotificationState(resource, resourceId);
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        if (notificationState.Resource != resource)
+        {
+            throw new InvalidOperationException($"Resource instance doesn't match resource previously registered with specified resource id '{resourceId}'.");
+        }
 
         lock (notificationState)
         {
@@ -696,8 +721,8 @@ public class ResourceNotificationService : IDisposable
         return previousState;
     }
 
-    private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
-        _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
+    private ResourceNotificationState GetResourceNotificationState(string resourceId, IResource resource) =>
+        _resourceNotificationStates.GetOrAdd(resourceId, _ => new ResourceNotificationState(resource));
 
     /// <inheritdoc/>
     public void Dispose()
@@ -708,11 +733,12 @@ public class ResourceNotificationService : IDisposable
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
-    private sealed class ResourceNotificationState
+    private sealed class ResourceNotificationState(IResource resource)
     {
         private long _lastVersion = 1;
         public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
+        public IResource Resource { get; } = resource;
     }
 
     internal static bool IsMicrosoftOpenType(Type type)

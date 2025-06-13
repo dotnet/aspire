@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,19 +34,19 @@ public static class AzureProvisionerExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        builder.Services.AddSingleton<TokenCredentialHolder>();
+        builder.Services.AddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
-        builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
+        // Register BicepProvisioner directly
+        builder.Services.AddSingleton<BicepProvisioner>();
 
-        return builder;
-    }
+        // Register the new internal services for testability
+        builder.Services.AddSingleton<IArmClientProvider, DefaultArmClientProvider>();
+        builder.Services.AddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
+        builder.Services.AddSingleton<IBicepCompiler, BicepCliCompiler>();
+        builder.Services.AddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
+        builder.Services.AddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
 
-    internal static IDistributedApplicationBuilder AddAzureProvisioner<TResource, TProvisioner>(this IDistributedApplicationBuilder builder)
-        where TResource : IAzureResource
-        where TProvisioner : AzureResourceProvisioner<TResource>
-    {
-        // This lets us avoid using open generics in the caller, we can use keyed lookup instead
-        builder.Services.AddKeyedSingleton<IAzureResourceProvisioner, TProvisioner>(typeof(TResource));
         return builder;
     }
 }

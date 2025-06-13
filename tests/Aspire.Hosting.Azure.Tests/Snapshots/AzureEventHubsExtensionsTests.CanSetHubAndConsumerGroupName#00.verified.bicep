@@ -6,6 +6,9 @@ param sku string = 'Standard'
 resource eh 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: take('eh-${uniqueString(resourceGroup().id)}', 256)
   location: location
+  properties: {
+    disableLocalAuth: true
+  }
   sku: {
     name: sku
   }

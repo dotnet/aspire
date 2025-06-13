@@ -1,0 +1,43 @@
+﻿{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "env1": {
+      "type": "azure.bicep.v0",
+      "path": "env1.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "env2": {
+      "type": "azure.bicep.v0",
+      "path": "env2.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "api1": {
+      "type": "container.v1",
+      "image": "myimage:latest",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "api1.module.bicep",
+        "params": {
+          "env1_outputs_azure_container_apps_environment_default_domain": "{env1.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env1_outputs_azure_container_apps_environment_id": "{env1.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+        }
+      }
+    },
+    "api2": {
+      "type": "container.v1",
+      "image": "myimage:latest",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "api2.module.bicep",
+        "params": {
+          "env2_outputs_azure_container_apps_environment_default_domain": "{env2.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env2_outputs_azure_container_apps_environment_id": "{env2.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+        }
+      }
+    }
+  }
+}

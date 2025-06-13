@@ -1265,6 +1265,40 @@ public class DistributedApplicationTests
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task PersistentNetworkCreatedIfPersistentContainers(bool createPersistentContainer)
+    {
+        const string testName = "persistent-network-if-persistent-containers";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        if (createPersistentContainer)
+        {
+            builder.AddContainer($"{testName}-persistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+                .WithLifetime(ContainerLifetime.Persistent);
+        }
+
+        builder.AddContainer($"{testName}-nonpersistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var networks = await s.ListAsync<ContainerNetwork>().DefaultTimeout();
+
+        if (createPersistentContainer)
+        {
+            Assert.Single(networks, n => n.Spec.Persistent == true);
+        }
+        else
+        {
+            Assert.Single(networks, n => n.Spec.Persistent.GetValueOrDefault(false) == false);
+        }
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task AfterResourcesCreatedLifecycleHookWorks()

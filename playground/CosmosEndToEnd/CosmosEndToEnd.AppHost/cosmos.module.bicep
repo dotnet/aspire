@@ -11,6 +11,11 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
         failoverPriority: 0
       }
     ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
@@ -44,6 +49,7 @@ resource entries 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -60,6 +66,7 @@ resource users 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@20
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }
@@ -77,6 +84,8 @@ resource user_todo 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
           '/userId'
           '/id'
         ]
+        kind: 'MultiHash'
+        version: 2
       }
     }
   }

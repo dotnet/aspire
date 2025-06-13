@@ -1,6 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "env": {
+      "type": "azure.bicep.v0",
+      "path": "env.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep"
@@ -53,8 +60,29 @@
       "path": "funcstorage67c6c.module.bicep"
     },
     "funcapp": {
-      "type": "project.v0",
+      "type": "project.v1",
       "path": "../AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "funcapp.module.bicep",
+        "params": {
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "funcapp_containerimage": "{funcapp.containerImage}",
+          "funcapp_identity_outputs_id": "{funcapp-identity.outputs.id}",
+          "funcstorage67c6c_outputs_blobendpoint": "{funcstorage67c6c.outputs.blobEndpoint}",
+          "funcstorage67c6c_outputs_queueendpoint": "{funcstorage67c6c.outputs.queueEndpoint}",
+          "funcstorage67c6c_outputs_tableendpoint": "{funcstorage67c6c.outputs.tableEndpoint}",
+          "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
+          "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
+          "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
+          "funcapp_identity_outputs_clientid": "{funcapp-identity.outputs.clientId}"
+        }
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -110,8 +138,27 @@
       }
     },
     "apiservice": {
-      "type": "project.v0",
+      "type": "project.v1",
       "path": "../AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "apiservice.module.bicep",
+        "params": {
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "apiservice_containerimage": "{apiservice.containerImage}",
+          "apiservice_identity_outputs_id": "{apiservice-identity.outputs.id}",
+          "apiservice_containerport": "{apiservice.containerPort}",
+          "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
+          "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
+          "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
+          "storage_outputs_queueendpoint": "{storage.outputs.queueEndpoint}",
+          "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+          "apiservice_identity_outputs_clientid": "{apiservice-identity.outputs.clientId}"
+        }
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -130,57 +177,95 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
-    "storage-roles": {
+    "funcapp-identity": {
       "type": "azure.bicep.v0",
-      "path": "storage-roles.module.bicep",
-      "params": {
-        "storage_outputs_name": "{storage.outputs.name}",
-        "principalType": "",
-        "principalId": ""
-      }
+      "path": "funcapp-identity.module.bicep"
     },
-    "eventhubs-roles": {
+    "funcapp-roles-funcstorage67c6c": {
       "type": "azure.bicep.v0",
-      "path": "eventhubs-roles.module.bicep",
-      "params": {
-        "eventhubs_outputs_name": "{eventhubs.outputs.name}",
-        "principalType": "",
-        "principalId": ""
-      }
-    },
-    "messaging-roles": {
-      "type": "azure.bicep.v0",
-      "path": "messaging-roles.module.bicep",
-      "params": {
-        "messaging_outputs_name": "{messaging.outputs.name}",
-        "principalType": "",
-        "principalId": ""
-      }
-    },
-    "cosmosdb-roles": {
-      "type": "azure.bicep.v0",
-      "path": "cosmosdb-roles.module.bicep",
-      "params": {
-        "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
-        "principalId": ""
-      }
-    },
-    "funcstorage67c6c-roles": {
-      "type": "azure.bicep.v0",
-      "path": "funcstorage67c6c-roles.module.bicep",
+      "path": "funcapp-roles-funcstorage67c6c.module.bicep",
       "params": {
         "funcstorage67c6c_outputs_name": "{funcstorage67c6c.outputs.name}",
-        "principalType": "",
-        "principalId": ""
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "funcapp-roles-eventhubs": {
+      "type": "azure.bicep.v0",
+      "path": "funcapp-roles-eventhubs.module.bicep",
+      "params": {
+        "eventhubs_outputs_name": "{eventhubs.outputs.name}",
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "funcapp-roles-storage": {
+      "type": "azure.bicep.v0",
+      "path": "funcapp-roles-storage.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "funcapp-roles-messaging": {
+      "type": "azure.bicep.v0",
+      "path": "funcapp-roles-messaging.module.bicep",
+      "params": {
+        "messaging_outputs_name": "{messaging.outputs.name}",
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "funcapp-roles-cosmosdb": {
+      "type": "azure.bicep.v0",
+      "path": "funcapp-roles-cosmosdb.module.bicep",
+      "params": {
+        "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
+        "principalId": "{funcapp-identity.outputs.principalId}"
+      }
+    },
+    "apiservice-identity": {
+      "type": "azure.bicep.v0",
+      "path": "apiservice-identity.module.bicep"
+    },
+    "apiservice-roles-eventhubs": {
+      "type": "azure.bicep.v0",
+      "path": "apiservice-roles-eventhubs.module.bicep",
+      "params": {
+        "eventhubs_outputs_name": "{eventhubs.outputs.name}",
+        "principalId": "{apiservice-identity.outputs.principalId}"
+      }
+    },
+    "apiservice-roles-messaging": {
+      "type": "azure.bicep.v0",
+      "path": "apiservice-roles-messaging.module.bicep",
+      "params": {
+        "messaging_outputs_name": "{messaging.outputs.name}",
+        "principalId": "{apiservice-identity.outputs.principalId}"
+      }
+    },
+    "apiservice-roles-cosmosdb": {
+      "type": "azure.bicep.v0",
+      "path": "apiservice-roles-cosmosdb.module.bicep",
+      "params": {
+        "cosmosdb_outputs_name": "{cosmosdb.outputs.name}",
+        "principalId": "{apiservice-identity.outputs.principalId}"
+      }
+    },
+    "apiservice-roles-storage": {
+      "type": "azure.bicep.v0",
+      "path": "apiservice-roles-storage.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalId": "{apiservice-identity.outputs.principalId}"
       }
     }
   }

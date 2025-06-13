@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { errorMessage } from '../constants/strings';
+import { errorMessage, noWorkspaceOpen } from '../constants/strings';
 
 const outputChannel = vscode.window.createOutputChannel('Aspire Extension');
 
@@ -34,3 +34,12 @@ class VSCOutputChannelWriter implements IOutputChannelWriter {
 }
 
 export const vscOutputChannelWriter: IOutputChannelWriter = new VSCOutputChannelWriter();
+
+export function isWorkspaceOpen(): boolean {
+    const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
+    if (!isOpen) {
+        vscode.window.showErrorMessage(noWorkspaceOpen);
+    }
+
+    return isOpen;
+}

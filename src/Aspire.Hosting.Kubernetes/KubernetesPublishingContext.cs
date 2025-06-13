@@ -130,7 +130,7 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var templatedItem in templatedItems)
         {
-            var fileName = $"{templatedItem.GetType().Name.ToLowerInvariant()}.yaml";
+            var fileName = GetFilename(resource.Name, templatedItem);
             var outputFile = Path.Combine(templatesFolder, fileName);
             var yaml = _serializer.Serialize(templatedItem);
 
@@ -138,6 +138,22 @@ internal sealed class KubernetesPublishingContext(
             await writer.WriteLineAsync(HelmExtensions.TemplateFileSeparator).ConfigureAwait(false);
             await writer.WriteAsync(yaml).ConfigureAwait(false);
         }
+    }
+
+    private static string GetFilename(string baseName, BaseKubernetesResource templatedItem)
+    {
+        if (string.IsNullOrWhiteSpace(templatedItem.Metadata.Name))
+        {
+            return $"{templatedItem.GetType().Name.ToLowerInvariant()}.yaml";
+        }
+
+        var resourceName = templatedItem.Metadata.Name;
+        if (resourceName.StartsWith($"{baseName}-"))
+        {
+            resourceName = resourceName.Substring(baseName.Length + 1); // +1 for the hyphen
+        }
+
+        return $"{resourceName}.yaml";
     }
 
     private async Task WriteKubernetesHelmValuesAsync()

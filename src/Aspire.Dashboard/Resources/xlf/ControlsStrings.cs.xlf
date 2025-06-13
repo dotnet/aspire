@@ -227,6 +227,11 @@
         <target state="translated">Zobrazit hodnotu</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="new">Hide hidden resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(vše)</target>
@@ -242,10 +247,10 @@
         <target state="translated">(žádné)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LabelUnset">
+      <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
-        <target state="translated">(nenastaveno)</target>
-        <note />
+        <target state="new">(Unset)</target>
+        <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>
@@ -420,6 +425,11 @@
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="translated">Vybrat aplikaci</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="new">Show hidden resources</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">

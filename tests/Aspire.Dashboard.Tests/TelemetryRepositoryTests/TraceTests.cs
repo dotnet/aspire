@@ -2121,4 +2121,48 @@ public class TraceTests
                 Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
             });
     }
+
+    [Fact]
+    public void AddTraces_UninstrumentedPeer_InstanceIdDashes_AppKeyResolvedCorrectly()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(appName: "test-abc-def", displayName: "test");
+        var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes => (resource.Name, resource));
+        var repository = CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "source", instanceId: "abc"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-1")], kind: Span.Types.SpanKind.Client),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create(OtlpSpan.PeerServiceAttributeKey, "value-2")], kind: Span.Types.SpanKind.Client)
+                        }
+                    }
+                }
+            }
+        });
+
+        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("source", app.ApplicationName);
+                Assert.Equal("abc", app.InstanceId);
+                Assert.False(app.UninstrumentedPeer);
+            },
+            app =>
+            {
+                Assert.Equal("test", app.ApplicationName);
+                Assert.Equal("abc-def", app.InstanceId);
+                Assert.True(app.UninstrumentedPeer);
+            });
+    }
 }

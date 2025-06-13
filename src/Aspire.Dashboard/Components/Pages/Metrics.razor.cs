@@ -138,6 +138,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public Task UpdateViewModelFromQueryAsync(MetricsViewModel viewModel)
     {
+        if (ApplicationName is null && TryGetSingleResource() is { } r)
+        {
+            // If there is no app selected and there is only one application available, select it.
+            PageViewModel.SelectedApplication = r;
+            ApplicationName = r.Name;
+            return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+        }
+
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
 
@@ -156,6 +164,12 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             }
         }
         return Task.CompletedTask;
+
+        SelectViewModel<ResourceTypeDetails>? TryGetSingleResource()
+        {
+            var apps = _applicationViewModels.Where(e => e != _selectApplication).ToList();
+            return apps.Count == 1 ? apps[0] : null;
+        }
     }
 
     private void UpdateInstruments(MetricsViewModel viewModel)

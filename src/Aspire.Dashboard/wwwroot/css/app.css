@@ -146,41 +146,15 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
-#components-reconnect-modal :is(h5, p) {
-    color: var(--error-ui-foreground-color);
-}
-
-#components-reconnect-modal a {
-    color: var(--error-ui-accent-foreground-color);
-}
-
 #components-reconnect-modal {
-    /* avoid making modal take the entire screen dimensions */
-    inset: unset !important;
+    background-color: var(--neutral-layer-floating) !important;
+}
 
-    /* force modal to be compact, centered, slightly padded, and towards the top - media queries below adjust the width and height of the modal for
-     mobile and desktop screens
-    */
-    top: 5% !important;
-    padding: 2px;
-
-    /* add a slight shadow */
-    box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
-
-    /* avoid modal being see-through */
-    opacity: 1 !important;
-
-    /* ensure sufficient contrast between all elements in the modal and its background */
-    background-color: var(--reconnection-ui-bg) !important;
+.components-rejoining-animation div {
+    border-color: var(--accent-fill-active) !important;
 }
 
 @media (max-width: 768px) {
-    #components-reconnect-modal {
-         left: 15% !important;
-         right: 15% !important;
-         height: 130px;
-    }
-
     fluent-toolbar[orientation=horizontal].main-toolbar {
         padding-left: calc(var(--design-unit) * 2px);
         padding-right: calc(var(--design-unit) * 2px);
@@ -202,12 +176,6 @@ h1 {
 }
 
 @media (min-width: 768px) {
-    #components-reconnect-modal {
-        left: 30% !important;
-        right: 30% !important;
-        height: 105px;
-    }
-
     fluent-toolbar[orientation=horizontal].main-toolbar {
         padding-left: calc(var(--design-unit) * 4.5px);
         padding-right: calc(var(--design-unit) * 2px);

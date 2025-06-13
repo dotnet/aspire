@@ -31,7 +31,7 @@ public static class AzureContainerAppExtensions
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) =>
         AddAzureContainerAppsInfrastructureCore(builder);
 
-    private static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructureCore(this IDistributedApplicationBuilder builder)
+    internal static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -56,15 +56,6 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> AddAzureContainerAppEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
         builder.AddAzureContainerAppsInfrastructureCore();
-
-        // Only support one temporarily until we can support multiple environments
-        // and allowing each container app to be explicit about which environment it uses
-        var existingContainerAppEnvResource = builder.Resources.OfType<AzureContainerAppEnvironmentResource>().FirstOrDefault();
-
-        if (existingContainerAppEnvResource != null)
-        {
-            throw new NotSupportedException($"Only one container app environment is supported at this time. Found: {existingContainerAppEnvResource.Name}");
-        }
 
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
