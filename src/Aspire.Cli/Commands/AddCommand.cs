@@ -59,7 +59,7 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity();
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var outputCollector = new OutputCollector();
 
