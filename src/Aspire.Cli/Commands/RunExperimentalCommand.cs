@@ -64,14 +64,34 @@ internal class RunExperimentalCommand : BaseCommand
                 }
             }, cancellationToken);
 
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000, cancellationToken);
+                await state.UpdateStatusAsync("Building app host.", cancellationToken);
+                await Task.Delay(2000, cancellationToken);
+                await state.UpdateStatusAsync("Launching app host.", cancellationToken);
+                await Task.Delay(2000, cancellationToken);
+                await state.UpdateStatusAsync("Starting dashboard", cancellationToken);
+
+                var counter = 0;
+                while (true)
+                {
+                    await Task.Delay(3000, cancellationToken);
+                    await state.UpdateStatusAsync($"Counter: {counter}", cancellationToken);
+                    counter++;
+                }
+            }, cancellationToken);
+
             await _ansiConsole.Live(renderable).StartAsync(async context =>
             {
                 renderable.Focus();
 
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    await Task.Delay(1000, cancellationToken);
+                    renderable.MakeDirty();
                     context.Refresh();
+
+                    await state.Updated.Reader.ReadAsync(cancellationToken);
                 }
             });
 

@@ -5,7 +5,11 @@ namespace Aspire.Cli.Rendering;
 
 internal class RunExperimentalState : RenderableState
 {
-    public RunExperimentalState()
+    public string? StatusMessage { get; set; }
+
+    public async Task UpdateStatusAsync(string message, CancellationToken cancellationToken)
     {
+        StatusMessage = message;
+        await Updated.Writer.WriteAsync(true, cancellationToken);
     }
 }
