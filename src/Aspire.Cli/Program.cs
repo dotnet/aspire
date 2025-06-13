@@ -61,7 +61,7 @@ public class Program
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing => {
-                tracing.AddSource("Aspire.Cli");
+                tracing.AddSource(AspireCliTelemetry.ActivitySourceName);
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });

@@ -11,7 +11,12 @@ namespace Aspire.Cli.Telemetry;
 internal sealed class AspireCliTelemetry
 {
     /// <summary>
+    /// The name of the ActivitySource for all CLI components.
+    /// </summary>
+    public const string ActivitySourceName = "Aspire.Cli";
+
+    /// <summary>
     /// The ActivitySource instance for all CLI components.
     /// </summary>
-    public ActivitySource ActivitySource { get; } = new("Aspire.Cli");
+    public ActivitySource ActivitySource { get; } = new(ActivitySourceName);
 }
