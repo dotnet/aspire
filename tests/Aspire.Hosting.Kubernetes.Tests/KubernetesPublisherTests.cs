@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Utils;
+using YamlDotNet.Serialization;
 
 namespace Aspire.Hosting.Kubernetes.Tests;
 
@@ -47,11 +49,11 @@ public class KubernetesPublisherTests()
             "Chart.yaml",
             "values.yaml",
             "templates/project1/deployment.yaml",
-            "templates/project1/configmap.yaml",
+            "templates/project1/config.yaml",
             "templates/myapp/deployment.yaml",
             "templates/myapp/service.yaml",
-            "templates/myapp/configmap.yaml",
-            "templates/myapp/secret.yaml"
+            "templates/myapp/config.yaml",
+            "templates/myapp/secrets.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -88,7 +90,8 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ORIGINAL_ENV", "value")
             .PublishAsKubernetesService(serviceResource =>
             {
-                serviceResource.Deployment!.Spec.RevisionHistoryLimit = 5;
+                serviceResource.Workload!.PodTemplate.Spec.Containers[0].ImagePullPolicy = "Always";
+                (serviceResource.Workload as Deployment)!.Spec.RevisionHistoryLimit = 5;
             });
 
         var app = builder.Build();
@@ -102,6 +105,116 @@ public class KubernetesPublisherTests()
         var content = await File.ReadAllTextAsync(deploymentPath);
 
         await Verify(content, "yaml");
+    }
+
+    [Fact]
+    public async Task PublishAsync_CustomWorkloadAndResourceType()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Add a container to the application
+        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            .WithHttpEndpoint(targetPort: 8080)
+            .PublishAsKubernetesService(serviceResource => {
+                serviceResource.Workload = new ArgoRollout {
+                    Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
+                    Spec = { Template = serviceResource.Workload!.PodTemplate, Selector = { MatchLabels = serviceResource.Labels.ToDictionary() } }
+                };
+                serviceResource.AdditionalResources.Add(new KedaScaledObject {
+                    Metadata = { Name = "myapp-scaler"},
+                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }});
+        });
+
+        builder.AddProject<TestProject>("project1", launchProfileName: null)
+            .WithReference(api.GetEndpoint("http"));
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/rollout.yaml",
+            "templates/myapp/service.yaml",
+            "templates/myapp/config.yaml",
+            "templates/myapp/scaler.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    private sealed class KedaScaledObject() : BaseKubernetesResource("keda.sh/v1alpha1", "ScaledObject")
+    {
+        [YamlMember(Alias = "spec")]
+        public KedaScaledObjectSpec Spec { get; set; } = new();
+
+        public sealed class KedaScaledObjectSpec
+        {
+            [YamlMember(Alias = "scaleTargetRef")]
+            public ScaleTargetRefSpec ScaleTargetRef { get; set; } = new();
+
+            [YamlMember(Alias = "minReplicaCount")]
+            public int MinReplicaCount { get; set; } = 1;
+
+            [YamlMember(Alias = "maxReplicaCount")]
+            public int MaxReplicaCount { get; set; } = 1;
+
+            public sealed class ScaleTargetRefSpec
+            {
+                [YamlMember(Alias = "name")]
+                public string Name { get; set; } = null!;
+                [YamlMember(Alias = "kind")]
+                public string Kind { get; set; } = "Deployment";
+            }
+
+            // Omitted other properties for brevity
+        }
+    }
+
+    private sealed class ArgoRollout() : Workload("argoproj.io/v1alpha1", "Rollout")
+    {
+        public ArgoRolloutSpec Spec { get; set; } = new();
+
+        public sealed class ArgoRolloutSpec
+        {
+            [YamlMember(Alias = "replicas")]
+            public int Replicas { get; set; } = 1;
+
+            [YamlMember(Alias = "template")]
+            public PodTemplateSpecV1 Template { get; set; } = new();
+
+            [YamlMember(Alias = "selector")]
+            public LabelSelectorV1 Selector { get; set; } = new();
+
+            // Omitted other properties for brevity
+        }
+
+        [YamlIgnore]
+        public override PodTemplateSpecV1 PodTemplate => Spec.Template;
     }
 
     private sealed class TestProject : IProjectMetadata
