@@ -99,6 +99,11 @@ partial class Resource
                 healthReport.Status = MapHealthStatus(report.Status.Value);
             }
 
+            if (report.LastRun.HasValue)
+            {
+                healthReport.LastRun = Timestamp.FromDateTime(report.LastRun.Value.ToUniversalTime());
+            }
+
             resource.HealthReports.Add(healthReport);
         }
 
