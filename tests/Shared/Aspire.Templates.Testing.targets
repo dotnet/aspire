@@ -7,6 +7,7 @@
     <SdkVersionForCurrentTFM Condition="'$(SdkVersionForCurrentTFM)' == ''">$(_DotNetCliVersionFromGlobalJson)</SdkVersionForCurrentTFM>
 
     <SdkVersionForPreviousTFM>$(DotNetSdkPreviousVersionForTesting)</SdkVersionForPreviousTFM>
+    <SdkVersionForNextTFM>$(DotNetSdkNextVersionForTesting)</SdkVersionForNextTFM>
 
     <SdkDirForCurrentTFM>$(ArtifactsBinDir)dotnet-9\</SdkDirForCurrentTFM>
     <SdkStampPathForCurrentTFM>$(SdkDirForCurrentTFM).version-$(SdkVersionForCurrentTFM).stamp</SdkStampPathForCurrentTFM>
@@ -16,6 +17,9 @@
 
     <SdkDirForPreviousTFM>$(ArtifactsBinDir)dotnet-8\</SdkDirForPreviousTFM>
     <SdkStampPathForPreviousTFM>$(SdkDirForPreviousTFM).version-$(SdkVersionForPreviousTFM).stamp</SdkStampPathForPreviousTFM>
+
+    <SdkDirForNextTFM>$(ArtifactsBinDir)dotnet-10\</SdkDirForNextTFM>
+    <SdkStampPathForNextTFM>$(SdkDirForNextTFM).version-$(SdkVersionForNextTFM).stamp</SdkStampPathForNextTFM>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)InstallSdk.props" />
@@ -38,6 +42,12 @@
              Properties="SdkVersionToInstall=$(SdkVersionForCurrentTFM);SdkTargetDir=$(SdkDirForCurrentTFM);SdkStampPath=$(SdkStampPathForCurrentTFM);ArtifactsObjDir=$(ArtifactsObjDir)"
              Targets="ProvisionSdk" />
     <Touch Files="$(SdkStampPathForCurrentTFM)" AlwaysCreate="true" />
+
+    <!-- Install For Next tfm -->
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForNextTFM);SdkTargetDir=$(SdkDirForNextTFM);SdkStampPath=$(SdkStampPathForNextTFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+    <Touch Files="$(SdkStampPathForNextTFM)" AlwaysCreate="true" />
 
     <CallTarget Targets="ProvisionSdkForCurrentAndPreviousTFM" />
   </Target>
