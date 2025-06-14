@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
 
@@ -132,6 +131,115 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             Assert.Empty(resourceEvent.Endpoints);
             break;
         }
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task CanGetResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
+
+        builder.AddResource(new TestResource("test1"))
+               .WithInitialState(new () {
+                    ResourceType = "TestResource1",
+                    State = new ("Running", null),
+                    Properties = []
+               });
+
+        builder.AddResource(new TestResource("test2"))
+               .WithInitialState(new () {
+                    ResourceType = "TestResource2", 
+                    State = new ("Starting", null),
+                    Properties = []
+               });
+
+        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
+            backchannelReadyTaskCompletionSource.SetResult(e);
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        var resources = await rpc.InvokeAsync<IAsyncEnumerable<RpcResourceInfo>>(
+            "GetResourcesAsync",
+            Array.Empty<object>()
+            ).WaitAsync(TimeSpan.FromSeconds(60));
+
+        var resourceList = new List<RpcResourceInfo>();
+        await foreach (var resource in resources)
+        {
+            resourceList.Add(resource);
+        }
+
+        Assert.Equal(2, resourceList.Count);
+        
+        var test1Resource = resourceList.FirstOrDefault(r => r.Name == "test1");
+        Assert.NotNull(test1Resource);
+        Assert.Equal("test1", test1Resource.Id);
+        Assert.Equal("TestResource", test1Resource.Type);
+
+        var test2Resource = resourceList.FirstOrDefault(r => r.Name == "test2");
+        Assert.NotNull(test2Resource);
+        Assert.Equal("test2", test2Resource.Id);
+        Assert.Equal("TestResource", test2Resource.Type);
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task CanGetResourceLogs()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
+
+        builder.AddResource(new TestResource("test"))
+               .WithInitialState(new () {
+                    ResourceType = "TestResource",
+                    State = new ("Running", null),
+                    Properties = []
+               });
+
+        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
+            backchannelReadyTaskCompletionSource.SetResult(e);
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Test that the GetResourceLogsAsync method exists and returns the correct type
+        var logs = await rpc.InvokeAsync<IAsyncEnumerable<ResourceLogEntry>>(
+            "GetResourceLogsAsync",
+            ["test"]
+            ).WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Just verify we can get the async enumerable - logs may be empty initially
+        Assert.NotNull(logs);
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
