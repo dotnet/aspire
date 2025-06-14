@@ -29,7 +29,7 @@ internal static class AppHostHelper
 
             if (!SemVersion.TryParse(appHostInformation.AspireHostingVersion, out var aspireVersion))
             {
-                interactionService.DisplayError($"Could not parse Aspire package version.");
+                interactionService.DisplayError($"Could not parse Aspire.Hosting package version.");
                 return (false, false, null);
             }
 
