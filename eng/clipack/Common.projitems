@@ -1,0 +1,83 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <_PublishOutputDirectory>$(ArtifactsBinDir)Aspire.Cli/$(Configuration)/$(TargetFramework)/$(CliRuntime)/publish/</_PublishOutputDirectory>
+  </PropertyGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+  <Target Name="Build" />
+
+  <Target Name="BeforeBuild" BeforeTargets="Build">
+    <ItemGroup>
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="TargetFramework=$(TargetFramework)" />
+      <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
+      <AdditionalProperties Include="PublishSingleFile=true" />
+      <AdditionalProperties Include="SelfContained=true" />
+    </ItemGroup>
+
+    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
+
+    <ItemGroup>
+      <_PublishItems Include="$(_PublishOutputDirectory)**/*" />
+    </ItemGroup>
+
+    <!-- Throw an error if _PublishItems is empty. -->
+    <Error Condition="'@(_PublishItems)' == ''"
+      Text="No files were found to pack. Ensure that the project $(MSBuildProjectFullPath) has a publish target defined." />
+
+    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
+
+    <!-- Create tar.gz for Linux runtimes -->
+    <CreateTarGz
+      Condition="$(CliRuntime.StartsWith('linux-'))"
+      SourceDirectory="$(_PublishOutputDirectory)"
+      DestinationFile="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)/aspire-cli-$(CliRuntime).tar.gz"
+      Overwrite="true" />
+
+    <!-- Create zip for non-Linux runtimes -->
+    <ZipDirectory
+      Condition="!$(CliRuntime.StartsWith('linux-'))"
+      SourceDirectory="$(_PublishOutputDirectory)"
+      DestinationFile="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)/aspire-cli-$(CliRuntime).zip"
+      Overwrite="true" />
+  </Target>
+
+  <UsingTask
+    TaskName="CreateTarGz"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+    <ParameterGroup>
+      <SourceDirectory ParameterType="System.String" Required="true" />
+      <DestinationFile ParameterType="System.String" Required="true" />
+      <Overwrite ParameterType="System.Boolean" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.IO.Compression" />
+      <Reference Include="System.Formats.Tar" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Formats.Tar" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+        if (Overwrite && File.Exists(DestinationFile))
+        {
+            File.Delete(DestinationFile);
+        }
+
+        using var fileStream = File.Create(DestinationFile);
+        using var gzipStream = new GZipStream(fileStream, CompressionMode.Compress);
+
+        TarFile.CreateFromDirectory(SourceDirectory, gzipStream, includeBaseDirectory: false);
+
+        Log.LogMessage(MessageImportance.Low, $"Created tar.gz archive from {SourceDirectory}: {DestinationFile}");
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+</Project>
