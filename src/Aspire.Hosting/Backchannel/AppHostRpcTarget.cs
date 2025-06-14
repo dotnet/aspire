@@ -177,5 +177,61 @@ internal class AppHostRpcTarget(
             "baseline.v2"
             });
     }
+
+    public IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        return GetResourcesAsyncCore();
+    }
+
+    private async IAsyncEnumerable<RpcResourceInfo> GetResourcesAsyncCore()
+    {
+        var distributedApplicationModel = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+
+        foreach (var resource in distributedApplicationModel.Resources)
+        {
+            if (resource.Name == "aspire-dashboard")
+            {
+                // Skip the dashboard resource, as it is handled separately.
+                continue;
+            }
+
+            var resourceNames = resource.GetResolvedResourceNames();
+            var resourceType = resource.GetType().Name;
+
+            foreach (var resourceId in resourceNames)
+            {
+                yield return new RpcResourceInfo
+                {
+                    Id = resourceId,
+                    Name = resource.Name,
+                    Type = resourceType
+                };
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false); // Suppress the async warning
+    }
+
+    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(resourceId);
+
+        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
+
+        var logStream = resourceLoggerService.WatchAsync(resourceId);
+
+        await foreach (var logBatch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var logLine in logBatch)
+            {
+                yield return new ResourceLogEntry
+                {
+                    Line = logLine.Content,
+                    Stream = logLine.IsErrorMessage ? LogEntryStream.StdErr : LogEntryStream.StdOut
+                };
+            }
+        }
+    }
 #pragma warning restore CA1822
 }

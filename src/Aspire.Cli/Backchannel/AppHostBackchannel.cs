@@ -18,6 +18,8 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
@@ -178,5 +180,47 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             cancellationToken).ConfigureAwait(false);
 
         return capabilities;
+    }
+
+    public async IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting resources");
+
+        var resources = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<RpcResourceInfo>>(
+            "GetResourcesAsync",
+            Array.Empty<object>(),
+            cancellationToken);
+
+        logger.LogDebug("Received resources async enumerable");
+
+        await foreach (var resource in resources.WithCancellation(cancellationToken))
+        {
+            yield return resource;
+        }
+    }
+
+    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting resource logs for {ResourceId}", resourceId);
+
+        var logEntries = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceLogEntry>>(
+            "GetResourceLogsAsync",
+            [resourceId],
+            cancellationToken);
+
+        logger.LogDebug("Received resource logs async enumerable for {ResourceId}", resourceId);
+
+        await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
+        {
+            yield return logEntry;
+        }
     }
 }
