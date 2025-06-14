@@ -20,7 +20,9 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options
+    DistributedApplicationOptions options,
+    DistributedApplicationModel distributedApplicationModel,
+    ResourceLoggerService resourceLoggerService
     ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
@@ -186,8 +188,6 @@ internal class AppHostRpcTarget(
 
     private async IAsyncEnumerable<RpcResourceInfo> GetResourcesAsyncCore()
     {
-        var distributedApplicationModel = serviceProvider.GetRequiredService<DistributedApplicationModel>();
-
         foreach (var resource in distributedApplicationModel.Resources)
         {
             if (resource.Name == "aspire-dashboard")
@@ -216,8 +216,6 @@ internal class AppHostRpcTarget(
     public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(resourceId);
-
-        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
 
         var logStream = resourceLoggerService.WatchAsync(resourceId);
 
