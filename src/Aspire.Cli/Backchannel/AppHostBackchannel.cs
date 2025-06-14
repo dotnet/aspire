@@ -18,7 +18,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync(CancellationToken cancellationToken);
+    Task<IAsyncEnumerable<RpcResourceInfo>> GetResourcesAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, CancellationToken cancellationToken);
 }
 
@@ -182,7 +182,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return capabilities;
     }
 
-    public async IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async Task<IAsyncEnumerable<RpcResourceInfo>> GetResourcesAsync(CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
@@ -197,10 +197,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         logger.LogDebug("Received resources async enumerable");
 
-        await foreach (var resource in resources.WithCancellation(cancellationToken))
-        {
-            yield return resource;
-        }
+        return resources;
     }
 
     public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
