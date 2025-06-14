@@ -36,7 +36,7 @@ internal sealed class TestInteractionService : IInteractionService
         return Task.FromResult(choices.First());
     }
 
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         return 0;
     }
