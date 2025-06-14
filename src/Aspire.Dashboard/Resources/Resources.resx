@@ -225,6 +225,9 @@
   <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
     <value>Health state</value>
   </data>
+  <data name="ResourcesDetailsConnectionStringProperty" xml:space="preserve">
+    <value>Connection string</value>
+  </data>
   <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
     <value>Stop time</value>
   </data>
