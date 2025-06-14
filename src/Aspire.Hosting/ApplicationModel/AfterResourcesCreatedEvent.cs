@@ -26,6 +26,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// });
 /// </code>
 /// </example>
+[Obsolete("The AfterResourcesCreatedEvent is deprecated and will be removed in a future version. Use IDistributedApplicationLifecycleHook.AfterResourcesCreatedAsync() instead.")]
 public class AfterResourcesCreatedEvent(IServiceProvider services, DistributedApplicationModel model) : IDistributedApplicationEvent
 {
     /// <summary>
