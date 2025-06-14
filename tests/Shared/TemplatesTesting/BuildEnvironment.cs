@@ -43,11 +43,15 @@ public class BuildEnvironment
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(sdkDirName: "dotnet-9"));
 
+    private static readonly Lazy<BuildEnvironment> s_instance_100 = new(() =>
+        new BuildEnvironment(sdkDirName: "dotnet-10"));
+
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
         new BuildEnvironment(sdkDirName: "dotnet-tests"));
 
     public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
     public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
+    public static BuildEnvironment ForNextSdkOnly => s_instance_100.Value;
     public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
 
     public static BuildEnvironment ForDefaultFramework =>
@@ -278,6 +282,7 @@ public class BuildEnvironment
         {
             null or "" or "net9.0" => TestTargetFramework.Current,
             "net8.0" => TestTargetFramework.Previous,
+            "net10.0" => TestTargetFramework.Next,
             _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
         };
 
@@ -287,7 +292,8 @@ public enum TestTargetFramework
 {
     // Current is default
     Current,
-    Previous
+    Previous,
+    Next
 }
 
 public static class TestTargetFrameworkExtensions
@@ -296,6 +302,7 @@ public static class TestTargetFrameworkExtensions
     {
         TestTargetFramework.Previous => "net8.0",
         TestTargetFramework.Current => "net9.0",
+        TestTargetFramework.Next => "net10.0",
         _ => throw new ArgumentOutOfRangeException(nameof(tfm))
     };
 }

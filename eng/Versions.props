@@ -12,6 +12,8 @@
     <DotNetRuntimePreviousVersionForTesting>8.0.13</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for templates tests -->
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
+    <!-- dotnet 10.0 versions for running tests - used for templates tests -->
+    <DotNetSdkNextVersionForTesting>10.0.100-preview.5.25277.114</DotNetSdkNextVersionForTesting>
     <XunitV3Version>2.0.2</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
@@ -46,7 +48,8 @@
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.4.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.4.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- for templates -->
-    <MicrosoftAspNetCorePackageVersionForNet9>9.0.2</MicrosoftAspNetCorePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">

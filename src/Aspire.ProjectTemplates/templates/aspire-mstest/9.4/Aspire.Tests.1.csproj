@@ -6,15 +6,13 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="9.2.1" />
-    <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
-    <PackageReference Include="NUnit" Version="4.2.2" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.3.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+    <PackageReference Include="MSTest" Version="3.9.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,7 +20,7 @@
     <Using Include="Microsoft.Extensions.DependencyInjection" />
     <Using Include="Aspire.Hosting.ApplicationModel" />
     <Using Include="Aspire.Hosting.Testing" />
-    <Using Include="NUnit.Framework" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
 </Project>
