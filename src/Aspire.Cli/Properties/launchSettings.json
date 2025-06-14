@@ -1,34 +1,34 @@
 {
-  "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
     "dev-waitfor-explicit": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "commandLineArgs": "dev ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj",
-      "environmentVariables": {
-      }
+      "commandLineArgs": "publish --project D:\\git\\aspire\\playground\\Redis\\Redis.AppHost\\Redis.AppHost.csproj",
+      "workingDirectory": "D:\\DotNetTest\\AspireProject\\Starter\\Starter.AppHost",
+      "dotnetRunMessages": true
     },
     "dev-waitfor-implicit": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "commandLineArgs": "dev",
       "workingDirectory": "../../playground/waitfor/WaitForSandbox.AppHost",
-      "environmentVariables": {
-      }
+      "dotnetRunMessages": true
     },
     "pack-waitfor": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "commandLineArgs": "pack ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj --target manifest --output-path aspire-manifest.json",
-      "environmentVariables": {
-      }
+      "dotnetRunMessages": true
     },
     "dev-noproject": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "commandLineArgs": "dev",
-      "environmentVariables": {
-      }
+      "dotnetRunMessages": true
     },
-  }
+    "nativeAOT": {
+      "commandName": "Executable",
+      "executablePath": "D:\\git\\aspire\\artifacts\\bin\\Aspire.Cli\\Release\\net8.0\\win-x64\\publish\\aspire.exe",
+      "commandLineArgs": "run",
+      "workingDirectory": "D:\\git\\aspire\\playground\\Redis\\Redis.AppHost",
+      "nativeDebugging": true
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json"
 }
