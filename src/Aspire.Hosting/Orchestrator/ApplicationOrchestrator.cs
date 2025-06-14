@@ -423,10 +423,17 @@ internal sealed class ApplicationOrchestrator
     private async Task PublishConnectionStringAvailableEvent(IResource resource, CancellationToken cancellationToken)
     {
         // If the resource itself has a connection string then publish that the connection string is available.
-        if (resource is IResourceWithConnectionString)
+        if (resource is IResourceWithConnectionString resourceWithConnectionString)
         {
             var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource, _serviceProvider);
             await _eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+
+            var connectionString = await resourceWithConnectionString.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false);
+
+            await _notificationService.PublishUpdateAsync(resource, state => state with
+            {
+                Properties = [.. state.Properties, new(CustomResourceKnownProperties.ConnectionString, connectionString) { IsSensitive = true }]
+            }).ConfigureAwait(false);
         }
 
         // Sometimes the container/executable itself does not have a connection string, and in those cases
