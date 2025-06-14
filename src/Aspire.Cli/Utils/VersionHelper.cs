@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Resources;
+
 namespace Aspire.Cli.Utils;
 
 internal static class VersionHelper
@@ -14,6 +16,6 @@ internal static class VersionHelper
             .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
             .FirstOrDefault()?.InformationalVersion;
 
-        return informationalVersion ?? throw new InvalidOperationException("Unable to retrieve the assembly version.");
+        return informationalVersion ?? throw new InvalidOperationException(ErrorStrings.UnableToRetrieveAssemblyVersion);
     }
 }

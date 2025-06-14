@@ -3,6 +3,8 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -16,6 +18,8 @@ using Spectre.Console;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Resources;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
 
@@ -164,7 +168,9 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
-        System.Console.OutputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
+
+        await TrySetLocaleOverrideAsync();
 
         using var app = BuildApplication(args);
 
@@ -180,5 +186,47 @@ public class Program
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
+    }
+
+    private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
+
+    private static async Task TrySetLocaleOverrideAsync()
+    {
+        var localeOverride = Environment.GetEnvironmentVariable(KnownConfigNames.CliLocaleOverride)
+                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
+                             ?? Environment.GetEnvironmentVariable(KnownConfigNames.DotnetCliUiLanguage);
+        if (localeOverride is not null)
+        {
+            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
+            {
+                await Console.Error.WriteLineAsync(errorMessage);
+            }
+        }
+
+        return;
+
+        static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
+        {
+            try
+            {
+                var cultureInfo = new CultureInfo(localeOverride);
+                if (s_supportedLocales.Contains(cultureInfo.Name) ||
+                    s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
+                {
+                    CultureInfo.CurrentUICulture = cultureInfo;
+                    CultureInfo.CurrentCulture = cultureInfo;
+                    errorMessage = null;
+                    return true;
+                }
+
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
+                return false;
+            }
+            catch (CultureNotFoundException)
+            {
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidLocaleProvided, localeOverride);
+                return false;
+            }
+        }
     }
 }
