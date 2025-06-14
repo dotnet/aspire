@@ -47,6 +47,9 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = "Start project resources in watch mode.";
         Options.Add(watchOption);
 
+        var toolParseOption = new Option<bool>("--tool", "-t");
+        toolParseOption.Description = "Runs a resource as a tool.";
+        Options.Add(toolParseOption);
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -59,7 +62,7 @@ internal sealed class RunCommand : BaseCommand
         try
         {
             using var activity = _activitySource.StartActivity();
-
+            
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
             
@@ -120,13 +123,29 @@ internal sealed class RunCommand : BaseCommand
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
-            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+            string[] runArgs;
+            var runningInToolMode = parseResult.GetValue<bool>("--tool");
+            if (runningInToolMode)
+            {
+                // todo i am too stupid to parse it from parse result
+                // and i just want to test
 
+                runArgs = [
+                    "--operation", "tool",
+                    "--tool", ..parseResult.UnmatchedTokens
+                ];
+            }
+            else
+            {
+                runArgs = parseResult.UnmatchedTokens.ToArray();
+            }
+
+            // If the app host supports the backchannel we will use it to communicate with the app host.
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
                 !watch,
-                unmatchedTokens,
+                runArgs,
                 env,
                 backchannelCompletitionSource,
                 runOptions,

@@ -22,4 +22,5 @@ internal interface IInteractionService
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
+    void WriteConsoleLog(string message, bool isError = false);
 }

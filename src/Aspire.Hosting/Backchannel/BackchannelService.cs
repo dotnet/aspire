@@ -11,7 +11,13 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
+internal sealed class BackchannelService(
+    ILogger<BackchannelService> logger,
+    IConfiguration configuration,
+    AppHostRpcTarget appHostRpcTarget,
+    IDistributedApplicationEventing eventing,
+    IServiceProvider serviceProvider)
+    : BackgroundService, ICliRpcTarget
 {
     private JsonRpc? _rpc;
     
@@ -71,5 +77,27 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
             logger.LogDebug("Backchannel service was cancelled: {Message}", ex.Message);
             return;
         }
+    }
+
+    public async Task SendCommandOutputAsync(string output, CancellationToken cancellationToken)
+    {
+        if (_rpc is null)
+        {
+            logger.LogWarning("RPC channel is null. Can't stream command output.");
+            return;
+        }
+
+        await _rpc.InvokeWithCancellationAsync("ReceiveCommandOutput", [ output ], cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task SendCommandErrorAsync(string error, CancellationToken cancellationToken)
+    {
+        if (_rpc is null)
+        {
+            logger.LogWarning("RPC channel is null. Can't stream command output.");
+            return;
+        }
+
+        await _rpc.InvokeWithCancellationAsync("ReceiveCommandError", [ error ], cancellationToken).ConfigureAwait(false);
     }
 }

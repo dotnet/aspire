@@ -30,7 +30,7 @@ public class ToolTests(ITestOutputHelper output)
             // what AppHost to target
             "--project", @"C:\code\aspire\tests\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj",
             // what resource to target
-            "--resource", "mywebapp1",
+            "--tool", "migration-add",
             // command to execute against resource
             // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
             // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932
@@ -43,30 +43,25 @@ public class ToolTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        // independent resource (should not be running)
-        //var miniPostgres = builder
-        //    .AddPostgres("miniPostgres")
-        //    .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
-        //miniPostgres.AddDatabase("miniDb");
-
         // dependant of the target resource
         var postgres = builder
             .AddPostgres("postgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
-        var mainDb = postgres.AddDatabase("mainDb");
+        var postresDb = postgres.AddDatabase("postgresDb");
 
         // the target resource
         var project = builder
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
             .WithReference(postgres);
 
-        // independent resource (should not be running)
-        // builder.AddProject<TestingAppHost1_MyWorker>("myworker");
-
         builder
-            .AddExecutable("migrate", "dotnet", new TestingAppHost1_MyWebApp().ProjectPath, "ef migrations add Init")
-            .WaitFor(project)
-            .AsTool();
+            .AddExecutable("migration-add", "dotnet", (new TestingAppHost1_MyWebApp()).ProjectPath, "ef migrations add Init")
+            .WithExplicitStart();
+
+        //builder
+        //    .AddExecutable("migration-update", "dotnet", new TestingAppHost1_MyWebApp().ProjectPath, "ef database update")
+        //    .WithExplicitStart()
+        //    .WaitFor(postresDb);
 
         await using var app = await builder.BuildAsync();
         await app.StartAsync();

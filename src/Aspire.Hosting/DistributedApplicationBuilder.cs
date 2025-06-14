@@ -19,6 +19,7 @@ using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tools;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -123,12 +124,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             "publish" => DistributedApplicationOperation.Publish,
             "run" => DistributedApplicationOperation.Run,
+            "tool" => DistributedApplicationOperation.Tool,
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
-            DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
+            DistributedApplicationOperation.Run or DistributedApplicationOperation.Tool => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
@@ -194,6 +196,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Set configuration
         ConfigurePublishingOptions(options);
+        ConfigureToolOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -262,6 +265,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
+        _innerBuilder.Services.AddSingleton<ICliRpcTarget, BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
@@ -334,6 +338,24 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 ConfigureDashboardHealthCheck();
             }
 
+            // Devcontainers & Codespaces
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
+        }
+
+        if (ExecutionContext.IsToolMode)
+        {
+            _innerBuilder.Services.AddHostedService<ToolExecutionService>();
+        }
+
+        if (ExecutionContext.IsRunMode || ExecutionContext.IsToolMode)
+        {
             if (options.EnableResourceLogging)
             {
                 // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
@@ -354,16 +376,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
-
-            // Devcontainers & Codespaces
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
-            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
-            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
-            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
-
-            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         // Publishing support
@@ -488,6 +500,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+    }
+
+    private void ConfigureToolOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
+            { "--operation", "AppHost:Operation" },
+            { "--tool", "Tool:Resource" }
+        };
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
+        _innerBuilder.Services.Configure<ToolOptions>(_innerBuilder.Configuration.GetSection(ToolOptions.Section));
     }
 
     /// <inheritdoc />

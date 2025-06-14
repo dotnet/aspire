@@ -16,5 +16,10 @@ public enum DistributedApplicationOperation
     /// <summary>
     /// AppHost is being run for the purpose of publishing a manifest for deployment.
     /// </summary>
-    Publish
+    Publish,
+
+    /// <summary>
+    /// 
+    /// </summary>
+    Tool
 }
