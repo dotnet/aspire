@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using StreamJsonRpc;
 using Xunit;
 
@@ -34,20 +35,20 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().DefaultTimeout();
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.DefaultTimeout();
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
 
-        _ = await backchannelConnectedTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        _ = await backchannelConnectedTaskCompletionSource.Task.DefaultTimeout();
         
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -64,13 +65,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().DefaultTimeout();
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.DefaultTimeout();
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -78,11 +79,11 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var timestampOut = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var timestampIn = await rpc.InvokeWithCancellationAsync<long>(
             "PingAsync",
-            [timestampOut]).WaitAsync(TimeSpan.FromSeconds(60));
+            [timestampOut]).DefaultTimeout();
 
         Assert.Equal(timestampOut, timestampIn);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -107,13 +108,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().DefaultTimeout();
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.DefaultTimeout();
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -121,7 +122,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var resourceEvents = await rpc.InvokeAsync<IAsyncEnumerable<RpcResourceState>>(
             "GetResourceStatesAsync",
             Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            ).DefaultTimeout();
 
         await foreach (var resourceEvent in resourceEvents)
         {
@@ -132,7 +133,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
             break;
         }
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -143,14 +144,14 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         builder.AddResource(new TestResource("test1"))
                .WithInitialState(new () {
-                    ResourceType = "TestResource1",
+                    ResourceType = "TestResource",
                     State = new ("Running", null),
                     Properties = []
                });
 
         builder.AddResource(new TestResource("test2"))
                .WithInitialState(new () {
-                    ResourceType = "TestResource2", 
+                    ResourceType = "TestResource", 
                     State = new ("Starting", null),
                     Properties = []
                });
@@ -163,13 +164,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().DefaultTimeout();
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.DefaultTimeout();
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -177,7 +178,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var resources = await rpc.InvokeAsync<IAsyncEnumerable<RpcResourceInfo>>(
             "GetResourcesAsync",
             Array.Empty<object>()
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            ).DefaultTimeout();
 
         var resourceList = new List<RpcResourceInfo>();
         await foreach (var resource in resources)
@@ -197,7 +198,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         Assert.Equal("test2", test2Resource.Id);
         Assert.Equal("TestResource", test2Resource.Type);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -221,13 +222,13 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().DefaultTimeout();
 
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.DefaultTimeout();
 
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
 
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
@@ -236,12 +237,12 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         var logs = await rpc.InvokeAsync<IAsyncEnumerable<ResourceLogEntry>>(
             "GetResourceLogsAsync",
             ["test"]
-            ).WaitAsync(TimeSpan.FromSeconds(60));
+            ).DefaultTimeout();
 
         // Just verify we can get the async enumerable - logs may be empty initially
         Assert.NotNull(logs);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().DefaultTimeout();
     }
 }
 
