@@ -1,0 +1,11 @@
+@HostAddress = http://localhost:5142
+
+POST {{HostAddress}}/create
+Content-Type: application/json
+
+{
+  "text": "hello world"
+}
+
+###
+
