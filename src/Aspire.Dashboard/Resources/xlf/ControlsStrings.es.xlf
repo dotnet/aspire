@@ -229,7 +229,7 @@
       </trans-unit>
       <trans-unit id="HideHiddenResources">
         <source>Hide hidden resources</source>
-        <target state="new">Hide hidden resources</target>
+        <target state="translated">Ocultar recursos ocultos</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelAll">
@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(Anular)</target>
         <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
@@ -429,7 +429,7 @@
       </trans-unit>
       <trans-unit id="ShowHiddenResources">
         <source>Show hidden resources</source>
-        <target state="new">Show hidden resources</target>
+        <target state="translated">Mostrar recursos ocultos</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
