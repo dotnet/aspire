@@ -3,7 +3,6 @@
 
 using Aspire.TestUtilities;
 using Aspire.Hosting.Utils;
-using Xunit;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;
@@ -12,6 +11,7 @@ using NATS.Client.JetStream.Models;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Aspire.Hosting.Tests.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.Nats.Tests;
 
