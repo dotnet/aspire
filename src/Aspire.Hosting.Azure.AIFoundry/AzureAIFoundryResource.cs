@@ -13,8 +13,13 @@ namespace Aspire.Hosting.Azure;
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
 public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IResourceWithEndpoints
 {
+    internal const string PrimaryEndpointName = "http";
+
+    private EndpointReference? _primaryEndpointReference;
+
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
 
     /// <summary>
@@ -26,13 +31,27 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ??
         ReferenceExpression.Create($"{ConnectionString}");
 
     /// <summary>
     /// Gets the list of deployment resources associated with the Azure AI Foundry.
     /// </summary>
     public IReadOnlyList<AzureAIFoundryDeploymentResource> Deployments => _deployments;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the resource is local.
+    /// </summary>
+    public bool IsLocal { get; set; }
+
+    /// <summary>
+    /// The API key to access Foundry Local
+    /// </summary>
+    public string? ApiKey { get; internal set; }
+
+    /// <summary>
+    /// Gets the primary endpoint reference for the resource.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpointReference ??= new(this, PrimaryEndpointName);
 
     internal void AddDeployment(AzureAIFoundryDeploymentResource deployment)
     {
@@ -42,18 +61,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     }
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName}");
-
-    internal AzureAIFoundryLocalResource? InnerResource { get; private set; }
-
-    internal void SetInnerResource(AzureAIFoundryLocalResource innerResource)
-    {
-        // Copy the annotations to the inner resource before making it the inner resource
-        foreach (var annotation in Annotations)
-        {
-            innerResource.Annotations.Add(annotation);
-        }
-
-        InnerResource = innerResource;
-    }
+        IsLocal
+            ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey}")
+            : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName}");
 }

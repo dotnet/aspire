@@ -39,6 +39,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// </summary>
     /// <remarks>
     /// This defaults to <see cref="ModelName"/>, but allows for a different deployment name in Azure.
+    /// When using Foundry Local, this is the model id.
     /// </remarks>
     public string DeploymentName { get; set; }
 
@@ -55,6 +56,9 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets or sets the format of deployment model.
     /// </summary>
+    /// <remarks>
+    /// Typical values are "OpenAI", "Microsoft", "xAi", "Deepseek".
+    /// </remarks> 
     public string Format { get; set; }
 
     /// <summary>
@@ -81,19 +85,5 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ?? Parent.GetConnectionString(DeploymentName);
-
-    internal AzureAIFoundryLocalModelResource? InnerResource { get; private set; }
-
-    internal void SetInnerResource(AzureAIFoundryLocalModelResource innerResource)
-    {
-        // Copy the annotations to the inner resource before making it the inner resource
-        foreach (var annotation in Annotations)
-        {
-            innerResource.Annotations.Add(annotation);
-        }
-
-        InnerResource = innerResource;
-    }
+    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(DeploymentName);
 }
