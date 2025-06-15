@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +48,66 @@ internal sealed class SecretsStore
 
     public bool Remove(string key) => _secrets.Remove(key);
 
+    /// <summary>
+    /// Sets values from a JsonObject, flattening nested structures to use colon-separated keys for configuration compatibility.
+    /// This ensures all secrets are stored in the flat format expected by .NET configuration.
+    /// </summary>
+    public void SetFromJsonObject(JsonObject jsonObject)
+    {
+        var flattened = FlattenJsonObject(jsonObject);
+        foreach (var kvp in flattened)
+        {
+            if (kvp.Value is not null)
+            {
+                Set(kvp.Key, kvp.Value.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Flattens a JsonObject to use colon-separated keys for configuration compatibility.
+    /// This ensures all secrets are stored in the flat format expected by .NET configuration.
+    /// </summary>
+    internal static JsonObject FlattenJsonObject(JsonObject source)
+    {
+        var result = new JsonObject();
+        FlattenJsonObjectRecursive(source, string.Empty, result);
+        return result;
+    }
+
+    private static void FlattenJsonObjectRecursive(JsonObject source, string prefix, JsonObject result)
+    {
+        foreach (var kvp in source)
+        {
+            var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
+            
+            if (kvp.Value is JsonObject nestedObject)
+            {
+                FlattenJsonObjectRecursive(nestedObject, key, result);
+            }
+            else if (kvp.Value is JsonArray array)
+            {
+                // Flatten arrays using index-based keys (standard .NET configuration format)
+                for (int i = 0; i < array.Count; i++)
+                {
+                    var arrayKey = $"{key}:{i}";
+                    if (array[i] is JsonObject arrayObject)
+                    {
+                        FlattenJsonObjectRecursive(arrayObject, arrayKey, result);
+                    }
+                    else
+                    {
+                        result[arrayKey] = array[i]?.DeepClone();
+                    }
+                }
+            }
+            else
+            {
+                result[key] = kvp.Value?.DeepClone();
+            }
+        }
+    }
+
     public void Save()
     {
         EnsureUserSecretsDirectory();
@@ -69,7 +130,8 @@ internal sealed class SecretsStore
 
         var json = contents.ToJsonString(new()
         {
-            WriteIndented = true
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
 
         File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
