@@ -121,7 +121,4 @@
   <data name="DeploymentCanceled" xml:space="preserve">
     <value>The deployment was canceled.</value>
   </data>
-  <data name="" xml:space="preserve">
-    <value>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</value>
-  </data>
 </root>

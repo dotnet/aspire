@@ -37,9 +37,34 @@
         <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConfigurationKeyNotFound">
+        <source>Configuration key {0} not found.</source>
+        <target state="new">Configuration key {0} not found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyRequired">
+        <source>Configuration key is required.</source>
+        <target state="new">Configuration key is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationValueRequired">
+        <source>Configuration value is required.</source>
+        <target state="new">Configuration value is required.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotParseAspireSDKVersion">
         <source>Could not parse Aspire.Hosting package version.</source>
         <target state="new">Could not parse Aspire.Hosting package version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorDeletingConfiguration">
+        <source>Error deleting configuration: {0}</source>
+        <target state="new">Error deleting configuration: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorSettingConfiguration">
+        <source>Error setting configuration: {0}</source>
+        <target state="new">Error setting configuration: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">

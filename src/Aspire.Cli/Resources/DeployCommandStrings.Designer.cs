@@ -74,11 +74,5 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("DeploymentCanceled", resourceCulture);
             }
         }
-        
-        public static string _ {
-            get {
-                return ResourceManager.GetString("", resourceCulture);
-            }
-        }
     }
 }
