@@ -125,7 +125,7 @@
     <value>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</value>
   </data>
   <data name="AspireHostingSDKVersion" xml:space="preserve">
-    <value>Aspire Hosting SDK Version</value>
+    <value>Aspire.Hosting Version</value>
   </data>
   <data name="AspireCLIVersion" xml:space="preserve">
     <value>Aspire CLI Version</value>

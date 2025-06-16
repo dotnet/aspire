@@ -281,6 +281,9 @@ public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
     string? IPropertyGridItem.Value => _displayValue.Value;
     object IPropertyGridItem.Key => _key;
 
+    bool IPropertyGridItem.IsValueSensitive => _propertyViewModel.IsValueSensitive;
+    bool IPropertyGridItem.IsValueMasked { get => _propertyViewModel.IsValueMasked; set => _propertyViewModel.IsValueMasked = value; }
+
     public DisplayedResourcePropertyViewModel(ResourcePropertyViewModel propertyViewModel, IStringLocalizer<Resources.Resources> loc, BrowserTimeProvider browserTimeProvider)
     {
         _propertyViewModel = propertyViewModel;

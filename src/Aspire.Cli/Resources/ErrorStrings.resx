@@ -154,10 +154,10 @@
     <value>The project is not an Aspire app host project.</value>
   </data>
   <data name="CouldNotParseAspireSDKVersion" xml:space="preserve">
-    <value>Could not parse Aspire SDK version.</value>
+    <value>Could not parse Aspire.Hosting package version.</value>
   </data>
   <data name="AspireSDKVersionNotSupported" xml:space="preserve">
-    <value>The Aspire SDK version {0} is not supported. Please update to the latest version.</value>
+    <value>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</value>
   </data>
   <data name="UnableToRetrieveAssemblyVersion" xml:space="preserve">
     <value>Unable to retrieve the assembly version.</value>

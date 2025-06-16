@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingSDKVersion">
-        <source>Aspire Hosting SDK Version</source>
-        <target state="new">Aspire Hosting SDK Version</target>
+        <source>Aspire.Hosting Version</source>
+        <target state="new">Aspire.Hosting Version</target>
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">

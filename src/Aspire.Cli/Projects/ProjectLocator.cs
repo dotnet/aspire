@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -16,13 +16,12 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
-    private readonly ActivitySource _activitySource = new(nameof(ProjectLocator));
 
     private async Task<List<FileInfo>> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {

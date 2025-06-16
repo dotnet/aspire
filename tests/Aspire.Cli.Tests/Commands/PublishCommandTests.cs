@@ -5,6 +5,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Aspire.Cli.Utils;
@@ -162,6 +163,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9870")]
     public async Task PublishCommandSucceedsEndToEnd()
     {
         // Arrange

@@ -74,14 +74,14 @@ internal class InteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 
         DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
         _ansiConsole.MarkupLine(
-            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingSdkVersion}");
+            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
         _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
         _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();

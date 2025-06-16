@@ -18,8 +18,8 @@
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AspireSDKVersionNotSupported">
-        <source>The Aspire SDK version {0} is not supported. Please update to the latest version.</source>
-        <target state="new">The Aspire SDK version {0} is not supported. Please update to the latest version.</target>
+        <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
+        <target state="new">The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</target>
         <note />
       </trans-unit>
       <trans-unit id="CantUseBothWatchAndNoBuild">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="CouldNotParseAspireSDKVersion">
-        <source>Could not parse Aspire SDK version.</source>
-        <target state="new">Could not parse Aspire SDK version.</target>
+        <source>Could not parse Aspire.Hosting package version.</source>
+        <target state="new">Could not parse Aspire.Hosting package version.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
