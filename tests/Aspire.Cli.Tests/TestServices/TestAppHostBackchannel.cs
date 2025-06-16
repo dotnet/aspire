@@ -3,10 +3,12 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.TestServices;
 
-internal sealed class TestAppHostBackchannel : IAppHostBackchannel
+internal sealed class TestAppHostBackchannel() : BaseBackchannel<TestAppHostBackchannel>("Test", NullLogger<TestAppHostBackchannel>.Instance, new CliRpcTarget(), new AspireCliTelemetry()), IAppHostBackchannel
 {
     public TaskCompletionSource? PingAsyncCalled { get; set; }
     public Func<long, Task<long>>? PingAsyncCallback { get; set; }
@@ -29,7 +31,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
+#pragma warning disable IDE0060
+    public new Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
+#pragma warning restore IDE0060
     {
         PingAsyncCalled?.SetResult();
         return PingAsyncCallback != null
@@ -37,7 +41,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             : Task.FromResult(timestamp);
     }
 
+#pragma warning disable IDE0060
     public Task RequestStopAsync(CancellationToken cancellationToken)
+#pragma warning restore IDE0060
     {
         RequestStopAsyncCalled?.SetResult();
         if (RequestStopAsyncCallback != null)
@@ -95,7 +101,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public new async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
     {
         ConnectAsyncCalled?.SetResult();
         if (ConnectAsyncCallback !=  null)
@@ -129,7 +135,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    public new async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         GetCapabilitiesAsyncCalled?.SetResult();
         if (GetCapabilitiesAsyncCallback != null)
@@ -138,7 +144,14 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
-            return ["baseline.v2"];
+            return [BaselineCapability];
         }
     }
+
+    public override void RaiseIncompatibilityException(string missingCapability)
+    {
+        throw new AppHostIncompatibleException(missingCapability, missingCapability);
+    }
+
+    public override string BaselineCapability => "baseline.v2";
 }
