@@ -1,0 +1,59 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <_PublishOutputDirectory>$(ArtifactsBinDir)Aspire.Cli/$(Configuration)/net8.0/$(CliRuntime)/publish/</_PublishOutputDirectory>
+  </PropertyGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+  <Target Name="Build" />
+
+  <Target Name="BeforeBuild" BeforeTargets="Build">
+    <ItemGroup>
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
+      <AdditionalProperties Include="PublishSingleFile=true" />
+      <AdditionalProperties Include="SelfContained=true" />
+    </ItemGroup>
+
+    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
+
+    <ItemGroup>
+      <_PublishItems Include="$(_PublishOutputDirectory)**/*" />
+    </ItemGroup>
+
+    <!-- Throw an error if _PublishItems is empty. -->
+    <Error Condition="'@(_PublishItems)' == ''"
+      Text="No files were found to pack in $(_PublishOutputDirectory). Ensure that the project $(MSBuildProjectFullPath) has a publish target defined." />
+
+    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
+
+    <PropertyGroup>
+      <_OutputArchiveDir>$([MSBuild]::NormalizeDirectory($(CliPublishedArtifactsOutputDir), $(CliRuntime)))</_OutputArchiveDir>
+      <_OutputFilenameWithoutExtension>$(_OutputArchiveDir)aspire-cli-$(CliRuntime)</_OutputFilenameWithoutExtension>
+      <_CreateTarGzScriptPath>$(RepositoryEngineeringDir)scripts\create-tar-gz.ps1</_CreateTarGzScriptPath>
+    </PropertyGroup>
+
+    <!-- Create zip for non-Linux runtimes -->
+    <ZipDirectory
+      Condition="!$(CliRuntime.StartsWith('linux-'))"
+      SourceDirectory="$(_PublishOutputDirectory)"
+      DestinationFile="$(_OutputFilenameWithoutExtension).zip"
+      Overwrite="true" />
+
+    <!-- Create tar.gz for Linux runtimes using PowerShell script -->
+    <ItemGroup>
+      <_CreateTarGzArguments Include="-SourceDirectory &quot;$(_PublishOutputDirectory)&quot;" />
+      <_CreateTarGzArguments Include="-DestinationFile &quot;$(_OutputFilenameWithoutExtension).tar.gz&quot;" />
+      <_CreateTarGzArguments Include="-Overwrite true" />
+    </ItemGroup>
+
+    <Exec
+      Condition="$(CliRuntime.StartsWith('linux-'))"
+      Command="pwsh &quot;$(_CreateTarGzScriptPath)&quot; @(_CreateTarGzArguments, ' ')"
+      ContinueOnError="false" />
+  </Target>
+
+</Project>

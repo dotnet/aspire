@@ -32,6 +32,7 @@
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
 
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
+    <CliPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'CliArtifacts', '$(Configuration)'))</CliPublishedArtifactsOutputDir>
     <WorkloadsPackageSource>$(ArtifactsShippingPackagesDir)</WorkloadsPackageSource>
 
     <!-- Issue: https://github.com/dotnet/aspire/issues/8488 -->
