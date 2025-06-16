@@ -50,5 +50,95 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
+        
+        public static string GetCommand_Description {
+            get {
+                return ResourceManager.GetString("GetCommand_Description", resourceCulture);
+            }
+        }
+        
+        public static string GetCommand_KeyArgumentDescription {
+            get {
+                return ResourceManager.GetString("GetCommand_KeyArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_Description {
+            get {
+                return ResourceManager.GetString("SetCommand_Description", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_KeyArgumentDescription {
+            get {
+                return ResourceManager.GetString("SetCommand_KeyArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_ValueArgumentDescription {
+            get {
+                return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_GlobalArgumentDescription {
+            get {
+                return ResourceManager.GetString("SetCommand_GlobalArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationKeySetLocally {
+            get {
+                return ResourceManager.GetString("ConfigurationKeySetLocally", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationKeySetGlobally {
+            get {
+                return ResourceManager.GetString("ConfigurationKeySetGlobally", resourceCulture);
+            }
+        }
+        
+        public static string ListCommand_Description {
+            get {
+                return ResourceManager.GetString("ListCommand_Description", resourceCulture);
+            }
+        }
+        
+        public static string NoConfigurationValuesFound {
+            get {
+                return ResourceManager.GetString("NoConfigurationValuesFound", resourceCulture);
+            }
+        }
+        
+        public static string DeleteCommand_Description {
+            get {
+                return ResourceManager.GetString("DeleteCommand_Description", resourceCulture);
+            }
+        }
+        
+        public static string DeleteCommand_KeyArgumentDescription {
+            get {
+                return ResourceManager.GetString("DeleteCommand_KeyArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string DeleteCommand_GlobalArgumentDescription {
+            get {
+                return ResourceManager.GetString("DeleteCommand_GlobalArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationKeyDeletedLocally {
+            get {
+                return ResourceManager.GetString("ConfigurationKeyDeletedLocally", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationKeyDeletedGlobally {
+            get {
+                return ResourceManager.GetString("ConfigurationKeyDeletedGlobally", resourceCulture);
+            }
+        }
     }
 }

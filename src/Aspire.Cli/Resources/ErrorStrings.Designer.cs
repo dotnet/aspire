@@ -164,5 +164,35 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireHostingVersionNull", resourceCulture);
             }
         }
+        
+        public static string ConfigurationKeyRequired {
+            get {
+                return ResourceManager.GetString("ConfigurationKeyRequired", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationValueRequired {
+            get {
+                return ResourceManager.GetString("ConfigurationValueRequired", resourceCulture);
+            }
+        }
+        
+        public static string ConfigurationKeyNotFound {
+            get {
+                return ResourceManager.GetString("ConfigurationKeyNotFound", resourceCulture);
+            }
+        }
+        
+        public static string ErrorSettingConfiguration {
+            get {
+                return ResourceManager.GetString("ErrorSettingConfiguration", resourceCulture);
+            }
+        }
+        
+        public static string ErrorDeletingConfiguration {
+            get {
+                return ResourceManager.GetString("ErrorDeletingConfiguration", resourceCulture);
+            }
+        }
     }
 }

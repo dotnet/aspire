@@ -180,4 +180,19 @@
   <data name="AspireHostingVersionNull" xml:space="preserve">
     <value>AspireHostingVersion is null</value>
   </data>
+  <data name="ConfigurationKeyRequired" xml:space="preserve">
+    <value>Configuration key is required.</value>
+  </data>
+  <data name="ConfigurationValueRequired" xml:space="preserve">
+    <value>Configuration value is required.</value>
+  </data>
+  <data name="ConfigurationKeyNotFound" xml:space="preserve">
+    <value>Configuration key {0} not found.</value>
+  </data>
+  <data name="ErrorSettingConfiguration" xml:space="preserve">
+    <value>Error setting configuration: {0}</value>
+  </data>
+  <data name="ErrorDeletingConfiguration" xml:space="preserve">
+    <value>Error deleting configuration: {0}</value>
+  </data>
 </root>
