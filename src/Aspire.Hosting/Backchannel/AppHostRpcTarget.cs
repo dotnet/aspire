@@ -180,14 +180,12 @@ internal class AppHostRpcTarget(
             });
     }
 
-    public IAsyncEnumerable<RpcResourceInfo> GetResourcesAsync(CancellationToken cancellationToken)
+    public Task<RpcResourceInfo[]> GetResourcesAsync(CancellationToken cancellationToken)
     {
         _ = cancellationToken;
-        return GetResourcesAsyncCore();
-    }
 
-    private async IAsyncEnumerable<RpcResourceInfo> GetResourcesAsyncCore()
-    {
+        var resources = new List<RpcResourceInfo>();
+
         foreach (var resource in distributedApplicationModel.Resources)
         {
             if (resource.Name == "aspire-dashboard")
@@ -201,16 +199,16 @@ internal class AppHostRpcTarget(
 
             foreach (var resourceId in resourceNames)
             {
-                yield return new RpcResourceInfo
+                resources.Add(new RpcResourceInfo
                 {
                     Id = resourceId,
                     Name = resource.Name,
                     Type = resourceType
-                };
+                });
             }
         }
 
-        await Task.CompletedTask.ConfigureAwait(false); // Suppress the async warning
+        return Task.FromResult(resources.ToArray());
     }
 
     public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)

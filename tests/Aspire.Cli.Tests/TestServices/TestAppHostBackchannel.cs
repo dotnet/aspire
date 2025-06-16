@@ -30,7 +30,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
     public TaskCompletionSource? GetResourcesAsyncCalled { get; set; }
-    public Func<CancellationToken, Task<IAsyncEnumerable<RpcResourceInfo>>>? GetResourcesAsyncCallback { get; set; }
+    public Func<CancellationToken, Task<RpcResourceInfo[]>>? GetResourcesAsyncCallback { get; set; }
 
     public TaskCompletionSource? GetResourceLogsAsyncCalled { get; set; }
     public Func<string, CancellationToken, IAsyncEnumerable<ResourceLogEntry>>? GetResourceLogsAsyncCallback { get; set; }
@@ -148,7 +148,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public async Task<IAsyncEnumerable<RpcResourceInfo>> GetResourcesAsync(CancellationToken cancellationToken)
+    public async Task<RpcResourceInfo[]> GetResourcesAsync(CancellationToken cancellationToken)
     {
         GetResourcesAsyncCalled?.SetResult();
         if (GetResourcesAsyncCallback != null)
@@ -157,7 +157,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
-            return GetEmptyResourcesAsync();
+            return Array.Empty<RpcResourceInfo>();
         }
     }
 
@@ -178,11 +178,4 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             yield return new ResourceLogEntry { Line = "Test log entry 1", Stream = LogEntryStream.StdOut };
             yield return new ResourceLogEntry { Line = "Test log entry 2", Stream = LogEntryStream.StdErr };
         }
-    }
-
-    private static async IAsyncEnumerable<RpcResourceInfo> GetEmptyResourcesAsync()
-    {
-        await Task.CompletedTask;
-        yield break;
-    }
 }

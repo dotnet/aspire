@@ -175,18 +175,12 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
-        var resources = await rpc.InvokeAsync<IAsyncEnumerable<RpcResourceInfo>>(
+        var resourceList = await rpc.InvokeAsync<RpcResourceInfo[]>(
             "GetResourcesAsync",
             Array.Empty<object>()
             ).DefaultTimeout();
 
-        var resourceList = new List<RpcResourceInfo>();
-        await foreach (var resource in resources)
-        {
-            resourceList.Add(resource);
-        }
-
-        Assert.Equal(2, resourceList.Count);
+        Assert.Equal(2, resourceList.Length);
         
         var test1Resource = resourceList.FirstOrDefault(r => r.Name == "test1");
         Assert.NotNull(test1Resource);
