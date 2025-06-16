@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rendering;
 using Spectre.Console;
@@ -13,8 +15,9 @@ internal class RunExperimentalCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly IProjectLocator _projectLocator;
     private readonly IDotNetCliRunner _runner;
+    private readonly ICertificateService _certificateService;
 
-    public RunExperimentalCommand(IAnsiConsole ansiConsole, IProjectLocator projectLocator, IDotNetCliRunner runner) : base("runx", "Experimental run command")
+    public RunExperimentalCommand(IAnsiConsole ansiConsole, IProjectLocator projectLocator, IDotNetCliRunner runner, ICertificateService certificateService) : base("runx", "Experimental run command")
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(projectLocator);
@@ -23,10 +26,47 @@ internal class RunExperimentalCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _projectLocator = projectLocator;
         _runner = runner;
+        _certificateService = certificateService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = "The path to the Aspire app host project file.";
         Options.Add(projectOption);
+    }
+
+    private async Task<int> RunAppHostAsync(RunExperimentalState state, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
+
+        var pendingRun = _runner.RunAsync(
+            projectFile,
+            false,
+            false,
+            Array.Empty<string>(),
+            null,
+            backchannelCompletitionSource,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken
+            );
+
+        await state.UpdateStatusAsync("Starting app host...", cancellationToken);
+
+        var backchannel = await  backchannelCompletitionSource.Task;
+
+        await state.UpdateStatusAsync("Backchannel connected.", cancellationToken);
+
+        var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+
+        await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+        {
+            var resource = new CliResource
+            {
+                Name = resourceState.Resource,
+            };
+
+            await state.UpdateResourceAsync(resource, cancellationToken);
+        }   
+
+        return await pendingRun;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -39,8 +79,10 @@ internal class RunExperimentalCommand : BaseCommand
 
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+        await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
         var state = new RunExperimentalState();
+        _ = Task.Run(() => RunAppHostAsync(state, projectFile!, cancellationToken), cancellationToken);
 
         try
         {
@@ -48,37 +90,19 @@ internal class RunExperimentalCommand : BaseCommand
 
             var renderable = new RunExperimentalRenderable(state);
 
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 while (true)
                 {
                     try
                     {
                         var keyInfo = Console.ReadKey(true);
-                        renderable.ProcessInput(keyInfo.Key);
+                        await renderable.ProcessInputAsync(keyInfo.Key, cancellationToken);
                     }
                     catch (Exception)
                     {
                         Console.Beep();
                     }
-                }
-            }, cancellationToken);
-
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(2000, cancellationToken);
-                await state.UpdateStatusAsync("Building app host.", cancellationToken);
-                await Task.Delay(2000, cancellationToken);
-                await state.UpdateStatusAsync("Launching app host.", cancellationToken);
-                await Task.Delay(2000, cancellationToken);
-                await state.UpdateStatusAsync("Starting dashboard", cancellationToken);
-
-                var counter = 0;
-                while (true)
-                {
-                    await Task.Delay(3000, cancellationToken);
-                    await state.UpdateStatusAsync($"Counter: {counter}", cancellationToken);
-                    counter++;
                 }
             }, cancellationToken);
 
