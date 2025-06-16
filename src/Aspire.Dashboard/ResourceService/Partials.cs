@@ -145,7 +145,8 @@ partial class Resource
                 value: ValidateNotNull(property.Value),
                 isValueSensitive: property.IsSensitive,
                 knownProperty: knownProperty,
-                priority: priority);
+                priority: priority)
+            { IsValueMasked = property.IsSensitive };
 
             if (builder.ContainsKey(propertyViewModel.Name))
             {

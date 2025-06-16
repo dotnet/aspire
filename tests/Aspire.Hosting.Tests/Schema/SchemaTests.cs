@@ -137,6 +137,8 @@ public class SchemaTests
 
                 { "VanillaProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
+                        builder.AddAzureContainerAppEnvironment("env");
+
                         builder.AddProject<Projects.ServiceA>("project")
                                .PublishAsAzureContainerApp((_, _) => { });
 
@@ -145,6 +147,8 @@ public class SchemaTests
 
                 { "CustomizedProjectBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
+                        builder.AddAzureContainerAppEnvironment("env");
+
                         var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddProject<Projects.ServiceA>("project")
@@ -158,6 +162,8 @@ public class SchemaTests
 
                 { "VanillaContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
+                        builder.AddAzureContainerAppEnvironment("env");
+
                         builder.AddContainer("mycontainer", "myimage")
                                .PublishAsAzureContainerApp((_, _) => { });
 
@@ -166,6 +172,8 @@ public class SchemaTests
 
                 { "CustomizedContainerBasedContainerApp", (IDistributedApplicationBuilder builder) =>
                     {
+                        builder.AddAzureContainerAppEnvironment("env");
+
                         var minReplicas = builder.AddParameter("minReplicas");
 
                         builder.AddContainer("mycontainer", "myimage")

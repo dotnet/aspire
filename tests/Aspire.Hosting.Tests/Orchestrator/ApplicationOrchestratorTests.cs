@@ -384,6 +384,51 @@ public class ApplicationOrchestratorTests
         Assert.True(grandChildConnectionStringAvailable);
     }
 
+    [Fact]
+    public async Task ConnectionStringAvailableEventPublishesUpdateWithConnectionStringValue()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var resource = builder.AddResource(new TestResourceWithConnectionString("test-resource", "Server=localhost:5432;Database=testdb"));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var applicationEventing = new DistributedApplicationEventing();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events, applicationEventing: applicationEventing);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? connectionStringProperty = null;
+        bool? isSensitive = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == resource.Resource)
+                {
+                    var connectionStringProp = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ConnectionString);
+                    if (connectionStringProp is not null)
+                    {
+                        connectionStringProperty = connectionStringProp.Value?.ToString();
+                        isSensitive = connectionStringProp.IsSensitive;
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Publish the ConnectionStringAvailableEvent to trigger the update
+        await applicationEventing.PublishAsync(new ConnectionStringAvailableEvent(resource.Resource, app.Services), CancellationToken.None);
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal("Server=localhost:5432;Database=testdb", connectionStringProperty);
+        Assert.True(isSensitive);
+    }
+
     private static ApplicationOrchestrator CreateOrchestrator(
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
@@ -466,5 +511,16 @@ public class ApplicationOrchestratorTests
             ReferenceExpression.Create($"{parent};{SubConnectionString}");
 
         public IResource Parent { get; } = parent;
+    }
+
+    private sealed class TestResourceWithConnectionString(string name, string connectionString)
+        : Resource(name), IResourceWithConnectionString
+    {
+        public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{connectionString}");
+
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<string?>(connectionString);
+        }
     }
 }
