@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 
 #if DEBUG
 using System.Diagnostics;
 #endif
 
 using Aspire.Cli.Interaction;
-
+using Aspire.Cli.Resources;
 using BaseRootCommand = System.CommandLine.RootCommand;
 
 namespace Aspire.Cli.Commands;
@@ -18,7 +19,7 @@ internal sealed class RootCommand : BaseRootCommand
     private readonly IInteractionService _interactionService;
 
     public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IInteractionService interactionService)
-        : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
+        : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
@@ -31,17 +32,17 @@ internal sealed class RootCommand : BaseRootCommand
         _interactionService = interactionService;
 
         var debugOption = new Option<bool>("--debug", "-d");
-        debugOption.Description = "Enable debug logging to the console.";
+        debugOption.Description = RootCommandStrings.DebugArgumentDescription;
         debugOption.Recursive = true;
         Options.Add(debugOption);
 
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
-        waitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
+        waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
         waitForDebuggerOption.Recursive = true;
         waitForDebuggerOption.DefaultValueFactory = (result) => false;
 
         var cliWaitForDebuggerOption = new Option<bool>("--cli-wait-for-debugger");
-        cliWaitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
+        cliWaitForDebuggerOption.Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription;
         cliWaitForDebuggerOption.Recursive = true;
         cliWaitForDebuggerOption.Hidden = true;
         cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
@@ -55,7 +56,7 @@ internal sealed class RootCommand : BaseRootCommand
             if (waitForDebugger)
             {
                 _interactionService.ShowStatus(
-                    $":bug:  Waiting for debugger to attach to CLI process ID: {Environment.ProcessId}",
+                    $":bug:  {string.Format(CultureInfo.CurrentCulture, RootCommandStrings.WaitingForDebugger, Environment.ProcessId)}",
                     () =>
                     {
                         while (!Debugger.IsAttached)
