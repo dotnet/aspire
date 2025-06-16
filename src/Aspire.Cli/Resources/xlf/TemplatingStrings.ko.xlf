@@ -122,6 +122,11 @@
         <target state="new">The template installation failed with exit code {0}. For more information run with --debug switch.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
+      <trans-unit id="Unknown">
+        <source>Unknown</source>
+        <target state="new">Unknown</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UseRedisCache_Description">
         <source>Configures whether to setup the application to use Redis for caching.</source>
         <target state="new">Configures whether to setup the application to use Redis for caching.</target>

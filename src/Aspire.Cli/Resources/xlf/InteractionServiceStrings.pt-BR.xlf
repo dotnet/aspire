@@ -52,6 +52,11 @@
         <target state="new">Direct</target>
         <note>Represents a type of link</note>
       </trans-unit>
+      <trans-unit id="ErrorConnectingToAppHost">
+        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
+        <target state="new">An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding app hosts...</source>
         <target state="new">Finding app hosts...</target>
@@ -61,6 +66,31 @@
         <source>No items available for selection: {0}</source>
         <target state="new">No items available for selection: {0}</target>
         <note>{0} is the original selection prompt text.</note>
+      </trans-unit>
+      <trans-unit id="OperationCancelled">
+        <source>The operation was canceled.</source>
+        <target state="new">The operation was canceled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeBuilt">
+        <source>The project could not be built. For more information run with --debug switch.</source>
+        <target state="new">The project could not be built. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDoesntExist">
+        <source>The --project option specified a project that does not exist.</source>
+        <target state="new">The --project option specified a project that does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
+        <source>The --project option was not specified and multiple app host project files were detected.</source>
+        <target state="new">The --project option was not specified and multiple app host project files were detected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
+        <source>The project argument was not specified and no *.csproj files were detected.</source>
+        <target state="new">The project argument was not specified and no *.csproj files were detected.</target>
+        <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
         <source>Required Capability</source>
@@ -77,6 +107,11 @@
         <target state="new">Select app host to run</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpecifiedProjectFileNotAppHostProject">
+        <source>The specified project file is not an Aspire app host project.</source>
+        <target state="new">The specified project file is not an Aspire app host project.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StoppingAspire">
         <source>Stopping Aspire.</source>
         <target state="new">Stopping Aspire.</target>
@@ -85,6 +120,16 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="new">Trusting certificates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedErrorOccurred">
+        <source>An unexpected error occurred: {0}</source>
+        <target state="new">An unexpected error occurred: {0}</target>
+        <note>{0} is the exception message</note>
+      </trans-unit>
+      <trans-unit id="WaitingForDebuggerToAttachToAppHost">
+        <source>Waiting for debugger to attach to app host process</source>
+        <target state="new">Waiting for debugger to attach to app host process</target>
         <note />
       </trans-unit>
     </body>

@@ -85,6 +85,16 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>RunCommandStrings.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\ConfigCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigCommandStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\DeployCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DeployCommandStrings.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -144,6 +154,19 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>RunCommandStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ConfigCommandStrings.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ConfigCommandStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\DeployCommandStrings.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>DeployCommandStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
-
 </Project>

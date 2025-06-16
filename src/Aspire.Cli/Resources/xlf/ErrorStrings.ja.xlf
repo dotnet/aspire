@@ -17,6 +17,11 @@
         <target state="new">AppHost file was specified in '{0}' but it does not exist at '{1}'.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AspireHostingVersionNull">
+        <source>AspireHostingVersion is null</source>
+        <target state="new">AspireHostingVersion is null</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireSDKVersionNotSupported">
         <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
         <target state="new">The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</target>
@@ -57,6 +62,16 @@
         <target state="new">Invalid locale {0} provided will not be used.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleProjectFilesFound">
+        <source>Multiple project files found.</source>
+        <target state="new">Multiple project files found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectFileFound">
+        <source>No project file found.</source>
+        <target state="new">No project file found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
         <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
         <target state="new">The project could not be analyzed due to a build error. For more information run with --debug switch.</target>
@@ -65,6 +80,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="new">Project file does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileNotAppHostProject">
+        <source>Project file is not an Aspire app host project.</source>
+        <target state="new">Project file is not an Aspire app host project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">

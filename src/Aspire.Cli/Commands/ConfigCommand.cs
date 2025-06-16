@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
@@ -16,7 +17,7 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IInteractionService _interactionService;
 
     public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService)
-        : base("config", "Manage configuration settings.")
+        : base("config", ConfigCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
