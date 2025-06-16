@@ -32,8 +32,8 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetResourcesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<RpcResourceInfo[]>>? GetResourcesAsyncCallback { get; set; }
 
-    public TaskCompletionSource? GetResourceLogsAsyncCalled { get; set; }
-    public Func<string, CancellationToken, IAsyncEnumerable<ResourceLogEntry>>? GetResourceLogsAsyncCallback { get; set; }
+    public TaskCompletionSource? GetAppHostLogsAsyncCalled { get; set; }
+    public Func<CancellationToken, IAsyncEnumerable<ResourceLogEntry>>? GetAppHostLogsAsyncCallback { get; set; }
 
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -161,12 +161,12 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ResourceLogEntry> GetAppHostLogsAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
-        GetResourceLogsAsyncCalled?.SetResult();
-        if (GetResourceLogsAsyncCallback != null)
+        GetAppHostLogsAsyncCalled?.SetResult();
+        if (GetAppHostLogsAsyncCallback != null)
         {
-            var logEntries = GetResourceLogsAsyncCallback.Invoke(resourceId, cancellationToken);
+            var logEntries = GetAppHostLogsAsyncCallback.Invoke(cancellationToken);
             await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
             {
                 yield return logEntry;
@@ -174,8 +174,10 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
-            // Return some test log entries
-            yield return new ResourceLogEntry { Line = "Test log entry 1", Stream = LogEntryStream.StdOut };
-            yield return new ResourceLogEntry { Line = "Test log entry 2", Stream = LogEntryStream.StdErr };
+            // Return some test AppHost log entries
+            yield return new ResourceLogEntry { Line = "AppHost started", Stream = LogEntryStream.StdOut };
+            yield return new ResourceLogEntry { Line = "Configuration loaded", Stream = LogEntryStream.StdOut };
+            yield return new ResourceLogEntry { Line = "Resources initialized", Stream = LogEntryStream.StdOut };
         }
+    }
 }

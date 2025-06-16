@@ -196,7 +196,7 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task CanGetResourceLogs()
+    public async Task CanGetAppHostLogs()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
         builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
@@ -227,10 +227,10 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
 
-        // Test that the GetResourceLogsAsync method exists and returns the correct type
+        // Test that the GetAppHostLogsAsync method exists and returns the correct type
         var logs = await rpc.InvokeAsync<IAsyncEnumerable<ResourceLogEntry>>(
-            "GetResourceLogsAsync",
-            ["test"]
+            "GetAppHostLogsAsync",
+            Array.Empty<object>()
             ).DefaultTimeout();
 
         // Just verify we can get the async enumerable - logs may be empty initially

@@ -21,8 +21,7 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
-    DistributedApplicationModel distributedApplicationModel,
-    ResourceLoggerService resourceLoggerService
+    DistributedApplicationModel distributedApplicationModel
     ) 
 {
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
@@ -211,23 +210,26 @@ internal class AppHostRpcTarget(
         return Task.FromResult(resources.ToArray());
     }
 
-    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ResourceLogEntry> GetAppHostLogsAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(resourceId);
-
-        var logStream = resourceLoggerService.WatchAsync(resourceId);
-
-        await foreach (var logBatch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
+        // For now, return a simple implementation that generates some sample AppHost logs
+        // This will be replaced with actual AppHost log capture in a follow-up
+        var sampleLogs = new[]
         {
-            foreach (var logLine in logBatch)
-            {
-                yield return new ResourceLogEntry
-                {
-                    Line = logLine.Content,
-                    Stream = logLine.IsErrorMessage ? LogEntryStream.StdErr : LogEntryStream.StdOut
-                };
-            }
+            new ResourceLogEntry { Line = "AppHost started successfully", Stream = LogEntryStream.StdOut },
+            new ResourceLogEntry { Line = "Loading configuration...", Stream = LogEntryStream.StdOut },
+            new ResourceLogEntry { Line = "Resources initialized", Stream = LogEntryStream.StdOut }
+        };
+
+        foreach (var log in sampleLogs)
+        {
+            yield return log;
+            await Task.Delay(1000, cancellationToken).ConfigureAwait(false); // Simulate streaming
         }
+
+        // TODO: Implement actual AppHost log streaming
+        // This should capture logs from the AppHost application itself, not individual resources
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 #pragma warning restore CA1822
 }

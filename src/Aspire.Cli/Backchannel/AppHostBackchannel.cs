@@ -19,7 +19,7 @@ internal interface IAppHostBackchannel
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task<RpcResourceInfo[]> GetResourcesAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, CancellationToken cancellationToken);
+    IAsyncEnumerable<ResourceLogEntry> GetAppHostLogsAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : IAppHostBackchannel
@@ -200,20 +200,20 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         return resources;
     }
 
-    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ResourceLogEntry> GetAppHostLogsAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Requesting resource logs for {ResourceId}", resourceId);
+        logger.LogDebug("Requesting AppHost logs");
 
         var logEntries = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceLogEntry>>(
-            "GetResourceLogsAsync",
-            [resourceId],
+            "GetAppHostLogsAsync",
+            Array.Empty<object>(),
             cancellationToken);
 
-        logger.LogDebug("Received resource logs async enumerable for {ResourceId}", resourceId);
+        logger.LogDebug("Received AppHost logs async enumerable");
 
         await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
         {
