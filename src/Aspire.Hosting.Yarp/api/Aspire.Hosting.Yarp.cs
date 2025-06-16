@@ -13,11 +13,20 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> AddYarp(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfigFile(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string configFilePath) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<Yarp.IYarpConfigurationBuilder> configurationBuilder) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Yarp
 {
+    public partial interface IYarpConfigurationBuilder
+    {
+        IYarpConfigurationBuilder AddCluster(global::Yarp.ReverseProxy.Configuration.ClusterConfig cluster);
+        IYarpConfigurationBuilder AddRoute(global::Yarp.ReverseProxy.Configuration.RouteConfig route);
+        IYarpConfigurationBuilder WithConfigFile(string configFilePath);
+    }
+
     public partial class YarpResource : ApplicationModel.ContainerResource
     {
         public YarpResource(string name) : base(default!, default) { }
