@@ -87,16 +87,15 @@ internal class ToolExecutionService : BackgroundService
             }
         };
 
+        _logger.LogDebug("Starting tool execution: {Command} at {WorkingDir} with args {Args}", processSpec.ExecutablePath, processSpec.WorkingDirectory, processSpec.Arguments);
         var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
-        var processResult = await processResultTask.ConfigureAwait(false);
+        var processWatcherTask = Task.Run(async () =>
+        {
+            await processResultTask.ConfigureAwait(false);
+            await Task.WhenAll(sendingTasks).ConfigureAwait(false);
+            outputChannel.Writer.Complete();
+        }, cancellationToken);
 
-        // Wait for all output to be written into channel
-        await Task.WhenAll(sendingTasks).ConfigureAwait(false);
-
-        // No more output expected, close the channel
-        outputChannel.Writer.Complete();
-
-        // Stream output with IsError
         await foreach (var (data, isError) in outputChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
             yield return new CommandOutput
@@ -106,6 +105,8 @@ internal class ToolExecutionService : BackgroundService
             };
         }
 
+        await processWatcherTask.ConfigureAwait(false);
+        _logger.LogDebug("Finished tool execution: {Command} at {WorkingDir} with args {Args}", processSpec.ExecutablePath, processSpec.WorkingDirectory, processSpec.Arguments);
         await disposable.DisposeAsync().ConfigureAwait(false);
     }
 
