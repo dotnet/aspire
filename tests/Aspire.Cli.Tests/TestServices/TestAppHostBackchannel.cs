@@ -29,6 +29,12 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
+    public TaskCompletionSource? GetResourcesAsyncCalled { get; set; }
+    public Func<CancellationToken, Task<IAsyncEnumerable<RpcResourceInfo>>>? GetResourcesAsyncCallback { get; set; }
+
+    public TaskCompletionSource? GetResourceLogsAsyncCalled { get; set; }
+    public Func<string, CancellationToken, IAsyncEnumerable<ResourceLogEntry>>? GetResourceLogsAsyncCallback { get; set; }
+
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
         PingAsyncCalled?.SetResult();
@@ -140,5 +146,43 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         {
             return ["baseline.v2"];
         }
+    }
+
+    public async Task<IAsyncEnumerable<RpcResourceInfo>> GetResourcesAsync(CancellationToken cancellationToken)
+    {
+        GetResourcesAsyncCalled?.SetResult();
+        if (GetResourcesAsyncCallback != null)
+        {
+            return await GetResourcesAsyncCallback(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            return GetEmptyResourcesAsync();
+        }
+    }
+
+    public async IAsyncEnumerable<ResourceLogEntry> GetResourceLogsAsync(string resourceId, [EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        GetResourceLogsAsyncCalled?.SetResult();
+        if (GetResourceLogsAsyncCallback != null)
+        {
+            var logEntries = GetResourceLogsAsyncCallback.Invoke(resourceId, cancellationToken);
+            await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
+            {
+                yield return logEntry;
+            }
+        }
+        else
+        {
+            // Return some test log entries
+            yield return new ResourceLogEntry { Line = "Test log entry 1", Stream = LogEntryStream.StdOut };
+            yield return new ResourceLogEntry { Line = "Test log entry 2", Stream = LogEntryStream.StdErr };
+        }
+    }
+
+    private static async IAsyncEnumerable<RpcResourceInfo> GetEmptyResourcesAsync()
+    {
+        await Task.CompletedTask;
+        yield break;
     }
 }
