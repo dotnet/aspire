@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <DashboardRuntime>linux-x64</DashboardRuntime>
+    <DashboardRuntime>linux-musl-x64</DashboardRuntime>
     <DashboardPlatformType>Unix</DashboardPlatformType>
   </PropertyGroup>
 
