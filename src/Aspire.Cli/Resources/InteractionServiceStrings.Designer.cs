@@ -146,5 +146,59 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CreatedSettingsFile", resourceCulture);
             }
         }
+        
+        public static string ProjectOptionDoesntExist {
+            get {
+                return ResourceManager.GetString("ProjectOptionDoesntExist", resourceCulture);
+            }
+        }
+        
+        public static string ProjectOptionNotSpecifiedMultipleAppHostsFound {
+            get {
+                return ResourceManager.GetString("ProjectOptionNotSpecifiedMultipleAppHostsFound", resourceCulture);
+            }
+        }
+        
+        public static string ProjectOptionNotSpecifiedNoCsprojFound {
+            get {
+                return ResourceManager.GetString("ProjectOptionNotSpecifiedNoCsprojFound", resourceCulture);
+            }
+        }
+        
+        public static string ProjectCouldNotBeBuilt {
+            get {
+                return ResourceManager.GetString("ProjectCouldNotBeBuilt", resourceCulture);
+            }
+        }
+        
+        public static string OperationCancelled {
+            get {
+                return ResourceManager.GetString("OperationCancelled", resourceCulture);
+            }
+        }
+        
+        public static string SpecifiedProjectFileNotAppHostProject {
+            get {
+                return ResourceManager.GetString("SpecifiedProjectFileNotAppHostProject", resourceCulture);
+            }
+        }
+        
+        public static string ErrorConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ErrorConnectingToAppHost", resourceCulture);
+            }
+        }
+        
+        public static string UnexpectedErrorOccurred {
+            get {
+                return ResourceManager.GetString("UnexpectedErrorOccurred", resourceCulture);
+            }
+        }
+        
+        public static string WaitingForDebuggerToAttachToAppHost {
+            get {
+                return ResourceManager.GetString("WaitingForDebuggerToAttachToAppHost", resourceCulture);
+            }
+        }
     }
 }

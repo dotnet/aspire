@@ -168,4 +168,13 @@
   <data name="FailedToParseTemplateVersionFromStdout" xml:space="preserve">
     <value>Failed to parse template version from stdout.</value>
   </data>
+  <data name="MultipleProjectFilesFound" xml:space="preserve">
+    <value>Multiple project files found.</value>
+  </data>
+  <data name="NoProjectFileFound" xml:space="preserve">
+    <value>No project file found.</value>
+  </data>
+  <data name="ProjectFileNotAppHostProject" xml:space="preserve">
+    <value>Project file is not an Aspire app host project.</value>
+  </data>
 </root>

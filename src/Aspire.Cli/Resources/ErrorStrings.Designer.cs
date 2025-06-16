@@ -140,5 +140,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FailedToParseTemplateVersionFromStdout", resourceCulture);
             }
         }
+        
+        public static string MultipleProjectFilesFound {
+            get {
+                return ResourceManager.GetString("MultipleProjectFilesFound", resourceCulture);
+            }
+        }
+        
+        public static string NoProjectFileFound {
+            get {
+                return ResourceManager.GetString("NoProjectFileFound", resourceCulture);
+            }
+        }
+        
+        public static string ProjectFileNotAppHostProject {
+            get {
+                return ResourceManager.GetString("ProjectFileNotAppHostProject", resourceCulture);
+            }
+        }
     }
 }

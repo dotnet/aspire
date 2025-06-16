@@ -2,16 +2,12 @@
 <root>
   <!--
     Microsoft ResX Schema
-
     Version 2.0
-
     The primary goals of this format is to allow a simple XML format
     that is mostly human readable. The generation and parsing of the
     various data types are done through the TypeConverter classes
     associated with the data types.
-
     Example:
-
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,34 +22,27 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-
     There are any number of "resheader" rows that contain simple
     name/value pairs.
-
     Each data row contains a name, and value. The row also contains a
     type or mimetype. Type corresponds to a .NET class that support
     text/value conversion through the TypeConverter architecture.
     Classes that don't support this are serialized and stored with the
     mimetype set.
-
     The mimetype is used for serialized objects, and tells the
     ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-
     Note - application/x-microsoft.net.object.binary.base64 is the format
     that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-
     mimetype: application/x-microsoft.net.object.binary.base64
     value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-
     mimetype: application/x-microsoft.net.object.soap.base64
     value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
-
     mimetype: application/x-microsoft.net.object.bytearray.base64
     value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
@@ -117,87 +106,51 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="NoItemsAvailableForSelection" xml:space="preserve">
-    <value>No items available for selection: {0}</value>
-    <comment>{0} is the original selection prompt text.</comment>
+  <data name="Description" xml:space="preserve">
+    <value>Add an integration to the Aspire project.</value>
   </data>
-  <data name="AppHostNotCompatibleConsiderUpgrading" xml:space="preserve">
-    <value>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</value>
+  <data name="IntegrationArgumentDescription" xml:space="preserve">
+    <value>The name of the integration to add (e.g. redis, postgres).</value>
   </data>
-  <data name="AspireHostingSDKVersion" xml:space="preserve">
-    <value>Aspire.Hosting Version</value>
+  <data name="ProjectArgumentDescription" xml:space="preserve">
+    <value>The path to the project file to add the integration to.</value>
   </data>
-  <data name="AspireCLIVersion" xml:space="preserve">
-    <value>Aspire CLI Version</value>
+  <data name="VersionArgumentDescription" xml:space="preserve">
+    <value>The version of the integration to add.</value>
   </data>
-  <data name="RequiredCapability" xml:space="preserve">
-    <value>Required Capability</value>
+  <data name="SourceArgumentDescription" xml:space="preserve">
+    <value>The NuGet source to use for the integration.</value>
   </data>
-  <data name="Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
+  <data name="SearchingForAspirePackages" xml:space="preserve">
+    <value>Searching for Aspire packages...</value>
   </data>
-  <data name="DirectLink" xml:space="preserve">
-    <value>Direct</value>
-    <comment>Represents a type of link</comment>
+  <data name="NoIntegrationPackagesFound" xml:space="preserve">
+    <value>No integration packages were found. Please check your internet connection or NuGet source configuration.</value>
   </data>
-  <data name="CodespacesLink" xml:space="preserve">
-    <value>Codespaces</value>
-    <comment>Represents a type of link</comment>
+  <data name="NoPackagesFound" xml:space="preserve">
+    <value>No packages found.</value>
   </data>
-  <data name="StoppingAspire" xml:space="preserve">
-    <value>Stopping Aspire.</value>
+  <data name="UnexpectedNumberOfPackagesFound" xml:space="preserve">
+    <value>Unexpected number of packages found.</value>
   </data>
-  <data name="CheckingProjectType" xml:space="preserve">
-    <value>Checking project type...</value>
+  <data name="AddingAspireIntegration" xml:space="preserve">
+    <value>Adding Aspire integration...</value>
   </data>
-  <data name="BuildingAppHost" xml:space="preserve">
-    <value>Building app host...</value>
+  <data name="PackageInstallationFailed" xml:space="preserve">
+    <value>The package installation failed with exit code {0}. For more information run with --debug switch.</value>
   </data>
-  <data name="CheckingCertificates" xml:space="preserve">
-    <value>Checking certificates...</value>
+  <data name="PackageAddedSuccessfully" xml:space="preserve">
+    <value>The package {0}::{1} was added successfully.</value>
+    <comment>{0} is the package name, {1} is the version.</comment>
   </data>
-  <data name="TrustingCertificates" xml:space="preserve">
-    <value>Trusting certificates...</value>
+  <data name="ErrorOccurredWhileAddingPackage" xml:space="preserve">
+    <value>An error occurred while adding the package: {0}</value>
   </data>
-  <data name="SearchingProjects" xml:space="preserve">
-    <value>Searching...</value>
+  <data name="SelectAVersionOfPackage" xml:space="preserve">
+    <value>Select a version of {0}:</value>
+    <comment>{0} is the package name.</comment>
   </data>
-  <data name="FindingAppHosts" xml:space="preserve">
-    <value>Finding app hosts...</value>
-  </data>
-  <data name="SelectAppHostToRun" xml:space="preserve">
-    <value>Select app host to run</value>
-  </data>
-  <data name="CreatedSettingsFile" xml:space="preserve">
-    <value>Created settings file at {0}.</value>
-    <comment>{0} is a path</comment>
-  </data>
-  <data name="ProjectOptionDoesntExist" xml:space="preserve">
-    <value>The --project option specified a project that does not exist.</value>
-  </data>
-  <data name="ProjectOptionNotSpecifiedMultipleAppHostsFound" xml:space="preserve">
-    <value>The --project option was not specified and multiple app host project files were detected.</value>
-  </data>
-  <data name="ProjectOptionNotSpecifiedNoCsprojFound" xml:space="preserve">
-    <value>The project argument was not specified and no *.csproj files were detected.</value>
-  </data>
-  <data name="ProjectCouldNotBeBuilt" xml:space="preserve">
-    <value>The project could not be built. For more information run with --debug switch.</value>
-  </data>
-  <data name="OperationCancelled" xml:space="preserve">
-    <value>The operation was canceled.</value>
-  </data>
-  <data name="SpecifiedProjectFileNotAppHostProject" xml:space="preserve">
-    <value>The specified project file is not an Aspire app host project.</value>
-  </data>
-  <data name="ErrorConnectingToAppHost" xml:space="preserve">
-    <value>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</value>
-  </data>
-  <data name="UnexpectedErrorOccurred" xml:space="preserve">
-    <value>An unexpected error occurred: {0}</value>
-    <comment>{0} is the exception message</comment>
-  </data>
-  <data name="WaitingForDebuggerToAttachToAppHost" xml:space="preserve">
-    <value>Waiting for debugger to attach to app host process</value>
+  <data name="SelectAnIntegrationToAdd" xml:space="preserve">
+    <value>Select an integration to add:</value>
   </data>
 </root>
