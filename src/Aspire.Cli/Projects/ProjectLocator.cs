@@ -150,7 +150,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (appHostProjects.Count == 0)
         {
-            throw new ProjectLocatorException("No project file found.");
+            throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
         }
         else if (appHostProjects.Count == 1)
         {

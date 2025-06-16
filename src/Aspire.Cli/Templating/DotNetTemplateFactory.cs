@@ -100,8 +100,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
             {
-                var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.PromptInput) => true,
-                var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.PromptInput) => false,
+                var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
+                var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
                 _ => throw new InvalidOperationException(TemplatingStrings.UseRedisCache_UnexpectedChoice)
             };
         }
@@ -125,7 +125,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 choice => choice,
                 cancellationToken);
 
-            if (string.Equals(createTestProject, TemplatingStrings.No, StringComparisons.PromptInput))
+            if (string.Equals(createTestProject, TemplatingStrings.No, StringComparisons.CliInputOrOutput))
             {
                 return;
             }
@@ -140,7 +140,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 cancellationToken);
         }
 
-        if (testFramework is { } && !string.Equals(testFramework, TemplatingStrings.None, StringComparisons.PromptInput))
+        if (testFramework is { } && !string.Equals(testFramework, TemplatingStrings.None, StringComparisons.CliInputOrOutput))
         {
             if (testFramework.ToLower() == "xunit.net")
             {
