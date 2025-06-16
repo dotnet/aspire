@@ -131,7 +131,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             }
         }
 
-        var imageEnvName = $"{resourceInstance.Name.ToManifestFriendlyResourceName()}_image";
+        var imageEnvName = $"{resourceInstance.Name.ToHelmValuesSectionName()}_image";
         var value = $"{resourceInstance.Name}:latest";
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
@@ -175,7 +175,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         const string defaultPort = "8080";
 
-        var paramName = $"port_{endpoint.Name}".ToManifestFriendlyResourceName();
+        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
 
         var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
@@ -254,7 +254,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             foreach (var environmentVariable in context.EnvironmentVariables)
             {
-                var key = environmentVariable.Key.ToManifestFriendlyResourceName();
+                var key = environmentVariable.Key.ToHelmValuesSectionName();
                 var value = await this.ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
 
                 switch (value)

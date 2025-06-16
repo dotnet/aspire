@@ -167,6 +167,52 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
+    [Fact]
+    public async Task PublishAsync_HandlesSpecialResourceName()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
+        builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
+            .WithEnvironment("param3", param3);
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/SpeciaL-ApP/deployment.yaml",
+            "templates/SpeciaL-ApP/config.yaml",
+            "templates/SpeciaL-ApP/secrets.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
     private sealed class KedaScaledObject() : BaseKubernetesResource("keda.sh/v1alpha1", "ScaledObject")
     {
         [YamlMember(Alias = "spec")]
