@@ -8,7 +8,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
 
-internal abstract class BaseBackchannel<T>(ILogger<T> logger, CliRpcTarget target) : IBackchannel where T : IBackchannel
+internal abstract class BaseBackchannel<T>(string name, ILogger<T> logger, CliRpcTarget target) : IBackchannel where T : IBackchannel
 {
     protected readonly ActivitySource ActivitySource = new(nameof(T));
     protected readonly TaskCompletionSource<JsonRpc> RpcTaskCompletionSource = new();
@@ -39,14 +39,14 @@ internal abstract class BaseBackchannel<T>(ILogger<T> logger, CliRpcTarget targe
 
             if (RpcTaskCompletionSource.Task.IsCompleted)
             {
-                throw new InvalidOperationException("Already connected to AppHost backchannel.");
+                throw new InvalidOperationException($"Already connected to {name} backchannel.");
             }
 
-            logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
+            logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", name, socketPath);
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(socketPath);
             await socket.ConnectAsync(endpoint, cancellationToken);
-            logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
+            logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", name, socketPath);
 
             var stream = new NetworkStream(socket, true);
             var rpc = JsonRpc.Attach(stream, target);
@@ -63,10 +63,11 @@ internal abstract class BaseBackchannel<T>(ILogger<T> logger, CliRpcTarget targe
         catch (RemoteMethodNotFoundException ex)
         {
             logger.LogError(ex,
-                "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
+                name,
                 BaselineCapability);
             throw new AppHostIncompatibleException(
-                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                $"{name} is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
                 BaselineCapability
             );
         }
@@ -88,5 +89,13 @@ internal abstract class BaseBackchannel<T>(ILogger<T> logger, CliRpcTarget targe
         return capabilities;
     }
 
-    public abstract void CheckCapabilities(string[] capabilities);
+    public void CheckCapabilities(string[] capabilities)
+    {
+        if (capabilities.All(s => s != BaselineCapability))
+        {
+            RaiseIncompatibilityException(BaselineCapability);
+        }
+    }
+
+    public abstract void RaiseIncompatibilityException(string missingCapability);
 }

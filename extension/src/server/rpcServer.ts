@@ -7,9 +7,9 @@ import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
 import { IOutputChannelWriter } from '../utils/vsc';
+import path from 'path';
 
 export type RpcServerInformation = {
-    port: number;
     fullAddress: string;
     server: net.Server;
     dispose: () => void;
@@ -32,16 +32,21 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             connection.listen();
         });
 
+        const homeDirectory = process.env.HOME || process.env.USERPROFILE;
+        if (!homeDirectory) {
+            throw new Error('Could not determine home directory');
+        }
+
+        const backchannelPath = path.join (homeDirectory, '.aspire', 'cli', 'backchannels', `extension.sock.${crypto.randomUUID()}`);
+
         // Listen on a random available port
-        rpcServer.listen(0, () => {
-            const addressInfo = rpcServer?.address();
-            if (typeof addressInfo === 'object' && addressInfo?.port) {
-                outputChannelWriter.appendLine(rpcServerListening(addressInfo.port));
-                const fullAddress = `localhost:${addressInfo.port}`;
+        rpcServer.listen(backchannelPath, () => {
+            const address = rpcServer?.address();
+            if (typeof address === 'string') {
+                outputChannelWriter.appendLine(rpcServerListening(address));
                 resolve({
-                    port: addressInfo.port,
                     server: rpcServer,
-                    fullAddress: fullAddress,
+                    fullAddress: address,
                     dispose: () => disposeRpcServer(rpcServer)
                 });
             }

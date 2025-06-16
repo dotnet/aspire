@@ -168,11 +168,23 @@ public class Program
 
         if (extensionEndpoint is not null)
         {
-            builder.Services.AddSingleton<ExtensionBackchannel>();
-            builder.Services.AddHostedService<ExtensionBackchannelConnector>();
+            builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
+            builder.Services.AddSingleton<ExtensionBackchannelConnector>();
+            builder.Services.AddHostedService<ExtensionBackchannelConnector>(provider => provider.GetRequiredService<ExtensionBackchannelConnector>());
 
             var extensionPromptEnabled = Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionPromptEnabled) is "true";
-
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                return new ExtensionInteractionService(consoleInteractionService,
+                    provider.GetRequiredService<ExtensionBackchannelConnector>(),
+                    extensionPromptEnabled);
+            });
+        }
+        else
+        {
+            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
         }
     }
 

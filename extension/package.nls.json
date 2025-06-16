@@ -13,7 +13,7 @@
 	"aspire-vscode.strings.codespacesLink": "Codespaces link",
 	"aspire-vscode.strings.openAspireDashboard": "Open Aspire Dashboard",
 	"aspire-vscode.strings.activated": "Aspire Extension activated.",
-	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on port {0}",
+	"aspire-vscode.rpcserver.listening": "JSON-RPC server listening on {0}",
 	"aspire-vscode.rpcserver.addressError": "Failed to get RPC server address. The extension may not function correctly.",
 	"aspire-vscode.strings.noWorkspaceOpen": "No workspace is open. Please open a folder or workspace before running this command."
 }

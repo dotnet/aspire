@@ -14,8 +14,10 @@ internal interface IAppHostBackchannel : IBackchannel
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
 }
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : BaseBackchannel<AppHostBackchannel>(logger, target), IAppHostBackchannel
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target) : BaseBackchannel<AppHostBackchannel>(Name, logger, target), IAppHostBackchannel
 {
+    private const string Name = "AppHost";
+
     private readonly ILogger<AppHostBackchannel> _logger = logger;
     public override string BaselineCapability => "baseline.v2";
 
@@ -102,14 +104,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public override void CheckCapabilities(string[] capabilities)
+    public override void RaiseIncompatibilityException(string missingCapability)
     {
-        if (!capabilities.Any(s => s == BaselineCapability))
-        {
-            throw new AppHostIncompatibleException(
-                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
-                BaselineCapability
-            );
-        }
+        throw new AppHostIncompatibleException(
+            $"The {Name} is incompatible with the CLI. The {Name} must be updated to a version that supports the {missingCapability} capability.",
+            missingCapability
+        );
     }
 }

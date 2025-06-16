@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class FailedToConnectBackchannelConnection(string message, Process process, Exception innerException) : Exception(message, innerException)
+internal sealed class FailedToConnectBackchannelConnection(string message, Process? process, Exception innerException) : Exception(message, innerException)
 {
-    public Process Process => process;
+    public Process? Process => process;
 }
