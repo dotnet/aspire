@@ -89,7 +89,7 @@ public class Program
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
-        builder.Services.AddSingleton<IInteractionService, InteractionService>();
+        builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddSingleton<AspireCliTelemetry>();
