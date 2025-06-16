@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.CommandLine.Help;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Configuration;
@@ -38,8 +39,8 @@ internal sealed class ConfigCommand : BaseCommand
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // When no subcommand is provided, the system will automatically show help and return 0
-        return Task.FromResult(0);
+        new HelpAction().Invoke(parseResult);
+        return Task.FromResult(ExitCodeConstants.InvalidCommand);
     }
 
     private sealed class GetCommand : BaseCommand
