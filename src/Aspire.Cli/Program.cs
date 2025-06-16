@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -18,6 +17,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Telemetry;
 
 #if DEBUG
 using OpenTelemetry;
@@ -31,7 +31,6 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
     private static string GetGlobalSettingsPath()
     {
@@ -62,17 +61,7 @@ public class Program
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing => {
-                tracing.AddSource(
-                    nameof(NuGetPackageCache),
-                    nameof(AppHostBackchannel),
-                    nameof(DotNetCliRunner),
-                    nameof(Program),
-                    nameof(NewCommand),
-                    nameof(RunCommand),
-                    nameof(AddCommand),
-                    nameof(PublishCommand),
-                    nameof(DeployCommand)
-                    );
+                tracing.AddSource(AspireCliTelemetry.ActivitySourceName);
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
@@ -103,6 +92,7 @@ public class Program
         builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<CliRpcTarget>();
@@ -159,7 +149,8 @@ public class Program
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService);
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)
@@ -174,7 +165,8 @@ public class Program
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
 
-        using var activity = s_activitySource.StartActivity();
+        var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
+        using var activity = telemetry.ActivitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
         await app.StopAsync().ConfigureAwait(false);
