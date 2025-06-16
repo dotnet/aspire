@@ -57,7 +57,8 @@ internal class ExtensionInteractionService : IInteractionService
     {
         if (_extensionPromptEnabled)
         {
-            throw new NotImplementedException();
+            // TODO implement extension-specific handling
+            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -69,7 +70,8 @@ internal class ExtensionInteractionService : IInteractionService
     {
         if (_extensionPromptEnabled)
         {
-            throw new NotImplementedException();
+            // TODO implement extension-specific handling
+            return _consoleInteractionService.ConfirmAsync(promptText, defaultValue, cancellationToken);
         }
         else
         {
@@ -83,7 +85,7 @@ internal class ExtensionInteractionService : IInteractionService
         if (_extensionPromptEnabled)
         {
             // TODO implement extension-specific handling
-            throw new NotImplementedException();
+            return _consoleInteractionService.PromptForSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
         }
         else
         {
@@ -93,12 +95,14 @@ internal class ExtensionInteractionService : IInteractionService
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        throw new NotImplementedException();
+        // TODO implement extension-specific handling
+        return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
 
     public void DisplayError(string errorMessage)
     {
-        throw new NotImplementedException();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayErrorAsync(errorMessage, CancellationToken.None)));
+        _consoleInteractionService.DisplayError(errorMessage);
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -109,31 +113,37 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplaySuccess(string message)
     {
-        throw new NotImplementedException();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplaySuccessAsync(message, CancellationToken.None)));
+        _consoleInteractionService.DisplaySuccess(message);
     }
 
     public void DisplaySubtleMessage(string message)
     {
-        throw new NotImplementedException();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplaySubtleMessageAsync(message, CancellationToken.None)));
+        _consoleInteractionService.DisplaySubtleMessage(message);
     }
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
-        throw new NotImplementedException();
+        // TODO implement extension-specific handling
+        _consoleInteractionService.DisplayDashboardUrls(dashboardUrls);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        throw new NotImplementedException();
+        // TODO implement extension-specific handling
+        _consoleInteractionService.DisplayLines(lines);
     }
 
     public void DisplayCancellationMessage()
     {
-        throw new NotImplementedException();
+        // TODO implement extension-specific handling
+       _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
     {
-        throw new NotImplementedException();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayEmptyLineAsync(CancellationToken.None)));
+        _consoleInteractionService.DisplayEmptyLine();
     }
 }

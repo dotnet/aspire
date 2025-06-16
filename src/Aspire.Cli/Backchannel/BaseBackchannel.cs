@@ -66,10 +66,7 @@ internal abstract class BaseBackchannel<T>(string name, ILogger<T> logger, CliRp
                 "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
                 name,
                 BaselineCapability);
-            throw new AppHostIncompatibleException(
-                $"{name} is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
-                BaselineCapability
-            );
+            RaiseIncompatibilityException(BaselineCapability);
         }
     }
 

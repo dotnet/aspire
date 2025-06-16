@@ -27,6 +27,10 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 return { message: 'pong' };
             });
 
+            connection.onRequest('GetCapabilitiesAsync', () => {
+                return ["baseline"];
+            });
+
             addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection));
 
             connection.listen();
