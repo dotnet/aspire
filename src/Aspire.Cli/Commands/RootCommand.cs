@@ -17,7 +17,7 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, ConfigCommand configCommand, IInteractionService interactionService)
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IInteractionService interactionService)
         : base("The Aspire CLI can be used to create, run, and publish Aspire-based applications.")
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -25,15 +25,16 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
+        ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(interactionService);
-        
+
         _interactionService = interactionService;
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = "Enable debug logging to the console.";
         debugOption.Recursive = true;
         Options.Add(debugOption);
-        
+
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = "Wait for a debugger to attach before executing the command.";
         waitForDebuggerOption.Recursive = true;
@@ -45,8 +46,9 @@ internal sealed class RootCommand : BaseRootCommand
         cliWaitForDebuggerOption.Hidden = true;
         cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
 
-        #if DEBUG
-        cliWaitForDebuggerOption.Validators.Add((result) => {
+#if DEBUG
+        cliWaitForDebuggerOption.Validators.Add((result) =>
+        {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
 
@@ -54,7 +56,8 @@ internal sealed class RootCommand : BaseRootCommand
             {
                 _interactionService.ShowStatus(
                     $":bug:  Waiting for debugger to attach to CLI process ID: {Environment.ProcessId}",
-                    () => {
+                    () =>
+                    {
                         while (!Debugger.IsAttached)
                         {
                             Thread.Sleep(1000);
@@ -62,7 +65,7 @@ internal sealed class RootCommand : BaseRootCommand
                     });
             }
         });
-        #endif
+#endif
 
         Options.Add(waitForDebuggerOption);
         Options.Add(cliWaitForDebuggerOption);
@@ -72,5 +75,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
+        Subcommands.Add(deployCommand);
     }
 }
