@@ -18,6 +18,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<CommandOutput> GetToolExecutionOutputStreamAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -176,5 +177,24 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             cancellationToken).ConfigureAwait(false);
 
         return capabilities;
+    }
+
+    public async IAsyncEnumerable<CommandOutput> GetToolExecutionOutputStreamAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting tool output stream.");
+
+        var outputMessages = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<CommandOutput>>(
+            "ExecuteToolAndStreamOutputAsync",
+            Array.Empty<object>(),
+            cancellationToken);
+
+        logger.LogDebug("Receiving tool output...");
+        await foreach (var output in outputMessages.WithCancellation(cancellationToken))
+        {
+            yield return output;
+        }
     }
 }

@@ -35,6 +35,7 @@
     <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TempDirectory.cs" Link="shared/TempDirectory.cs" />
     <Compile Include="$(TestsSharedDir)DistributedApplicationTestingBuilderExtensions.cs" Link="shared/DistributedApplicationTestingBuilderExtensions.cs" />
+    <Compile Include="$(TestsSharedDir)TestOutputRpcTarget.cs" Link="shared/TestOutputRpcTarget.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Shared\StableConnectionStringBuilder.cs" Link="shared/StableConnectionStringBuilder.cs" />

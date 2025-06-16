@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -21,6 +23,10 @@ public static class DistributedApplicationTestingBuilderExtensions
     {
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+
+        // overriding registration in DistributedApplicationBuilder
+        builder.Services.AddSingleton<ICliRpcTarget>(sp => new TestOutputRpcTarget(testOutputHelper));
+
         return builder;
     }
 

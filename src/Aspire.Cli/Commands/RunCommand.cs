@@ -153,7 +153,42 @@ internal sealed class RunCommand : BaseCommand
                 runOptions,
                 cancellationToken);
 
-            if (useRichConsole)
+            if (runningInToolMode)
+            {
+                // start and connect backchannel
+                var backchannel = await _interactionService.ShowStatusAsync(
+                    ":linked_paperclips:  Waiting for Aspire app host...",
+                    async () => {
+
+                        // If we use the --wait-for-debugger option we print out the process ID
+                        // of the apphost so that the user can attach to it.
+                        if (waitForDebugger)
+                        {
+                            _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                        }
+
+                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
+                        // before the backchannel is created, therefore waiting on the backchannel is a 
+                        // good signal that the debugger was attached (or timed out).
+                        var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
+
+                // apphost start
+                await pendingRun;
+
+                // execute tool and stream the output
+                var outputStream = backchannel.GetToolExecutionOutputStreamAsync(cancellationToken);
+                await foreach (var output in outputStream)
+                {
+                    _interactionService.WriteConsoleLog(message: output.Text, isError: output.IsError);
+                }
+
+                await backchannel.RequestStopAsync(cancellationToken);
+
+                return ExitCodeConstants.Success;
+            }
+            else if (useRichConsole)
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
@@ -292,7 +327,7 @@ internal sealed class RunCommand : BaseCommand
                     }
                 });
 
-                var result =  await pendingRun;
+                var result = await pendingRun;
                 if (result != 0)
                 {
                     _interactionService.DisplayLines(runOutputCollector.GetLines());

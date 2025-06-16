@@ -17,4 +17,14 @@ public class ToolOptions
     /// 
     /// </summary>
     public string? Resource { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public string? Project { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public string[]? Args { get; set; }
 }

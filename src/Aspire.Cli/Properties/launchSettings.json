@@ -40,7 +40,7 @@
     "run-tool-migration-add": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "run --tool migration-add --add-postgres --add-migration-tool --project C:\\code\\aspire\\tests\\TestingAppHost1\\TestingAppHost1.AppHost\\TestingAppHost1.AppHost.csproj",
+      "commandLineArgs": "run --tool migration-add --add-postgres --add-migration-tool --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
       "environmentVariables": {
       }
     }

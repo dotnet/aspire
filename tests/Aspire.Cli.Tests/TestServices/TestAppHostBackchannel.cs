@@ -141,4 +141,11 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             return ["baseline.v2"];
         }
     }
+
+    public async IAsyncEnumerable<CommandOutput> GetToolExecutionOutputStreamAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        yield return new CommandOutput() { Text = "qer"};
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        yield break;
+    }
 }

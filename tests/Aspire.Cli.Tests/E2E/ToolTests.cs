@@ -3,9 +3,8 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Testing;
-using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Tools;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,13 +27,9 @@ public class ToolTests(ITestOutputHelper output)
             // separate type of command
             "--operation", "tool",
             // what AppHost to target
-            "--project", @"C:\code\aspire\tests\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj",
+            "--project", @"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
             // what resource to target
-            "--tool", "migration-add",
-            // command to execute against resource
-            // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
-            // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932
-            "--command", "dotnet ef migrations add Init --msbuildprojectextensionspath C:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp"
+            "--tool", "migration-add"
         ];
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {
@@ -55,21 +50,29 @@ public class ToolTests(ITestOutputHelper output)
             .WithReference(postgres);
 
         builder
-            .AddExecutable("migration-add", "dotnet", (new TestingAppHost1_MyWebApp()).ProjectPath, "ef migrations add Init")
+            .AddExecutable(
+                name: "migration-add",
+                command: "dotnet",
+                workingDirectory: (new TestingAppHost1_MyWebApp()).ProjectPath,
+                // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
+                // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932;
+                // path is relative to working directory (which is project path as well)
+                args: "ef migrations add Init --msbuildprojectextensionspath ../../../artifacts/obj/TestingAppHost1.MyWebApp")
             .WithExplicitStart();
-
-        //builder
-        //    .AddExecutable("migration-update", "dotnet", new TestingAppHost1_MyWebApp().ProjectPath, "ef database update")
-        //    .WithExplicitStart()
-        //    .WaitFor(postresDb);
 
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        var exec = app.Services.GetRequiredService<IDcpExecutor>();
+        // in real world this would be invoked via cli, but we can resolve service for simplicity
+        var toolExecutionService = app.Services.GetRequiredService<ToolExecutionService>();
+        var commandOutput = toolExecutionService.ExecuteToolAndStreamOutputAsync(CancellationToken.None);
+        await foreach (var command in commandOutput)
+        {
+            output.WriteLine($"Tool execution output: [iserror={command.IsError}] {command.Text}");
+        }
 
         AssertMigrationsCreated(myWebAppProjectMetadata);
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        DeleteMigrations(myWebAppProjectMetadata);
     }
 
     private static void DeleteMigrations(IProjectMetadata projectMetadata)

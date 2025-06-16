@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tools;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,9 +21,14 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options
-    ) 
+    DistributedApplicationOptions options,
+    ToolExecutionService toolExecutionService) 
 {
+    public IAsyncEnumerable<CommandOutput> ExecuteToolAndStreamOutputAsync(CancellationToken cancellationToken)
+    {
+        return toolExecutionService.ExecuteToolAndStreamOutputAsync(cancellationToken);
+    }
+
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)

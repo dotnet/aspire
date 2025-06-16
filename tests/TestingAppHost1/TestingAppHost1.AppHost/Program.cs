@@ -31,7 +31,7 @@ var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
 if (args.Contains("--add-migration-tool"))
 {
     builder
-        .AddExecutable("migration-add", "dotnet", @"C:\code\aspire\tests\TestingAppHost1\TestingAppHost1.MyWebApp\TestingAppHost1.MyWebApp.csproj", "ef migrations add Init")
+        .AddExecutable("migration-add", "dotnet", new Projects.TestingAppHost1_MyWebApp().ProjectPath, "ef migrations add Init")
         .WithExplicitStart();
 }
 

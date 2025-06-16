@@ -265,7 +265,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
-        _innerBuilder.Services.AddSingleton<ICliRpcTarget, BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
+        _innerBuilder.Services.TryAddSingleton<ICliRpcTarget, BackchannelService>();
         _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
@@ -351,7 +351,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (ExecutionContext.IsToolMode)
         {
-            _innerBuilder.Services.AddHostedService<ToolExecutionService>();
+            _innerBuilder.Services.AddSingleton<ToolExecutionService>();
         }
 
         if (ExecutionContext.IsRunMode || ExecutionContext.IsToolMode)
@@ -507,10 +507,36 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var switchMappings = new Dictionary<string, string>()
         {
             { "--operation", "AppHost:Operation" },
-            { "--tool", "Tool:Resource" }
+            { "--tool", "Tool:Resource" },
+            { "--project", "Tool:Project" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<ToolOptions>(_innerBuilder.Configuration.GetSection(ToolOptions.Section));
+
+        var filteredArgs = new List<string>();
+        var args = options.Args ?? Array.Empty<string>();
+        for (int i = 0; i < args.Length;)
+        {
+            var arg = args[i];
+            if (switchMappings.ContainsKey(arg))
+            {
+                i++;
+                if (i < args.Length && !args[i].StartsWith("--"))
+                {
+                    i++;
+                }
+            }
+            else
+            {
+                filteredArgs.Add(arg);
+                i++;
+            }
+        }
+
+        _innerBuilder.Services.PostConfigure<ToolOptions>(toolOptions =>
+        {
+            toolOptions.Args = filteredArgs.ToArray();
+        });
     }
 
     /// <inheritdoc />
