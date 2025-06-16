@@ -2,26 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
+    private readonly AspireCliTelemetry _telemetry;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider)
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliTelemetry telemetry)
         : base("new", "Create a new Aspire sample project.")
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -30,12 +30,14 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
         _interactionService = interactionService;
+        _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = "The name of the project to create.";
@@ -84,7 +86,7 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);
