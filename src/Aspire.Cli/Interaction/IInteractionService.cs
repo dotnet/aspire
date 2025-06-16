@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
@@ -13,7 +13,7 @@ internal interface IInteractionService
     Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
-    int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion);
+    int DisplayIncompatibleVersionError(IncompatibilityException ex, string appHostHostingVersion);
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
     void DisplaySuccess(string message);

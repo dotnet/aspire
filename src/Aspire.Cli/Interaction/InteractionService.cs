@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -72,7 +71,7 @@ internal class InteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
+    public int DisplayIncompatibleVersionError(IncompatibilityException ex, string appHostHostingVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 

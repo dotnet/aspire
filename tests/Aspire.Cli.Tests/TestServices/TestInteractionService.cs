@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Tests.TestServices;
@@ -36,7 +36,7 @@ internal sealed class TestInteractionService : IInteractionService
         return Task.FromResult(choices.First());
     }
 
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
+    public int DisplayIncompatibleVersionError(IncompatibilityException ex, string appHostHostingVersion)
     {
         return 0;
     }
