@@ -177,4 +177,7 @@
   <data name="ProjectFileNotAppHostProject" xml:space="preserve">
     <value>Project file is not an Aspire app host project.</value>
   </data>
+  <data name="AspireHostingVersionNull" xml:space="preserve">
+    <value>AspireHostingVersion is null</value>
+  </data>
 </root>

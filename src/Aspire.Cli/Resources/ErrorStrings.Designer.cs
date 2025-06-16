@@ -158,5 +158,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ProjectFileNotAppHostProject", resourceCulture);
             }
         }
+        
+        public static string AspireHostingVersionNull {
+            get {
+                return ResourceManager.GetString("AspireHostingVersionNull", resourceCulture);
+            }
+        }
     }
 }

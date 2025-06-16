@@ -3,9 +3,11 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -34,7 +36,7 @@ internal abstract class PublishCommandBase : BaseCommand
         _telemetry = telemetry;
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = "The path to the Aspire app host project file.";
+        projectOption.Description = PublishCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
 
         var outputPath = new Option<string>("--output-path", "-o");
@@ -100,7 +102,7 @@ internal abstract class PublishCommandBase : BaseCommand
             if (buildExitCode != 0)
             {
                 _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                _interactionService.DisplayError("The project could not be built. For more information run with --debug switch.");
+                _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
@@ -134,7 +136,7 @@ internal abstract class PublishCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
             var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
@@ -165,42 +167,42 @@ internal abstract class PublishCommandBase : BaseCommand
             _interactionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
-        catch (ProjectLocatorException ex) when (ex.Message == "Project file is not an Aspire app host project.")
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The specified project file is not an Aspire app host project.");
+            _interactionService.DisplayError(InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject);
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files found."))
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {
             return _interactionService.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException("AspireHostingVersion is null")
+                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             _interactionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }
