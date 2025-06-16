@@ -171,6 +171,9 @@
   <data name="None" xml:space="preserve">
     <value>None</value>
   </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
   <data name="PromptForTFM_UsingForTesting" xml:space="preserve">
     <value>Using {0} for testing.</value>
   </data>

@@ -153,6 +153,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string Unknown {
+            get {
+                return ResourceManager.GetString("Unknown", resourceCulture);
+            }
+        }
+        
         public static string PromptForTFM_UsingForTesting {
             get {
                 return ResourceManager.GetString("PromptForTFM_UsingForTesting", resourceCulture);
