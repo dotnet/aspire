@@ -57,7 +57,7 @@ internal sealed class RunCommand : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
-        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
@@ -314,7 +314,7 @@ internal sealed class RunCommand : BaseCommand
         {
             return _interactionService.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException("AspireHostingVersion is null")
                 );
         }
         catch (CertificateServiceException ex)
