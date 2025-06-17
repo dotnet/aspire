@@ -173,4 +173,79 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
         );
         z-index: 2;
     }
+
+    :root[data-has-hero] {
+        .card-grid.stagger .card {
+            --sl-card-border: var(--sl-color-purple);
+            --sl-card-bg: var(--sl-color-bg-nav);
+            border: 1px solid color-mix(in srgb, var(--sl-card-border) 50%, transparent);
+            background: var(--sl-color-bg-nav);
+            padding: clamp(1rem, calc(.125rem + 3vw), 2.5rem);
+            flex-direction: column;
+            gap: clamp(.5rem, calc(.125rem + 1vw), 1rem);
+        }
+
+        .card-grid.stagger > .card:nth-child(-n+4) {
+            border: 1px solid color-mix(in srgb, var(--sl-card-border) 50%, transparent);
+            box-shadow: 0 0 10px 0 rgba(var(--sl-color-purple-rgb), 0.1);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+1):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-orange);
+            background: 
+                radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--sl-card-bg) 80%, var(--sl-card-border)) 0%, transparent 35%),
+                radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, transparent 40%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 10px 0 rgba(var(--sl-color-orange-rgb), 0.1);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+2):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-purple);
+            background: 
+                radial-gradient(circle at 75% 25%, color-mix(in srgb, var(--sl-card-bg) 80%, var(--sl-card-border)) 0%, transparent 40%),
+                radial-gradient(circle at 10% 90%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, transparent 35%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 10px 0 rgba(var(--sl-color-purple-rgb), 0.1);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+3):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-green);
+            background: 
+                radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--sl-card-bg) 80%, var(--sl-card-border)) 0%, transparent 50%),
+                radial-gradient(ellipse at 30% 70%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, transparent 45%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 10px 0 rgba(var(--sl-color-green-rgb), 0.1);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+4):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-red);
+            background: 
+                radial-gradient(ellipse at 25% 30%, color-mix(in srgb, var(--sl-card-bg) 80%, var(--sl-card-border)) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, transparent 30%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 10px 0 rgba(var(--sl-color-red-rgb), 0.1);
+        }
+
+        /* .card-grid .card .title {
+            font-weight: 600;
+            font-size: var(--sl-text-h4);
+            color: var(--sl-color-white);
+            line-height: var(--sl-line-height-headings);
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .card-grid .card .icon {
+            border: 1px solid color-mix(in srgb, var(--sl-card-border) 70%, transparent);
+            background-color: color-mix(in srgb, var(--sl-card-bg) 80%, var(--sl-card-border));
+            padding: .2em;
+            border-radius: .25rem;
+        }
+
+        .card-grid .card .body {
+            margin: 0;
+            font-size: clamp(var(--sl-text-sm), calc(.5rem + 1vw), var(--sl-text-body));
+            color: var(--sl-color-gray-2);
+        } */
+    }
 </style>
