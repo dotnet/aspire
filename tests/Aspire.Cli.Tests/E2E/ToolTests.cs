@@ -81,6 +81,11 @@ public class ToolTests(ITestOutputHelper output)
     private static void DeleteMigrations(IProjectMetadata projectMetadata)
     {
         var projectDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
+        if (!Directory.Exists(projectDirectory))
+        {
+            return;
+        }
+
         var migrationFiles = Directory.GetFiles(Path.Combine(projectDirectory!, "Migrations"));
 
         foreach (var migrationFile in migrationFiles)
