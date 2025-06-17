@@ -174,19 +174,28 @@ internal sealed class RunCommand : BaseCommand
                         return backchannel;
                     });
 
-                // apphost start
-                await pendingRun;
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":running_shoe: Running tool execution...",
+                    async() =>
+                    {
+                        // execute tool and stream the output
+                        var outputStream = backchannel.GetToolExecutionOutputStreamAsync(cancellationToken);
+                        await foreach (var output in outputStream)
+                        {
+                            _interactionService.WriteConsoleLog(message: output.Text, isError: output.IsError);
+                        }
 
-                // execute tool and stream the output
-                var outputStream = backchannel.GetToolExecutionOutputStreamAsync(cancellationToken);
-                await foreach (var output in outputStream)
-                {
-                    _interactionService.WriteConsoleLog(message: output.Text, isError: output.IsError);
-                }
+                        return ExitCodeConstants.Success;
+                    });
 
-                await backchannel.RequestStopAsync(cancellationToken);
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":chequered_flag: Shutting Aspire app host...",
+                    async () => {
+                        await backchannel.RequestStopAsync(cancellationToken);
+                        return ExitCodeConstants.Success;
+                    });
 
-                return ExitCodeConstants.Success;
+                return await pendingRun;
             }
             else if (useRichConsole)
             {

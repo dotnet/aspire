@@ -29,7 +29,10 @@ public class ToolTests(ITestOutputHelper output)
             // what AppHost to target
             "--project", @"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
             // what resource to target
-            "--tool", "migration-add"
+            "--tool", "migration-add",
+
+            // if there are other args - it will break but to test
+            // "--add-postgres"
         ];
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {

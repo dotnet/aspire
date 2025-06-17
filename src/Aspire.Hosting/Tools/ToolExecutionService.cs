@@ -7,44 +7,25 @@ using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tools;
 
-internal class ToolExecutionService : BackgroundService
+internal class ToolExecutionService
 {
     private readonly ToolOptions _toolOptions;
     private readonly ILogger<ToolExecutionService> _logger;
-
-    private readonly IHostApplicationLifetime _lifetime;
-    private readonly IDistributedApplicationEventing _eventing;
-    private readonly ICliRpcTarget _cliRpcTarget;
     private readonly DistributedApplicationModel _model;
 
     public ToolExecutionService(
         IOptions<ToolOptions> toolOptions,
         ILogger<ToolExecutionService> logger,
-        IHostApplicationLifetime lifetime,
-        IDistributedApplicationEventing eventing,
-        ICliRpcTarget cliRpcTarget,
         DistributedApplicationModel model)
     {
         _logger = logger;
         _toolOptions = toolOptions.Value;
-
-        _lifetime = lifetime;
-        _eventing = eventing;
-        _cliRpcTarget = cliRpcTarget;
         _model = model;
-    }
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // _eventing.Subscribe<AfterResourcesCreatedEvent>(AfterResourcesCreatedCallback);
-        return Task.CompletedTask;
     }
 
     public async IAsyncEnumerable<CommandOutput> ExecuteToolAndStreamOutputAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -91,9 +72,20 @@ internal class ToolExecutionService : BackgroundService
         var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
         var processWatcherTask = Task.Run(async () =>
         {
-            await processResultTask.ConfigureAwait(false);
-            await Task.WhenAll(sendingTasks).ConfigureAwait(false);
-            outputChannel.Writer.Complete();
+            try
+            {
+                await processResultTask.ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                outputChannel.Writer.TryWrite(("failure:" + ex.Message, true));
+                _logger.LogError(ex, "Process {executable} ended with exception", processSpec.ExecutablePath);
+            }
+            finally
+            {
+                await Task.WhenAll(sendingTasks).ConfigureAwait(false);
+                outputChannel.Writer.Complete();
+            }
         }, cancellationToken);
 
         await foreach (var (data, isError) in outputChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
@@ -108,69 +100,6 @@ internal class ToolExecutionService : BackgroundService
         await processWatcherTask.ConfigureAwait(false);
         _logger.LogDebug("Finished tool execution: {Command} at {WorkingDir} with args {Args}", processSpec.ExecutablePath, processSpec.WorkingDirectory, processSpec.Arguments);
         await disposable.DisposeAsync().ConfigureAwait(false);
-    }
-
-#pragma warning disable IDE0051 // Remove unused private members
-    private async Task AfterResourcesCreatedCallback(AfterResourcesCreatedEvent e, CancellationToken cancellationToken)
-#pragma warning restore IDE0051 // Remove unused private members
-    {
-        IResource? toolResource = e.Model.Resources.FirstOrDefault(r => r.Name == _toolOptions.Resource);
-        if (toolResource is null)
-        {
-            throw new InvalidOperationException($"Tool resource '{_toolOptions.Resource}' not found in the distributed application model.");
-        }
-        if (toolResource is not ExecutableResource toolExecutableResource)
-        {
-            throw new NotSupportedException("Cant run tool which is not executable");
-        }
-
-        var commandLineArgs = await BuildCommandLineArgsAsync(toolResource).ConfigureAwait(false);
-
-        var outputChannel = Channel.CreateUnbounded<string>();
-        var sendingTasks = new ConcurrentBag<Task>();
-
-        var processSpec = new ProcessSpec(toolExecutableResource.Command)
-        {
-            Arguments = commandLineArgs,
-            WorkingDirectory = Path.GetDirectoryName(toolExecutableResource.WorkingDirectory),
-            OnOutputData = data =>
-            {
-                // Only write if data is not null or empty (defensive, not strictly needed for Action<string>)
-                if (!string.IsNullOrEmpty(data))
-                {
-                    var writeTask = outputChannel.Writer.WriteAsync(data, cancellationToken).AsTask();
-                    sendingTasks.Add(writeTask);
-                }
-            },
-            OnErrorData = data =>
-            {
-                if (!string.IsNullOrEmpty(data))
-                {
-                    var writeTask = outputChannel.Writer.WriteAsync(data, cancellationToken).AsTask();
-                    sendingTasks.Add(writeTask);
-                }
-            }
-        };
-
-        var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
-        var streamingOutputTask = Task.Run(async () =>
-        {
-            await foreach (var data in outputChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-            {
-                await _cliRpcTarget.SendCommandOutputAsync(data, cancellationToken).ConfigureAwait(false);
-            }
-        }, cancellationToken);
-
-        var processResult = await processResultTask.ConfigureAwait(false);
-        await Task.WhenAll(sendingTasks).ConfigureAwait(false);
-
-        // no more output expected, closing and making sure all output is sent
-        outputChannel.Writer.Complete();
-        await streamingOutputTask.ConfigureAwait(false);
-
-        // safe to dispose the process and stop the app host
-        await disposable.DisposeAsync().ConfigureAwait(false);
-        _lifetime.StopApplication();
     }
 
     private async Task<string> BuildCommandLineArgsAsync(IResource resource)
