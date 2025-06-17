@@ -38,7 +38,7 @@ export default defineConfig({
 				{
 					icon: 'discord',
 					label: 'Discord',
-					href: 'https://discord.com/invite/h87kDAHQgJ'
+					href: 'https://discord.com/invite/raNPcaaSj8'
 				},
 				{
 					icon: 'x.com',
@@ -53,7 +53,7 @@ export default defineConfig({
 				{
 					icon: 'youtube',
 					label: 'YouTube',
-					href: 'https://www.youtube.com/dotnet'
+					href: 'https://www.youtube.com/@aspiredotdev'
 				},
 				{
 					icon: 'threads',
