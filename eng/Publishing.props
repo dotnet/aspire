@@ -13,11 +13,10 @@
   <PropertyGroup>
     <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishBlobItems</PublishDependsOnTargets>
 
-    <!-- NOTE: These properties are also defined on the root-level Directory.Build.props, but that file is not imported by the Publishing project.
+    <!-- NOTE: This property is also defined on the root-level Directory.Build.props, but that file is not imported by the Publishing project.
     Pulling it in here will cause different issues as that file will conflict with Arcade's publishing logic, so as a workaround we define it here.
-    If you are editing any of these properties, make sure to also edit them in Directory.Build.props. -->
+    If you are editing this property, make sure to also edit the one in Directory.Build.props. -->
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
-    <CliPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'CliArtifacts', '$(Configuration)'))</CliPublishedArtifactsOutputDir>
   </PropertyGroup>
 
   <ItemGroup>
