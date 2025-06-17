@@ -12,20 +12,17 @@ export type ValidationResult = {
 
 export class RpcClient implements ICliRpcClient {
     private _messageConnection: MessageConnection;
-    private _token: string;
 
-    constructor(messageConnection: MessageConnection, token: string) {
+    constructor(messageConnection: MessageConnection) {
         this._messageConnection = messageConnection;
-        this._token = token;
     }
 
     async getCliVersion(): Promise<string> {
-        return await this._messageConnection.sendRequest<string>('getCliVersion', { token: this._token });
+        return await this._messageConnection.sendRequest<string>('getCliVersion');
     }
 
     async validatePromptInputString(promptText: string, input: string, language: string): Promise<ValidationResult | null> {
         return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
-            token: this._token,
             promptText,
             input,
             language
