@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../DeployCommandStrings.resx">
+    <body>
+      <trans-unit id="DeploymentCanceled">
+        <source>The deployment was canceled.</source>
+        <target state="new">The deployment was canceled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeploymentFailed">
+        <source>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</source>
+        <target state="new">Deployment failed with exit code {exitCode}. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
+        <target state="new">Deploy an Aspire app host project to its supported deployment targets.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The output path for deployment artifacts.</source>
+        <target state="new">The output path for deployment artifacts.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SuccessfullyDeployed">
+        <source>Successfully deployed. Artifacts available at: {0}</source>
+        <target state="new">Successfully deployed. Artifacts available at: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -13,6 +13,7 @@
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+    <Compile Include="..\..\Shared\StableConnectionStringBuilder.cs" Link="StableConnectionStringBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +24,10 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Azure.Messaging.ServiceBus.Tests" />
   </ItemGroup>
   
 </Project>

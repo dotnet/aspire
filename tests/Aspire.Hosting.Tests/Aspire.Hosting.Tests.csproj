@@ -37,6 +37,7 @@
     <Compile Include="$(TestsSharedDir)DistributedApplicationTestingBuilderExtensions.cs" Link="shared/DistributedApplicationTestingBuilderExtensions.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Shared\StableConnectionStringBuilder.cs" Link="shared/StableConnectionStringBuilder.cs" />
 
     <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Testing.Tests\DistributedApplicationHttpClientExtensionsForTests.cs" />
   </ItemGroup>

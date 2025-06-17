@@ -1,15 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
-using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -24,16 +22,14 @@ internal interface IAppHostBackchannel
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
 }
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : IAppHostBackchannel
+internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
 {
     private const string BaselineCapability = "baseline.v2";
-
-    private readonly ActivitySource _activitySource = new(nameof(AppHostBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -53,7 +49,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
         // of the AppHost process. The AppHost process will then trigger the shutdown
         // which will allow the CLI to await the pending run.
 
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -67,7 +63,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
 
     public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -83,7 +79,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
 
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -106,11 +102,11 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
     {
         try
         {
-            using var activity = _activitySource.StartActivity();
+            using var activity = telemetry.ActivitySource.StartActivity();
 
             if (_rpcTaskCompletionSource.Task.IsCompleted)
             {
-                throw new InvalidOperationException("Already connected to AppHost backchannel.");
+                throw new InvalidOperationException(ErrorStrings.AlreadyConnectedToBackchannel);
             }
 
             logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
@@ -120,7 +116,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
             logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
 
             var stream = new NetworkStream(socket, true);
-            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, CreateMessageFormatter()));
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, new SystemTextJsonFormatter()));
             rpc.StartListening();
 
             var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
@@ -131,7 +127,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
             if (!capabilities.Any(s => s == BaselineCapability))
             {
                 throw new AppHostIncompatibleException(
-                    $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                    string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostIncompatibleWithCli, BaselineCapability),
                     BaselineCapability
                     );
             }
@@ -142,22 +138,15 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
         {
             logger.LogError(ex, "Failed to connect to AppHost backchannel. The AppHost must be updated to a version that supports the {BaselineCapability} capability.", BaselineCapability);
             throw new AppHostIncompatibleException(
-                $"AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {BaselineCapability} capability.",
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostIncompatibleWithCli, BaselineCapability),
                 BaselineCapability
                 );
         }
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Using the Json source generator.")]
-    [UnconditionalSuppressMessage("Trimming", "IL3050", Justification = "Using the Json source generator.")]
-    private static SystemTextJsonFormatter CreateMessageFormatter() => new()
-    {
-        JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default }
-    };
-
     public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
@@ -182,7 +171,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
 
     public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
 
@@ -196,13 +185,3 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger) : I
         return capabilities;
     }
 }
-
-[JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(DashboardUrls))]
-[JsonSerializable(typeof(JsonElement))]
-[JsonSerializable(typeof(IAsyncEnumerable<RpcResourceState>))]
-[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<RpcResourceState>))]
-[JsonSerializable(typeof(IAsyncEnumerable<PublishingActivity>))]
-[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
-[JsonSerializable(typeof(RequestId))]
-internal partial class SourceGenerationContext : JsonSerializerContext;

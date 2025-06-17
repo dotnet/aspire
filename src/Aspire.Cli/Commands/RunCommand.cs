@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -17,34 +19,36 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RunCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(RunCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
+    private readonly AspireCliTelemetry _telemetry;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole)
-        : base("run", "Run an Aspire app host in development mode.")
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
+        : base("run", RunCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
+        _telemetry = telemetry;
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = "The path to the Aspire app host project file.";
+        projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
 
         var watchOption = new Option<bool>("--watch", "-w");
-        watchOption.Description = "Start project resources in watch mode.";
+        watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
         TreatUnmatchedTokensAsErrors = false;
@@ -55,14 +59,14 @@ internal sealed class RunCommand : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
-        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)? appHostCompatibilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
         {
-            using var activity = _activitySource.StartActivity();
+            using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
-            
+
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
@@ -75,7 +79,7 @@ internal sealed class RunCommand : BaseCommand
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
             var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
-            
+
             var useRichConsole = forceUseRichConsole || !debug;
 
             if (waitForDebugger)
@@ -100,14 +104,14 @@ internal sealed class RunCommand : BaseCommand
                 if (buildExitCode != 0)
                 {
                     _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError($"The project could not be built. For more information run with --debug switch.");
+                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
-            
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, cancellationToken);
 
-            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+
+            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -137,18 +141,18 @@ internal sealed class RunCommand : BaseCommand
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
                 var backchannel = await _interactionService.ShowStatusAsync(
-                    ":linked_paperclips:  Starting Aspire app host...",
+                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
                     async () => {
 
                         // If we use the --wait-for-debugger option we print out the process ID
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                            _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
-                        // before the backchannel is created, therefore waiting on the backchannel is a 
+                        // before the backchannel is created, therefore waiting on the backchannel is a
                         // good signal that the debugger was attached (or timed out).
                         var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
                         return backchannel;
@@ -156,7 +160,7 @@ internal sealed class RunCommand : BaseCommand
 
                 // We wait for the first update of the console model via RPC from the AppHost.
                 var dashboardUrls = await _interactionService.ShowStatusAsync(
-                    ":chart_increasing:  Starting Aspire dashboard...",
+                    $":chart_increasing:  {RunCommandStrings.StartingDashboard}",
                     () => backchannel.GetDashboardUrlsAsync(cancellationToken));
 
                 _interactionService.DisplayDashboardUrls(dashboardUrls);
@@ -164,11 +168,11 @@ internal sealed class RunCommand : BaseCommand
                 var table = new Table().Border(TableBorder.Rounded);
 
                 // Add columns
-                table.AddColumn("Resource");
-                table.AddColumn("Type");
-                table.AddColumn("State");
-                table.AddColumn("Health");
-                table.AddColumn("Endpoint(s)");
+                table.AddColumn(RunCommandStrings.Resource);
+                table.AddColumn(RunCommandStrings.Type);
+                table.AddColumn(RunCommandStrings.State);
+                table.AddColumn(RunCommandStrings.Health);
+                table.AddColumn(RunCommandStrings.Endpoints);
 
                 // We add a default row here to say that
                 // there are no resources in the app host.
@@ -176,7 +180,7 @@ internal sealed class RunCommand : BaseCommand
                 // resource is streamed back from the
                 // app host which should be almost immediate
                 // if no resources are present.
-                
+
                 // Create placeholders based on number of columns defined.
                 var placeholders = new Markup[table.Columns.Count];
                 for (int i = 0; i < table.Columns.Count; i++)
@@ -185,7 +189,7 @@ internal sealed class RunCommand : BaseCommand
                 }
                 table.Rows.Add(placeholders);
 
-                var message = new Markup("Press [bold]Ctrl+C[/] to stop the app host and exit.");
+                var message = new Markup(RunCommandStrings.PressCtrlCToStopAppHost);
 
                 var renderables = new List<IRenderable> {
                     table,
@@ -237,11 +241,11 @@ internal sealed class RunCommand : BaseCommand
                                     "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
                                     "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
                                     "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
-                                    null => new Text("Unknown", new Style().Foreground(Color.Grey)),
+                                    null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
                                     _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
                                 };
 
-                                IRenderable endpointsRenderable = new Text("None");
+                                IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
                                 if (knownResource.Value.Endpoints?.Length > 0)
                                 {
                                     endpointsRenderable = new Rows(
@@ -259,7 +263,7 @@ internal sealed class RunCommand : BaseCommand
                     {
                         // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
                         // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
-                        // that the apphost side of the RPC connection will be closed. Therefore if we get a 
+                        // that the apphost side of the RPC connection will be closed. Therefore if we get a
                         // ConnectionLostException AND the inner exception is an OperationCancelledException we can
                         // asume that the apphost was shutdown and we can ignore it.
                     }
@@ -275,7 +279,7 @@ internal sealed class RunCommand : BaseCommand
                 if (result != 0)
                 {
                     _interactionService.DisplayLines(runOutputCollector.GetLines());
-                    _interactionService.DisplayError($"The project could not be run. For more information run with --debug switch.");
+                    _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
                     return result;
                 }
                 else
@@ -293,42 +297,42 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
-        catch (ProjectLocatorException ex) when (ex.Message == "Project file does not exist.")
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The --project option specified a project that does not exist.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("Multiple project files"))
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The --project option was not specified and multiple app host project files were detected.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
-        catch (ProjectLocatorException ex) when (ex.Message.Contains("No project file"))
+        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError("The project argument was not specified and no *.csproj files were detected.");
+            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {
             return _interactionService.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatibilityCheck?.AspireHostingSdkVersion ?? throw new InvalidOperationException("AspireHostingSdkVersion is null")
+                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError($"An error occurred while trusting the certificates: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError($"An error occurred while connecting to the app host. The app host possibly crashed before it was available: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError($"An unexpected error occurred: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

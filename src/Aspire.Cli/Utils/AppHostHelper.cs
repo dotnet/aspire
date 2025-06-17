@@ -2,57 +2,59 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Telemetry;
 using Semver;
 using System.Diagnostics;
+using System.Globalization;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Utils;
 
 internal static class AppHostHelper
 {
-    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(AppHostHelper));
 
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingSdkVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
-            var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, cancellationToken);
+            var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, cancellationToken);
 
             if (appHostInformation.ExitCode != 0)
             {
-                interactionService.DisplayError("The project could not be analyzed due to a build error. For more information run with --debug switch.");
+                interactionService.DisplayError(ErrorStrings.ProjectCouldNotBeAnalyzed);
                 return (false, false, null);
             }
 
             if (!appHostInformation.IsAspireHost)
             {
-                interactionService.DisplayError($"The project is not an Aspire app host project.");
+                interactionService.DisplayError(ErrorStrings.ProjectIsNotAppHost);
                 return (false, false, null);
             }
 
-            if (!SemVersion.TryParse(appHostInformation.AspireHostingSdkVersion, out var aspireSdkVersion))
+            if (!SemVersion.TryParse(appHostInformation.AspireHostingVersion, out var aspireVersion))
             {
-                interactionService.DisplayError($"Could not parse Aspire SDK version.");
+                interactionService.DisplayError(ErrorStrings.CouldNotParseAspireSDKVersion);
                 return (false, false, null);
             }
 
             var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-            if (!aspireSdkVersion.Satisfies(compatibleRanges))
+            if (!aspireVersion.Satisfies(compatibleRanges))
             {
-                interactionService.DisplayError($"The Aspire SDK version '{appHostInformation.AspireHostingSdkVersion}' is not supported. Please update to the latest version.");
-                return (false, false, appHostInformation.AspireHostingSdkVersion);
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingVersion));
+                return (false, false, appHostInformation.AspireHostingVersion);
             }
             else
             {
                 // NOTE: When we go to support < 9.2.0 app hosts this is where we'll make
                 //       a determination as to whether the apphsot supports backchannel or not.
-                return (true, true, appHostInformation.AspireHostingSdkVersion);
+                return (true, true, appHostInformation.AspireHostingVersion);
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingSdkVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
-        using var activity = s_activitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
-            ":microscope: Checking project type...",
+            $":microscope: {InteractionServiceStrings.CheckingProjectType}",
             () => runner.GetAppHostInformationAsync(
                 projectFile,
                 new DotNetCliRunnerInvocationOptions(),
@@ -60,11 +62,11 @@ internal static class AppHostHelper
 
         return appHostInformationResult;
     }
-    
+
     internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
-            ":hammer_and_wrench:  Building app host...",
+            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost}",
             () => runner.BuildAsync(
                 projectFile,
                 options,
