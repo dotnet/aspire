@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAspireIntegration">
         <source>Adding Aspire integration...</source>
-        <target state="translated">Adding Aspire integration (in CZECH)...</target>
+        <target state="translated">Adding Aspire integration...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
