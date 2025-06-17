@@ -119,7 +119,7 @@ internal sealed class KubernetesPublishingContext(
 
         if (paramValues.Count > 0)
         {
-            helmSection[resource.Name] = paramValues;
+            helmSection[resource.Name.ToHelmValuesSectionName()] = paramValues;
         }
     }
 
@@ -148,7 +148,7 @@ internal sealed class KubernetesPublishingContext(
         }
 
         var resourceName = templatedItem.Metadata.Name;
-        if (resourceName.StartsWith($"{baseName}-"))
+        if (resourceName.StartsWith($"{baseName.ToLowerInvariant()}-"))
         {
             resourceName = resourceName.Substring(baseName.Length + 1); // +1 for the hyphen
         }

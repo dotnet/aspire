@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="es" original="../ErrorStrings.resx">
+    <body>
+      <trans-unit id="AlreadyConnectedToBackchannel">
+        <source>Already connected to AppHost backchannel.</source>
+        <target state="new">Already connected to AppHost backchannel.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostIncompatibleWithCli">
+        <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
+        <target state="new">AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostWasSpecifiedButDoesntExist">
+        <source>AppHost file was specified in '{0}' but it does not exist at '{1}'.</source>
+        <target state="new">AppHost file was specified in '{0}' but it does not exist at '{1}'.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="AspireHostingVersionNull">
+        <source>AspireHostingVersion is null</source>
+        <target state="new">AspireHostingVersion is null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireSDKVersionNotSupported">
+        <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
+        <target state="new">The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CantUseBothWatchAndNoBuild">
+        <source>Cannot use --watch and --no-build at the same time.</source>
+        <target state="new">Cannot use --watch and --no-build at the same time.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificatesMayNotBeFullyTrusted">
+        <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
+        <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyNotFound">
+        <source>Configuration key {0} not found.</source>
+        <target state="new">Configuration key {0} not found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyRequired">
+        <source>Configuration key is required.</source>
+        <target state="new">Configuration key is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationValueRequired">
+        <source>Configuration value is required.</source>
+        <target state="new">Configuration value is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotParseAspireSDKVersion">
+        <source>Could not parse Aspire.Hosting package version.</source>
+        <target state="new">Could not parse Aspire.Hosting package version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorDeletingConfiguration">
+        <source>Error deleting configuration: {0}</source>
+        <target state="new">Error deleting configuration: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorSettingConfiguration">
+        <source>Error setting configuration: {0}</source>
+        <target state="new">Error setting configuration: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToParseTemplateVersionFromStdout">
+        <source>Failed to parse template version from stdout.</source>
+        <target state="new">Failed to parse template version from stdout.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedTemplatePackages">
+        <source>Failed to retrieve template packages via cache.</source>
+        <target state="new">Failed to retrieve template packages via cache.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToSearchForPackages">
+        <source>Failed to search for packages. Exit code: {0}.</source>
+        <target state="new">Failed to search for packages. Exit code: {0}.</target>
+        <note>{0} is a number</note>
+      </trans-unit>
+      <trans-unit id="InvalidLocaleProvided">
+        <source>Invalid locale {0} provided will not be used.</source>
+        <target state="new">Invalid locale {0} provided will not be used.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectFilesFound">
+        <source>Multiple project files found.</source>
+        <target state="new">Multiple project files found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectFileFound">
+        <source>No project file found.</source>
+        <target state="new">No project file found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeAnalyzed">
+        <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
+        <target state="new">The project could not be analyzed due to a build error. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileDoesntExist">
+        <source>Project file does not exist.</source>
+        <target state="new">Project file does not exist.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileNotAppHostProject">
+        <source>Project file is not an Aspire app host project.</source>
+        <target state="new">Project file is not an Aspire app host project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectIsNotAppHost">
+        <source>The project is not an Aspire app host project.</source>
+        <target state="new">The project is not an Aspire app host project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToRetrieveAssemblyVersion">
+        <source>Unable to retrieve the assembly version.</source>
+        <target state="new">Unable to retrieve the assembly version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedLocaleProvided">
+        <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
+        <target state="new">Unsupported locale {0} provided will not be used. Supported locales are: {1}.</target>
+        <note>{1} is a comma-separated list of locales.</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

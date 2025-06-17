@@ -29,7 +29,7 @@ internal static class StringComparers
     public static StringComparer ConsoleLogContent => StringComparer.Ordinal;
     public static StringComparer CultureName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer CommandName => StringComparer.Ordinal;
-
+    public static StringComparer CliInputOrOutput => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons
@@ -56,4 +56,5 @@ internal static class StringComparisons
     public static StringComparison ConsoleLogContent => StringComparison.Ordinal;
     public static StringComparison CultureName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison CommandName => StringComparison.Ordinal;
+    public static StringComparison CliInputOrOutput => StringComparison.Ordinal;
 }
