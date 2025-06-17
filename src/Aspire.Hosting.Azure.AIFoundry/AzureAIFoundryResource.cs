@@ -63,5 +63,5 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
         IsLocal
             ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
-            : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName}");
+            : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }
