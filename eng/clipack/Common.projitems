@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.Build.NoTargets">
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
@@ -11,8 +11,6 @@
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Archives" />
   </ItemGroup>
 
-  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" />
-
   <Target Name="PublishToDisk">
     <ItemGroup>
       <AdditionalProperties Include="Configuration=$(Configuration)" />
@@ -22,6 +20,7 @@
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
     </ItemGroup>
 
+    <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
         Targets="publish"
