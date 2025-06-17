@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\Aspire.Cli\Aspire.Cli.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
     <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
+    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.MyWebApp\TestingAppHost1.MyWebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

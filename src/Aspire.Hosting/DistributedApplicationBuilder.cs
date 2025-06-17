@@ -265,7 +265,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
-        _innerBuilder.Services.TryAddSingleton<ICliRpcTarget, BackchannelService>();
         _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
