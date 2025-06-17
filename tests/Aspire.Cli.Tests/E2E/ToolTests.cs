@@ -57,10 +57,10 @@ public class ToolTests(ITestOutputHelper output)
                 name: "migration-add",
                 command: "dotnet",
                 workingDirectory: (new TestingAppHost1_MyWebApp()).ProjectPath,
-                // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
-                // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932;
-                // path is relative to working directory (which is project path as well)
-                args: "ef migrations add Init --msbuildprojectextensionspath ../../../artifacts/obj/TestingAppHost1.MyWebApp")
+                args: "ef migrations add Init")
+            // note: there is an issue with dotnet-ef when artifacts are not in the local obj, so you have to specify the obj\ location
+            // https://github.com/dotnet/efcore/issues/23853#issuecomment-2183607932;
+            .WithArgs([ "--msbuildprojectextensionspath", "../../../artifacts/obj/TestingAppHost1.MyWebApp" ])
             .WithExplicitStart();
 
         await using var app = await builder.BuildAsync();

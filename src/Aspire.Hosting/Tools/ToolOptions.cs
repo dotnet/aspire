@@ -19,6 +19,11 @@ public class ToolOptions
     public string? Resource { get; set; }
 
     /// <summary>
+    /// Target Aspire AppHost to run.
+    /// </summary>
+    public string? Project { get; set; }
+
+    /// <summary>
     /// Gets or set the custom args to pass to the tool executable.
     /// </summary>
     public string[]? Args { get; set; }
