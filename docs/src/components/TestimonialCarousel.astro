@@ -14,10 +14,13 @@ export interface Testimonial {
 
 export type Testimonials = Testimonial[];
 
-const testimonials: Testimonials = processAvatars(testimonialsData as Testimonials);
+const testimonials: Testimonials = processAvatars(
+    testimonialsData as Testimonials,
+);
 
 const initialIndex = 0;
-const prevIndex = (initialIndex - 1 + testimonials.length) % testimonials.length;
+const prevIndex =
+    (initialIndex - 1 + testimonials.length) % testimonials.length;
 const nextIndex = (initialIndex + 1) % testimonials.length;
 ---
 
@@ -29,18 +32,26 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     <div class="carousel-container">
         {
             testimonials.map((testimonial, index) => (
-                <div 
+                <div
                     class={`carousel-item ${
-                        index === initialIndex ? "current" :
-                        index === prevIndex ? "prev" :
-                        index === nextIndex ? "next" : "hidden"
-                    }`} 
+                        index === initialIndex
+                            ? "current"
+                            : index === prevIndex
+                              ? "prev"
+                              : index === nextIndex
+                                ? "next"
+                                : "hidden"
+                    }`}
                     data-index={index}
                 >
-                    <div class="card">
+                    <div class="card" data-card-index={index}>
                         <img
                             class="avatar"
-                            src={typeof testimonial.avatar === "object" ? testimonial.avatar.src : testimonial.avatar}
+                            src={
+                                typeof testimonial.avatar === "object"
+                                    ? testimonial.avatar.src
+                                    : testimonial.avatar
+                            }
                             alt={testimonial.name}
                             loading="lazy"
                             title={`${testimonial.name}${testimonial.company ? `, ${testimonial.company}` : ""}${testimonial.role ? `, ${testimonial.role}` : ""}`}
@@ -49,7 +60,11 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                         <div class="text">{testimonial.text}</div>
                         <div class="name">
                             {testimonial.link ? (
-                                <a href={testimonial.link} target="_blank" rel="noopener noreferrer">
+                                <a
+                                    href={testimonial.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
                                     {testimonial.name}
                                 </a>
                             ) : (
@@ -114,77 +129,104 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     // Function to initialize a carousel immediately without waiting for custom elements
     function initCarousel(carousel: CarouselElement): void {
         if (!carousel) return;
-        
+
         try {
-            const currentIndex: number = parseInt(carousel.getAttribute('data-current-index') || '0', 10);
-            const testimonialsAttr: string | null = carousel.getAttribute('data-testimonials');
-            
+            const currentIndex: number = parseInt(
+                carousel.getAttribute("data-current-index") || "0",
+                10,
+            );
+            const testimonialsAttr: string | null =
+                carousel.getAttribute("data-testimonials");
+
             if (!testimonialsAttr) {
-                console.error('No testimonials data found');
+                console.error("No testimonials data found");
                 return;
             }
-            
-            const testimonialsData: Testimonial[] = JSON.parse(testimonialsAttr);
-            const items: HTMLElement[] = Array.from(carousel.querySelectorAll('.carousel-item'));
-            const indicators: HTMLElement[] = Array.from(carousel.querySelectorAll('.indicator'));
-            const prevButton: HTMLButtonElement | null = carousel.querySelector('.prev-btn');
-            const nextButton: HTMLButtonElement | null = carousel.querySelector('.next-btn');
-            
+
+            const testimonialsData: Testimonial[] =
+                JSON.parse(testimonialsAttr);
+            const items: HTMLElement[] = Array.from(
+                carousel.querySelectorAll(".carousel-item"),
+            );
+            const indicators: HTMLElement[] = Array.from(
+                carousel.querySelectorAll(".indicator"),
+            );
+            const prevButton: HTMLButtonElement | null =
+                carousel.querySelector(".prev-btn");
+            const nextButton: HTMLButtonElement | null =
+                carousel.querySelector(".next-btn");
+
             // Store state in the element for later use
             carousel._state = {
                 currentIndex,
                 testimonials: testimonialsData,
-                autoRotateInterval: null
+                autoRotateInterval: null,
             };
-            
+
             // Set up navigation
             function navigate(direction: number): void {
                 const state = carousel._state as CarouselState;
-                const newIndex = (state.currentIndex + direction + state.testimonials.length) % state.testimonials.length;
+                const newIndex =
+                    (state.currentIndex +
+                        direction +
+                        state.testimonials.length) %
+                    state.testimonials.length;
                 goToSlide(newIndex);
             }
-            
+
             function goToSlide(index: number): void {
                 const state = carousel._state as CarouselState;
-                carousel.classList.add('is-transitioning');
+                carousel.classList.add("is-transitioning");
                 state.currentIndex = index;
                 updateDisplay();
-                
+
                 setTimeout(() => {
-                    carousel.classList.remove('is-transitioning');
+                    carousel.classList.remove("is-transitioning");
                 }, 500);
             }
-            
+
             function updateDisplay(): void {
                 const state = carousel._state as CarouselState;
-                const prevIndex = (state.currentIndex - 1 + state.testimonials.length) % state.testimonials.length;
-                const nextIndex = (state.currentIndex + 1) % state.testimonials.length;
-                
+                const prevIndex =
+                    (state.currentIndex - 1 + state.testimonials.length) %
+                    state.testimonials.length;
+                const nextIndex =
+                    (state.currentIndex + 1) % state.testimonials.length;
+
                 items.forEach((item, i) => {
-                    item.classList.remove('prev', 'current', 'next', 'hidden');
+                    item.classList.remove("prev", "current", "next", "hidden");
                     if (i === state.currentIndex) {
-                        item.classList.add('current');
+                        item.classList.add("current");
                     } else if (i === prevIndex) {
-                        item.classList.add('prev');
+                        item.classList.add("prev");
                     } else if (i === nextIndex) {
-                        item.classList.add('next');
+                        item.classList.add("next");
                     } else {
-                        item.classList.add('hidden');
+                        item.classList.add("hidden");
                     }
                 });
-                
+
                 indicators.forEach((indicator, i) => {
-                    indicator.setAttribute('aria-pressed', i === state.currentIndex ? 'true' : 'false');
-                    indicator.classList.toggle('active', i === state.currentIndex);
+                    indicator.setAttribute(
+                        "aria-pressed",
+                        i === state.currentIndex ? "true" : "false",
+                    );
+                    indicator.classList.toggle(
+                        "active",
+                        i === state.currentIndex,
+                    );
                 });
             }
-            
+
             function startAutoRotate(interval: number = 5000): void {
                 const state = carousel._state as CarouselState;
                 stopAutoRotate();
-                state.autoRotateInterval = window.setInterval(() => navigate(1), interval);
+                state.autoRotateInterval = window.setInterval(
+                    () => navigate(1),
+                    interval,
+                );
             }
-            
+
             function stopAutoRotate(): void {
                 const state = carousel._state as CarouselState;
                 if (state.autoRotateInterval) {
@@ -192,49 +234,60 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                     state.autoRotateInterval = null;
                 }
             }
-            
+
             // Add event listeners
-            if (prevButton) prevButton.addEventListener('click', () => { 
-                stopAutoRotate();
-                navigate(-1);
-            });
-            
-            if (nextButton) nextButton.addEventListener('click', () => {
-                stopAutoRotate();
-                navigate(1);
-            });
-            
+            if (prevButton)
+                prevButton.addEventListener("click", () => {
+                    stopAutoRotate();
+                    navigate(-1);
+                });
+
+            if (nextButton)
+                nextButton.addEventListener("click", () => {
+                    stopAutoRotate();
+                    navigate(1);
+                });
+
             indicators.forEach((indicator, index) => {
-                indicator.addEventListener('click', () => {
+                indicator.addEventListener("click", () => {
                     stopAutoRotate();
                     goToSlide(index);
                 });
             });
-            
+
             // Initial update just to be safe
             updateDisplay();
-            
+
             // Start auto-rotation
             startAutoRotate();
-            
-            console.log('Carousel initialized successfully with direct approach');
+
+            console.log(
+                "Carousel initialized successfully with direct approach",
+            );
         } catch (err) {
-            console.error('Error initializing carousel with direct approach:', err);
+            console.error(
+                "Error initializing carousel with direct approach:",
+                err,
+            );
         }
     }
-    
+
     // Initialize immediately on script load
-    document.querySelectorAll<CarouselElement>('.testimonial-carousel').forEach(carousel => {
-        initCarousel(carousel);
-    });
-    
-    // Also initialize on DOMContentLoaded to be safe
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll<CarouselElement>('.testimonial-carousel').forEach(carousel => {
-            if (!carousel._state) {
-                initCarousel(carousel);
-            }
+    document
+        .querySelectorAll<CarouselElement>(".testimonial-carousel")
+        .forEach((carousel) => {
+            initCarousel(carousel);
         });
+
+    // Also initialize on DOMContentLoaded to be safe
+    document.addEventListener("DOMContentLoaded", () => {
+        document
+            .querySelectorAll<CarouselElement>(".testimonial-carousel")
+            .forEach((carousel) => {
+                if (!carousel._state) {
+                    initCarousel(carousel);
+                }
+            });
     });
 </script>
 
@@ -319,9 +372,8 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     /* Modern card design */
     .card {
         padding: 2rem;
-        border-radius: .8rem;
-        background-color: var(--carousel-card-bg);
-        box-shadow: 
+        border-radius: 0.8rem;
+        box-shadow:
             0 10px 20px rgba(0, 0, 0, 0.08),
             0 6px 6px rgba(0, 0, 0, 0.12),
             0 0 0 1px rgba(0, 0, 0, 0.05);
@@ -331,12 +383,170 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
+        transition: all .5s ease;
         min-height: 200px;
         width: 100%;
         max-width: 400px; /* Control size */
         margin: 0 auto;
-        backdrop-filter: blur(5px); /* Modern glass effect for compatible browsers */
+        background-color: var(--carousel-card-bg);
+        backdrop-filter: blur(5px);
+    }
+
+    /* Refined subtle gradient backgrounds */
+    .card[data-card-index="0"] {
+        background: 
+            radial-gradient(
+                circle at 20% 35%,
+                color-mix(in srgb, var(--carousel-card-bg) 85%, var(--carousel-primary)) 0%,
+                transparent 35%
+            ),
+            radial-gradient(
+                circle at 80% 85%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #ffb347) 0%,
+                transparent 40%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="1"] {
+        background: 
+            radial-gradient(
+                circle at 65% 15%,
+                color-mix(in srgb, var(--carousel-card-bg) 88%, #46e7b6) 0%,
+                transparent 38%
+            ),
+            radial-gradient(
+                circle at 25% 90%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #e746a1) 0%,
+                transparent 42%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="2"] {
+        background: 
+            radial-gradient(
+                circle at 55% 8%,
+                color-mix(in srgb, var(--carousel-card-bg) 85%, #e7e746) 0%,
+                transparent 35%
+            ),
+            radial-gradient(
+                circle at 95% 95%,
+                color-mix(in srgb, var(--carousel-card-bg) 88%, #46a1e7) 0%,
+                transparent 45%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="3"] {
+        background: 
+            radial-gradient(
+                circle at 12% 65%,
+                color-mix(in srgb, var(--carousel-card-bg) 92%, #e74646) 0%,
+                transparent 40%
+            ),
+            radial-gradient(
+                ellipse at 85% 25%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #46e77a) 0%,
+                transparent 38%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="4"] {
+        background: 
+            radial-gradient(
+                circle at 65% 65%,
+                color-mix(in srgb, var(--carousel-card-bg) 88%, #b346e7) 0%,
+                transparent 45%
+            ),
+            radial-gradient(
+                circle at 35% 15%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #e7c846) 0%,
+                transparent 35%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="5"] {
+        background: 
+            radial-gradient(
+                circle at 45% 85%,
+                color-mix(in srgb, var(--carousel-card-bg) 85%, #46e7e7) 0%,
+                transparent 40%
+            ),
+            radial-gradient(
+                circle at 90% 10%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #e746b3) 0%,
+                transparent 38%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="6"] {
+        background: 
+            radial-gradient(
+                circle at 10% 10%,
+                color-mix(in srgb, var(--carousel-card-bg) 92%, #e7b346) 0%,
+                transparent 38%
+            ),
+            radial-gradient(
+                circle at 90% 90%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #46e7d1) 0%,
+                transparent 42%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="7"] {
+        background: 
+            radial-gradient(
+                circle at 65% 12%,
+                color-mix(in srgb, var(--carousel-card-bg) 88%, #e746e7) 0%,
+                transparent 35%
+            ),
+            radial-gradient(
+                circle at 15% 95%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #46e7a1) 0%,
+                transparent 40%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="8"] {
+        background: 
+            radial-gradient(
+                circle at 85% 55%,
+                color-mix(in srgb, var(--carousel-card-bg) 92%, #46b3e7) 0%,
+                transparent 45%
+            ),
+            radial-gradient(
+                circle at 25% 35%,
+                color-mix(in srgb, var(--carousel-card-bg) 88%, #e7e746) 0%,
+                transparent 38%
+            ),
+            var(--carousel-card-bg);
+    }
+    .card[data-card-index="9"] {
+        background: 
+            radial-gradient(
+                circle at 55% 55%,
+                color-mix(in srgb, var(--carousel-card-bg) 90%, #e7467a) 0%,
+                transparent 42%
+            ),
+            radial-gradient(
+                circle at 85% 25%,
+                color-mix(in srgb, var(--carousel-card-bg) 92%, #46e7e7) 0%,
+                transparent 35%
+            ),
+            var(--carousel-card-bg);
+    }
+    
+    /* Add more subtle fallback backgrounds for browsers that don't support color-mix */
+    @supports not (background: color-mix(in srgb, red, blue)) {
+        .card {
+            background-color: var(--carousel-card-bg);
+        }
+        
+        .card[data-card-index="0"] {
+            background: linear-gradient(135deg, rgba(141, 70, 231, 0.1), var(--carousel-card-bg), rgba(255, 179, 71, 0.1));
+        }
+        .card[data-card-index="1"] {
+            background: linear-gradient(135deg, rgba(70, 231, 182, 0.1), var(--carousel-card-bg), rgba(231, 70, 161, 0.1));
+        }
+        /* ...additional fallbacks... */
     }
 
     .avatar {
@@ -467,47 +677,47 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
         .carousel-item.prev {
             transform: translateX(calc(-50% - 200px)) scale(0.85);
         }
-        
+
         .carousel-item.next {
             transform: translateX(calc(-50% + 200px)) scale(0.85);
         }
-        
+
         .card {
             padding: 1.75rem;
         }
     }
-    
+
     @media (max-width: 768px) {
         .carousel-container {
             min-height: 260px;
         }
-        
+
         .controls {
             margin-top: 1.5rem;
         }
-        
+
         .carousel-item.prev,
         .carousel-item.next {
             display: none;
         }
-        
+
         .carousel-item.current {
             position: relative;
             transform: translateX(-50%) scale(1);
             width: 80%;
         }
-        
+
         .card {
             padding: 1.5rem;
             min-height: 180px;
         }
-        
+
         .avatar {
             width: 60px;
             height: 60px;
             margin-bottom: 1rem;
         }
-        
+
         .text {
             font-size: 1rem;
         }
@@ -516,5 +726,7 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     /* Theme-specific adjustments */
     :global(.dark) .testimonial-carousel {
         --carousel-indicator: rgba(255, 255, 255, 0.4);
+        --carousel-card-bg: var(--sl-color-black, #1a1a1a);
     }
+</style>
 </style>
