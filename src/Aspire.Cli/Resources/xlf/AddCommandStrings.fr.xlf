@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../AddCommandStrings.resx">
+    <body>
+      <trans-unit id="AddingAspireIntegration">
+        <source>Adding Aspire integration...</source>
+        <target state="new">Adding Aspire integration...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Add an integration to the Aspire project.</source>
+        <target state="new">Add an integration to the Aspire project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorOccurredWhileAddingPackage">
+        <source>An error occurred while adding the package: {0}</source>
+        <target state="new">An error occurred while adding the package: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationArgumentDescription">
+        <source>The name of the integration to add (e.g. redis, postgres).</source>
+        <target state="new">The name of the integration to add (e.g. redis, postgres).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoIntegrationPackagesFound">
+        <source>No integration packages were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="new">No integration packages were found. Please check your internet connection or NuGet source configuration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackagesFound">
+        <source>No packages found.</source>
+        <target state="new">No packages found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageAddedSuccessfully">
+        <source>The package {0}::{1} was added successfully.</source>
+        <target state="new">The package {0}::{1} was added successfully.</target>
+        <note>{0} is the package name, {1} is the version.</note>
+      </trans-unit>
+      <trans-unit id="PackageInstallationFailed">
+        <source>The package installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="new">The package installation failed with exit code {0}. For more information run with --debug switch.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the project file to add the integration to.</source>
+        <target state="new">The path to the project file to add the integration to.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAspirePackages">
+        <source>Searching for Aspire packages...</source>
+        <target state="new">Searching for Aspire packages...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAVersionOfPackage">
+        <source>Select a version of {0}:</source>
+        <target state="new">Select a version of {0}:</target>
+        <note>{0} is the package name.</note>
+      </trans-unit>
+      <trans-unit id="SelectAnIntegrationToAdd">
+        <source>Select an integration to add:</source>
+        <target state="new">Select an integration to add:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SourceArgumentDescription">
+        <source>The NuGet source to use for the integration.</source>
+        <target state="new">The NuGet source to use for the integration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedNumberOfPackagesFound">
+        <source>Unexpected number of packages found.</source>
+        <target state="new">Unexpected number of packages found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionArgumentDescription">
+        <source>The version of the integration to add.</source>
+        <target state="new">The version of the integration to add.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
