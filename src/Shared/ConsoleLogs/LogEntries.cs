@@ -54,6 +54,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         }
 
         BaseLineNumber = null;
+        _earliestTimestampIndex = null;
     }
 
     public bool ProcessPauseFilters(LogEntry logEntry)
