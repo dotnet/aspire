@@ -55,17 +55,18 @@ internal class ConsoleDashboardRenderable : FocusableRenderable
 
         var detail = new Layout().Ratio(5);
 
-        detail.SplitRows(
-            new Layout(),
-            new Layout()
-        );
+        var resourceHeaderPanel = new ResourceHeaderRenderable(_state);
+        var resourceLogPanel = new ResourceLogRenderable(_state);
 
-        // var resourceLogPanel = new ResourceLogRenderable(_state);
-        // var resourceLog = new Layout(resourceLogPanel).Ratio(5);
+        detail.SplitRows(
+            new Layout(resourceHeaderPanel).Ratio(1).MinimumSize(3),
+            new Layout(resourceLogPanel).Ratio(9)
+        );
 
         content.SplitColumns(resourceList, detail);
 
-        var status = new Layout(new Text("status")).Size(1);
+        var statusBar = new StatusBarRenderable(_state);
+        var status = new Layout(statusBar).Size(1);
 
         root.SplitRows(content, status);
 

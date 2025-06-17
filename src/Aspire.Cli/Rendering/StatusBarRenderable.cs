@@ -6,11 +6,11 @@ using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Rendering;
 
-internal class StatusBarRenderable(string statusMessage) : JustInTimeRenderable
+internal class StatusBarRenderable(ConsoleDashboardState state) : JustInTimeRenderable
 {
     protected override IRenderable Build()
     {
-        var status = new Markup(statusMessage, new Style(background: Color.DarkBlue, foreground: Color.White));
+        var status = new Markup($" {state.StatusMessage ?? "Unknown"}");
         var statusAlign = new Align(status, HorizontalAlignment.Left, VerticalAlignment.Bottom);
         var easterEgg = new Markup(":rocket::womans_boot:");
         var easterEggAlign = new Align(easterEgg, HorizontalAlignment.Right, VerticalAlignment.Bottom);

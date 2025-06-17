@@ -35,7 +35,7 @@ internal class ResourceListRenderable(ConsoleDashboardState state) : FocusableRe
             }
         }
 
-        var panel = new Panel(resourcesTree);
+        var panel = new Panel(resourcesTree).RoundedBorder();
         panel.Expand = true;
         return panel;
     }

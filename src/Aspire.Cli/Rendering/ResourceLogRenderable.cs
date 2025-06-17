@@ -21,7 +21,7 @@ internal class ResourceLogRenderable(ConsoleDashboardState state) : FocusableRen
 
     protected override IRenderable Build()
     {
-        var logsPanel = new Panel("Logs");
+        var logsPanel = new Panel("Logs").RoundedBorder();
         logsPanel.Expand = true;
         return logsPanel;
     }

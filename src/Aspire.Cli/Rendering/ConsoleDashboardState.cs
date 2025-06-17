@@ -7,9 +7,22 @@ namespace Aspire.Cli.Rendering;
 
 internal class ConsoleDashboardState : RenderableState
 {
+    public ConsoleDashboardState()
+    {
+        _cliResources.Add(new CliResource
+        {
+            ResourceName = "AppHost",
+            ResourceId = "AppHost",
+            Type = "AppHost",
+            State = "Running",
+            Endpoints = new[] { "http://localhost:5000" },
+            Health = "Starting"
+        });
+    }
+
     private readonly List<CliResource> _cliResources = new();
 
-    public IEnumerable<CliResource> CliResources => _cliResources.AsReadOnly();
+    public IEnumerable<CliResource> CliResources => _cliResources;
 
     private CliResource? _selectedResource;
 
@@ -119,4 +132,5 @@ internal class CliResource
     public required string State { get; set; }
     public required string[] Endpoints { get; set; }
     public required string? Health { get; set; }
+    public bool IsSelected { get; set; }
 }

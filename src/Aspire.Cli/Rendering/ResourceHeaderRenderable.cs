@@ -21,7 +21,7 @@ internal class ResourceHeaderRenderable(ConsoleDashboardState state) : Focusable
     protected override IRenderable Build()
     {
         _ = state;
-        var panel = new Panel("Resource Name");
+        var panel = new Panel("Resource Name").RoundedBorder();
         panel.Expand = true;
         return panel;
     }
