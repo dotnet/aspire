@@ -30,6 +30,10 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
         --star-color-3: rgba(81, 43, 212, 0.8);
         --star-color-4: rgba(81, 43, 212, 0.7);
 
+        --star-size-1: 1.5px;
+        --star-size-2: 2.25px;
+        --star-size-3: 3px;
+
         .card-grid .card {
             border-radius: .5rem;
             background: var(--sl-color-bg-nav);
@@ -42,6 +46,10 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
         --star-color-2: rgba(255, 255, 255, 0.9);
         --star-color-3: rgba(255, 255, 255, 0.8);
         --star-color-4: rgba(255, 255, 255, 0.7);
+
+        --star-size-1: 1px;
+        --star-size-2: 1.5px;
+        --star-size-3: 2px;
     }
 
     :root[data-has-hero] {
@@ -82,18 +90,18 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
 
     .stars-small {
         background-image: 
-            radial-gradient(1px 1px at 10% 10%, var(--star-color-1) 50%, transparent 70%),
-            radial-gradient(1px 1px at 25% 15%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 40% 5%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 55% 18%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 70% 8%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 90% 5%, var(--star-color-1) 50%, transparent 70%),
-            radial-gradient(1px 1px at 5% 90%, var(--star-color-1) 50%, transparent 70%),
-            radial-gradient(1px 1px at 20% 75%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 35% 95%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 60% 82%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 75% 92%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1px 1px at 95% 90%, var(--star-color-1) 50%, transparent 70%);
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 10% 10%, var(--star-color-1) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 25% 15%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 40% 5%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 55% 18%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 70% 8%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 90% 5%, var(--star-color-1) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 5% 90%, var(--star-color-1) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 20% 75%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 35% 95%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 60% 82%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 75% 92%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-1) var(--star-size-1) at 95% 90%, var(--star-color-1) 50%, transparent 70%);
         background-size: 300px 300px;
         opacity: 0;
         animation: twinkle-small 6s infinite;
@@ -101,16 +109,16 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
 
     .stars-medium {
         background-image:
-            radial-gradient(1.5px 1.5px at 8% 15%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 22% 25%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 45% 5%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 65% 20%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 92% 12%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 12% 88%, var(--star-color-2) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 30% 70%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 55% 92%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 72% 85%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(1.5px 1.5px at 85% 82%, var(--star-color-2) 50%, transparent 70%);
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 8% 15%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 22% 25%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 45% 5%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 65% 20%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 92% 12%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 12% 88%, var(--star-color-2) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 30% 70%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 55% 92%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 72% 85%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-2) var(--star-size-2) at 85% 82%, var(--star-color-2) 50%, transparent 70%);
         background-size: 400px 400px;
         opacity: 0;
         animation: twinkle-medium 8s infinite 2s;
@@ -118,16 +126,16 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
 
     .stars-large {
         background-image:
-            radial-gradient(2px 2px at 5% 5%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(2px 2px at 28% 12%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 50% 8%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 78% 18%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 95% 5%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(2px 2px at 5% 95%, var(--star-color-3) 50%, transparent 70%),
-            radial-gradient(2px 2px at 32% 80%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 60% 90%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 82% 85%, var(--star-color-4) 50%, transparent 70%),
-            radial-gradient(2px 2px at 95% 95%, var(--star-color-3) 50%, transparent 70%);
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 5% 5%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 28% 12%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 50% 8%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 78% 18%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 95% 5%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 5% 95%, var(--star-color-3) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 32% 80%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 60% 90%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 82% 85%, var(--star-color-4) 50%, transparent 70%),
+            radial-gradient(var(--star-size-3) var(--star-size-3) at 95% 95%, var(--star-color-3) 50%, transparent 70%);
         background-size: 500px 500px;
         opacity: 0;
         animation: twinkle-large 10s infinite 1s;

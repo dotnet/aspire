@@ -1,0 +1,17 @@
+[
+    {
+        "name": "Steven Price",
+        "text": "Aspire lets developers be developers again.",
+        "avatar": "../assets/testimonials/steven-price.jpg"
+    },
+    {
+        "name": "Russ Harding",
+        "text": "I had someone start on a Monday morning and they were contributing code by lunch.",
+        "avatar": "../assets/testimonials/russ-harding.jpg"
+    },
+    {
+        "name": "Nk54",
+        "text": "I've never wanted to commit to a Microsoft technology this much.",
+        "avatar": "../assets/testimonials/nk54.png"
+    }
+]

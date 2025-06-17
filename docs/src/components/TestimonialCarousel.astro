@@ -1,0 +1,485 @@
+---
+import { Icon } from "@astrojs/starlight/components";
+import testimonialsData from "../data/testimonials.json";
+import { processAvatars } from "../utils/imageImporter";
+
+const testimonials = processAvatars(testimonialsData);
+
+const initialIndex = 0;
+const prevIndex = (initialIndex - 1 + testimonials.length) % testimonials.length;
+const nextIndex = (initialIndex + 1) % testimonials.length;
+---
+
+<div
+    class="testimonial-carousel"
+    data-current-index={initialIndex}
+    data-testimonials={JSON.stringify(testimonials)}
+>
+    <div class="carousel-container">
+        {
+            testimonials.map((testimonial, index) => (
+                <div 
+                    class={`carousel-item ${
+                        index === initialIndex ? "current" :
+                        index === prevIndex ? "prev" :
+                        index === nextIndex ? "next" : "hidden"
+                    }`} 
+                    data-index={index}
+                >
+                    <div class="card">
+                        <img
+                            class="avatar"
+                            src={testimonial.avatar?.src || testimonial.avatar}
+                            alt={testimonial.name}
+                            loading="lazy"
+                            onerror="this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent(this.alt) + '&background=random'; this.onerror=null;"
+                        />
+                        <div class="text">{testimonial.text}</div>
+                        <div class="name">{testimonial.name}</div>
+                    </div>
+                </div>
+            ))
+        }
+    </div>
+
+    <div class="controls">
+        <button
+            type="button"
+            class="control-btn prev-btn"
+            aria-label="Previous testimonial"
+        >
+            <Icon name="left-arrow" size="1.2rem" />
+        </button>
+        <div class="indicators">
+            {
+                testimonials.map((_, index) => (
+                    <button
+                        type="button"
+                        class={`indicator ${index === initialIndex ? "active" : ""}`}
+                        data-index={index}
+                        aria-label={`Go to testimonial ${index + 1}`}
+                        aria-pressed={index === initialIndex ? "true" : "false"}
+                    />
+                ))
+            }
+        </div>
+        <button
+            type="button"
+            class="control-btn next-btn"
+            aria-label="Next testimonial"
+        >
+            <Icon name="right-arrow" size="1.2rem" />
+        </button>
+    </div>
+</div>
+
+<script>
+    interface Testimonial {
+        name: string;
+        text: string;
+        avatar: string;
+    }
+
+    interface CarouselState {
+        currentIndex: number;
+        testimonials: Testimonial[];
+        autoRotateInterval: number | null;
+    }
+
+    // Extended HTMLElement with our state
+    interface CarouselElement extends HTMLElement {
+        _state?: CarouselState;
+    }
+
+    // Function to initialize a carousel immediately without waiting for custom elements
+    function initCarousel(carousel: CarouselElement): void {
+        if (!carousel) return;
+        
+        try {
+            const currentIndex: number = parseInt(carousel.getAttribute('data-current-index') || '0', 10);
+            const testimonialsAttr: string | null = carousel.getAttribute('data-testimonials');
+            
+            if (!testimonialsAttr) {
+                console.error('No testimonials data found');
+                return;
+            }
+            
+            const testimonialsData: Testimonial[] = JSON.parse(testimonialsAttr);
+            const items: HTMLElement[] = Array.from(carousel.querySelectorAll('.carousel-item'));
+            const indicators: HTMLElement[] = Array.from(carousel.querySelectorAll('.indicator'));
+            const prevButton: HTMLButtonElement | null = carousel.querySelector('.prev-btn');
+            const nextButton: HTMLButtonElement | null = carousel.querySelector('.next-btn');
+            
+            // Store state in the element for later use
+            carousel._state = {
+                currentIndex,
+                testimonials: testimonialsData,
+                autoRotateInterval: null
+            };
+            
+            // Set up navigation
+            function navigate(direction: number): void {
+                const state = carousel._state as CarouselState;
+                const newIndex = (state.currentIndex + direction + state.testimonials.length) % state.testimonials.length;
+                goToSlide(newIndex);
+            }
+            
+            function goToSlide(index: number): void {
+                const state = carousel._state as CarouselState;
+                carousel.classList.add('is-transitioning');
+                state.currentIndex = index;
+                updateDisplay();
+                
+                setTimeout(() => {
+                    carousel.classList.remove('is-transitioning');
+                }, 500);
+            }
+            
+            function updateDisplay(): void {
+                const state = carousel._state as CarouselState;
+                const prevIndex = (state.currentIndex - 1 + state.testimonials.length) % state.testimonials.length;
+                const nextIndex = (state.currentIndex + 1) % state.testimonials.length;
+                
+                items.forEach((item, i) => {
+                    item.classList.remove('prev', 'current', 'next', 'hidden');
+                    if (i === state.currentIndex) {
+                        item.classList.add('current');
+                    } else if (i === prevIndex) {
+                        item.classList.add('prev');
+                    } else if (i === nextIndex) {
+                        item.classList.add('next');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                
+                indicators.forEach((indicator, i) => {
+                    indicator.setAttribute('aria-pressed', i === state.currentIndex ? 'true' : 'false');
+                    indicator.classList.toggle('active', i === state.currentIndex);
+                });
+            }
+            
+            function startAutoRotate(interval: number = 5000): void {
+                const state = carousel._state as CarouselState;
+                stopAutoRotate();
+                state.autoRotateInterval = window.setInterval(() => navigate(1), interval);
+            }
+            
+            function stopAutoRotate(): void {
+                const state = carousel._state as CarouselState;
+                if (state.autoRotateInterval) {
+                    window.clearInterval(state.autoRotateInterval);
+                    state.autoRotateInterval = null;
+                }
+            }
+            
+            // Add event listeners
+            if (prevButton) prevButton.addEventListener('click', () => { 
+                stopAutoRotate();
+                navigate(-1);
+            });
+            
+            if (nextButton) nextButton.addEventListener('click', () => {
+                stopAutoRotate();
+                navigate(1);
+            });
+            
+            indicators.forEach((indicator, index) => {
+                indicator.addEventListener('click', () => {
+                    stopAutoRotate();
+                    goToSlide(index);
+                });
+            });
+            
+            // Initial update just to be safe
+            updateDisplay();
+            
+            // Start auto-rotation
+            startAutoRotate();
+            
+            console.log('Carousel initialized successfully with direct approach');
+        } catch (err) {
+            console.error('Error initializing carousel with direct approach:', err);
+        }
+    }
+    
+    // Initialize immediately on script load
+    document.querySelectorAll<CarouselElement>('.testimonial-carousel').forEach(carousel => {
+        initCarousel(carousel);
+    });
+    
+    // Also initialize on DOMContentLoaded to be safe
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll<CarouselElement>('.testimonial-carousel').forEach(carousel => {
+            if (!carousel._state) {
+                initCarousel(carousel);
+            }
+        });
+    });
+</script>
+
+<style>
+    .testimonial-carousel {
+        --carousel-primary: var(--sl-color-accent, #8d46e7);
+        --carousel-text: var(--sl-color-text, #333);
+        --carousel-background: var(--sl-color-bg, #fff);
+        --carousel-card-bg: var(--sl-color-bg-sidebar, #f5f5f5);
+        --carousel-shadow: var(--sl-shadow-sm, rgba(0, 0, 0, 0.1));
+        --carousel-indicator: rgba(0, 0, 0, 0.25);
+        --carousel-indicator-active: var(--carousel-primary);
+
+        width: 100%;
+        max-width: 1200px;
+        margin: 2rem auto;
+        position: relative;
+        padding: 2rem 0;
+        overflow: hidden; /* Prevent horizontal scrollbar */
+    }
+
+    /* Make sure the container has enough height but doesn't force scrollbars */
+    .carousel-container {
+        display: flex;
+        position: relative;
+        min-height: 320px; /* Increased to allow space for controls below */
+        margin: 0 auto;
+        overflow: visible;
+        width: 100%;
+    }
+
+    .carousel-item {
+        position: absolute;
+        top: 0;
+        left: 50%; /* Center horizontally */
+        transform: translateX(-50%) scale(0.8); /* Center the transform origin */
+        width: 100%;
+        max-width: 500px; /* Control max width */
+        transition: all 0.5s ease;
+        opacity: 0;
+        filter: blur(3px);
+        pointer-events: none;
+        margin-top: initial;
+    }
+
+    /* Position and styling for the three visible cards */
+    .carousel-item.prev {
+        opacity: 0.7;
+        transform: translateX(calc(-50% - 250px)) scale(0.85); /* Position left of center */
+        z-index: 1;
+        pointer-events: auto;
+    }
+
+    .carousel-item.current {
+        opacity: 1;
+        transform: translateX(-50%) scale(1); /* Stay centered */
+        z-index: 2;
+        filter: blur(0);
+        pointer-events: auto;
+    }
+
+    .carousel-item.next {
+        opacity: 0.7;
+        transform: translateX(calc(-50% + 250px)) scale(0.85); /* Position right of center */
+        z-index: 1;
+        pointer-events: auto;
+    }
+
+    .carousel-item.hidden {
+        opacity: 0;
+        z-index: 0;
+        transform: translateX(-50%) scale(0.5); /* Keep centered even when hidden */
+        pointer-events: none;
+        display: block; /* Ensure it's still in the DOM */
+    }
+
+    /* Animation for transitions */
+    .is-transitioning .carousel-item {
+        transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* Modern card design */
+    .card {
+        padding: 2rem;
+        border-radius: 1.2rem;
+        background-color: var(--carousel-card-bg);
+        box-shadow: 
+            0 10px 20px rgba(0, 0, 0, 0.08),
+            0 6px 6px rgba(0, 0, 0, 0.12),
+            0 0 0 1px rgba(0, 0, 0, 0.05);
+        text-align: center;
+        color: var(--carousel-text);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        min-height: 200px;
+        width: 100%;
+        max-width: 400px; /* Control size */
+        margin: 0 auto;
+        backdrop-filter: blur(5px); /* Modern glass effect for compatible browsers */
+    }
+
+    .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-bottom: 1.5rem;
+        border: 3px solid var(--carousel-primary);
+        object-fit: cover;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .text {
+        font-size: 1.2rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        font-style: italic;
+        position: relative;
+        max-width: 90%;
+    }
+
+    .text::before,
+    .text::after {
+        content: '"';
+        font-size: 1.5em;
+        color: var(--carousel-primary);
+        opacity: 0.6;
+    }
+
+    .name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-top: 1rem;
+        color: var(--carousel-primary);
+        position: relative;
+        padding-top: 0.75rem;
+    }
+
+    .name::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30px;
+        height: 2px;
+        background-color: var(--carousel-primary);
+        opacity: 0.6;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 2.5rem; /* Increased to move controls below cards */
+        padding-top: 0.5rem;
+        position: relative;
+        z-index: 10;
+    }
+
+    .control-btn {
+        background-color: var(--carousel-primary);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 6px var(--carousel-shadow);
+        padding: 0;
+        margin: 0;
+    }
+
+    .control-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px var(--carousel-shadow);
+    }
+
+    /* Make indicators more visible */
+    .indicators {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0 1rem;
+    }
+
+    .indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--carousel-indicator);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .indicator.active {
+        background-color: var(--carousel-indicator-active);
+        transform: scale(1.3);
+        border-color: transparent;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+        .carousel-item.prev {
+            transform: translateX(calc(-50% - 200px)) scale(0.85);
+        }
+        
+        .carousel-item.next {
+            transform: translateX(calc(-50% + 200px)) scale(0.85);
+        }
+        
+        .card {
+            padding: 1.75rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .carousel-container {
+            min-height: 260px;
+        }
+        
+        .controls {
+            margin-top: 1.5rem;
+        }
+        
+        .carousel-item.prev,
+        .carousel-item.next {
+            display: none;
+        }
+        
+        .carousel-item.current {
+            position: relative;
+            transform: translateX(-50%) scale(1);
+            width: 80%;
+        }
+        
+        .card {
+            padding: 1.5rem;
+            min-height: 180px;
+        }
+        
+        .avatar {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+        
+        .text {
+            font-size: 1rem;
+        }
+    }
+
+    /* Theme-specific adjustments */
+    :global(.dark) .testimonial-carousel {
+        --carousel-indicator: rgba(255, 255, 255, 0.4);
+    }
+</style>
