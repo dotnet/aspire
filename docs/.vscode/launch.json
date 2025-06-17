@@ -2,17 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
-      "name": "Development server",
+      "command": "./node_modules/.bin/astro build",
+      "name": "Build",
       "request": "launch",
       "type": "node-terminal"
     },
     {
-      "name": "Watch",
-      "type": "node-terminal",
+      "command": "./node_modules/.bin/astro preview",
+      "name": "Preview",
       "request": "launch",
-      "command": "npm run dev",
-      "internalConsoleOptions": "neverOpen"
+      "type": "node-terminal"
+    },    
+    {
+      "command": "./node_modules/.bin/astro dev",
+      "name": "Dev",
+      "request": "launch",
+      "type": "node-terminal"
     }
   ]
 }

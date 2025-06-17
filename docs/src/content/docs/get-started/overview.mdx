@@ -21,81 +21,9 @@ A simple example might represent a common three-tier architecture with a fronten
 
 This could be represented in the AppHost as shown in the following code:
 
-export const ts = `
-import { createBuilder } from "./.modules/distributed-application";
+import ThreeTierAspire from '../../../components/ThreeTierAspire.astro';
 
-const builder = createBuilder();
-
-// Add database service to orbit
-const postgres = builder.addPostgres("db").addDatabase("appdata");
-
-// Add API service and reference the database
-const api = builder.addProject("api", "../api/ApiService")
-  .withReference(postgres);
-
-// Add frontend service and reference the API
-const frontend = builder.addNpmApp("frontend", "../frontend")
-  .withHttpEndpoint({ env: "PORT", targetPort: 3000 })
-  .withNpmPackageInstallation()
-  .withReference(api);
-
-builder.build().run();
-`;
-
-export const py = `
-from aspire import create_builder
-
-builder = create_builder()
-
-# Add database service to orbit
-postgres = builder.add_postgres("db").add_database("appdata")
-
-# Add API service and reference the database
-api = builder.add_project("api", "../api/api_service.py") \\
-       .with_reference(postgres)
-
-# Add frontend service and reference the API
-builder.add_npm_app("frontend", "../frontend") \\
-          .with_http_endpoint(env="PORT", target_port=3000) \\
-          .with_npm_package_installation() \\
-          .with_reference(api)
-
-# Launch your services into orbit
-builder.build().run()
-`;
-
-export const cs = `
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add database service to orbit
-var postgres = builder.AddPostgres("db").AddDatabase("appdata");
-
-// Add API service and reference the database
-var api = builder.AddProject("api", "../api/ApiService.csproj")
-                 .WithReference(postgres);
-
-// Add frontend service and reference the API
-var frontend = builder.AddNpmApp("frontend", "../frontend")
-                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
-                      .WithNpmPackageInstallation()
-                      .WithReference(api);
-
-builder.Build().Run();
-`;
-
-<Tabs>
-  <TabItem label="TypeScript" icon="seti:typescript">
-	  <Code code={ts} lang="ts" frame='terminal' title='index.ts' />
-  </TabItem>
-
-  <TabItem label="Python" icon="seti:python">
-	  <Code code={py} lang="python" frame='terminal' title='__main.py__' />
-  </TabItem>
-
-  <TabItem label="C#" icon="seti:c-sharp">
-	  <Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
-  </TabItem>
-</Tabs>
+<ThreeTierAspire />
 
 Regardless of the language you choose, Aspire provides a consistent way to define your app's architecture. You can easily add services, set up dependencies, and configure how they interact—all in a straightforward, code-first manner.
 
@@ -121,11 +49,10 @@ One resource can depend on another, and Aspire automatically wires them together
 
 Under-the-hood, every integration is either a **Container** or **Executable**, meaning you can add _any_ container image, codebase, script, or cloud resource to your AppHost.
 
-
 <Aside type="tip">
   Creating reusable Aspire integrations is just like creating a reusable UI component. It can be as simple or complex as you need, and is fully shareable. Learn more about creating custom resources for Aspire.
 </Aside>
 
-## Reusable Composition
+## Reusable App Topology
 
 When you compose your distributed app in Aspire's **AppHost**, you're not just defining services for local development and orchestration—you're also setting up the foundation for deployment. The same composition you use to run and debug locally is leveraged when you publish your app, ensuring consistency from development through to production. Likewise, Aspire doesn't get in the way of your existing deployment workflows.
