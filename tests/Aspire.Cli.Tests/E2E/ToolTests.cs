@@ -27,7 +27,7 @@ public class ToolTests(ITestOutputHelper output)
             // separate type of command
             "--operation", "tool",
             // what AppHost to target
-            "--project", @"../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
+            "--project", myWebAppProjectMetadata.ProjectPath,
             // what resource to target
             "--tool", "migration-add",
 
