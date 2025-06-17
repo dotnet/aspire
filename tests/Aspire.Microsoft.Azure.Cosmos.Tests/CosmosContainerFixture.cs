@@ -21,18 +21,7 @@ public sealed class CosmosContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerAttribute.IsSupported)
         {
-            try
-            {
-                // Use a longer timeout for cosmos emulator since it's known to be slow
-                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-                Container = await CreateContainerAsync(cts.Token);
-            }
-            catch (Exception)
-            {
-                // Cosmos emulator is known to be flaky - if it fails to start, continue without it
-                // Tests will fall back to using fake connection strings
-                Container = null;
-            }
+            Container = await CreateContainerAsync();
         }
     }
 
@@ -44,7 +33,7 @@ public sealed class CosmosContainerFixture : IAsyncLifetime
         }
     }
 
-    public static async Task<IContainer> CreateContainerAsync(CancellationToken cancellationToken = default)
+    public static async Task<IContainer> CreateContainerAsync()
     {
         var container = new ContainerBuilder()
             .WithImage($"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.Tag}")
@@ -54,7 +43,7 @@ public sealed class CosmosContainerFixture : IAsyncLifetime
             .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(8081))
             .Build();
 
-        await container.StartAsync(cancellationToken);
+        await container.StartAsync();
 
         return container;
     }
