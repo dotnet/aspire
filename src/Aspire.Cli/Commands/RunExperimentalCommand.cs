@@ -33,7 +33,7 @@ internal class RunExperimentalCommand : BaseCommand
         Options.Add(projectOption);
     }
 
-    private async Task<int> RunAppHostAsync(RunExperimentalState state, FileInfo projectFile, CancellationToken cancellationToken)
+    private async Task<int> RunAppHostAsync(ConsoleDashboardState state, FileInfo projectFile, CancellationToken cancellationToken)
     {
         var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
@@ -58,12 +58,7 @@ internal class RunExperimentalCommand : BaseCommand
 
         await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
         {
-            var resource = new CliResource
-            {
-                Name = resourceState.Resource,
-            };
-
-            await state.UpdateResourceAsync(resource, cancellationToken);
+            await state.UpdateResourceAsync(resourceState, cancellationToken);
         }   
 
         return await pendingRun;
@@ -81,14 +76,14 @@ internal class RunExperimentalCommand : BaseCommand
         var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
         await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-        var state = new RunExperimentalState();
+        var state = new ConsoleDashboardState();
         _ = Task.Run(() => RunAppHostAsync(state, projectFile!, cancellationToken), cancellationToken);
 
         try
         {
             _ansiConsole.Write(new ControlCode("\u001b[?1049h\u001b[H"));
 
-            var renderable = new RunExperimentalRenderable(state);
+            var renderable = new ConsoleDashboardRenderable(state);
 
             _ = Task.Run(async () =>
             {
@@ -108,7 +103,7 @@ internal class RunExperimentalCommand : BaseCommand
 
             await _ansiConsole.Live(renderable).StartAsync(async context =>
             {
-                renderable.Focus();
+                await renderable.FocusAsync(cancellationToken);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {

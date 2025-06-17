@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
+
 namespace Aspire.Cli.Rendering;
 
-internal class RunExperimentalState : RenderableState
+internal class ConsoleDashboardState : RenderableState
 {
     private readonly List<CliResource> _cliResources = new();
 
@@ -73,19 +75,28 @@ internal class RunExperimentalState : RenderableState
         await Updated.Writer.WriteAsync(true, cancellationToken);
     }
 
-    public async Task UpdateResourceAsync(CliResource resource, CancellationToken cancellationToken)
+    public async Task UpdateResourceAsync(RpcResourceState resourceState, CancellationToken cancellationToken)
     {
-        if (_cliResources.Any(r => r.Name == resource.Name))
+        if (_cliResources.FirstOrDefault(r => r.ResourceName == resourceState.ResourceName && r.ResourceId == resourceState.ResourceId) is not { } resource)
         {
             // Update existing resource
-            var existingResource = _cliResources.First(r => r.Name == resource.Name);
-            existingResource.Name = resource.Name; // Update properties as needed
-            // Add more properties to update if necessary
+            resource = new CliResource()
+            {
+                ResourceName = resourceState.ResourceName,
+                ResourceId = resourceState.ResourceId,
+                Type = resourceState.Type,
+                State = resourceState.State,
+                Endpoints = resourceState.Endpoints,
+                Health = resourceState.Health
+            };
+            _cliResources.Add(resource);
         }
         else
         {
-            // Add new resource
-            _cliResources.Add(resource);
+            resource.Type = resourceState.Type;
+            resource.State = resourceState.State;
+            resource.Endpoints = resourceState.Endpoints;
+            resource.Health = resourceState.Health;
         }
 
         await Updated.Writer.WriteAsync(true, cancellationToken);
@@ -102,5 +113,10 @@ internal class RunExperimentalState : RenderableState
 
 internal class CliResource
 {
-    public required string Name { get; set; }
+    public required string ResourceName { get; set; }
+    public required string ResourceId { get; set; }
+    public required string Type { get; set; }
+    public required string State { get; set; }
+    public required string[] Endpoints { get; set; }
+    public required string? Health { get; set; }
 }

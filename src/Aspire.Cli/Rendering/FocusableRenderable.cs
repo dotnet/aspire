@@ -8,5 +8,18 @@ namespace Aspire.Cli.Rendering;
 internal abstract class FocusableRenderable : JustInTimeRenderable
 {
     public abstract Task ProcessInputAsync(ConsoleKey key, CancellationToken cancellationToken);
-    public abstract void Focus();
+
+    public bool HasFocus { get; protected set; }
+
+    public virtual Task FocusAsync(CancellationToken cancellationToken)
+    {
+        HasFocus = true;
+        return Task.CompletedTask;
+    }
+
+    public virtual Task BlurAsync(CancellationToken cancellationToken)
+    {
+        HasFocus = false;
+        return Task.CompletedTask;
+    }
 }

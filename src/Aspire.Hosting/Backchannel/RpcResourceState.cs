@@ -11,7 +11,12 @@ internal class RpcResourceState
     /// <summary>
     /// Gets the name of the resource.
     /// </summary>
-    public required string Resource { get; init; }
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the id of the resource.
+    /// </summary>
+    public required string ResourceId { get; init; }
 
     /// <summary>
     /// Gets the type of the resource.

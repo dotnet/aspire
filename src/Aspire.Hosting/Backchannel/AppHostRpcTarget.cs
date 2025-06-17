@@ -23,7 +23,7 @@ internal class AppHostRpcTarget(
     DistributedApplicationOptions options
     ) 
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
@@ -43,7 +43,7 @@ internal class AppHostRpcTarget(
                 publishingActivityStatus.IsError
             );
 
-            if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
+            if (publishingActivityStatus.Activity.IsPrimary && (publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
             {
                 // If the activity is complete or an error and it is the primary activity,
                 // we can stop listening for updates.
@@ -80,7 +80,8 @@ internal class AppHostRpcTarget(
             
             yield return new RpcResourceState
             {
-                Resource = resourceEvent.Resource.Name,
+                ResourceName = resourceEvent.Resource.Name,
+                ResourceId = resourceEvent.ResourceId,
                 Type = resourceEvent.Snapshot.ResourceType,
                 State = resourceEvent.Snapshot.State?.Text ?? "Unknown",
                 Endpoints = endpointUris,

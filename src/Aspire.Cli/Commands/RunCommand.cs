@@ -213,7 +213,7 @@ internal sealed class RunCommand : BaseCommand
                     {
                         await foreach (var resourceState in resourceStates)
                         {
-                            knownResources[resourceState.Resource] = resourceState;
+                            knownResources[resourceState.ResourceName] = resourceState;
 
                             table.Rows.Clear();
 
