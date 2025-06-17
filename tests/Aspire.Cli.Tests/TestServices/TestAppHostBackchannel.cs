@@ -144,7 +144,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 
     public async IAsyncEnumerable<CommandOutput> GetToolExecutionOutputStreamAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        yield return new CommandOutput() { Text = "qer"};
+        yield return new CommandOutput() { Text = "test" };
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         yield break;
     }

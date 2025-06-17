@@ -24,7 +24,6 @@
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared\Logging" />
     <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />
     <Compile Include="$(TestsSharedDir)DistributedApplicationTestingBuilderExtensions.cs" Link="shared/DistributedApplicationTestingBuilderExtensions.cs" />
-    <Compile Include="$(TestsSharedDir)TestOutputRpcTarget.cs" Link="shared/TestOutputRpcTarget.cs" />
   </ItemGroup>
 
   <ItemGroup>

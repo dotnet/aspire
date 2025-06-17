@@ -24,9 +24,6 @@ public static class DistributedApplicationTestingBuilderExtensions
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
 
-        // overriding registration in DistributedApplicationBuilder
-        builder.Services.AddSingleton<ICliRpcTarget>(sp => new TestOutputRpcTarget(testOutputHelper));
-
         return builder;
     }
 
