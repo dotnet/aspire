@@ -1,17 +1,34 @@
 [
     {
         "name": "Steven Price",
+        "company": "Iceland Foods",
+        "role": "Software Engineering Manager",
         "text": "Aspire lets developers be developers again.",
-        "avatar": "../assets/testimonials/steven-price.jpg"
+        "avatar": "../assets/testimonials/steven-price.jpg",
+        "link": "https://www.linkedin.com/in/steve-m-price/"
     },
     {
         "name": "Russ Harding",
+        "company": "EQengineered",
+        "role": "Vice President",
         "text": "I had someone start on a Monday morning and they were contributing code by lunch.",
-        "avatar": "../assets/testimonials/russ-harding.jpg"
+        "avatar": "../assets/testimonials/russ-harding.jpg",
+        "link": "https://www.linkedin.com/in/russharding1/"
     },
     {
-        "name": "Nk54",
+        "name": "Nk54 (Reddit User)",
+        "company": null,
+        "role": null,
         "text": "I've never wanted to commit to a Microsoft technology this much.",
-        "avatar": "../assets/testimonials/nk54.png"
+        "avatar": "../assets/testimonials/nk54.png",
+        "link": "https://www.reddit.com/user/Nk54"
+    },
+    {
+        "name": "Craig Taylor (Xbox Live)",
+        "company": "Microsoft",
+        "role": "Principal Architect",
+        "text": "Hit F5 to begin — skip the setup boss fight, ship code faster.",
+        "avatar": "../assets/testimonials/craig-taylor.png",
+        "link": "https://www.linkedin.com/in/craig-taylor-xbox/"
     }
 ]

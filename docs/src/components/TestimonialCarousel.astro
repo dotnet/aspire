@@ -3,7 +3,18 @@ import { Icon } from "@astrojs/starlight/components";
 import testimonialsData from "../data/testimonials.json";
 import { processAvatars } from "../utils/imageImporter";
 
-const testimonials = processAvatars(testimonialsData);
+export interface Testimonial {
+    name: string;
+    text: string;
+    avatar: string | { src: string; alt?: string };
+    company?: string | null;
+    role?: string | null;
+    link?: string | null;
+}
+
+export type Testimonials = Testimonial[];
+
+const testimonials: Testimonials = processAvatars(testimonialsData as Testimonials);
 
 const initialIndex = 0;
 const prevIndex = (initialIndex - 1 + testimonials.length) % testimonials.length;
@@ -29,13 +40,22 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                     <div class="card">
                         <img
                             class="avatar"
-                            src={testimonial.avatar?.src || testimonial.avatar}
+                            src={typeof testimonial.avatar === "object" ? testimonial.avatar.src : testimonial.avatar}
                             alt={testimonial.name}
                             loading="lazy"
+                            title={`${testimonial.name}${testimonial.company ? `, ${testimonial.company}` : ""}${testimonial.role ? `, ${testimonial.role}` : ""}`}
                             onerror="this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent(this.alt) + '&background=random'; this.onerror=null;"
                         />
                         <div class="text">{testimonial.text}</div>
-                        <div class="name">{testimonial.name}</div>
+                        <div class="name">
+                            {testimonial.link ? (
+                                <a href={testimonial.link} target="_blank" rel="noopener noreferrer">
+                                    {testimonial.name}
+                                </a>
+                            ) : (
+                                testimonial.name
+                            )}
+                        </div>
                     </div>
                 </div>
             ))
@@ -320,8 +340,8 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     }
 
     .avatar {
-        width: 80px;
-        height: 80px;
+        width: 5rem;
+        height: 5rem;
         border-radius: 50%;
         margin-bottom: 1.5rem;
         border: 3px solid var(--carousel-primary);
@@ -353,6 +373,11 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
         color: var(--carousel-primary);
         position: relative;
         padding-top: 0.75rem;
+    }
+
+    .name a {
+        text-decoration: none;
+        transition: color 0.3s ease;
     }
 
     .name::before {
