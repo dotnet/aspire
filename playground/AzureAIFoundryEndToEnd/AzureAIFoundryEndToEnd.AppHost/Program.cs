@@ -3,11 +3,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddAzureAIFoundry("foundry")
-    .RunAsFoundryLocal()
-    // .AddDeployment("chat", "DeepSeek-R1", "1", "DeepSeek");
-    //.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
-    .AddDeployment("chat", "phi-3.5-mini", "1", "Microsoft");
+var foundry = builder.AddAzureAIFoundry("foundry")
+    //.RunAsFoundryLocal()
+    ;
+
+var chat = foundry.AddDeployment("chat", "Phi-4-mini-instruct", "1", "Microsoft");
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

@@ -3,12 +3,12 @@
   "resources": {
     "foundry": {
       "type": "azure.bicep.v0",
-      "connectionString": "{foundry.outputs.connectionString}",
+      "connectionString": "Endpoint={foundry.outputs.aiFoundryApiEndpoint}",
       "path": "foundry.module.bicep"
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{foundry.outputs.connectionString};DeploymentId=Phi-4-mini-instruct"
+      "connectionString": "Endpoint={foundry.outputs.aiFoundryApiEndpoint};DeploymentId=Phi-4-mini-instruct"
     },
     "webstory": {
       "type": "project.v0",

@@ -25,13 +25,13 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure AI Services resource.
     /// </summary>
-    public BicepOutputReference ConnectionString => new("connectionString", this);
+    public BicepOutputReference AIFoundryApiEndpoint => new("aiFoundryApiEndpoint", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create($"Endpoint={AIFoundryApiEndpoint}");
 
     /// <summary>
     /// Gets the list of deployment resources associated with the Azure AI Foundry.
@@ -62,6 +62,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
         IsLocal
-            ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey}")
+            ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
             : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName}");
 }

@@ -80,7 +80,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the parent Azure AI Services resource.
     /// </summary>
-    public AzureAIFoundryResource Parent { get; }
+    public AzureAIFoundryResource Parent { get; set; }
 
     /// <summary>
     /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.

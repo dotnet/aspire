@@ -62,9 +62,9 @@ public static class AzureAIFoundryExtensions
             var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
                 (BicepExpression)cogServicesAccount.Properties.Endpoints!,
                 "AI Foundry API");
-            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
             {
-                Value = Interpolate($"Endpoint={inferenceEndpoint}")
+                Value = inferenceEndpoint
             });
 
             var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
@@ -134,17 +134,19 @@ public static class AzureAIFoundryExtensions
 
         var deployment = new AzureAIFoundryDeploymentResource(name, modelName, modelVersion, format, builder.Resource);
 
+        builder.ApplicationBuilder.AddResource(deployment);
+
         builder.Resource.AddDeployment(deployment);
 
-        var resourceBuilder = builder.ApplicationBuilder
-                .CreateResourceBuilder(deployment);
+        var deploymentBuilder = builder.ApplicationBuilder
+            .CreateResourceBuilder(deployment);
 
         if (builder.Resource.IsLocal)
         {
-            resourceBuilder.ConfigureLocalDeployment(deployment);
+            deploymentBuilder.AsLocalDeployment(deployment);
         }
 
-        return resourceBuilder;
+        return deploymentBuilder;
     }
 
     /// <summary>
