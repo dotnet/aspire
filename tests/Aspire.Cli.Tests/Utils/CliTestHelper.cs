@@ -171,9 +171,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
-        var rpcTarget = serviceProvider.GetService<CliRpcTarget>() ?? throw new InvalidOperationException("CliRpcTarget not registered");
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new AppHostBackchannel(logger, rpcTarget, telemetry);
+        return new AppHostBackchannel(logger, telemetry);
     };
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
