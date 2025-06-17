@@ -86,8 +86,13 @@ public class ToolTests(ITestOutputHelper output)
             return;
         }
 
-        var migrationFiles = Directory.GetFiles(Path.Combine(projectDirectory!, "Migrations"));
+        var migrationDirectory = Path.Combine(projectDirectory!, "Migrations");
+        if (!Directory.Exists(migrationDirectory))
+        {
+            return;
+        }
 
+        var migrationFiles = Directory.GetFiles(migrationDirectory);
         foreach (var migrationFile in migrationFiles)
         {
             try
