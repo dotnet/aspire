@@ -3,6 +3,8 @@
 
 namespace Aspire.Cli.Backchannel;
 
-internal class CliRpcTarget
+internal class CommandOutput
 {
+    public required string Text { get; set; }
+    public bool IsError { get; set; }
 }

@@ -11,6 +11,9 @@ namespace Aspire.Cli.Interaction;
 
 internal class ConsoleInteractionService : IInteractionService
 {
+    private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
+    private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Teal, background: null, decoration: Decoration.Bold);
+
     private readonly IAnsiConsole _ansiConsole;
 
     public ConsoleInteractionService(IAnsiConsole ansiConsole)
@@ -86,6 +89,12 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
+    }
+
+    public void WriteConsoleLog(string message, bool isError = false)
+    {
+        var style = isError ? s_errorMessageStyle : s_infoMessageStyle;
+        _ansiConsole.WriteLine(message, style);
     }
 
     public void DisplayError(string errorMessage)

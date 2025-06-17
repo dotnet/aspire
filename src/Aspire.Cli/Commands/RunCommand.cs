@@ -51,6 +51,10 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
+        var toolParseOption = new Option<string>("--tool", "-t");
+        toolParseOption.Description = "Runs a resource as a tool.";
+        Options.Add(toolParseOption);
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -124,19 +128,77 @@ internal sealed class RunCommand : BaseCommand
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
-            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+            string[] runArgs;
+            var tool = parseResult.GetValue<string>("--tool");
+            if (!string.IsNullOrWhiteSpace(tool))
+            {
+                runArgs = [
+                    "--operation", "tool",
+                    "--tool", tool,
+                    ..parseResult.UnmatchedTokens
+                ];
+            }
+            else
+            {
+                runArgs = parseResult.UnmatchedTokens.ToArray();
+            }
 
+            // If the app host supports the backchannel we will use it to communicate with the app host.
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
                 watch,
                 !watch,
-                unmatchedTokens,
+                runArgs,
                 env,
                 backchannelCompletitionSource,
                 runOptions,
                 cancellationToken);
 
-            if (useRichConsole)
+            if (!string.IsNullOrWhiteSpace(tool))
+            {
+                // start and connect backchannel
+                var backchannel = await _interactionService.ShowStatusAsync(
+                    ":linked_paperclips:  Waiting for Aspire app host...",
+                    async () => {
+
+                        // If we use the --wait-for-debugger option we print out the process ID
+                        // of the apphost so that the user can attach to it.
+                        if (waitForDebugger)
+                        {
+                            _interactionService.DisplayMessage("bug", $"Waiting for debugger to attach to app host process");
+                        }
+
+                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
+                        // before the backchannel is created, therefore waiting on the backchannel is a 
+                        // good signal that the debugger was attached (or timed out).
+                        var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
+
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":running_shoe: Running tool execution...",
+                    async() =>
+                    {
+                        // execute tool and stream the output
+                        var outputStream = backchannel.GetToolExecutionOutputStreamAsync(cancellationToken);
+                        await foreach (var output in outputStream)
+                        {
+                            _interactionService.WriteConsoleLog(message: output.Text, isError: output.IsError);
+                        }
+
+                        return ExitCodeConstants.Success;
+                    });
+
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":chequered_flag: Shutting Aspire app host...",
+                    async () => {
+                        await backchannel.RequestStopAsync(cancellationToken);
+                        return ExitCodeConstants.Success;
+                    });
+
+                return await pendingRun;
+            }
+            else if (useRichConsole)
             {
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
@@ -275,7 +337,7 @@ internal sealed class RunCommand : BaseCommand
                     }
                 });
 
-                var result =  await pendingRun;
+                var result = await pendingRun;
                 if (result != 0)
                 {
                     _interactionService.DisplayLines(runOutputCollector.GetLines());

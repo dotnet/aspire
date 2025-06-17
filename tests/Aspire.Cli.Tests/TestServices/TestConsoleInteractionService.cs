@@ -78,4 +78,10 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayEmptyLine()
     {
     }
+
+    public void WriteConsoleLog(string message, bool isError = false)
+    {
+        var type = isError ? "Error" : "Info";
+        Console.WriteLine($"[{type}] {message}");
+    }
 }
