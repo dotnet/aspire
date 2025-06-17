@@ -319,7 +319,7 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     /* Modern card design */
     .card {
         padding: 2rem;
-        border-radius: 1.2rem;
+        border-radius: .8rem;
         background-color: var(--carousel-card-bg);
         box-shadow: 
             0 10px 20px rgba(0, 0, 0, 0.08),
@@ -353,17 +353,27 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
         font-size: 1.2rem;
         line-height: 1.6;
         margin-bottom: 1rem;
-        font-style: italic;
         position: relative;
+        font-style: italic;
         max-width: 90%;
     }
 
-    .text::before,
-    .text::after {
+    .text::before {
         content: '"';
-        font-size: 1.5em;
+        font-size: 3rem;
         color: var(--carousel-primary);
-        opacity: 0.6;
+        position: absolute;
+        top: -0.6em;
+        left: -0.3em;
+        font-family: serif;
+        line-height: 1;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .text {
+        position: relative;
+        z-index: 2;
+        padding-left: 0.5em;
     }
 
     .name {
