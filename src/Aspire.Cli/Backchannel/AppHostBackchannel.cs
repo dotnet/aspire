@@ -69,7 +69,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
 
         logger.LogDebug("Requesting dashboard URL");
 
-        var url = await rpc.InvokeWithCancellationAsync<DashboardUrls>(
+        var url = await rpc.InvokeWithCancellationAsync<DashboardUrlsState>(
             "GetDashboardUrlsAsync",
             Array.Empty<object>(),
             cancellationToken);
@@ -152,7 +152,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
 
         logger.LogDebug("Requesting publishing activities.");
 
-        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<PublishingActivity>>(
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<PublishingActivityState>>(
             "GetPublishingActivitiesAsync",
             Array.Empty<object>(),
             cancellationToken);

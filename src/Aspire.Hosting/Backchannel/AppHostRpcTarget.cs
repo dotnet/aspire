@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.Cli.Backchannel;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
@@ -23,7 +24,7 @@ internal class AppHostRpcTarget(
     DistributedApplicationOptions options
     )
 {
-    public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<PublishingActivityState> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
@@ -36,7 +37,7 @@ internal class AppHostRpcTarget(
                 yield break;
             }
 
-            yield return new PublishingActivity
+            yield return new PublishingActivityState
             {
                 Id = publishingActivityStatus.Activity.Id,
                 StatusText = publishingActivityStatus.StatusText,
@@ -104,12 +105,12 @@ internal class AppHostRpcTarget(
         return Task.FromResult(timestamp);
     }
 
-    public Task<DashboardUrls> GetDashboardUrlsAsync()
+    public Task<DashboardUrlsState> GetDashboardUrlsAsync()
     {
         return GetDashboardUrlsAsync(CancellationToken.None);
     }
 
-    public async Task<DashboardUrls> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
         {
@@ -145,14 +146,14 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return new DashboardUrls
+            return new DashboardUrlsState
             {
                 BaseUrlWithLoginToken = baseUrlWithLoginToken
             };
         }
         else
         {
-            return new DashboardUrls
+            return new DashboardUrlsState
             {
                 BaseUrlWithLoginToken = baseUrlWithLoginToken,
                 CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken

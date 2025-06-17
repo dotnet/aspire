@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Backchannel;
+namespace Aspire.Cli.Backchannel;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
 /// </summary>
-internal class RpcResourceState
+internal sealed class RpcResourceState
 {
     /// <summary>
     /// Gets the name of the resource.
@@ -34,16 +34,44 @@ internal class RpcResourceState
     public string? Health { get; init; }
 }
 
-internal class DashboardUrls
+/// <summary>
+/// Represents dashboard URLs with authentication tokens.
+/// </summary>
+internal sealed class DashboardUrlsState
 {
+    /// <summary>
+    /// Gets the base dashboard URL with a login token.
+    /// </summary>
     public required string BaseUrlWithLoginToken { get; init; }
+
+    /// <summary>
+    /// Gets the Codespaces dashboard URL with a login token, if available.
+    /// </summary>
     public string? CodespacesUrlWithLoginToken { get; init; }
 }
 
-internal class PublishingActivity
+/// <summary>
+/// Represents the activity and status of a publishing operation.
+/// </summary>
+internal sealed class PublishingActivityState
 {
+    /// <summary>
+    /// Gets the unique identifier for the publishing activity.
+    /// </summary>
     public required string Id { get; init; }
+
+    /// <summary>
+    /// Gets the status text describing the publishing activity.
+    /// </summary>
     public required string StatusText { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the publishing activity is complete.
+    /// </summary>
     public bool IsComplete { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the publishing activity encountered an error.
+    /// </summary>
     public bool IsError { get; init; }
 }
