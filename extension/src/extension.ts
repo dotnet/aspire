@@ -20,7 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	rpcServerInfo = await setupRpcServer(
 		connection => new InteractionService(vscOutputChannelWriter),
-		(connection, token) => new RpcClient(connection, token),
+		(connection, token: string) => new RpcClient(connection, token),
 		vscOutputChannelWriter
 	);
 
