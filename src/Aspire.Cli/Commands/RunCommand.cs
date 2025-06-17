@@ -7,13 +7,13 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Rendering.Dashboard;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -56,6 +56,12 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        Action finalSteps = () =>
+        {
+            _ansiConsole.Write(new ControlCode("\u001b[?1049l"));
+        };
+        int exitCode = 1;
+
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
@@ -142,7 +148,8 @@ internal sealed class RunCommand : BaseCommand
                 // the AppHost is ready to accept requests.
                 var backchannel = await _interactionService.ShowStatusAsync(
                     $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
-                    async () => {
+                    async () =>
+                    {
 
                         // If we use the --wait-for-debugger option we print out the process ID
                         // of the apphost so that the user can attach to it.
@@ -197,7 +204,40 @@ internal sealed class RunCommand : BaseCommand
                 };
                 var rows = new Rows(renderables);
 
-                await _ansiConsole.Live(rows).StartAsync(async context =>
+                var dashboardState = new DashboardState();
+                var dashboardRenderable = new DashboardRenderable(dashboardState);
+
+                _ansiConsole.Write(new ControlCode("\u001b[?1049h\u001b[H"));
+                _ansiConsole.Clear();
+
+                // Background job to get dashboard URLs and update state.
+                _ = Task.Run(async () =>
+                {
+                    var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken);
+                    await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+                    {
+                        state.DirectDashboardUrl = dashboardUrls.BaseUrlWithLoginToken;
+                        state.CodespacesDashboardUrl = dashboardUrls.CodespacesUrlWithLoginToken;
+                        return Task.CompletedTask;
+                    });
+                }, cancellationToken);
+
+                // Background job to get resource states and update state.
+                _ = Task.Run(async () =>
+                {
+                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+
+                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                    {
+                        await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+                        {
+                            state.ResourceStates[resourceState.Resource] = resourceState;
+                            return Task.CompletedTask;
+                        });
+                    }
+                }, cancellationToken);
+
+                await _ansiConsole.Live(dashboardRenderable).StartAsync(async context =>
                 {
                     // If we are running an apphost that has no
                     // resources in it then we want to display
@@ -205,77 +245,85 @@ internal sealed class RunCommand : BaseCommand
                     // That is why we immediately do a refresh.
                     context.Refresh();
 
-                    var knownResources = new SortedDictionary<string, RpcResourceState>();
-
-                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-
-                    try
+                    while (true)
                     {
-                        await foreach (var resourceState in resourceStates)
-                        {
-                            knownResources[resourceState.Resource] = resourceState;
-
-                            table.Rows.Clear();
-
-                            foreach (var knownResource in knownResources)
-                            {
-                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
-
-                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
-
-                                var stateRenderable = knownResource.Value.State switch
-                                {
-                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                                };
-
-                                var healthRenderable = knownResource.Value.Health switch
-                                {
-                                    "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
-                                    "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
-                                    "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
-                                    null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
-                                    _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
-                                };
-
-                                IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
-                                if (knownResource.Value.Endpoints?.Length > 0)
-                                {
-                                    endpointsRenderable = new Rows(
-                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                    );
-                                }
-
-                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
-                            }
-
-                            context.Refresh();
-                        }
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var update = await dashboardState.Updates.Reader.ReadAsync(cancellationToken);
+                        await update(dashboardState, cancellationToken);
+                        context.Refresh();
                     }
-                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
-                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
-                        // that the apphost side of the RPC connection will be closed. Therefore if we get a
-                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
-                        // asume that the apphost was shutdown and we can ignore it.
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the our side
-                        // of the backchannel side first and the connection is torn down on our-side
-                        // gracefully. We can ignore this exception as well.
-                    }
+
+                    // var knownResources = new SortedDictionary<string, RpcResourceState>();
+
+                    // var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+
+                    // try
+                    // {
+                    //     await foreach (var resourceState in resourceStates)
+                    //     {
+                    //         knownResources[resourceState.Resource] = resourceState;
+
+                    //         table.Rows.Clear();
+
+                    //         foreach (var knownResource in knownResources)
+                    //         {
+                    //             var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
+
+                    //             var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
+
+                    //             var stateRenderable = knownResource.Value.State switch
+                    //             {
+                    //                 "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
+                    //                 "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
+                    //                 "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
+                    //                 "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
+                    //                 "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
+                    //                 "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                    //                 "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                    //                 "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
+                    //                 _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
+                    //             };
+
+                    //             var healthRenderable = knownResource.Value.Health switch
+                    //             {
+                    //                 "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
+                    //                 "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
+                    //                 "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
+                    //                 null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
+                    //                 _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
+                    //             };
+
+                    //             IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
+                    //             if (knownResource.Value.Endpoints?.Length > 0)
+                    //             {
+                    //                 endpointsRenderable = new Rows(
+                    //                     knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
+                    //                 );
+                    //             }
+
+                    //             table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
+                    //         }
+
+                    //         context.Refresh();
+                    //     }
+                    // }
+                    // catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
+                    // {
+                    //     // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
+                    //     // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
+                    //     // that the apphost side of the RPC connection will be closed. Therefore if we get a
+                    //     // ConnectionLostException AND the inner exception is an OperationCancelledException we can
+                    //     // asume that the apphost was shutdown and we can ignore it.
+                    // }
+                    // catch (OperationCanceledException)
+                    // {
+                    //     // This exception will be thrown if the cancellation request reaches the our side
+                    //     // of the backchannel side first and the connection is torn down on our-side
+                    //     // gracefully. We can ignore this exception as well.
+                    // }
                 });
 
-                var result =  await pendingRun;
+                var result = await pendingRun;
                 if (result != 0)
                 {
                     _interactionService.DisplayLines(runOutputCollector.GetLines());
@@ -294,47 +342,77 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayCancellationMessage();
-            return ExitCodeConstants.Success;
+            finalSteps += _interactionService.DisplayCancellationMessage;
+            exitCode = ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
-            return ExitCodeConstants.FailedToFindProject;
+            finalSteps += () =>
+            {
+                _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
+            };
+            exitCode = ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
+            finalSteps += () =>
+            {
+                _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            };
+            exitCode = ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
-            return ExitCodeConstants.FailedToFindProject;
+            finalSteps += () =>
+            {
+                _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            };
+            exitCode = ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            finalSteps += () =>
+            {
+                exitCode = _interactionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
+            };
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
-            return ExitCodeConstants.FailedToTrustCertificates;
+            finalSteps += () =>
+            {
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            };
+            exitCode = ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
+            finalSteps += () =>
+            {
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+            };
+            exitCode = ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
+            finalSteps += () =>
+            {
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                _ansiConsole.WriteException(ex, ExceptionFormats.Default);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+            };
+            exitCode = ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        finally
+        {
+            finalSteps();
+        }
+
+        return exitCode;
     }
 }
