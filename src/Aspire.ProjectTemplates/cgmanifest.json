@@ -105,8 +105,26 @@
             "component": {
                 "type": "nuget",
                 "nuget": {
+                    "name": "MSTest",
+                    "version": "3.9.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
                     "name": "coverlet.collector",
                     "version": "6.0.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "coverlet.collector",
+                    "version": "6.0.4"
                 }
             }
         },
@@ -132,8 +150,26 @@
             "component": {
                 "type": "nuget",
                 "nuget": {
+                    "name": "NUnit",
+                    "version": "4.3.2"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
                     "name": "NUnit.Analyzers",
                     "version": "4.3.0"
+                }
+            }
+        },
+        {
+            "component": {
+                "type": "nuget",
+                "nuget": {
+                    "name": "NUnit.Analyzers",
+                    "version": "4.9.1"
                 }
             }
         },

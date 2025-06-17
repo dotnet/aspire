@@ -50,7 +50,7 @@ app.UseAntiforgery();
 
 app.UseOutputCache();
 
-#if (Framework == "net9.0")
+#if (Framework != "net8.0")
 app.MapStaticAssets();
 
 #endif
