@@ -51,9 +51,10 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
-        var toolParseOption = new Option<bool>("--tool", "-t");
+        var toolParseOption = new Option<string>("--tool", "-t");
         toolParseOption.Description = "Runs a resource as a tool.";
         Options.Add(toolParseOption);
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -128,15 +129,13 @@ internal sealed class RunCommand : BaseCommand
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             string[] runArgs;
-            var runningInToolMode = parseResult.GetValue<bool>("--tool");
-            if (runningInToolMode)
+            var tool = parseResult.GetValue<string>("--tool");
+            if (!string.IsNullOrWhiteSpace(tool))
             {
-                // todo i am too stupid to parse it from parse result
-                // and i just want to test
-
                 runArgs = [
                     "--operation", "tool",
-                    "--tool", ..parseResult.UnmatchedTokens
+                    "--tool", tool,
+                    ..parseResult.UnmatchedTokens
                 ];
             }
             else
@@ -155,7 +154,7 @@ internal sealed class RunCommand : BaseCommand
                 runOptions,
                 cancellationToken);
 
-            if (runningInToolMode)
+            if (!string.IsNullOrWhiteSpace(tool))
             {
                 // start and connect backchannel
                 var backchannel = await _interactionService.ShowStatusAsync(
