@@ -110,7 +110,7 @@ internal class ConsoleInteractionService : IInteractionService
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
             _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: $[link={{dashboardUrls.BaseUrlWithLoginToken}}]{{dashboardUrls.BaseUrlWithLoginToken}}[/]");
+                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: $[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
             _ansiConsole.MarkupLine(
                 $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
         }
