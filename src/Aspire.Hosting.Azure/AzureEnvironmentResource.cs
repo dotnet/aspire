@@ -6,7 +6,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
@@ -51,15 +53,37 @@ public sealed class AzureEnvironmentResource : Resource
         PrincipalId = principalId;
     }
 
-    private Task PublishAsync(PublishingContext context)
+    private async Task PublishAsync(PublishingContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+        var activityReporter = context.Services.GetRequiredService<IPublishingActivityProgressReporter>();
+        var promptService = context.Services.GetRequiredService<PublishingPromptService>();
+
+        var resourceGroupName = await promptService.PromptForStringAsync(
+            "Enter the Azure resource group name for deployment:",
+            defaultValue: "my-resource-group",
+            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        var region = await promptService.PromptForSelectionAsync(
+            "Select the Azure location for deployment:",
+            ["westus", "eastus", "centralus", "northcentralus", "southcentralus"],
+            allowMultiple: false,
+            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        var deploy = await promptService.PromptForConfirmationAsync(
+            "Do you want to deploy the resources to Azure?",
+            defaultValue: true,
+            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        context.Logger.LogInformation("Got resource group name: {ResourceGroupName}", resourceGroupName);
+        context.Logger.LogInformation("Got region: {Region}", region);
+        context.Logger.LogInformation("Got deploy confirmation: {Deploy}", deploy);
 
         var azureCtx = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger);
 
-        return azureCtx.WriteModelAsync(context.Model, this);
+        await azureCtx.WriteModelAsync(context.Model, this, activityReporter).ConfigureAwait(false);
     }
 }

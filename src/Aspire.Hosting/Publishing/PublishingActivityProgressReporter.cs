@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 
@@ -66,6 +67,16 @@ public sealed record PublishingActivityStatus
     /// Indicates whether the publishing activity encountered an error.
     /// </summary>
     public required bool IsError { get; init; }
+
+    /// <summary>
+    /// The type of prompt if this is a prompt activity.
+    /// </summary>
+    public string? PromptType { get; init; }
+
+    /// <summary>
+    /// The prompt data if this is a prompt activity.
+    /// </summary>
+    public string? PromptData { get; init; }
 }
 
 /// <summary>
@@ -97,6 +108,14 @@ public interface IPublishingActivityProgressReporter
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
     Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Waits for a prompt response from the user.
+    /// </summary>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The response from the user.</returns>
+    Task<string?> WaitForPromptResponseAsync(string activityId, CancellationToken cancellationToken);
 }
 
 internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter
@@ -134,7 +153,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 IsComplete = false,
                 IsError = false
             };
-            
+
             newStatus = statusUpdate(lastStatus);
             publishingActivity.LastStatus = newStatus;
         }
@@ -153,6 +172,37 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             // If the activity is complete or an error and it is the primary activity,
             // we can stop listening for updates.
             ActivityStatusUpdated.Writer.Complete();
+        }
+    }
+
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<string?>> _promptResponses = new();
+
+    /// <summary>
+    /// Sets the response for a prompt activity.
+    /// </summary>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="response">The response from the user.</param>
+    public void SetPromptResponse(string activityId, string? response)
+    {
+        if (_promptResponses.TryGetValue(activityId, out var tcs))
+        {
+            tcs.SetResult(response);
+        }
+    }
+
+    /// <summary>
+    /// Waits for a prompt response from the user.
+    /// </summary>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The response from the user.</returns>
+    public async Task<string?> WaitForPromptResponseAsync(string activityId, CancellationToken cancellationToken)
+    {
+        var tcs = _promptResponses.GetOrAdd(activityId, _ => new TaskCompletionSource<string?>());
+
+        using (cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken)))
+        {
+            return await tcs.Task.ConfigureAwait(false);
         }
     }
 

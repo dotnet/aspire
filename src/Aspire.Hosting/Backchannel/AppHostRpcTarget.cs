@@ -21,9 +21,9 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options
-    ) 
+    )
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError, string? PromptType, string? PromptData)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
@@ -40,7 +40,9 @@ internal class AppHostRpcTarget(
                 publishingActivityStatus.Activity.Id,
                 publishingActivityStatus.StatusText,
                 publishingActivityStatus.IsComplete,
-                publishingActivityStatus.IsError
+                publishingActivityStatus.IsError,
+                publishingActivityStatus.PromptType,
+                publishingActivityStatus.PromptData
             );
 
             if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
@@ -69,7 +71,7 @@ internal class AppHostRpcTarget(
                 logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
-    
+
             var endpointUris = endpoints
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
@@ -77,7 +79,7 @@ internal class AppHostRpcTarget(
 
             // Compute health status
             var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
-            
+
             yield return new RpcResourceState
             {
                 Resource = resourceEvent.Resource.Name,
@@ -134,7 +136,7 @@ internal class AppHostRpcTarget(
         if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
         {
             logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");            
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
         var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
@@ -178,4 +180,15 @@ internal class AppHostRpcTarget(
             });
     }
 #pragma warning restore CA1822
+
+    public Task<string?> SendPromptResponseAsync(string activityId, string? response, CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        logger.LogDebug("Received prompt response for activity {ActivityId}: {Response}", activityId, response);
+
+        // Store the response in the activity reporter so it can be accessed by the waiting activity
+        activityReporter.SetPromptResponse(activityId, response);
+
+        return Task.FromResult<string?>(null);
+    }
 }

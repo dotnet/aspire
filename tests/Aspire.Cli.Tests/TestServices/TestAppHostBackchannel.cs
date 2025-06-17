@@ -141,4 +141,14 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
             return ["baseline.v2"];
         }
     }
+
+    IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError, string? PromptType, string? PromptData)> IAppHostBackchannel.GetPublishingActivitiesAsync(CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string?> SendPromptResponseAsync(string activityId, string? response, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }

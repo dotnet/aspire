@@ -40,4 +40,10 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     {
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc/>
+    public Task<string?> WaitForPromptResponseAsync(string activityId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<string?>(null);
+    }
 }

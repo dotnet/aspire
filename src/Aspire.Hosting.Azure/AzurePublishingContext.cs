@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -58,9 +59,10 @@ public sealed class AzurePublishingContext(
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
     /// <param name="environment">The Azure environment resource.</param>
+    /// <param name="activityReporter"></param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the async operation.</returns>
-    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken = default)
+    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(outputPath);
@@ -71,13 +73,16 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, activityReporter, cancellationToken).ConfigureAwait(false);
 
         await SaveToDiskAsync(outputPath).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
+    private async Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, CancellationToken cancellationToken)
     {
+        var activityId = Guid.NewGuid().ToString("N");
+        var activity = await activityReporter.CreateActivityAsync(activityId, "Writing Azure Bicep artifacts", isPrimary: true, cancellationToken).ConfigureAwait(false);
+
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
         {
@@ -99,6 +104,8 @@ public sealed class AzurePublishingContext(
         var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
 
+        await activityReporter.UpdateActivityStatusAsync(activity, status => status with { StatusText = "Initializing EV2 deployment process" }, cancellationToken).ConfigureAwait(false);
+
         var rg = new ResourceGroup("rg")
         {
             Name = resourceGroupParam,
@@ -109,6 +116,7 @@ public sealed class AzurePublishingContext(
 
         foreach (var resource in bicepResourcesToPublish)
         {
+            await activityReporter.UpdateActivityStatusAsync(activity, status => status with { StatusText = $"Constructing module for {resource.Name}" }, cancellationToken).ConfigureAwait(false);
             var file = resource.GetBicepTemplateFile();
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
@@ -129,6 +137,7 @@ public sealed class AzurePublishingContext(
 
         foreach (var resource in bicepResourcesToPublish)
         {
+            await activityReporter.UpdateActivityStatusAsync(activity, status => status with { StatusText = $"Compiling parameters from {resource.Name}" }, cancellationToken).ConfigureAwait(false);
             // Map parameters from existing resources
             if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
             {
@@ -183,6 +192,7 @@ public sealed class AzurePublishingContext(
 
         foreach (var resource in bicepResourcesToPublish)
         {
+            await activityReporter.UpdateActivityStatusAsync(activity, status => status with { StatusText = $"Mapping module parameters for {resource.Name}" }, cancellationToken).ConfigureAwait(false);
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
@@ -283,8 +293,9 @@ public sealed class AzurePublishingContext(
             OutputLookup[output] = bicepOutput;
             MainInfrastructure.Add(bicepOutput);
         }
+        await activityReporter.UpdateActivityStatusAsync(activity, status => status with { StatusText = "Completed deployment", IsComplete = true }, cancellationToken).ConfigureAwait(false);
 
-        return Task.CompletedTask;
+        return;
     }
 
     private void MapParameter(object? candidate)

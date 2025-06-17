@@ -16,8 +16,9 @@ internal interface IAppHostBackchannel
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
-    IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError, string? PromptType, string? PromptData)> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
+    Task<string?> SendPromptResponseAsync(string activityId, string? response, CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, CliRpcTarget target, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -141,7 +142,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
         }
     }
 
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError, string? PromptType, string? PromptData)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -149,7 +150,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
 
         logger.LogDebug("Requesting publishing activities.");
 
-        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)>>(
+        var resourceStates = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError, string? PromptType, string? PromptData)>>(
             "GetPublishingActivitiesAsync",
             Array.Empty<object>(),
             cancellationToken);
@@ -176,5 +177,21 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Cli
             cancellationToken).ConfigureAwait(false);
 
         return capabilities;
+    }
+
+    public async Task<string?> SendPromptResponseAsync(string activityId, string? response, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sending prompt response for activity {ActivityId}", activityId);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "SendPromptResponseAsync",
+            [activityId, response],
+            cancellationToken);
+
+        return result;
     }
 }
