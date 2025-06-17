@@ -1,20 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal class InteractionService : IInteractionService
+internal class ConsoleInteractionService : IInteractionService
 {
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
     private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Teal, background: null, decoration: Decoration.Bold);
 
     private readonly IAnsiConsole _ansiConsole;
 
-    public InteractionService(IAnsiConsole ansiConsole)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         _ansiConsole = ansiConsole;
@@ -62,7 +64,7 @@ internal class InteractionService : IInteractionService
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
-            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
         }
 
         var prompt = new SelectionPrompt<T>()
@@ -79,11 +81,12 @@ internal class InteractionService : IInteractionService
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 
-        DisplayError("The app host is not compatible. Consider upgrading the app host or Aspire CLI.");
+        DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
-        _ansiConsole.MarkupLine($"\t[bold]Aspire.Hosting Version[/]: {appHostHostingVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]Aspire CLI Version[/]: {cliInformationalVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]Required Capability[/]: {ex.RequiredCapability}");
+        _ansiConsole.MarkupLine(
+            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -112,11 +115,13 @@ internal class InteractionService : IInteractionService
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]Dashboard[/]:");
+        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
-            _ansiConsole.MarkupLine($":chart_increasing:  Direct: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            _ansiConsole.MarkupLine($":chart_increasing:  Codespaces: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine(
+                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+            _ansiConsole.MarkupLine(
+                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
         }
         else
         {
@@ -144,7 +149,7 @@ internal class InteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
-        DisplayMessage("stop_sign", "[teal bold]Stopping Aspire.[/]");
+        DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)

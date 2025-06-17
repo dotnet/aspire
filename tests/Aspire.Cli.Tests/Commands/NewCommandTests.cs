@@ -491,7 +491,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestInteractionService();
+                var testInteractionService = new TestConsoleInteractionService();
                 testInteractionService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
