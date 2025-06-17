@@ -11,16 +11,24 @@ import { RpcServerInformation } from '../../server/rpcServer';
 suite('End-to-end RPC server auth tests', () => {
 	vscode.window.showInformationMessage('Starting end-to-end rpc server tests.');
 
-	test('rpcServer call succeeds', async () => {
+	test('rpcServer authenticated call succeeds', async () => {
 		// Arrange
-		const { connection, client } = await getRealRpcServer();
+		const { connection, rpcServerInfo, client } = await getRealRpcServer();
 
 		// Act & Assert
-		const response = await connection.sendRequest('ping');
+		const response = await connection.sendRequest('ping', { token: rpcServerInfo.token });
 		assert.deepStrictEqual(response, { message: 'pong' });
 
 		connection.dispose();
 		client.end();
+	});
+
+	test("rpcServer unauthenticated call fails", async () => {
+		// Arrange
+		const { connection, client } = await getRealRpcServer();
+
+		// Act & Assert
+		assert.rejects(() => connection.sendRequest('ping', { token: 'invalid-token' }));
 	});
 
 	async function getRealRpcServer() {

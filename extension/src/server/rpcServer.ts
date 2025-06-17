@@ -7,34 +7,26 @@ import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
 import { IOutputChannelWriter } from '../utils/vsc';
-import path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
 
 export type RpcServerInformation = {
     address: string;
+    token: string;
     server: net.Server;
     dispose: () => void;
 };
 
-function getIpcPath(): string {
-    const uniqueId = `extension.sock.${crypto.randomUUID()}`;
-    if (process.platform === 'win32') {
-        // Named pipe
-        return `\\.\\pipe\\aspire-${uniqueId.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    } else {
-        // Unix domain socket
-        const homeDirectory = process.env.HOME || process.env.USERPROFILE;
-        if (!homeDirectory) {
-            throw new Error('Could not determine home directory');
-        }
-        const dir = path.join(homeDirectory, '.aspire', 'cli', 'backchannels');
-        fs.mkdirSync(dir, { recursive: true });
-        return path.join(dir, uniqueId);
-    }
-}
+export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
+    const token = generateToken();
 
-export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
+    function withAuthentication(callback: (params: any) => any) {
+        return (params: any) => {
+            if (!params || params.token !== token) {
+                throw new Error('Invalid token provided');
+            }
+            return callback(params);
+        };
+    }
+
     return new Promise<RpcServerInformation>((resolve, reject) => {
         const rpcServer = net.createServer((socket) => {
             const connection = createMessageConnection(
@@ -42,32 +34,28 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 new StreamMessageWriter(socket)
             );
 
-            connection.onRequest('ping', () => {
+            connection.onRequest('ping', withAuthentication(async () => {
                 return { message: 'pong' };
-            });
+            }));
 
-            connection.onRequest('getCapabilities', () => {
-                return ["baseline"];
-            });
+            connection.onRequest('getCapabilities', withAuthentication(async () => {
+                return ["baseline.v1"];
+            }));
 
-            addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection));
+            addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection, token));
 
             connection.listen();
         });
 
-        const ipcPath = getIpcPath();
-
-        if (process.platform !== 'win32' && fs.existsSync(ipcPath)) {
-            try { fs.unlinkSync(ipcPath); } catch {}
-        }
-
-        rpcServer.listen(ipcPath, () => {
-            const address = rpcServer?.address();
-            if (typeof address === "string") {
-                outputChannelWriter.appendLine(`RPC server listening on IPC path: ${address}`);
+        rpcServer.listen(0, () => {
+            const addressInfo = rpcServer?.address();
+            if (typeof addressInfo === 'object' && addressInfo?.port) {
+                const fullAddress = (addressInfo.address === "::" ? "" : `${addressInfo.address}:`) + addressInfo.port;
+                outputChannelWriter.appendLine(`Aspire extension server listening on: ${fullAddress}`);
                 resolve({
+                    token: token,
                     server: rpcServer,
-                    address: address,
+                    address: fullAddress,
                     dispose: () => disposeRpcServer(rpcServer)
                 });
             }
@@ -82,4 +70,9 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
 
 function disposeRpcServer(rpcServer: net.Server) {
     rpcServer.close();
+}
+
+function generateToken(): string {
+    const key = crypto.randomBytes(16);
+    return key.toString('base64');
 }
