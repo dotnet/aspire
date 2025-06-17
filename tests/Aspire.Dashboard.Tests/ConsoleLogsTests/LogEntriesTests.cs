@@ -48,7 +48,7 @@ public class LogEntriesTests
         logEntries.InsertSorted(logEntry3);
 
         // Assert
-        Assert.Empty(logEntries.GetEntries());
+        Assert.Single(logEntries.GetEntries());
     }
 
     [Fact]
