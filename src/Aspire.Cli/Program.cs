@@ -207,6 +207,8 @@ public class Program
                 {
                     CultureInfo.CurrentUICulture = cultureInfo;
                     CultureInfo.CurrentCulture = cultureInfo;
+                    CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+                    CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
                     errorMessage = null;
                     return true;
                 }

@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding app hosts...</source>
-        <target state="new">Finding app hosts...</target>
+        <target state="translated">Finding app hosts... (CZECH VERSION)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
