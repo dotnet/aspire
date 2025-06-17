@@ -22,7 +22,7 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
-    ToolExecutionService toolExecutionService) 
+    ToolExecutionService toolExecutionService)
 {
     public IAsyncEnumerable<CommandOutput> ExecuteToolAndStreamOutputAsync(CancellationToken cancellationToken)
     {

@@ -19,7 +19,7 @@ public enum DistributedApplicationOperation
     Publish,
 
     /// <summary>
-    /// 
+    /// AppHost is being run for the purpose of executing a tool.
     /// </summary>
     Tool
 }

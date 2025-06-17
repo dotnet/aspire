@@ -31,7 +31,7 @@ public class ToolTests(ITestOutputHelper output)
             // what resource to target
             "--tool", "migration-add",
 
-            // if there are other args - it will break but to test
+            // if there are other args - it will break because EF does not process extra non-mapped args correctly
             // "--add-postgres"
         ];
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
