@@ -348,6 +348,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
+        _innerBuilder.Services.AddSingleton<ToolExecutionService>();
+
         if (ExecutionContext.IsRunMode || ExecutionContext.IsToolMode)
         {
             if (options.EnableResourceLogging)
@@ -355,8 +357,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
-
-            _innerBuilder.Services.AddSingleton<ToolExecutionService>();
 
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
