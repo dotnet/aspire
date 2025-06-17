@@ -224,7 +224,7 @@ const sortedIntegrations = integrations.sort((a, b) => {
             totalCards[2].setAttribute("data-target", totalDownloads);
         }
 
-        // After updating the data-target attributes, trigger the animation
+        // After updating the data-target attributes, trigger the animation if enabled in config
         if (window.animateIntegrationTotals) {
             window.animateIntegrationTotals();
         }

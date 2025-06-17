@@ -157,13 +157,15 @@ const totalDownloads = integrations.reduce((total, integration) => {
         const prefersReducedMotion = window.matchMedia(
             "(prefers-reduced-motion: reduce)",
         ).matches;
+
+        const enabledAnimations = import.meta.env.ENABLE_INTEGRATION_ANIMATION === "true";
         const counters = document.querySelectorAll(".total-number");
 
         counters.forEach((counter) => {
             const target = parseInt(counter.getAttribute("data-target") || "0");
             const shouldFormat = counter.getAttribute("data-format") === "true";
 
-            if (prefersReducedMotion) {
+            if (prefersReducedMotion || enabledAnimations === false) {
                 // If user prefers reduced motion, update numbers immediately without animation
                 if (shouldFormat) {
                     counter.textContent = target.toLocaleString();

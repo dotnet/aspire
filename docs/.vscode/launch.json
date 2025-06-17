@@ -6,6 +6,13 @@
       "name": "Development server",
       "request": "launch",
       "type": "node-terminal"
+    },
+    {
+      "name": "Watch",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "internalConsoleOptions": "neverOpen"
     }
   ]
 }
