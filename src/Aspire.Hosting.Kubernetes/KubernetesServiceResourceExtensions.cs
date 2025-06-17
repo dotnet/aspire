@@ -116,7 +116,7 @@ internal static class KubernetesServiceResourceExtensions
 
     private static HelmExpressionWithValue AllocateParameter(ParameterResource parameter, IResource resource)
     {
-        var formattedName = parameter.Name.ToManifestFriendlyResourceName();
+        var formattedName = parameter.Name.ToHelmValuesSectionName();
 
         var expression = parameter.Secret ?
             formattedName.ToHelmSecretExpression(resource.Name) :
@@ -131,7 +131,7 @@ internal static class KubernetesServiceResourceExtensions
         var formattedName = parameter.ValueExpression.Replace("{", "")
             .Replace("}", "")
             .Replace(".", "_")
-            .ToManifestFriendlyResourceName();
+            .ToHelmValuesSectionName();
 
         var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
             formattedName.ToHelmSecretExpression(resource.Name) :
