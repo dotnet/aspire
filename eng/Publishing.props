@@ -24,7 +24,7 @@
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
-    <_CliFilesToPublish Include="$(CliPublishedArtifactsOutputDir)\**\*" />
+    <_CliFilesToPublish Include="$(ArtifactsShippingPackagesDir)\aspire-cli-*" />
   </ItemGroup>
 
   <Target Name="_PublishBlobItems">

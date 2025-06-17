@@ -1,59 +1,34 @@
-<Project>
-  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <_PublishOutputDirectory>$(ArtifactsBinDir)Aspire.Cli/$(Configuration)/net8.0/$(CliRuntime)/publish/</_PublishOutputDirectory>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
+    <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
+    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
   </PropertyGroup>
 
-  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.Build.Tasks.Archives" />
+  </ItemGroup>
 
-  <Target Name="Build" />
+  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" />
 
-  <Target Name="BeforeBuild" BeforeTargets="Build">
+  <Target Name="PublishToDisk">
     <ItemGroup>
       <AdditionalProperties Include="Configuration=$(Configuration)" />
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishSingleFile=true" />
       <AdditionalProperties Include="SelfContained=true" />
+      <AdditionalProperties Include="PublishDir=$(OutputPath)" />
     </ItemGroup>
 
-    <MSBuild Projects="../../src/Aspire.Cli/Aspire.Cli.csproj" Targets="publish" Properties="@(AdditionalProperties)" />
+    <MSBuild
+        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
+        Targets="publish"
+        Properties="@(AdditionalProperties)"
+        RemoveProperties="OutputPath;TargetFramework" />
 
-    <ItemGroup>
-      <_PublishItems Include="$(_PublishOutputDirectory)**/*" />
-    </ItemGroup>
-
-    <!-- Throw an error if _PublishItems is empty. -->
-    <Error Condition="'@(_PublishItems)' == ''"
-      Text="No files were found to pack in $(_PublishOutputDirectory). Ensure that the project $(MSBuildProjectFullPath) has a publish target defined." />
-
-    <MakeDir Directories="$(CliPublishedArtifactsOutputDir)/$(CliRuntime)" />
-
-    <PropertyGroup>
-      <_OutputArchiveDir>$([MSBuild]::NormalizeDirectory($(CliPublishedArtifactsOutputDir), $(CliRuntime)))</_OutputArchiveDir>
-      <_OutputFilenameWithoutExtension>$(_OutputArchiveDir)aspire-cli-$(CliRuntime)</_OutputFilenameWithoutExtension>
-      <_CreateTarGzScriptPath>$(RepositoryEngineeringDir)scripts\create-tar-gz.ps1</_CreateTarGzScriptPath>
-    </PropertyGroup>
-
-    <!-- Create zip for non-Linux runtimes -->
-    <ZipDirectory
-      Condition="!$(CliRuntime.StartsWith('linux-'))"
-      SourceDirectory="$(_PublishOutputDirectory)"
-      DestinationFile="$(_OutputFilenameWithoutExtension).zip"
-      Overwrite="true" />
-
-    <!-- Create tar.gz for Linux runtimes using PowerShell script -->
-    <ItemGroup>
-      <_CreateTarGzArguments Include="-SourceDirectory &quot;$(_PublishOutputDirectory)&quot;" />
-      <_CreateTarGzArguments Include="-DestinationFile &quot;$(_OutputFilenameWithoutExtension).tar.gz&quot;" />
-      <_CreateTarGzArguments Include="-Overwrite true" />
-    </ItemGroup>
-
-    <Exec
-      Condition="$(CliRuntime.StartsWith('linux-'))"
-      Command="pwsh &quot;$(_CreateTarGzScriptPath)&quot; @(_CreateTarGzArguments, ' ')"
-      ContinueOnError="false" />
+    <!-- TODO: avoid generating the file instead of manually deleting it here -->
+    <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
   </Target>
-
 </Project>
