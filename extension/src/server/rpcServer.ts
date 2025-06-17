@@ -8,12 +8,31 @@ import { addInteractionServiceEndpoints, IInteractionService } from './interacti
 import { ICliRpcClient } from './rpcClient';
 import { IOutputChannelWriter } from '../utils/vsc';
 import path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 
 export type RpcServerInformation = {
     address: string;
     server: net.Server;
     dispose: () => void;
 };
+
+function getIpcPath(): string {
+    const uniqueId = `extension.sock.${crypto.randomUUID()}`;
+    if (process.platform === 'win32') {
+        // Named pipe
+        return `\\.\\pipe\\aspire-${uniqueId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    } else {
+        // Unix domain socket
+        const homeDirectory = process.env.HOME || process.env.USERPROFILE;
+        if (!homeDirectory) {
+            throw new Error('Could not determine home directory');
+        }
+        const dir = path.join(homeDirectory, '.aspire', 'cli', 'backchannels');
+        fs.mkdirSync(dir, { recursive: true });
+        return path.join(dir, uniqueId);
+    }
+}
 
 export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
     return new Promise<RpcServerInformation>((resolve, reject) => {
@@ -36,18 +55,16 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             connection.listen();
         });
 
-        const homeDirectory = process.env.HOME || process.env.USERPROFILE;
-        if (!homeDirectory) {
-            throw new Error('Could not determine home directory');
+        const ipcPath = getIpcPath();
+
+        if (process.platform !== 'win32' && fs.existsSync(ipcPath)) {
+            try { fs.unlinkSync(ipcPath); } catch {}
         }
 
-        const backchannelPath = path.join (homeDirectory, '.aspire', 'cli', 'backchannels', `extension.sock.${crypto.randomUUID()}`);
-
-        // Listen on a random available port
-        rpcServer.listen(backchannelPath, () => {
+        rpcServer.listen(ipcPath, () => {
             const address = rpcServer?.address();
             if (typeof address === "string") {
-                outputChannelWriter.appendLine(rpcServerListening(address));
+                outputChannelWriter.appendLine(`RPC server listening on IPC path: ${address}`);
                 resolve({
                     server: rpcServer,
                     address: address,
