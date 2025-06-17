@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -60,9 +61,10 @@ public sealed class AzurePublishingContext(
     /// <param name="model">The distributed application model to write to the output path.</param>
     /// <param name="environment">The Azure environment resource.</param>
     /// <param name="activityReporter"></param>
+    /// <param name="promptService"></param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the async operation.</returns>
-    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, CancellationToken cancellationToken = default)
+    public async Task WriteModelAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, PublishingPromptService promptService, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(outputPath);
@@ -73,12 +75,12 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, environment, activityReporter, cancellationToken).ConfigureAwait(false);
+        await WriteAzureArtifactsOutputAsync(model, environment, activityReporter, promptService, cancellationToken).ConfigureAwait(false);
 
         await SaveToDiskAsync(outputPath).ConfigureAwait(false);
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, IPublishingActivityProgressReporter activityReporter, PublishingPromptService promptService, CancellationToken cancellationToken)
     {
         var activityId = Guid.NewGuid().ToString("N");
         var activity = await activityReporter.CreateActivityAsync(activityId, "Writing Azure Bicep artifacts", isPrimary: true, cancellationToken).ConfigureAwait(false);
@@ -95,11 +97,16 @@ public sealed class AzurePublishingContext(
         MapParameter(environment.Location);
         MapParameter(environment.PrincipalId);
 
-        var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
-        MainInfrastructure.Add(resourceGroupParam);
+        var resourceGroupName = await promptService.PromptForStringAsync(
+            "Enter the Azure resource group name for deployment:",
+            defaultValue: "my-resource-group",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var locationParam = ParameterLookup[environment.Location];
-        MainInfrastructure.Add(locationParam);
+        var region = await promptService.PromptForSelectionAsync(
+            "Select the Azure location for deployment:",
+            ["westus", "eastus", "centralus", "northcentralus", "southcentralus"],
+            allowMultiple: false,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
@@ -108,8 +115,8 @@ public sealed class AzurePublishingContext(
 
         var rg = new ResourceGroup("rg")
         {
-            Name = resourceGroupParam,
-            Location = locationParam,
+            Name = new BicepValue<string>(resourceGroupName ?? "my-resource-group"),
+            Location = new BicepValue<AzureLocation>(new AzureLocation(region.SingleOrDefault() ?? "westus")),
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
@@ -202,7 +209,7 @@ public sealed class AzurePublishingContext(
 
             var module = moduleMap[resource];
             module.Scope = scope;
-            module.Parameters.Add("location", locationParam);
+            module.Parameters.Add("location", new BicepValue<AzureLocation>(new AzureLocation(region.SingleOrDefault() ?? "westus")));
 
             foreach (var parameter in resource.Parameters)
             {
