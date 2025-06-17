@@ -1407,6 +1407,22 @@
     "version": "9.5.0"
   },
   {
+    "title": "CommunityToolkit.Aspire.Hosting.ActiveMQ",
+    "description": "A .NET Aspire hosting package for hosting ActiveMQ.",
+    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.activemq/9.5.0/icon",
+    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.ActiveMQ",
+    "tags": [
+      "aspire",
+      "integration",
+      "communitytoolkit",
+      "dotnetcommunitytoolkit",
+      "hosting",
+      "activemq"
+    ],
+    "downloads": 16859,
+    "version": "9.5.0"
+  },
+  {
     "title": "CommunityToolkit.Aspire.Hosting.Python.Extensions",
     "description": "A .NET Aspire integration for hosting Uvicorn apps.",
     "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.python.extensions/9.5.0/icon",
@@ -1421,22 +1437,6 @@
       "python"
     ],
     "downloads": 18061,
-    "version": "9.5.0"
-  },
-  {
-    "title": "CommunityToolkit.Aspire.Hosting.ActiveMQ",
-    "description": "A .NET Aspire hosting package for hosting ActiveMQ.",
-    "icon": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.aspire.hosting.activemq/9.5.0/icon",
-    "href": "https://www.nuget.org/packages/CommunityToolkit.Aspire.Hosting.ActiveMQ",
-    "tags": [
-      "aspire",
-      "integration",
-      "communitytoolkit",
-      "dotnetcommunitytoolkit",
-      "hosting",
-      "activemq"
-    ],
-    "downloads": 16859,
     "version": "9.5.0"
   },
   {
