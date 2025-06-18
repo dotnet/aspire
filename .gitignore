@@ -151,3 +151,4 @@ playground/**/publish/
 
 # Verify
 *.received.*
+**/.aspire/settings.json
