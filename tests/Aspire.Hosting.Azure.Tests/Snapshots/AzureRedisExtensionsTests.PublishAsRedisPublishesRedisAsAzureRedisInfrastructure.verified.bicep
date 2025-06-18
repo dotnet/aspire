@@ -3,11 +3,11 @@ param location string = resourceGroup().location
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyVaultName
 }
 
-resource cache 'Microsoft.Cache/redis@2024-03-01' = {
+resource cache 'Microsoft.Cache/redis@2024-11-01' = {
   name: take('cache-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
@@ -24,7 +24,7 @@ resource cache 'Microsoft.Cache/redis@2024-03-01' = {
   }
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionString'
   properties: {
     value: '${cache.properties.hostName},ssl=true,password=${cache.listKeys().primaryKey}'

@@ -7,13 +7,13 @@ param tags object = { }
 
 var resourceToken = uniqueString(resourceGroup().id)
 
-resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: 'mi-${resourceToken}'
   location: location
   tags: tags
 }
 
-resource env_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: replace('acr-${resourceToken}', '-', '')
   location: location
   sku: {
@@ -43,7 +43,7 @@ resource env_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   tags: tags
 }
 
-resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource env 'Microsoft.App/managedEnvironments@2025-01-01' = {
   name: 'cae-${resourceToken}'
   location: location
   properties: {
@@ -99,7 +99,7 @@ resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/
   parent: storageVolumeFileService
 }
 
-resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2025-01-01' = {
   name: take('${toLower('cache')}-${toLower('Appdata')}', 32)
   properties: {
     azureFile: {
