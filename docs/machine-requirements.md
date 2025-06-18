@@ -41,3 +41,26 @@ In your browser, start a Codespace in your fork. The initialization of the code 
 This will take on the free version of Codespace around 10 mins.
 
 > :warning: With the free version of Codespaces the development experience can be less than ideal. We recommend using at least a Codespace with 16GB of RAM or use your local VS Code / DevContainers instance.
+
+## Alpine Linux
+
+To build the Aspire repo on Alpine Linux, you'll need to use musl-compatible gRPC tooling. The `Grpc.Tools` package that Aspire uses to generate gRPC interfaces depends on native binaries, but it doesn't include a musl-specific build.
+
+On Alpine Linux, the `grpc-plugins` package includes the necessary binaries. You can install it with:
+
+```bash
+apk add --no-cache grpc-plugins
+```
+
+Then, override the default `Grpc.Tools` binary paths to point to your musl-compatible gRPC binaries by setting the following environment variables:
+
+```bash
+export PROTOBUF_PROTOC=/usr/bin/protoc
+export GRPC_PROTOC_PLUGIN=/usr/bin/grpc_csharp_plugin
+```
+
+With that, you can build and run the Aspire repo on Alpine Linux.
+
+> :warning: Aspire currently only directly supports the x64/amd64 architecture for Alpine/musl. If you want to build or run Aspire in Alpine on arm64, you may need to use an arm64/x64 compatibility layer like `qemu`.
+>
+> :warning: Alpine Linux support was added in [this commit](https://github.com/dotnet/aspire/commit/cc2706a90848deec90aa166054e1b2a4ecf94689) and isn't supported in earlier releases. Additionally, Alpine Linux is not currently part of our CI test suite.
