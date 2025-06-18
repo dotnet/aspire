@@ -59,17 +59,32 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                         />
                         <div class="text">{testimonial.text}</div>
                         <div class="name">
-                            {testimonial.link ? (
-                                <a
-                                    href={testimonial.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    {testimonial.name}
-                                </a>
-                            ) : (
-                                testimonial.name
-                            )}
+                            {(() => {
+                                // Helper to check if name ends with a parenthesis
+                                const endsWithParen = (name: string) => /\)\s*$/.test(name);
+
+                                // Compose the extra info if available
+                                const extraInfo = [testimonial.role, testimonial.company]
+                                    .filter(Boolean)
+                                    .join(", ");
+
+                                // Only show extra info if name doesn't already end with a parenthesis and extraInfo exists
+                                const displayName = !endsWithParen(testimonial.name) && extraInfo
+                                    ? `${testimonial.name} (${extraInfo})`
+                                    : testimonial.name;
+
+                                return testimonial.link ? (
+                                    <a
+                                        href={testimonial.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {displayName}
+                                    </a>
+                                ) : (
+                                    displayName
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -368,6 +383,7 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
     .card {
         padding: 2.5rem;
         border-radius: 0.8rem;
+        border: 1px solid var(--sl-color-gray-4);
         box-shadow:
             0 10px 20px rgba(0, 0, 0, 0.08),
             0 6px 6px rgba(0, 0, 0, 0.12),
@@ -714,7 +730,7 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
 
     .name {
         font-weight: bold;
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         margin-top: 1.5rem;
         color: var(--carousel-primary);
         position: relative;

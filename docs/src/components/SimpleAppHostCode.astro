@@ -1,0 +1,27 @@
+---
+import { Code } from "@astrojs/starlight/components";
+
+const cs = `
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database service to orbit
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume();
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres)
+                 .WaitFor(postgres);
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .WithReference(api);
+
+builder.Build().Run();
+`;
+---
+
+<Code code={cs} lang="cs" frame="terminal" title="AppHost.cs" />

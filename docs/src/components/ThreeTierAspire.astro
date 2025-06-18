@@ -1,25 +1,63 @@
 ---
-import { Code } from '@astrojs/starlight/components'
+import SimpleAppHostCode from "./SimpleAppHostCode.astro";
+import { Tabs, TabItem, Code } from "@astrojs/starlight/components";
 
-const cs = `
-var builder = DistributedApplication.CreateBuilder(args);
+const compose = `
+version: '3.8'
 
-// Add database service to orbit
-var postgres = builder.AddPostgres("db").AddDatabase("appdata");
+services:
+  db:
+    image: postgres:17.5
+    container_name: db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdata
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
-// Add API service and reference the database
-var api = builder.AddProject("api", "../api/ApiService.csproj")
-                 .WithReference(postgres)
-                 .WaitFor(postgres);
+  api:
+    build: ../api
+    container_name: api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASS: password
+      DB_NAME: appdata
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
 
-// Add frontend service and reference the API
-var frontend = builder.AddNpmApp("frontend", "../frontend")
-                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
-                      .WithNpmPackageInstallation()
-                      .WithReference(api);
+  frontend:
+    build: ../frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+    depends_on:
+      - api
 
-builder.Build().Run();
+volumes:
+  db-data:
 `;
 ---
 
-<Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
+<Tabs>
+    <TabItem label="Docker Compose" icon="seti:docker">
+        <p>
+            Aspire lets you define your entire app in C#, making YAML optional. If you squint, you'll notice the C# and YAML definitions are similar—but with C#, you get type safety and full IDE support.
+        </p>
+        <Code code={compose} lang="yaml" frame="terminal" title="docker-compose.yml" />
+    </TabItem>
+    <TabItem label="C#" icon="seti:c-sharp">
+        <p>
+            Why settle for verbose YAML? With C#, you get a concise, extensible, and type-safe way to define your app and its dependencies. If you squint, you'll notice the structure is similar to YAML—but C# is less repetitive and far more powerful.
+        </p>
+        <SimpleAppHostCode />
+    </TabItem>
+</Tabs>

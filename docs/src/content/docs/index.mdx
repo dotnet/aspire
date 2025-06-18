@@ -28,7 +28,7 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 ## Why developers love Aspire
 
 <CardGrid stagger>
-  <Card title="Code-First Control" icon="laptop">
+  <Card title="Code-centric Control" icon="laptop">
     Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
   </Card>
   <Card title="Modular and Extensible" icon="puzzle">
@@ -43,8 +43,6 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 </CardGrid>
 
 ## Code-centric control
-
-Describe your stack in code. Easily add services, connect them to each other, and get everything running locally with a single command.
 
 import ThreeTierAspire from '../../components/ThreeTierAspire.astro';
 
@@ -88,10 +86,13 @@ Model your stack in code—no YAML, fully type-safe—for seamless local and pro
 
 Monitor logs, metrics, and traces in real time with the built-in OpenTelemetry dashboard—insightful, visual, and ready out of the box.
 
-<LoopingVideo sources={[
+<LoopingVideo
+  aria-label="Aspire dashboard video demonstrating real-time interaction of resources."
+  sources={[
   { 
     src: "https://github.com/IEvangelist/aspire/raw/refs/heads/docs/docs/src/assets/dashboard-graph.mp4",
-    type: "video/mp4"
+    type: "video/mp4",
+    title: "Aspire dashboard video demonstrating real-time interaction of resources."
   }
 ]} />
 
@@ -103,13 +104,17 @@ Integrate Aspire with top platforms, databases, messaging, caching, and more—i
 
 <IntegrationHexGrid />
 
-## Real user testimonials
+## User testimonials
 
 import TestimonialCarousel from '../../components/TestimonialCarousel.astro';
 
 From indie hackers to enterprises, developers are building faster and shipping with confidence using Aspire.
 
 <TestimonialCarousel />
+
+{/* ## Reduce context switching
+
+With Aspire, you can focus on building your application without worrying about the underlying infrastructure. Aspire handles the orchestration, so you can concentrate on writing code. */}
 
 ## Ready for liftoff?
 

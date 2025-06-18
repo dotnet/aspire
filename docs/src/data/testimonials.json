@@ -10,7 +10,7 @@
     {
         "name": "Russ Harding",
         "company": "EQengineered",
-        "role": "Vice President",
+        "role": "VP Engineering",
         "text": "I had someone start on a Monday morning and they were contributing code by lunch.",
         "avatar": "../assets/testimonials/russ-harding.jpg",
         "link": "https://www.linkedin.com/in/russharding1/"
@@ -24,8 +24,8 @@
         "link": "https://www.reddit.com/user/Nk54"
     },
     {
-        "name": "Craig Taylor (Xbox Live)",
-        "company": "Microsoft",
+        "name": "Craig Taylor",
+        "company": "Xbox Live",
         "role": "Principal Architect",
         "text": "Hit F5 to begin — skip the setup boss fight, ship code faster.",
         "avatar": "../assets/testimonials/craig-taylor.png",

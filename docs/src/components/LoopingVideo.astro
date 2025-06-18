@@ -1,14 +1,28 @@
 ---
-interface Props {
-	sources: {
-		src: string;
-		type: 'video/mp4' | 'video/webm';
-	}[];
+import type { HTMLAttributes } from 'astro/types';
+
+interface Source {
+	src: string;
+	type: 'video/mp4' | 'video/webm';
+	title?: string;
 }
 
-const { sources } = Astro.props as Props;
----
+interface Props extends Omit<HTMLAttributes<'video'>, 'title'> {
+	sources: Source[];
+	title?: string;
+}
 
-<video autoplay loop muted playsinline>
-	{sources.map(({ src, type }) => <source src={src} type={type} />)}
+const { sources, title, ...rest } = Astro.props as Props;
+---
+<video
+	autoplay
+	loop
+	muted
+	playsinline
+	title={title}
+	{...rest}
+>
+	{sources.map(({ src, type, title }) => (
+		<source src={src} type={type} title={title} />
+	))}
 </video>
