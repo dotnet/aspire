@@ -16,7 +16,7 @@ suite('End-to-end RPC server auth tests', () => {
 		const { connection, rpcServerInfo, client } = await getRealRpcServer();
 
 		// Act & Assert
-		const response = await connection.sendRequest('ping', { token: rpcServerInfo.token });
+		const response = await connection.sendRequest('ping', rpcServerInfo.token);
 		assert.deepStrictEqual(response, { message: 'pong' });
 
 		connection.dispose();
