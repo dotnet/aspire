@@ -94,13 +94,13 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private void BuildKubernetesResources(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext)
+    private void BuildKubernetesResources()
     {
         // Process deferred environment variables
         foreach (var environmentVariable in RawEnvironmentVariables)
         {
             var key = environmentVariable.Key.ToHelmValuesSectionName();
-            var value = this.ProcessValue(context, executionContext, environmentVariable.Value);
+            var value = this.ProcessValue(environmentVariable.Value);
 
             switch (value)
             {
@@ -119,7 +119,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         // Process deferred arguments
         foreach (var arg in RawArguments)
         {
-            var value = this.ProcessValue(context, executionContext, arg);
+            var value = this.ProcessValue(arg);
 
             if (value is not string str)
             {
@@ -174,14 +174,14 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         return expression;
     }
 
-    internal async Task ProcessResourceAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    internal async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         ProcessEndpoints();
         ProcessVolumes();
         await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
         await ProcessArgumentsAsync(executionContext, cancellationToken).ConfigureAwait(false);
         
-        BuildKubernetesResources(context, executionContext);
+        BuildKubernetesResources();
     }
 
     private void ProcessEndpoints()
@@ -269,134 +269,6 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
                 await c.Callback(context).ConfigureAwait(false);
             }
         }
-    }
-
-    internal object ProcessValue(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
-    {
-        while (true)
-        {
-            if (value is string s)
-            {
-                return s;
-            }
-
-            if (value is EndpointReference ep)
-            {
-                var referencedResource = ep.Resource == resource
-                    ? this
-                    : context.CreateKubernetesResourceAsync(ep.Resource, executionContext, default).GetAwaiter().GetResult();
-
-                var mapping = referencedResource.EndpointMappings[ep.EndpointName];
-
-                var url = GetEndpointValue(mapping, EndpointProperty.Url);
-
-                return url;
-            }
-
-            if (value is ParameterResource param)
-            {
-                return AllocateParameter(param, resource);
-            }
-
-            if (value is ConnectionStringReference cs)
-            {
-                value = cs.Resource.ConnectionStringExpression;
-                continue;
-            }
-
-            if (value is IResourceWithConnectionString csrs)
-            {
-                value = csrs.ConnectionStringExpression;
-                continue;
-            }
-
-            if (value is EndpointReferenceExpression epExpr)
-            {
-                var referencedResource = epExpr.Endpoint.Resource == resource
-                    ? this
-                    : context.CreateKubernetesResourceAsync(epExpr.Endpoint.Resource, executionContext, default).GetAwaiter().GetResult();
-
-                var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
-
-                var val = GetEndpointValue(mapping, epExpr.Property);
-
-                return val;
-            }
-
-            if (value is ReferenceExpression expr)
-            {
-                if (expr is { Format: "{0}", ValueProviders.Count: 1 })
-                {
-                    return this.ProcessValue(context, executionContext, expr.ValueProviders[0]).ToString() ?? string.Empty;
-                }
-
-                var args = new object[expr.ValueProviders.Count];
-                var index = 0;
-
-                foreach (var vp in expr.ValueProviders)
-                {
-                    var val = this.ProcessValue(context, executionContext, vp);
-                    args[index++] = val ?? throw new InvalidOperationException("Value is null");
-                }
-
-                return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
-            }
-
-            // If we don't know how to process the value, we just return it as an external reference
-            if (value is IManifestExpressionProvider r)
-            {
-                return ResolveUnknownValue(r, resource);
-            }
-
-            throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
-        }
-    }
-
-    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
-    {
-        var (scheme, host, port, _, _) = mapping;
-
-        return property switch
-        {
-            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{port}"),
-            EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port,
-            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => port,
-            EndpointProperty.Scheme => scheme,
-            _ => throw new NotSupportedException(),
-        };
-
-        string GetHostValue(string? prefix = null, string? suffix = null)
-        {
-            return $"{prefix}{host}{suffix}";
-        }
-    }
-
-    private static HelmExpressionWithValue AllocateParameter(ParameterResource parameter, IResource resource)
-    {
-        var formattedName = parameter.Name.ToHelmValuesSectionName();
-
-        var expression = parameter.Secret ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-        return new(expression, value);
-    }
-
-    private static HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
-    {
-        var formattedName = parameter.ValueExpression.Replace("{", "")
-            .Replace("}", "")
-            .Replace(".", "_")
-            .ToHelmValuesSectionName();
-
-        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        return new(helmExpression, parameter.ValueExpression);
     }
 
     private void ProcessEnvironmentHelmExpression(HelmExpressionWithValue helmExpression, string key)

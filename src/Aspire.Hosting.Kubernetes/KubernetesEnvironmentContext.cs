@@ -8,13 +8,11 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal sealed class KubernetesEnvironmentContext(KubernetesEnvironmentResource environment, ILogger logger)
 {
-    private readonly Dictionary<IResource, KubernetesResource> _kubernetesComponents = new(new ResourceNameComparer());
-
     public ILogger Logger => logger;
 
     public async Task<KubernetesResource> CreateKubernetesResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        if (_kubernetesComponents.TryGetValue(resource, out var existingResource))
+        if (environment.ResourceMapping.TryGetValue(resource, out var existingResource))
         {
             return existingResource;
         }
@@ -22,9 +20,9 @@ internal sealed class KubernetesEnvironmentContext(KubernetesEnvironmentResource
         logger.LogInformation("Creating Kubernetes resource for {ResourceName}", resource.Name);
 
         var serviceResource = new KubernetesResource(resource.Name, resource, environment);
-        _kubernetesComponents[resource] = serviceResource;
+        environment.ResourceMapping[resource] = serviceResource;
 
-        await serviceResource.ProcessResourceAsync(this, executionContext, cancellationToken).ConfigureAwait(false);
+        await serviceResource.ProcessResourceAsync(executionContext, cancellationToken).ConfigureAwait(false);
 
         return serviceResource;
     }

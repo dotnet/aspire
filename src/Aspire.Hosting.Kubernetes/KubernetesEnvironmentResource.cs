@@ -79,6 +79,8 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// </remarks>
     public string DefaultServiceType { get; set; } = "ClusterIP";
 
+    internal Dictionary<IResource, KubernetesResource> ResourceMapping { get; } = new(new ResourceNameComparer());
+
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
