@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">终结点</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">资源</target>
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -54,12 +54,12 @@
       </trans-unit>
       <trans-unit id="State">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">状态</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">类型</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">

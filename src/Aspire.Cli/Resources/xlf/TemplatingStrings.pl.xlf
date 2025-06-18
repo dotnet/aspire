@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="No">
         <source>No</source>
-        <target state="new">No</target>
+        <target state="translated">Nie</target>
         <note />
       </trans-unit>
       <trans-unit id="NoTemplateVersionsFound">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="None">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">Brak</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Unknown">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">Nieznany</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="Yes">
         <source>Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">Tak</target>
         <note />
       </trans-unit>
     </body>
