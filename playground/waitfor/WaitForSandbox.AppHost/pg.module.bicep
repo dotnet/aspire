@@ -54,11 +54,11 @@ resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
   parent: pg
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: pg_kv_outputs_name
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--pg'
   properties: {
     value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
@@ -66,7 +66,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--db'
   properties: {
     value: 'Host=${pg.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=db'
