@@ -113,8 +113,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NoSelectionMade">
-        <source>A selection was required for prompt '{0}' but was not made.</source>
-        <target state="new">A selection was required for prompt '{0}' but was not made.</target>
+        <source>Input was required for prompt '{0}' but not provided.</source>
+        <target state="new">Input was required for prompt '{0}' but not provided.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">

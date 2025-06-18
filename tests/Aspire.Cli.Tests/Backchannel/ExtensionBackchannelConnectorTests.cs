@@ -4,6 +4,7 @@ using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using Xunit;
 
 namespace Aspire.Cli.Tests.Backchannel;
@@ -36,7 +37,9 @@ public class ExtensionBackchannelConnectorTests
         public Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task ShowStatusAsync(string? status, CancellationToken cancellationToken) => Task.CompletedTask;
-        public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull => Task.FromResult(choices.First());
+        public Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull => Task.FromResult<T?>(choices.First());
+        public Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken) => Task.FromResult<bool?>(defaultValue);
+        public Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, CancellationToken cancellationToken) => Task.FromResult(defaultValue);
     }
 
     [Fact]

@@ -89,9 +89,17 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
-        var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        return exitCode;
+        try
+        {
+            var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+            var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+            return exitCode;
+        }
+        catch (ExtensionInputCanceledException ex)
+        {
+            _interactionService.DisplayError(ex.Message);
+            return ExitCodeConstants.InputCanceled;
+        }
     }
 }
 

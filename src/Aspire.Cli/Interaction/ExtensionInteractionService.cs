@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -58,8 +60,27 @@ internal class ExtensionInteractionService : IInteractionService
     {
         if (_extensionPromptEnabled)
         {
-            // TODO implement extension-specific handling
-            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, cancellationToken).ConfigureAwait(false);
+            var tcs = new TaskCompletionSource<string>();
+
+            await _extensionTaskChannel.Writer.WriteAsync(async backchannel =>
+            {
+                try
+                {
+                    var result = await backchannel.PromptForStringAsync(promptText.RemoveFormatting(), defaultValue, validator, CancellationToken.None).ConfigureAwait(false);
+                    if (result is null)
+                    {
+                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                    }
+
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
         }
         else
         {
@@ -67,16 +88,36 @@ internal class ExtensionInteractionService : IInteractionService
         }
     }
 
-    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
+    public async Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
-            // TODO implement extension-specific handling
-            return _consoleInteractionService.ConfirmAsync(promptText, defaultValue, cancellationToken);
+            var tcs = new TaskCompletionSource<bool>();
+
+            await _extensionTaskChannel.Writer.WriteAsync(async backchannel =>
+            {
+                try
+                {
+                    var result = await backchannel.ConfirmAsync(promptText.RemoveFormatting(), defaultValue, CancellationToken.None).ConfigureAwait(false);
+                    if (result is null)
+                    {
+                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                    }
+
+                    tcs.SetResult(result.Value);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                    DisplayError(ex.Message);
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
         }
         else
         {
-            return _consoleInteractionService.ConfirmAsync(promptText, defaultValue, cancellationToken);
+            return await _consoleInteractionService.ConfirmAsync(promptText, defaultValue, cancellationToken);
         }
     }
 
@@ -92,11 +133,17 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await backchannel.PromptForSelectionAsync(promptText.RemoveFormatting(), choices, choiceFormatter, CancellationToken.None).ConfigureAwait(false);
+                    if (result is null)
+                    {
+                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                    }
+
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
+                    DisplayError(ex.Message);
                 }
             }, cancellationToken).ConfigureAwait(false);
 

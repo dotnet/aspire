@@ -206,6 +206,6 @@
     <value>The provided extension socket path needs two valid parts.</value>
   </data>
   <data name="NoSelectionMade" xml:space="preserve">
-    <value>A selection was required for prompt '{0}' but was not made.</value>
+    <value>Input was required for prompt '{0}' but not provided.</value>
   </data>
 </root>

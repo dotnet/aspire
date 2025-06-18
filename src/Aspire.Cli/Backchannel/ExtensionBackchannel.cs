@@ -9,6 +9,7 @@ using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
@@ -27,7 +28,9 @@ internal interface IExtensionBackchannel
     Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken);
     Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
-    Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
+    Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
+    Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
+    Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
@@ -255,7 +258,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
     }
 
-    public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+    public async Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
         CancellationToken cancellationToken) where T : notnull
     {
         var choicesList = choices.ToList();
@@ -274,7 +277,42 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result is null
-            ? throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText))
+            ? default
             : choicesByFormattedValue[result];
+    }
+
+    public async Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Prompting for confirmation with text: {PromptText}, default value: {DefaultValue}", promptText, defaultValue);
+
+        var result = await rpc.InvokeWithCancellationAsync<bool?>(
+            "confirm",
+            [_token, promptText, defaultValue],
+            cancellationToken);
+
+        return result;
+    }
+
+    public async Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator,
+        CancellationToken cancellationToken)
+    {
+        target.ValidationFunction = validator;
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Prompting for string with text: {PromptText}, default value: {DefaultValue}", promptText, defaultValue);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForString",
+            [_token, promptText, defaultValue],
+            cancellationToken);
+
+        return result;
     }
 }
