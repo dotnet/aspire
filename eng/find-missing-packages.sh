@@ -79,24 +79,52 @@ add_package_to_nuget_mapping() {
     local package_name="$1"
     echo -e "${YELLOW}Adding package '$package_name' to nuget.org source mapping...${NC}"
     
-    # Use xmlstarlet or sed to modify the NuGet.config
     # First, check if nuget.org source exists, if not add it
     if ! grep -q 'key="nuget.org"' ../NuGet.config; then
         echo -e "${YELLOW}Adding nuget.org as a package source...${NC}"
-        ../dotnet.sh nuget add source https://api.nuget.org/v3/index.json --name nuget.org
-    fi
-    
-    # Add the package pattern to nuget.org source mapping
-    # We'll use a simple sed approach to add the package pattern
-    if grep -q '<packageSource key="nuget.org">' ../NuGet.config; then
-        # If nuget.org mapping exists, add the package to it
-        sed -i "/<packageSource key=\"nuget.org\">/a\\      <package pattern=\"$package_name\" />" ../NuGet.config
+        # Add nuget.org to packageSources section (before </packageSources>)
+        sed -i '/<\/packageSources>/i\    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' ../NuGet.config
+        echo -e "${GREEN}Added nuget.org package source${NC}"
     else
-        # If nuget.org mapping doesn't exist, create it
-        sed -i "/<\/packageSourceMapping>/i\\    <packageSource key=\"nuget.org\">\\      <package pattern=\"$package_name\" />\\    </packageSource>" ../NuGet.config
+        echo -e "${GREEN}nuget.org package source already exists${NC}"
     fi
     
-    echo -e "${GREEN}Added '$package_name' to nuget.org source mapping${NC}"
+    # Check if the package is already mapped to avoid duplicates
+    if grep -q "pattern=\"$package_name\"" ../NuGet.config; then
+        echo -e "${YELLOW}Package '$package_name' already in mapping, skipping...${NC}"
+        return
+    fi
+    
+    # Now add or update the packageSourceMapping for nuget.org
+    if grep -q '<packageSource key="nuget.org">' ../NuGet.config; then
+        # If nuget.org mapping already exists, add the package to it
+        echo -e "${YELLOW}Adding package to existing nuget.org mapping...${NC}"
+        # Find the nuget.org packageSource section and add the package before its closing tag
+        sed -i '/<packageSource key="nuget.org">/,/<\/packageSource>/ {
+            /<\/packageSource>/i\      <package pattern="'"$package_name"'" />
+        }' ../NuGet.config
+    else
+        # If nuget.org mapping doesn't exist, create it properly with multiple lines
+        echo -e "${YELLOW}Creating new nuget.org mapping section...${NC}"
+        # Create a temporary file with the proper multi-line structure
+        cat > /tmp/nuget_mapping.xml << EOF
+    <packageSource key="nuget.org">
+      <package pattern="$package_name" />
+    </packageSource>
+EOF
+        # Insert the content before </packageSourceMapping>
+        sed -i '/<\/packageSourceMapping>/e cat /tmp/nuget_mapping.xml' ../NuGet.config
+        rm -f /tmp/nuget_mapping.xml
+    fi
+    
+    # Verify the change was made
+    if grep -q "pattern=\"$package_name\"" ../NuGet.config; then
+        echo -e "${GREEN}Successfully added '$package_name' to nuget.org source mapping${NC}"
+    else
+        echo -e "${RED}Failed to add '$package_name' to nuget.org source mapping${NC}"
+        echo -e "${YELLOW}Current packageSourceMapping section:${NC}"
+        sed -n '/<packageSourceMapping>/,/<\/packageSourceMapping>/p' ../NuGet.config
+    fi
 }
 
 # Clear package cache to start fresh
@@ -114,7 +142,7 @@ while [ $iteration -le $max_iterations ]; do
     echo -e "${YELLOW}Iteration $iteration: Attempting restore...${NC}"
     
     # Try restore and capture output
-    if ../dotnet.sh restore --verbosity minimal > "restore_attempt_$iteration.log" 2>&1; then
+    if ../dotnet.sh restore ../Aspire.slnx --verbosity minimal > "restore_attempt_$iteration.log" 2>&1; then
         echo -e "${GREEN}SUCCESS! Restore completed successfully on iteration $iteration${NC}"
         break
     else
@@ -141,6 +169,8 @@ while [ $iteration -le $max_iterations ]; do
                 package_name=$(echo -e "$package_info" | cut -f1)
                 package_version=$(echo -e "$package_info" | cut -f2)
                 
+                echo -e "${YELLOW}Debug: Extracted package '$package_name' from error${NC}"
+                
                 # Check if we've already processed this package
                 if [[ ! " ${missing_packages[@]} " =~ " ${package_name} " ]]; then
                     if [ -n "$package_version" ]; then
@@ -153,8 +183,17 @@ while [ $iteration -le $max_iterations ]; do
                     missing_packages+=("$package_name")
                     add_package_to_nuget_mapping "$package_name"
                     found_new_package=true
+                    
+                    # Clear NuGet cache after modifying config to ensure changes take effect
+                    echo -e "${YELLOW}Clearing NuGet cache after config change...${NC}"
+                    ../dotnet.sh nuget locals all --clear
+                    
                     break  # Process one package at a time
+                else
+                    echo -e "${YELLOW}Debug: Package '$package_name' already processed, skipping${NC}"
                 fi
+            else
+                echo -e "${YELLOW}Debug: Could not extract package info from: $error_line${NC}"
             fi
         done < "errors_$iteration.log"
         
