@@ -4,6 +4,9 @@
 	"command.run": "Run an Aspire app host in development mode.",
 	"command.addPackage": "Add an integration to the Aspire project.",
 	"command.new": "Create a new Aspire sample project",
+	"command.publish": "Generates deployment artifacts for an Aspire app host project.",
+	"command.config": "Manage configuration settings.",
+	"command.deploy": "Deploy an Aspire app host project to its supported deployment targets.",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -16,5 +19,11 @@
 	"aspire-vscode.strings.activated": "Aspire Extension activated.",
 	"aspire-vscode.rpcserver.listening": "Aspire extension server listening on {0}",
 	"aspire-vscode.rpcserver.addressError": "Failed to get RPC server address. The extension may not function correctly.",
-	"aspire-vscode.strings.noWorkspaceOpen": "No workspace is open. Please open a folder or workspace before running this command."
+	"aspire-vscode.strings.noWorkspaceOpen": "No workspace is open. Please open a folder or workspace before running this command.",
+	"aspire-vscode.strings.failedToShowPromptEmpty": "Failed to show prompt, text was empty.",
+	"aspire-vscode.strings.incompatibleAppHostError": "The app host is not compatible. Consider upgrading the app host or Aspire CLI.",
+	"aspire-vscode.strings.aspireHostingSdkVersion": "Aspire Hosting SDK Version: {0}",
+	"aspire-vscode.strings.aspireCliVersion": "Aspire CLI Version: {0}",
+	"aspire-vscode.strings.requiredCapability": "Required Capability: {0}",
+	"aspire-vscode.strings.aspireTerminalName": "Aspire Terminal"
 }
