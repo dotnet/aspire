@@ -130,6 +130,9 @@
   <data name="AppHostIncompatibleWithCli" xml:space="preserve">
     <value>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</value>
   </data>
+  <data name="ExtensionIncompatibleWithCli" xml:space="preserve">
+    <value>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</value>
+  </data>
   <data name="CertificatesMayNotBeFullyTrusted" xml:space="preserve">
     <value>Developer certificates may not be fully trusted (trust exit code was: {0}).</value>
   </data>
@@ -194,5 +197,12 @@
   </data>
   <data name="ErrorDeletingConfiguration" xml:space="preserve">
     <value>Error deleting configuration: {0}</value>
+  </data>
+  <data name="ExtensionTokenMustBeSet" xml:space="preserve">
+    <value>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</value>
+    <comment>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</comment>
+  </data>
+  <data name="InvalidSocketPath" xml:space="preserve">
+    <value>The provided extension socket path needs two valid parts.</value>
   </data>
 </root>
