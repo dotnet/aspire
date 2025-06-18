@@ -100,8 +100,7 @@ export class InteractionService implements IInteractionService {
             canPickMany: false,
             ignoreFocusOut: true
         });
-
-        return selected || null;
+        return selected ?? null;
     }
 
     displayIncompatibleVersionError(requiredCapability: string, appHostHostingSdkVersion: string) {
@@ -196,21 +195,18 @@ export class InteractionService implements IInteractionService {
     }
 }
 
-export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient) {
-    connection.onRequest("showStatus", interactionService.showStatus.bind(interactionService));
-    connection.onRequest("promptForString", (promptText: string, defaultValue: string | null) =>
-        interactionService.promptForString(promptText, defaultValue, rpcClient));
-    connection.onRequest("confirm", interactionService.confirm.bind(interactionService));
-    connection.onRequest("promptForSelection", (promptText: string, choices: string[]) =>
-        interactionService.promptForSelection(promptText, choices)
-    );
-    connection.onRequest("displayIncompatibleVersionError", interactionService.displayIncompatibleVersionError.bind(interactionService));
-    connection.onRequest("displayError", interactionService.displayError.bind(interactionService));
-    connection.onRequest("displayMessage", interactionService.displayMessage.bind(interactionService));
-    connection.onRequest("displaySuccess", interactionService.displaySuccess.bind(interactionService));
-    connection.onRequest("displaySubtleMessage", interactionService.displaySubtleMessage.bind(interactionService));
-    connection.onRequest("displayEmptyLine", interactionService.displayEmptyLine.bind(interactionService));
-    connection.onRequest("displayDashboardUrls", interactionService.displayDashboardUrls.bind(interactionService));
-    connection.onRequest("displayLines", interactionService.displayLines.bind(interactionService));
-    connection.onRequest("displayCancellationMessage", interactionService.displayCancellationMessage.bind(interactionService));
+export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
+    connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
+    connection.onRequest("promptForString", withAuthentication(interactionService.promptForString.bind(interactionService, '', null, rpcClient)));
+    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService));
+    connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
+    connection.onRequest("displayIncompatibleVersionError", withAuthentication(interactionService.displayIncompatibleVersionError.bind(interactionService)));
+    connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
+    connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
+    connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", withAuthentication( interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
+    connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
+    connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
 }
