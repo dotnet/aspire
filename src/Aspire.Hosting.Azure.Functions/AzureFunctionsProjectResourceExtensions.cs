@@ -115,7 +115,8 @@ public static class AzureFunctionsProjectResourceExtensions
             })
             .WithOtlpExporter()
             .WithFunctionsHttpEndpoint()
-            .PublishWithAdminKey();
+            .PublishWithAdminKey()
+            .PublishWithHostKey();
     }
 
     /// <summary>
@@ -241,9 +242,40 @@ public static class AzureFunctionsProjectResourceExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureFunctionsProjectResource> PublishWithAdminKey(this IResourceBuilder<AzureFunctionsProjectResource> builder)
+    internal static IResourceBuilder<AzureFunctionsProjectResource> PublishWithAdminKey(this IResourceBuilder<AzureFunctionsProjectResource> builder)
     {
         return builder.PublishWithFunctionsKey(AzureFunctionsKeyType.Admin);
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="keyName"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> PublishWithHostKey(this IResourceBuilder<AzureFunctionsProjectResource> builder, string keyName = "default")
+    {
+        return builder.PublishWithFunctionsKey(AzureFunctionsKeyType.Host, keyName: keyName);
+    }
+
+    /// <summary>    
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="keyName"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> PublishWithSystemKey(this IResourceBuilder<AzureFunctionsProjectResource> builder, string keyName = "default")
+    {
+        return builder.PublishWithFunctionsKey(AzureFunctionsKeyType.System, keyName: keyName);
+    }
+
+    /// <summary>    
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="functionName"></param>
+    /// <param name="keyName"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> PublishWithFunctionKey(this IResourceBuilder<AzureFunctionsProjectResource> builder, string functionName, string keyName = "default")
+    {
+        return builder.PublishWithFunctionsKey(AzureFunctionsKeyType.Function, functionName, keyName);
     }
 
     private static IResourceBuilder<AzureFunctionsProjectResource> PublishWithFunctionsKey(this IResourceBuilder<AzureFunctionsProjectResource> builder, AzureFunctionsKeyType keyType, string? functionName = null,
