@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -25,6 +26,7 @@ internal interface IExtensionBackchannel
     Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken);
     Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
+    Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
 }
 
 internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target) : IExtensionBackchannel
@@ -250,5 +252,28 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             "showStatus",
             [_token, status],
             cancellationToken);
+    }
+
+    public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+        CancellationToken cancellationToken) where T : notnull
+    {
+        var choicesList = choices.ToList();
+        // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
+        var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveFormatting(), choice => choice);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Prompting for selection with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForSelection",
+            [_token, promptText, choicesByFormattedValue.Keys],
+            cancellationToken);
+
+        return result is null
+            ? throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText))
+            : choicesByFormattedValue[result];
     }
 }

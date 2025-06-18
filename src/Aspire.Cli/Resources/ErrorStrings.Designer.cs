@@ -212,5 +212,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InvalidSocketPath", resourceCulture);
             }
         }
+        
+        public static string NoSelectionMade {
+            get {
+                return ResourceManager.GetString("NoSelectionMade", resourceCulture);
+            }
+        }
     }
 }
