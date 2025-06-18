@@ -198,7 +198,7 @@ export class InteractionService implements IInteractionService {
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
     connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", withAuthentication(interactionService.promptForString.bind(interactionService, '', null, rpcClient)));
-    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService));
+    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", withAuthentication(interactionService.displayIncompatibleVersionError.bind(interactionService)));
     connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));

@@ -28,7 +28,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 (params as any[]).shift();
             }
 
-            return callback(params);
+            return callback(...params);
         };
     }
 
