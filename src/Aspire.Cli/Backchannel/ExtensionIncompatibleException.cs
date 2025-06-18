@@ -3,4 +3,7 @@
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class ExtensionIncompatibleException(string message, string requiredCapability) : IncompatibleException(message, requiredCapability);
+internal class ExtensionIncompatibleException(string message, string requiredCapability) : Exception(message)
+{
+    public string RequiredCapability { get; } = requiredCapability;
+}
