@@ -114,8 +114,8 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             switch (value)
             {
-                case HelmExpressionWithValue helmExpression:
-                    ProcessEnvironmentHelmExpression(helmExpression, key);
+                case AlreadyProcessedValue:
+                    // Already processed by AsHelmValuePlaceholder, no further action needed
                     continue;
                 case string stringValue:
                     ProcessEnvironmentStringValue(stringValue, key, resource.Name);
@@ -131,10 +131,12 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         {
             var value = this.ProcessValue(arg);
 
-            if (value is not string str)
+            string str = value switch
             {
-                throw new NotSupportedException("Command line args must be strings");
-            }
+                AlreadyProcessedValue processedValue => processedValue.Expression,
+                string s => s,
+                _ => throw new NotSupportedException("Command line args must be strings")
+            };
 
             Commands.Add(str);
         }
@@ -280,19 +282,6 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private void ProcessEnvironmentHelmExpression(HelmExpressionWithValue helmExpression, string key)
-    {
-        switch (helmExpression)
-        {
-            case { IsHelmSecretExpression: true, ValueContainsSecretExpression: false }:
-                Secrets[key] = helmExpression;
-                return;
-            case { IsHelmSecretExpression: false, ValueContainsSecretExpression: false }:
-                EnvironmentVariables[key] = helmExpression;
-                break;
-        }
-    }
-
     private void ProcessEnvironmentStringValue(string stringValue, string key, string resourceName)
     {
         if (stringValue.ContainsHelmSecretExpression())
@@ -310,6 +299,12 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         var configExpression = key.ToHelmConfigExpression(resourceName);
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
+    }
+
+    internal class AlreadyProcessedValue(string expression)
+    {
+        public string Expression { get; } = expression;
+        public override string ToString() => Expression;
     }
 
     internal class HelmExpressionWithValue(string helmExpression, string? value)

@@ -28,6 +28,17 @@ internal static class KubernetesServiceResourceExtensions
             formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
             formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
 
+        var helmExpressionWithValue = new KubernetesResource.HelmExpressionWithValue(expression, manifestExpressionProvider.ValueExpression);
+
+        if (secret)
+        {
+            kubernetesResource.Secrets[formattedName] = helmExpressionWithValue;
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = helmExpressionWithValue;
+        }
+
         return expression;
     }
 
@@ -44,6 +55,18 @@ internal static class KubernetesServiceResourceExtensions
         var expression = parameter.Secret ?
             formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
             formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
+
+        var paramValue = parameter.Default is null || parameter.Secret ? null : parameter.Value;
+        var helmExpressionWithValue = new KubernetesResource.HelmExpressionWithValue(expression, paramValue);
+
+        if (parameter.Secret)
+        {
+            kubernetesResource.Secrets[formattedName] = helmExpressionWithValue;
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = helmExpressionWithValue;
+        }
 
         return expression;
     }
@@ -72,9 +95,7 @@ internal static class KubernetesServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                var expression = param.AsHelmValuePlaceholder(resource);
-                var paramValue = param.Default is null || param.Secret ? null : param.Value;
-                return new HelmExpressionWithValue(expression, paramValue);
+                return new AlreadyProcessedValue(param.AsHelmValuePlaceholder(resource));
             }
 
             if (value is ConnectionStringReference cs)
@@ -125,8 +146,7 @@ internal static class KubernetesServiceResourceExtensions
             if (value is IManifestExpressionProvider r)
             {
                 var isSecret = r.ValueExpression.ContainsHelmSecretExpression();
-                var expression = r.AsHelmValuePlaceholder(resource, isSecret);
-                return new HelmExpressionWithValue(expression, r.ValueExpression);
+                return new AlreadyProcessedValue(r.AsHelmValuePlaceholder(resource, isSecret));
             }
 
             throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
