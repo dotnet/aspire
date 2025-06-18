@@ -114,7 +114,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "AzureWebJobsStorage");
             })
             .WithOtlpExporter()
-            .WithFunctionsHttpEndpoint();
+            .WithFunctionsHttpEndpoint()
+            .PublishWithAdminKey();
     }
 
     /// <summary>
@@ -234,6 +235,64 @@ public static class AzureFunctionsProjectResourceExtensions
             connectionName ??= source.Resource.Name;
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
+    }
+
+    /// <summary>    
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> PublishWithAdminKey(this IResourceBuilder<AzureFunctionsProjectResource> builder)
+    {
+        return builder.PublishWithFunctionsKey(AzureFunctionsKeyType.Admin);
+    }
+
+    private static IResourceBuilder<AzureFunctionsProjectResource> PublishWithFunctionsKey(this IResourceBuilder<AzureFunctionsProjectResource> builder, AzureFunctionsKeyType keyType, string? functionName = null,
+        string? keyName = null, ParameterResource? secretParameter = null)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        var annotation = builder.Resource.Annotations.OfType<AzureFunctionsAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The Azure Functions project resource must have an AzureFunctionsAnnotation to publish keys.");
+        }
+
+        secretParameter ??= ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, BuildSecretName(keyType, functionName, keyName), special: false);
+        builder.WithReferenceRelationship(secretParameter);
+
+        annotation.Keys.Add(new AzureFunctionsKey(keyType, functionName, keyName, secretParameter));
+
+        return builder;
+    }
+
+    private static string GetKeyPrefix(AzureFunctionsKeyType keyType) => keyType switch
+    {
+        AzureFunctionsKeyType.Admin => "host-master",
+        AzureFunctionsKeyType.Host => "host-function",
+        AzureFunctionsKeyType.Function => "functions",
+        AzureFunctionsKeyType.System => "host-systemKey",
+        _ => throw new ArgumentOutOfRangeException(nameof(keyType), keyType, null)
+    };
+
+    private static string BuildSecretName(AzureFunctionsKeyType keyType, string? functionName, string? keyName)
+    {
+        var secretName = GetKeyPrefix(keyType);
+
+        if (!string.IsNullOrEmpty(functionName))
+        {
+            secretName += $"-{functionName}";
+        }
+
+        if (!string.IsNullOrEmpty(keyName))
+        {
+            secretName += $"-{keyName}";
+        }
+
+        return secretName.ToLowerInvariant();
     }
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)

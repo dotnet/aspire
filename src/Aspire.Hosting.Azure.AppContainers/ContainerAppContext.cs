@@ -148,17 +148,88 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             configuration.ProvisionableProperties["AutoConfigureDataProtection"] = value;
         }
 
-        // default kind to functionapp for Azure Functions
-        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
+        // default kind to functionapp for Azure Functions        
+        if (resource.TryGetAnnotationsOfType<AzureFunctionsAnnotation>(out var azureFunctionsAnnotations))
         {
+            var annotation = azureFunctionsAnnotations.SingleOrDefault();
+
+            if (annotation is null)
+            {
+                throw new NotSupportedException("Only one Azure Functions annotation is supported per resource.");
+            }
+
             containerApp.ResourceVersion = latestPreview;
 
             var value = new BicepValue<string>("functionapp");
             ((IBicepValue)value).Self = new BicepValueReference(containerApp, "Kind", ["kind"]);
             containerApp.ProvisionableProperties["Kind"] = value;
+
+            EnvironmentVariables["AzureWebJobsSecretStorageType"] = "ContainerApps";
+
+            ProcessFunctionsSecretVolumes(annotation, Infra, containerApp);
         }
 
         return containerApp;
+    }
+
+    private static void ProcessFunctionsSecretVolumes(AzureFunctionsAnnotation annotation, AzureResourceInfrastructure infra, ContainerApp app)
+    {
+        const string volumeName = "functions-keys";
+        const string mountPath = "/run/secrets/functions-keys";
+
+        if (annotation.Keys.Count == 0)
+        {
+            return;
+        }
+
+        var containerAppSecretsVolume = new ContainerAppVolume
+        {
+            Name = volumeName,
+            StorageType = ContainerAppStorageType.Secret
+        };
+
+        foreach (var functionKey in annotation.Keys)
+        {
+            var paramSecret = functionKey.SecretParameter;
+
+            if (!paramSecret.Secret)
+            {
+                continue;
+            }
+
+            //todo? we could match k8s secret repo by using "." instead of "-" for keys but need to replace here
+            var secretName = paramSecret.Name.Replace("_", "-").ToLowerInvariant();
+
+            var bicepName = paramSecret.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_").ToLowerInvariant();
+            var provParam = new ProvisioningParameter(bicepName, typeof(string)) { IsSecure = true };
+
+            infra.AspireResource.Parameters[bicepName] = paramSecret;
+            infra.Add(provParam);
+
+            var containerAppSecret = new ContainerAppWritableSecret()
+            {
+                Name = secretName,
+                Value = provParam
+            };
+
+            app.Configuration.Secrets.Add(containerAppSecret);
+
+            containerAppSecretsVolume.Secrets.Add(new SecretVolumeItem
+            {
+                Path = paramSecret.Name,
+                SecretRef = secretName
+            });
+        }
+
+        var containerAppSecretsVolumeMount = new ContainerAppVolumeMount
+        {
+            VolumeName = volumeName,
+            MountPath = mountPath
+        };
+
+        // TODO: will there always be 1 Container?
+        app.Template.Containers[0].Value!.VolumeMounts.Add(containerAppSecretsVolumeMount);
+        app.Template.Volumes.Add(containerAppSecretsVolume);
     }
 
     private void AddVolumes(ContainerAppTemplate template, ContainerAppContainer containerAppContainer)
