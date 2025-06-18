@@ -4,12 +4,13 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Backchannel;
 
-internal sealed class ExtensionBackchannelConnector(ILogger<ExtensionBackchannelConnector> logger, IExtensionBackchannel extensionBackchannel) : BackgroundService
+internal sealed class ExtensionBackchannelConnector(ILogger<ExtensionBackchannelConnector> logger, IExtensionBackchannel extensionBackchannel, IConfiguration configuration) : BackgroundService
 {
     private readonly TaskCompletionSource _connectionSetupTcs = new();
 
@@ -17,7 +18,7 @@ internal sealed class ExtensionBackchannelConnector(ILogger<ExtensionBackchannel
     {
         using var activity = new Activity(nameof(ExtensionBackchannelConnector));
 
-        var endpoint = Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionEndpoint);
+        var endpoint = configuration[KnownConfigNames.ExtensionEndpoint];
         Debug.Assert(endpoint is not null);
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));

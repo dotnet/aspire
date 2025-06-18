@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
@@ -29,14 +30,14 @@ internal interface IExtensionBackchannel
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
 }
 
-internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target) : IExtensionBackchannel
+internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
     private const string BaselineCapability = "baseline.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
-    private readonly string _token = Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionToken)
+    private readonly string _token = configuration[KnownConfigNames.ExtensionToken]
         ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
