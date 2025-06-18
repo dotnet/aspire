@@ -21,7 +21,12 @@
 	--sl-color-black: #14053A;
 
 	--color-dotnet-purple: #2c256b;
-	--background-gradient: linear-gradient(to bottom, var(--sl-color-bg), var(--color-dotnet-purple));
+	--background-gradient: linear-gradient(
+		to bottom,
+		var(--sl-color-bg) 0%,
+		var(--color-dotnet-purple) 75%,
+		var(--sl-color-bg) 100%
+	);
 	--color-purple: #9B5DE5;
 	--color-magenta: #D600AA;
 	--color-flamingo: #F65163;

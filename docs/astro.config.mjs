@@ -146,7 +146,8 @@ export default defineConfig({
 					// https://frostybee.github.io/starlight-scroll-to-top/svg-paths/
 					svgPath: 'M4 16L12 8L20 16',
 					showTooltip: true,
-					threshold: 10
+					threshold: 10,
+					borderRadius: '40'
 				}),
 				starlightLlmsTxt({
 					projectName: 'Aspire',
