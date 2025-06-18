@@ -44,7 +44,7 @@ This will take on the free version of Codespace around 10 mins.
 
 ## Alpine Linux
 
-If you want to build the Aspire repo on Alpine Linux, you'll need to build or install musl compatible gRPC tooling as the `Grpc.Tools` package Aspires uses to generate gRPC interfaces depends on native binaries, but doesn't include a musl specific build.
+To build the Aspire repo on Alpine Linux, you'll need to use musl-compatible gRPC tooling. The `Grpc.Tools` package that Aspire uses to generate gRPC interfaces depends on native binaries, but it doesn't include a musl-specific build.
 
 On Alpine Linux, the `grpc-plugins` package includes the necessary binaries. You can install it with:
 
