@@ -122,10 +122,28 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
+            var dashboardState = new DashboardState();
+
             var runOptions = new DotNetCliRunnerInvocationOptions
             {
-                StandardOutputCallback = runOutputCollector.AppendOutput,
-                StandardErrorCallback = runOutputCollector.AppendError,
+                StandardOutputCallback = (output) =>
+                {
+                    runOutputCollector.AppendOutput(output);
+                    dashboardState.Updates.Writer.TryWrite((state, cancellationToken) =>
+                    {
+                        state.AppendOutput(output);
+                        return Task.CompletedTask;
+                    });
+                },
+
+                StandardErrorCallback = (error) => {
+                    runOutputCollector.AppendError(error);
+                    dashboardState.Updates.Writer.TryWrite((state, cancellationToken) =>
+                    {
+                        state.AppendError(error);
+                        return Task.CompletedTask;
+                    });
+                }
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -204,7 +222,6 @@ internal sealed class RunCommand : BaseCommand
                 };
                 var rows = new Rows(renderables);
 
-                var dashboardState = new DashboardState(runOutputCollector);
                 var dashboardRenderable = new DashboardRenderable(dashboardState);
 
                 _ansiConsole.Write(new ControlCode("\u001b[?1049h\u001b[H"));

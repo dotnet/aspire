@@ -3,17 +3,28 @@
 
 using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Rendering.Dashboard;
 
-internal sealed class DashboardState(OutputCollector collector)
+internal sealed class DashboardState()
 {
-    public OutputCollector Collector { get; } = collector;
     public bool ShowAppHostLogs { get; set; }
     public string? DirectDashboardUrl { get; set; }
     public string? CodespacesDashboardUrl { get; set; }
     public Dictionary<string, RpcResourceState> ResourceStates { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public string? LastMessage { get; set; }
 
     public Channel<Func<DashboardState, CancellationToken, Task>> Updates { get; } = Channel.CreateUnbounded<Func<DashboardState, CancellationToken, Task>>();
+
+    public List<(string Stream, string Message)> AppHostLogs { get; } = new();
+
+    public void AppendOutput(string output)
+    {
+        AppHostLogs.Add(("stdout", output));
+    }
+
+    public void AppendError(string error)
+    {
+        AppHostLogs.Add(("stdout", error));
+    }
 }
