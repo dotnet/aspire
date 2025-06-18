@@ -36,6 +36,7 @@ jobs:
 
       - name: Revert all changes except Directory.Packages.props files
         run: |
+          git add "**Directory.Packages.props"
           git add "**/Directory.Packages.props"
           rm nuget.config
           git checkout -- .
