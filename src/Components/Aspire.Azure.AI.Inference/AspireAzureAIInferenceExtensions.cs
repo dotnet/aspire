@@ -116,6 +116,13 @@ public static class AspireAzureAIInferenceExtensions
                 {
                     var endpoint = settings.Endpoint;
 
+                    if (endpoint.Host.EndsWith(".ai.azure.com", StringComparison.OrdinalIgnoreCase) &&
+                        !endpoint.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Azure AI Foundry endpoints require the path to end with "/models" when used with the Azure AI Inference SDK.
+                        endpoint = new Uri(endpoint, "/models");
+                    }
+
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
