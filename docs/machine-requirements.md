@@ -52,7 +52,7 @@ On Alpine Linux, the `grpc-plugins` package includes the necessary binaries. You
 apk add --no-cache grpc-plugins
 ```
 
-You'll need to override the default `Grpc.Tools` binary paths to point to your musl compatible gRPC binaries using the following environment variables (assuming you installed the `grpc-plugins` package):
+Then, override the default `Grpc.Tools` binary paths to point to your musl-compatible gRPC binaries by setting the following environment variables:
 
 ```bash
 export PROTOBUF_PROTOC=/usr/bin/protoc
