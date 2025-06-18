@@ -96,6 +96,16 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void BuildKubernetesResources()
     {
+        ProcessEnvironmentVariablesAndArguments();
+        SetLabels();
+        CreateApplication();
+        ConfigMap = resource.ToConfigMap(this);
+        Secret = resource.ToSecret(this);
+        Service = resource.ToService(this);
+    }
+
+    private void ProcessEnvironmentVariablesAndArguments()
+    {
         // Process deferred environment variables
         foreach (var environmentVariable in RawEnvironmentVariables)
         {
@@ -128,12 +138,6 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             Commands.Add(str);
         }
-
-        SetLabels();
-        CreateApplication();
-        ConfigMap = resource.ToConfigMap(this);
-        Secret = resource.ToSecret(this);
-        Service = resource.ToService(this);
     }
 
     private void SetLabels()
@@ -191,24 +195,29 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             return;
         }
 
-        foreach (var endpoint in endpoints)
+        string ResolveTargetPort(EndpointAnnotation endpoint)
         {
-            if (endpoint.TargetPort is null)
+            if (endpoint.TargetPort is int port)
             {
-                const string defaultPort = "8080";
-
-                var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-
-                var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
-                Parameters[paramName] = new(helmExpression, defaultPort);
-
-                EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
-                continue;
+                return port.ToString(CultureInfo.InvariantCulture);
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, portValue, endpoint.Name);
+            // For resources without an explicit target port, we create a parameter
+            const string defaultPort = "8080";
+
+            var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
+            var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
+            Parameters[paramName] = new(helmExpression, defaultPort);
+
+            return helmExpression;
+        }
+
+        foreach (var endpoint in endpoints)
+        {
+            var internalPort = ResolveTargetPort(endpoint);
+            var exposedPort = endpoint.Port;
+
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, endpoint.Name);
         }
     }
 

@@ -10,6 +10,88 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal static class KubernetesServiceResourceExtensions
 {
+    /// <summary>
+    /// Creates a Helm value placeholder for the specified <see cref="IManifestExpressionProvider"/>.
+    /// </summary>
+    /// <param name="manifestExpressionProvider">The manifest expression provider.</param>
+    /// <param name="kubernetesResource">The Kubernetes resource to associate the value with.</param>
+    /// <param name="secret">Whether this should be placed in secrets vs values.</param>
+    /// <returns>A string representing the Helm value placeholder.</returns>
+    public static string AsHelmValuePlaceholder(this IManifestExpressionProvider manifestExpressionProvider, KubernetesResource kubernetesResource, bool secret = false)
+    {
+        var formattedName = manifestExpressionProvider.ValueExpression.Replace("{", "")
+            .Replace("}", "")
+            .Replace(".", "_")
+            .ToHelmValuesSectionName();
+
+        var expression = secret ?
+            formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
+            formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
+
+        if (secret)
+        {
+            kubernetesResource.Secrets[formattedName] = new(expression, manifestExpressionProvider.ValueExpression);
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = new(expression, manifestExpressionProvider.ValueExpression);
+        }
+
+        return expression;
+    }
+
+    /// <summary>
+    /// Creates a Helm value placeholder for the specified <see cref="ParameterResource"/>.
+    /// </summary>
+    /// <param name="parameter">The parameter resource for which to create the Helm value placeholder.</param>
+    /// <param name="kubernetesResource">The Kubernetes resource to associate the value with.</param>
+    /// <returns>A string representing the Helm value placeholder.</returns>
+    public static string AsHelmValuePlaceholder(this ParameterResource parameter, KubernetesResource kubernetesResource)
+    {
+        var formattedName = parameter.Name.ToHelmValuesSectionName();
+
+        var expression = parameter.Secret ?
+            formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
+            formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
+
+        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
+
+        if (parameter.Secret)
+        {
+            kubernetesResource.Secrets[formattedName] = new(expression, value);
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = new(expression, value);
+        }
+
+        return expression;
+    }
+
+    internal static string AsHelmValuePlaceholder(this KubernetesResource kubernetesResource, bool secret = false)
+    {
+        var resourceInstance = kubernetesResource.TargetResource;
+
+        var portKey = $"{resourceInstance.Name}_PORT".ToUpperInvariant().Replace("-", "_").ToHelmValuesSectionName();
+
+        var expression = secret ?
+            portKey.ToHelmSecretExpression(resourceInstance.Name) :
+            portKey.ToHelmConfigExpression(resourceInstance.Name);
+
+        const string defaultValue = "8080";
+
+        if (secret)
+        {
+            kubernetesResource.Secrets[portKey] = new(expression, defaultValue);
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[portKey] = new(expression, defaultValue);
+        }
+
+        return expression;
+    }
+
     internal static object ProcessValue(this KubernetesResource resource, object value)
     {
         while (true)
