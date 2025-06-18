@@ -1,8 +1,9 @@
 {
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
-	"command.run": "Run",
-	"command.addPackage": "Add Package",
+	"command.run": "Run an Aspire app host in development mode.",
+	"command.addPackage": "Add an integration to the Aspire project.",
+	"command.new": "Create a new Aspire sample project",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",

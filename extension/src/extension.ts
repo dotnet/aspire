@@ -7,14 +7,16 @@ import { activated } from './constants/strings';
 import { RpcServerInformation, setupRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
+import { newCommand } from './commands/new';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.addPackage', () => tryExecuteCommand(addCommand));
+	const cliNewCommand = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand(newCommand));
 
-	context.subscriptions.push(cliRunCommand, cliAddCommand);
+	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand);
 
 	vscOutputChannelWriter.appendLine(activated);
 
