@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
-        <target state="new">Dashboard</target>
+        <target state="translated">대시보드</target>
         <note />
       </trans-unit>
       <trans-unit id="DirectLink">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="OperationCancelled">
         <source>The operation was canceled.</source>
-        <target state="new">The operation was canceled.</target>
+        <target state="translated">작업이 취소되었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
         <source>An unexpected error occurred: {0}</source>
-        <target state="new">An unexpected error occurred: {0}</target>
+        <target state="translated">예기치 않은 오류가 발생했습니다. {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
