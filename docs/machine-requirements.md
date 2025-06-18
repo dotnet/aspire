@@ -62,4 +62,5 @@ export GRPC_PROTOC_PLUGIN=/usr/bin/grpc_csharp_plugin
 With that, you can build and run the Aspire repo on Alpine Linux.
 
 > :warning: Aspire currently only directly supports the x64/amd64 architecture for Alpine/musl. If you want to build or run Aspire in Alpine on arm64, you may need to use an arm64/x64 compatibility layer like `qemu`.
+>
 > :warning: Alpine Linux support was added in commit https://github.com/dotnet/aspire/commit/cc2706a90848deec90aa166054e1b2a4ecf94689 and isn't supported in earlier releases. Additionally, Alpine Linux is not currently part of our CI test suite.
