@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.EntityFrameworkCore;
+using TestingAppHost1.MyWebApp;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -8,6 +11,12 @@ builder.AddServiceDefaults();
 // Add services to the container.
 
 var app = builder.Build();
+
+builder.Services.AddDbContextPool<MyAppDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("mainDb");
+    options.UseNpgsql(connectionString);
+});
 
 app.MapDefaultEndpoints();
 

@@ -7,6 +7,12 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+if (args.Contains("--add-postgres"))
+{
+    var postgres = builder.AddPostgres("postgres1");
+    postgres.AddDatabase("postgresDb");
+}
+
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
