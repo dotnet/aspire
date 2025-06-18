@@ -48,30 +48,6 @@ internal static class KubernetesServiceResourceExtensions
         return expression;
     }
 
-    internal static string AsHelmValuePlaceholder(this KubernetesResource kubernetesResource, bool secret = false)
-    {
-        var resourceInstance = kubernetesResource.TargetResource;
-
-        var portKey = $"{resourceInstance.Name}_PORT".ToUpperInvariant().Replace("-", "_").ToHelmValuesSectionName();
-
-        var expression = secret ?
-            portKey.ToHelmSecretExpression(resourceInstance.Name) :
-            portKey.ToHelmConfigExpression(resourceInstance.Name);
-
-        const string defaultValue = "8080";
-
-        if (secret)
-        {
-            kubernetesResource.Secrets[portKey] = new(expression, defaultValue);
-        }
-        else
-        {
-            kubernetesResource.EnvironmentVariables[portKey] = new(expression, defaultValue);
-        }
-
-        return expression;
-    }
-
     internal static object ProcessValue(this KubernetesResource resource, object value)
     {
         while (true)
