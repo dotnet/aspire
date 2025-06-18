@@ -20,6 +20,9 @@
 	--sl-color-gray-6: #190649;
 	--sl-color-black: #14053A;
 
+	--aspire-color: #7455DD;
+	--aspire-color-light: #DCD5F6;
+
 	--color-dotnet-purple: #2c256b;
 	--background-gradient: linear-gradient(
 		to bottom,
@@ -98,11 +101,11 @@
 	}
 
 	.hero #_top {
-		font-size: calc(var(--sl-text-6xl) * 2);
-		background: var(--sl-color-white);		
+		font-size: calc(var(--sl-text-6xl) * 1.8);
+		background: var(--aspire-color);		
 		background: radial-gradient(ellipse 100% 80% at 50% 20%, 
-				var(--sl-color-white) 0%, 
-				var(--sl-color-accent) 100%);
+				var(--aspire-color-light) 0%, 
+				var(--aspire-color) 100%);
 		background-clip: text;
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
@@ -140,6 +143,14 @@
 }
 
 :root[data-theme='light'] {
+
+	.hero #_top {
+		background: var(--aspire-color);
+		background-clip: text;
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
 	a:hover {
 		filter: brightness(110%);
 	}

@@ -193,10 +193,47 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
         .card-grid.stagger > .card:nth-child(4n+1):nth-child(-n+4) {
             --sl-card-border: var(--sl-color-orange);
             background: 
+                radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 35%),
+                radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 8px 0 rgba(var(--sl-color-orange-rgb), 0.07);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+2):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-purple);
+            background: 
+                radial-gradient(circle at 75% 25%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
+                radial-gradient(circle at 10% 90%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 35%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 8px 0 rgba(var(--sl-color-purple-rgb), 0.07);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+3):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-green);
+            background: 
+                radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 50%),
+                radial-gradient(ellipse at 30% 70%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 45%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 8px 0 rgba(var(--sl-color-green-rgb), 0.07);
+        }
+
+        .card-grid.stagger > .card:nth-child(4n+4):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-red);
+            background: 
+                radial-gradient(ellipse at 25% 30%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
+                radial-gradient(circle at 85% 85%, color-mix(in srgb, var(--sl-card-bg) 99%, var(--sl-card-border)) 0%, var(--sl-card-bg) 30%),
+                var(--sl-card-bg);
+            box-shadow: 0 0 8px 0 rgba(var(--sl-color-red-rgb), 0.07);
+        }
+    }
+
+    :root[data-theme="dark"][data-has-hero] {
+        .card-grid.stagger > .card:nth-child(4n+1):nth-child(-n+4) {
+            --sl-card-border: var(--sl-color-orange);
+            background: 
                 radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, var(--sl-card-bg) 35%),
                 radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--sl-card-bg) 88%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
                 var(--sl-card-bg);
-            box-shadow: 0 0 8px 0 rgba(var(--sl-color-orange-rgb), 0.07);
         }
 
         .card-grid.stagger > .card:nth-child(4n+2):nth-child(-n+4) {
@@ -205,7 +242,6 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
                 radial-gradient(circle at 75% 25%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
                 radial-gradient(circle at 10% 90%, color-mix(in srgb, var(--sl-card-bg) 88%, var(--sl-card-border)) 0%, var(--sl-card-bg) 35%),
                 var(--sl-card-bg);
-            box-shadow: 0 0 8px 0 rgba(var(--sl-color-purple-rgb), 0.07);
         }
 
         .card-grid.stagger > .card:nth-child(4n+3):nth-child(-n+4) {
@@ -214,7 +250,6 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
                 radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, var(--sl-card-bg) 50%),
                 radial-gradient(ellipse at 30% 70%, color-mix(in srgb, var(--sl-card-bg) 88%, var(--sl-card-border)) 0%, var(--sl-card-bg) 45%),
                 var(--sl-card-bg);
-            box-shadow: 0 0 8px 0 rgba(var(--sl-color-green-rgb), 0.07);
         }
 
         .card-grid.stagger > .card:nth-child(4n+4):nth-child(-n+4) {
@@ -223,7 +258,6 @@ const isHomepage = Astro.locals.starlightRoute.id === "";
                 radial-gradient(ellipse at 25% 30%, color-mix(in srgb, var(--sl-card-bg) 85%, var(--sl-card-border)) 0%, var(--sl-card-bg) 40%),
                 radial-gradient(circle at 85% 85%, color-mix(in srgb, var(--sl-card-bg) 88%, var(--sl-card-border)) 0%, var(--sl-card-bg) 30%),
                 var(--sl-card-bg);
-            box-shadow: 0 0 8px 0 rgba(var(--sl-color-red-rgb), 0.07);
         }
     }
 </style>
