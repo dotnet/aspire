@@ -59,14 +59,20 @@ public sealed class PublishingContext(
     /// </summary>
     /// <param name="model">The distributed application model whose resources will be processed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
+    internal async Task<bool> WriteModelAsync(DistributedApplicationModel model)
     {
+        var anyPublishingCallbacks = false;
+
         foreach (var resource in model.Resources)
         {
             if (resource.TryGetLastAnnotation<PublishingCallbackAnnotation>(out var annotation))
             {
+                anyPublishingCallbacks = true;
+
                 await annotation.Callback(this).ConfigureAwait(false);
             }
         }
+
+        return anyPublishingCallbacks;
     }
 }

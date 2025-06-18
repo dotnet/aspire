@@ -84,11 +84,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         containerAppResource.EnvironmentId = containerAppIdParam;
 
-        var configuration = new ContainerAppConfiguration()
-        {
-            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
-        };
-        containerAppResource.Configuration = configuration;
+        var configuration = containerAppResource.Configuration;
 
         AddIngress(configuration);
 
@@ -134,14 +130,32 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             Name = NormalizedContainerAppName
         };
 
+        var configuration = new ContainerAppConfiguration()
+        {
+            ActiveRevisionsMode = ContainerAppActiveRevisionsMode.Single,
+        };
+        containerApp.Configuration = configuration;
+
+        const string latestPreview = "2025-02-02-preview"; // these properties are currently only available in preview
+
         // default autoConfigureDataProtection to true for .NET projects
         if (resource is ProjectResource)
         {
-            containerApp.ResourceVersion = "2025-02-02-preview"; // currently only available in a preview version
+            containerApp.ResourceVersion = latestPreview;
 
             var value = new BicepValue<bool>(true);
-            ((IBicepValue)value).Self = new BicepValueReference(containerApp, "AutoConfigureDataProtection", ["properties", "runtime", "dotnet", "autoConfigureDataProtection"]);
-            containerApp.ProvisionableProperties["AutoConfigureDataProtection"] = value;
+            ((IBicepValue)value).Self = new BicepValueReference(configuration, "AutoConfigureDataProtection", ["runtime", "dotnet", "autoConfigureDataProtection"]);
+            configuration.ProvisionableProperties["AutoConfigureDataProtection"] = value;
+        }
+
+        // default kind to functionapp for Azure Functions
+        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
+        {
+            containerApp.ResourceVersion = latestPreview;
+
+            var value = new BicepValue<string>("functionapp");
+            ((IBicepValue)value).Self = new BicepValueReference(containerApp, "Kind", ["kind"]);
+            containerApp.ProvisionableProperties["Kind"] = value;
         }
 
         return containerApp;

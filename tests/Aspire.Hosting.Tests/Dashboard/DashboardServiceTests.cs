@@ -234,7 +234,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory.CreateLogger<DashboardServiceData>(),
-            new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
+            new ResourceCommandService(resourceNotificationService, resourceLoggerService, new ServiceCollection().BuildServiceProvider()));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

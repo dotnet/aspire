@@ -5,6 +5,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Aspire.Cli.Utils;
@@ -16,7 +17,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task PublishCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -30,7 +32,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     public async Task PublishCommandFailsWithInvalidProjectFile()
     {
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetCliRunnerFactory = (sp) =>
             {
@@ -58,7 +61,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     public async Task PublishCommandFailsWhenAppHostIsNotCompatible()
     {
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -88,7 +92,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     public async Task PublishCommandFailsWhenAppHostBuildFails()
     {
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -118,7 +123,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     public async Task PublishCommandFailsWhenAppHostCrashesBeforeBackchannelEstablished()
     {
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
@@ -157,10 +163,12 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9870")]
     public async Task PublishCommandSucceedsEndToEnd()
     {
         // Arrange
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 

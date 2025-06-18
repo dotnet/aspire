@@ -9,8 +9,7 @@ import { ICliRpcClient } from './rpcClient';
 import { IOutputChannelWriter } from '../utils/vsc';
 
 export type RpcServerInformation = {
-    port: number;
-    fullAddress: string;
+    address: string;
     token: string;
     server: net.Server;
     dispose: () => void;
@@ -39,22 +38,24 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 return { message: 'pong' };
             }));
 
+            connection.onRequest('getCapabilities', withAuthentication(async () => {
+                return ["baseline.v1"];
+            }));
+
             addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection, token));
 
             connection.listen();
         });
 
-        // Listen on a random available port
         rpcServer.listen(0, () => {
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
-                outputChannelWriter.appendLine(rpcServerListening(addressInfo.port));
-                const fullAddress = `localhost:${addressInfo.port}`;
+                const fullAddress = (addressInfo.address === "::" ? "" : `${addressInfo.address}:`) + addressInfo.port;
+                outputChannelWriter.appendLine(`Aspire extension server listening on: ${fullAddress}`);
                 resolve({
-                    port: addressInfo.port,
-                    token,
+                    token: token,
                     server: rpcServer,
-                    fullAddress: fullAddress,
+                    address: fullAddress,
                     dispose: () => disposeRpcServer(rpcServer)
                 });
             }

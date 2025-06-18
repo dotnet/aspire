@@ -15,18 +15,18 @@ internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
-    private readonly DashboardCommandExecutor _commandExecutor;
+    private readonly ResourceCommandService _resourceCommandService;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        DashboardCommandExecutor commandExecutor)
+        ResourceCommandService resourceCommandService)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
-        _commandExecutor = commandExecutor;
+        _resourceCommandService = resourceCommandService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -86,47 +86,18 @@ internal sealed class DashboardServiceData : IDisposable
         _cts.Dispose();
     }
 
-    internal async Task<(ExecuteCommandResult result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
+    internal async Task<(ExecuteCommandResultType result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
     {
-        var logger = _resourceLoggerService.GetLogger(resourceId);
-
-        logger.LogInformation("Executing command '{Type}'.", type);
-        if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
+        try
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
-            if (annotation != null)
-            {
-                try
-                {
-                    var result = await _commandExecutor.ExecuteCommandAsync(resourceId, annotation, cancellationToken).ConfigureAwait(false);
-                    if (result.Success)
-                    {
-                        logger.LogInformation("Successfully executed command '{Type}'.", type);
-                        return (ExecuteCommandResult.Success, null);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
-                        return (ExecuteCommandResult.Failure, result.ErrorMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
-                }
-            }
+            var result = await _resourceCommandService.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
-
-        logger.LogInformation("Command '{Type}' not available.", type);
-        return (ExecuteCommandResult.Canceled, null);
-    }
-
-    internal enum ExecuteCommandResult
-    {
-        Success,
-        Failure,
-        Canceled
+        catch
+        {
+            // Note: Exception is already logged in the command executor.
+            return (ExecuteCommandResultType.Failure, "Unhandled exception thrown while executing command.");
+        }
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()
@@ -167,4 +138,11 @@ internal sealed class DashboardServiceData : IDisposable
             }
         }
     }
+}
+
+internal enum ExecuteCommandResultType
+{
+    Success,
+    Failure,
+    Canceled
 }

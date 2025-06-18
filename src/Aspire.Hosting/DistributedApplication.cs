@@ -50,6 +50,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
     private ResourceNotificationService? _resourceNotifications;
+    private ResourceCommandService? _resourceCommands;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -289,6 +290,18 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     /// </remarks>
     public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
+
+    /// <summary>
+    /// Gets the service for executing resource commands.
+    /// </summary>
+    /// <remarks>
+    /// Two common use cases for the <see cref="ResourceCommandService"/> are:
+    /// <list type="bullet">
+    /// <item>Progamatically executing resource commands in a running app host.</item>
+    /// <item>Unit or integration testing resource commands.</item>
+    /// </list>
+    /// </remarks>
+    public ResourceCommandService ResourceCommands => _resourceCommands ??= _host.Services.GetRequiredService<ResourceCommandService>();
 
     /// <summary>
     /// Disposes the distributed application by disposing the <see cref="IHost"/>.

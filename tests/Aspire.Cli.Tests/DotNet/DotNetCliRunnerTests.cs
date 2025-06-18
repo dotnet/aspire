@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
 
@@ -30,6 +31,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
+            new AspireCliTelemetry(),
             (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -56,9 +58,10 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 internal sealed class AssertingDotNetCliRunner(
     ILogger<DotNetCliRunner> logger,
     IServiceProvider serviceProvider,
+    AspireCliTelemetry telemetry,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {

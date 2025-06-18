@@ -1,45 +1,30 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    IOptions<AzureProvisionerOptions> options,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
-    IHostEnvironment environment,
-    ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
+    BicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
-    TokenCredentialHolder tokenCredentialHolder
+    IProvisioningContextProvider provisioningContextProvider,
+    IUserSecretsManager userSecretsManager
     ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
-
-    private readonly AzureProvisionerOptions _options = options.Value;
 
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
@@ -174,47 +159,20 @@ internal sealed class AzureProvisioner(
         // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
             configuration,
-            logger,
             azureResources,
             cancellationToken), cancellationToken);
     }
 
-    private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
-    {
-        var jsonDocumentOptions = new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
-
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
-                documentOptions: jsonDocumentOptions)!.AsObject()
-            : [];
-        return userSecrets;
-    }
-
     private async Task ProvisionAzureResources(
         IConfiguration configuration,
-        ILogger<AzureProvisioner> logger,
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Try to find the user secrets path so that provisioners can persist connection information.
-        static string? GetUserSecretsPath()
-        {
-            return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
-            {
-                null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
-                string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
-            };
-        }
-
-        var userSecretsPath = GetUserSecretsPath();
-        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
+        // Load user secrets first so they can be passed to the provisioning context
+        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(tokenCredentialHolder, userSecretsLazy, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -229,23 +187,7 @@ internal sealed class AzureProvisioner(
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // If we created any resources then save the user secrets
-        if (userSecretsPath is not null)
-        {
-            try
-            {
-                var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
-
-                // Ensure directory exists before attempting to create secrets file
-                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
-
-                logger.LogInformation("Azure resource connection strings saved to user secrets.");
-            }
-            catch (JsonException ex)
-            {
-                logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
-            }
-        }
+        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)
@@ -259,42 +201,22 @@ internal sealed class AzureProvisioner(
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
-        IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
-        {
-            var type = resource.GetType();
-
-            while (type is not null)
-            {
-                var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(type);
-
-                if (provisioner is not null)
-                {
-                    return provisioner;
-                }
-
-                type = type.BaseType;
-            }
-
-            return null;
-        }
-
-        var provisioner = SelectProvisioner(resource.AzureResource);
-
         var resourceLogger = loggerService.GetLogger(resource.AzureResource);
 
-        if (provisioner is null)
+        // Only process AzureBicepResource resources
+        if (resource.AzureResource is not AzureBicepResource bicepResource)
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-            resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+            resourceLogger.LogInformation("Skipping {resourceName} because it is not a Bicep resource.", resource.AzureResource.Name);
+            return;
         }
-        else if (!provisioner.ShouldProvision(configuration, resource.AzureResource))
+
+        if (bicepResource.IsContainer())
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
+        else if (await bicepProvisioner.ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);
@@ -315,8 +237,8 @@ internal sealed class AzureProvisioner(
             {
                 var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
 
-                await provisioner.GetOrCreateResourceAsync(
-                    resource.AzureResource,
+                await bicepProvisioner.GetOrCreateResourceAsync(
+                    bicepResource,
                     provisioningContext,
                     cancellationToken).ConfigureAwait(false);
 
@@ -333,11 +255,6 @@ internal sealed class AzureProvisioner(
                 resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
-            catch (JsonException ex)
-            {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.AzureResource.Name);
-                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-            }
             catch (Exception ex)
             {
                 resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.AzureResource.Name);
@@ -347,207 +264,28 @@ internal sealed class AzureProvisioner(
 
         async Task PublishConnectionStringAvailableEventAsync()
         {
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource.Resource, serviceProvider);
-            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+            await PublishConnectionStringAvailableEventRecursiveAsync(resource.Resource).ConfigureAwait(false);
+        }
 
-            if (_parentChildLookup![resource.Resource] is { } children)
+        async Task PublishConnectionStringAvailableEventRecursiveAsync(IResource targetResource)
+        {
+            // If the resource itself has a connection string then publish that the connection string is available.
+            if (targetResource is IResourceWithConnectionString)
             {
-                foreach (var child in children.OfType<IResourceWithConnectionString>())
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(targetResource, serviceProvider);
+                await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Sometimes the container/executable itself does not have a connection string, and in those cases
+            // we need to dispatch the event for the children.
+            if (_parentChildLookup![targetResource] is { } children)
+            {
+                // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
+                foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
                 {
-                    var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
-                    await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+                    await PublishConnectionStringAvailableEventRecursiveAsync(child).ConfigureAwait(false);
                 }
             }
         }
-    }
-
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(TokenCredentialHolder holder, Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
-    {
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
-
-        var credential = holder.Credential;
-
-        holder.LogCredentialType();
-
-        var armClient = new ArmClient(credential, subscriptionId);
-
-        logger.LogInformation("Getting default subscription...");
-
-        var subscriptionResource = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
-
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.Data.DisplayName, subscriptionResource.Id);
-
-        logger.LogInformation("Getting tenant...");
-
-        TenantResource? tenantResource = null;
-
-        await foreach (var tenant in armClient.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
-        {
-            if (tenant.Data.TenantId == subscriptionResource.Data.TenantId)
-            {
-                logger.LogInformation("Tenant: {tenantId}", tenant.Data.TenantId);
-                tenantResource = tenant;
-                break;
-            }
-        }
-
-        if (tenantResource is null)
-        {
-            throw new InvalidOperationException($"Could not find tenant id {subscriptionResource.Data.TenantId} for subscription {subscriptionResource.Data.DisplayName}.");
-        }
-
-        if (string.IsNullOrEmpty(_options.Location))
-        {
-            throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
-        }
-
-        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
-
-        string resourceGroupName;
-        bool createIfAbsent;
-
-        if (string.IsNullOrEmpty(_options.ResourceGroup))
-        {
-            // Generate an resource group name since none was provided
-
-            var prefix = "rg-aspire";
-
-            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
-            {
-                prefix = _options.ResourceGroupPrefix;
-            }
-
-            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
-
-            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
-
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
-            if (normalizedApplicationName.Length > maxApplicationNameSize)
-            {
-                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
-            }
-
-            // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
-
-            createIfAbsent = true;
-
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
-        }
-        else
-        {
-            resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
-        }
-
-        var resourceGroups = subscriptionResource.GetResourceGroups();
-
-        ResourceGroupResource? resourceGroup;
-
-        AzureLocation location = new(_options.Location);
-        try
-        {
-            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-            resourceGroup = response.Value;
-
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
-        }
-        catch (Exception)
-        {
-            if (!createIfAbsent)
-            {
-                throw;
-            }
-
-            // REVIEW: Is it possible to do this without an exception?
-
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
-
-            var rgData = new ResourceGroupData(location);
-            rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-            resourceGroup = operation.Value;
-
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
-        }
-
-        var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
-
-        var resourceMap = new Dictionary<string, ArmResource>();
-
-        return new ProvisioningContext(
-                    credential,
-                    armClient,
-                    subscriptionResource,
-                    resourceGroup,
-                    tenantResource,
-                    resourceMap,
-                    location,
-                    principal,
-                    userSecrets);
-    }
-
-    internal static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
-    {
-        var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
-
-        static UserPrincipal ParseToken(in AccessToken response)
-        {
-            // Parse the access token to get the user's object id (this is their principal id)
-            var oid = string.Empty;
-            var upn = string.Empty;
-            var parts = response.Token.Split('.');
-            var part = parts[1];
-            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
-
-            switch (part.Length % 4)
-            {
-                case 2:
-                    convertedToken += "==";
-                    break;
-                case 3:
-                    convertedToken += "=";
-                    break;
-            }
-            var bytes = Convert.FromBase64String(convertedToken);
-            Utf8JsonReader reader = new(bytes);
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName)
-                {
-                    var header = reader.GetString();
-                    if (header == "oid")
-                    {
-                        reader.Read();
-                        oid = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(upn))
-                        {
-                            break;
-                        }
-                    }
-                    else if (header is "upn" or "email")
-                    {
-                        reader.Read();
-                        upn = reader.GetString()!;
-                        if (!string.IsNullOrEmpty(oid))
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        reader.Read();
-                    }
-                }
-            }
-            return new UserPrincipal(Guid.Parse(oid), upn);
-        }
-
-        return ParseToken(response);
-    }
-
-    sealed class MissingConfigurationException(string message) : Exception(message)
-    {
-
     }
 }

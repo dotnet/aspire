@@ -102,7 +102,7 @@ jobs:
           }
 
   results:
-    if: always()
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: run_tests

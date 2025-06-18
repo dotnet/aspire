@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
@@ -93,14 +92,13 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7920")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
         using var fakeCliProcess = RemoteExecutor.Invoke(
-            static () => Thread.Sleep(Timeout.Infinite),
-            new RemoteInvokeOptions { CheckExitCode = false }
-            );
-            
+        static () => Thread.Sleep(Timeout.Infinite),
+        new RemoteInvokeOptions { CheckExitCode = false }
+        );
+        
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
         
@@ -115,10 +113,10 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
-        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(60));
         fakeCliProcess.Process.Kill();
-
-        await pendingRun.WaitAsync(TimeSpan.FromSeconds(10));
+        
+        await pendingRun.WaitAsync(TimeSpan.FromSeconds(60));
     }
 }
 

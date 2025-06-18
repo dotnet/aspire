@@ -27,6 +27,12 @@
       "persistenceScopeName": "aspireTemplates"
     },
     {
+      "id": "AspireVersionNet10",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "aspireTemplates"
+    },
+    {
       "id": "XUnitVersion",
       "isVisible": true,
       "persistenceScope": "shared",
