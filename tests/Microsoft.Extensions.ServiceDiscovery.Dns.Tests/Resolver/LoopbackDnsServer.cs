@@ -118,12 +118,19 @@ internal sealed class LoopbackDnsServer : IDisposable
 
 internal sealed class LoopbackDnsResponseBuilder
 {
+    private static readonly SearchValues<char> s_domainNameValidChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.");
+
     public LoopbackDnsResponseBuilder(string name, QueryType type, QueryClass @class)
     {
         Name = name;
         Type = type;
         Class = @class;
         Questions.Add((name, type, @class));
+
+        if (name.AsSpan().ContainsAnyExcept(s_domainNameValidChars))
+        {
+            throw new ArgumentException($"Invalid characters in domain name '{name}'");
+        }
     }
 
     public ushort TransactionId { get; set; }

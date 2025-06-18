@@ -16,7 +16,9 @@ public class TcpFailoverTests : LoopbackDnsTestBase
     [Fact]
     public async Task TcpFailover_Simple_Success()
     {
+        string hostName = "tcp-simple.test";
         IPAddress address = IPAddress.Parse("172.213.245.111");
+
         _ = DnsServer.ProcessUdpRequest(builder =>
         {
             builder.Flags |= QueryFlags.ResultTruncated;
@@ -25,11 +27,11 @@ public class TcpFailoverTests : LoopbackDnsTestBase
 
         _ = DnsServer.ProcessTcpRequest(builder =>
         {
-            builder.Answers.AddAddress("www.example.com", 3600, address);
+            builder.Answers.AddAddress(hostName, 3600, address);
             return Task.CompletedTask;
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork);
 
         AddressResult res = Assert.Single(results);
         Assert.Equal(address, res.Address);
@@ -39,6 +41,7 @@ public class TcpFailoverTests : LoopbackDnsTestBase
     [Fact]
     public async Task TcpFailover_ServerClosesWithoutData_EmptyResult()
     {
+        string hostName = "tcp-server-closes.test";
         Options.Attempts = 1;
         Options.Timeout = TimeSpan.FromSeconds(60);
 
@@ -53,7 +56,7 @@ public class TcpFailoverTests : LoopbackDnsTestBase
             throw new InvalidOperationException("This forces closing the socket without writing any data");
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork).AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork).AsTask().WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Empty(results);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => serverTask);
@@ -62,6 +65,7 @@ public class TcpFailoverTests : LoopbackDnsTestBase
     [Fact]
     public async Task TcpFailover_TcpNotAvailable_EmptyResult()
     {
+        string hostName = "tcp-not-available.test";
         Options.Attempts = 1;
         Options.Timeout = TimeSpan.FromMilliseconds(100000);
 
@@ -71,13 +75,14 @@ public class TcpFailoverTests : LoopbackDnsTestBase
             return Task.CompletedTask;
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork);
         Assert.Empty(results);
     }
 
     [Fact]
     public async Task TcpFailover_HeaderMismatch_ReturnsEmpty()
     {
+        string hostName = "tcp-header-mismatch.test";
         Options.Timeout = TimeSpan.FromSeconds(1);
         IPAddress address = IPAddress.Parse("172.213.245.111");
 
@@ -90,11 +95,11 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         _ = DnsServer.ProcessTcpRequest(builder =>
         {
             builder.TransactionId++;
-            builder.Answers.AddAddress("www.example.com", 3600, address);
+            builder.Answers.AddAddress(hostName, 3600, address);
             return Task.CompletedTask;
         });
 
-        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork);
         Assert.Empty(result);
     }
 
@@ -104,6 +109,7 @@ public class TcpFailoverTests : LoopbackDnsTestBase
     [InlineData("example.com", (int)QueryType.A, 0)]
     public async Task TcpFailover_QuestionMismatch_ReturnsEmpty(string name, int type, int @class)
     {
+        string hostName = "tcp-question-mismatch.test";
         Options.Timeout = TimeSpan.FromSeconds(1);
         IPAddress address = IPAddress.Parse("172.213.245.111");
 
@@ -116,11 +122,11 @@ public class TcpFailoverTests : LoopbackDnsTestBase
         _ = DnsServer.ProcessTcpRequest(builder =>
         {
             builder.Questions[0] = (name, (QueryType)type, (QueryClass)@class);
-            builder.Answers.AddAddress("www.example.com", 3600, address);
+            builder.Answers.AddAddress(hostName, 3600, address);
             return Task.CompletedTask;
         });
 
-        AddressResult[] result = await Resolver.ResolveIPAddressesAsync("example.com", AddressFamily.InterNetwork);
+        AddressResult[] result = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork);
         Assert.Empty(result);
     }
 }

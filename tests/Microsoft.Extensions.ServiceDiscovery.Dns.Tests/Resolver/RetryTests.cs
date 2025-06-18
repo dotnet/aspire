@@ -14,9 +14,9 @@ public class RetryTests : LoopbackDnsTestBase
         Options.Attempts = 3;
     }
 
-    private static void SetupUdpProcessFunction(LoopbackDnsServer server, Func<LoopbackDnsResponseBuilder, Task> func)
+    private Task SetupUdpProcessFunction(LoopbackDnsServer server, Func<LoopbackDnsResponseBuilder, Task> func)
     {
-        _ = Task.Run(async () =>
+        return Task.Run(async () =>
         {
             try
             {
@@ -25,31 +25,33 @@ public class RetryTests : LoopbackDnsTestBase
                     await server.ProcessUdpRequest(func);
                 }
             }
-            catch (SocketException)
+            catch (Exception ex)
             {
+                Output.WriteLine($"UDP server stopped with exception: {ex}");
                 // Test teardown closed the socket, ignore
             }
         });
     }
 
-    private void SetupUdpProcessFunction(Func<LoopbackDnsResponseBuilder, Task> func)
+    private Task SetupUdpProcessFunction(Func<LoopbackDnsResponseBuilder, Task> func)
     {
-        SetupUdpProcessFunction(DnsServer, func);
+        return SetupUdpProcessFunction(DnsServer, func);
     }
 
     [Fact]
     public async Task Retry_Simple_Success()
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
+        string hostName = "retry-simple-success.com";
 
         int attempt = 0;
 
-        SetupUdpProcessFunction(builder =>
+        Task t = SetupUdpProcessFunction(builder =>
         {
             attempt++;
             if (attempt == Options.Attempts)
             {
-                builder.Answers.AddAddress("www.example.com", 3600, address);
+                builder.Answers.AddAddress(hostName, 3600, address);
             }
             else
             {
@@ -58,7 +60,7 @@ public class RetryTests : LoopbackDnsTestBase
             return Task.CompletedTask;
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(hostName, AddressFamily.InterNetwork);
 
         AddressResult res = Assert.Single(results);
         Assert.Equal(address, res.Address);
@@ -79,11 +81,12 @@ public class RetryTests : LoopbackDnsTestBase
     public async Task PersistentErrorsResponseCode_FailoverToNextServer(PersistentErrorType type)
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
+        string hostName = "www.persistent.com";
 
         int primaryAttempt = 0;
         int secondaryAttempt = 0;
 
-        AddressResult[] results = await RunWithFallbackServerHelper("www.example.com",
+        AddressResult[] results = await RunWithFallbackServerHelper(hostName,
             builder =>
             {
                 primaryAttempt++;
@@ -106,7 +109,7 @@ public class RetryTests : LoopbackDnsTestBase
             builder =>
             {
                 secondaryAttempt++;
-                builder.Answers.AddAddress("www.example.com", 3600, address);
+                builder.Answers.AddAddress(hostName, 3600, address);
                 return Task.CompletedTask;
             });
 
@@ -134,11 +137,12 @@ public class RetryTests : LoopbackDnsTestBase
     public async Task DefinitiveAnswers_NoRetryOrFailover(DefinitveAnswerType type, bool additionalData)
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
+        string hostName = "www.retry.com";
 
         int primaryAttempt = 0;
         int secondaryAttempt = 0;
 
-        AddressResult[] results = await RunWithFallbackServerHelper("www.example.com",
+        AddressResult[] results = await RunWithFallbackServerHelper(hostName,
             builder =>
             {
                 primaryAttempt++;
@@ -146,7 +150,7 @@ public class RetryTests : LoopbackDnsTestBase
                 {
                     case DefinitveAnswerType.NoError:
                         builder.ResponseCode = QueryResponseCode.NoError;
-                        builder.Answers.AddAddress("www.example.com", 3600, address);
+                        builder.Answers.AddAddress(hostName, 3600, address);
                         break;
 
                     case DefinitveAnswerType.NoData:
@@ -160,7 +164,7 @@ public class RetryTests : LoopbackDnsTestBase
 
                 if (additionalData)
                 {
-                    builder.Authorities.AddStartOfAuthority("www.example.com", 300, "ns1.example.com", "hostmaster.example.com", 2023101001, 1, 3600, 300, 86400);
+                    builder.Authorities.AddStartOfAuthority(hostName, 300, "ns1.example.com", "hostmaster.example.com", 2023101001, 1, 3600, 300, 86400);
                 }
 
                 return Task.CompletedTask;
@@ -191,11 +195,12 @@ public class RetryTests : LoopbackDnsTestBase
     public async Task ExhaustedRetries_FailoverToNextServer()
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
+        string hostName = "ExhaustedRetriesFailoverToNextServer";
 
         int primaryAttempt = 0;
         int secondaryAttempt = 0;
 
-        AddressResult[] results = await RunWithFallbackServerHelper("www.example.com",
+        AddressResult[] results = await RunWithFallbackServerHelper(hostName,
             builder =>
             {
                 primaryAttempt++;
@@ -205,7 +210,7 @@ public class RetryTests : LoopbackDnsTestBase
             builder =>
             {
                 secondaryAttempt++;
-                builder.Answers.AddAddress("www.example.com", 3600, address);
+                builder.Answers.AddAddress(hostName, 3600, address);
                 return Task.CompletedTask;
             });
 
@@ -230,11 +235,12 @@ public class RetryTests : LoopbackDnsTestBase
     public async Task TransientError_RetryOnSameServer(TransientErrorType type)
     {
         IPAddress address = IPAddress.Parse("172.213.245.111");
+        string hostName = "www.transient.com";
 
         int primaryAttempt = 0;
         int secondaryAttempt = 0;
 
-        AddressResult[] results = await RunWithFallbackServerHelper("www.example.com",
+        AddressResult[] results = await RunWithFallbackServerHelper(hostName,
             async builder =>
             {
                 primaryAttempt++;
@@ -244,7 +250,7 @@ public class RetryTests : LoopbackDnsTestBase
                     {
                         case TransientErrorType.Timeout:
                             await Task.Delay(Options.Timeout.Multiply(1.5));
-                            builder.Answers.AddAddress("www.example.com", 3600, address);
+                            builder.Answers.AddAddress(hostName, 3600, address);
                             break;
 
                         case TransientErrorType.ServerFailure:
@@ -254,7 +260,7 @@ public class RetryTests : LoopbackDnsTestBase
                 }
                 else
                 {
-                    builder.Answers.AddAddress("www.example.com", 3600, address);
+                    builder.Answers.AddAddress(hostName, 3600, address);
                 }
             },
             builder =>
@@ -274,9 +280,9 @@ public class RetryTests : LoopbackDnsTestBase
 
     private async Task<AddressResult[]> RunWithFallbackServerHelper(string name, Func<LoopbackDnsResponseBuilder, Task> primaryHandler, Func<LoopbackDnsResponseBuilder, Task> fallbackHandler)
     {
-        SetupUdpProcessFunction(primaryHandler);
+        Task t = SetupUdpProcessFunction(primaryHandler);
         using LoopbackDnsServer fallbackServer = new LoopbackDnsServer();
-        SetupUdpProcessFunction(fallbackServer, fallbackHandler);
+        Task t2 = SetupUdpProcessFunction(fallbackServer, fallbackHandler);
 
         Options.Servers = [DnsServer.DnsEndPoint, fallbackServer.DnsEndPoint];
 
@@ -287,7 +293,7 @@ public class RetryTests : LoopbackDnsTestBase
     public async Task NameError_NoRetry()
     {
         int counter = 0;
-        SetupUdpProcessFunction(builder =>
+        Task t = SetupUdpProcessFunction(builder =>
         {
             counter++;
             // authoritative answer that the name does not exist
@@ -295,7 +301,7 @@ public class RetryTests : LoopbackDnsTestBase
             return Task.CompletedTask;
         });
 
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("www.example.com", AddressFamily.InterNetwork);
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("nameerror-noretry", AddressFamily.InterNetwork);
 
         Assert.Empty(results);
         Assert.Equal(1, counter);

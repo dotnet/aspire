@@ -63,16 +63,9 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
-        try
-        {
-            EncodedDomainName dnsSafeName = GetNormalizedHostName(name, buffer);
-            return SendQueryWithTelemetry(name, dnsSafeName, QueryType.SRV, ProcessResponse, cancellationToken);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
+        // dnsSafeName is Disposed by SendQueryWithTelemetry
+        EncodedDomainName dnsSafeName = GetNormalizedHostName(name);
+        return SendQueryWithTelemetry(name, dnsSafeName, QueryType.SRV, ProcessResponse, cancellationToken);
 
         static (SendQueryError, ServiceResult[]) ProcessResponse(EncodedDomainName dnsSafeName, QueryType queryType, DnsResponse response)
         {
@@ -175,17 +168,10 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
             return ValueTask.FromResult<AddressResult[]>([]);
         }
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
-        try
-        {
-            EncodedDomainName dnsSafeName = GetNormalizedHostName(name, buffer);
-            var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
-            return SendQueryWithTelemetry(name, dnsSafeName, queryType, ProcessResponse, cancellationToken);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
+        // dnsSafeName is Disposed by SendQueryWithTelemetry
+        EncodedDomainName dnsSafeName = GetNormalizedHostName(name);
+        var queryType = addressFamily == AddressFamily.InterNetwork ? QueryType.A : QueryType.AAAA;
+        return SendQueryWithTelemetry(name, dnsSafeName, queryType, ProcessResponse, cancellationToken);
 
         static (SendQueryError error, AddressResult[] result) ProcessResponse(EncodedDomainName dnsSafeName, QueryType queryType, DnsResponse response)
         {
@@ -361,6 +347,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         NameResolutionActivity activity = Telemetry.StartNameResolution(name, queryType, _timeProvider.GetTimestamp());
         (SendQueryError error, TResult[] result) = await SendQueryWithRetriesAsync(name, dnsSafeName, queryType, processResponseFunc, cancellationToken).ConfigureAwait(false);
         Telemetry.StopNameResolution(name, queryType, activity, null, error, _timeProvider.GetTimestamp());
+        dnsSafeName.Dispose();
 
         return result;
     }
@@ -904,28 +891,41 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         return (pendingRequestsCts, DisposeTokenSource: false, pendingRequestsCts);
     }
 
-    private static EncodedDomainName GetNormalizedHostName(string name, Memory<byte> buffer)
+    private static EncodedDomainName GetNormalizedHostName(string name)
     {
-        if (!DnsPrimitives.TryWriteQName(buffer.Span, name, out _))
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
+        try
         {
-            throw new ArgumentException($"'{name}' is not a valid DNS name.", nameof(name));
-        }
-
-        List<ReadOnlyMemory<byte>> labels = new();
-        while (true)
-        {
-            int len = buffer.Span[0];
-
-            if (len == 0)
+            if (!DnsPrimitives.TryWriteQName(buffer, name, out _))
             {
-                // root label, we are finished
-                break;
+                throw new ArgumentException($"'{name}' is not a valid DNS name.", nameof(name));
             }
 
-            labels.Add(buffer.Slice(1, len));
-            buffer = buffer.Slice(len + 1);
-        }
+            List<ReadOnlyMemory<byte>> labels = new();
+            Memory<byte> memory = buffer.AsMemory();
+            while (true)
+            {
+                int len = memory.Span[0];
 
-        return new EncodedDomainName(labels);
+                if (len == 0)
+                {
+                    // root label, we are finished
+                    break;
+                }
+
+                labels.Add(memory.Slice(1, len));
+                memory = memory.Slice(len + 1);
+            }
+
+            buffer = null!; // ownership transferred to the EncodedDomainName
+            return new EncodedDomainName(labels, buffer);
+        }
+        finally
+        {
+            if (buffer != null)
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
     }
 }

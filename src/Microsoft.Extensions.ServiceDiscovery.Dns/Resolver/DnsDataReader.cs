@@ -122,13 +122,12 @@ internal struct DnsDataReader : IDisposable
 
     public void Dispose()
     {
-        if (!_returnToPool || MessageBuffer.Array == null)
+        if (_returnToPool && MessageBuffer.Array != null)
         {
-            return; // nothing to do if we are not returning to the pool
+            ArrayPool<byte>.Shared.Return(MessageBuffer.Array);
         }
 
         _returnToPool = false;
-        ArrayPool<byte>.Shared.Return(MessageBuffer.Array);
         MessageBuffer = default;
     }
 }
