@@ -22,7 +22,7 @@ internal sealed class ExtensionBackchannelConnector(ILogger<ExtensionBackchannel
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
         var connectionAttempts = 0;
-        logger.LogDebug("Starting backchannel connection to AppHost at {Endpoint}", endpoint);
+        logger.LogDebug("Starting backchannel connection to Aspire extension at {Endpoint}", endpoint);
 
         var startTime = DateTimeOffset.UtcNow;
 
@@ -56,7 +56,7 @@ internal sealed class ExtensionBackchannelConnector(ILogger<ExtensionBackchannel
                     ex.RequiredCapability
                     );
 
-                // If the app host is incompatible then there is no point
+                // If the extension is incompatible then there is no point
                 // trying to reconnect, we should propogate the exception
                 // up to the code that needs to back channel so it can display
                 // and error message to the user.
