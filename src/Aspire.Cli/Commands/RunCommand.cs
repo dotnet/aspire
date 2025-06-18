@@ -204,7 +204,7 @@ internal sealed class RunCommand : BaseCommand
                 };
                 var rows = new Rows(renderables);
 
-                var dashboardState = new DashboardState();
+                var dashboardState = new DashboardState(runOutputCollector);
                 var dashboardRenderable = new DashboardRenderable(dashboardState);
 
                 _ansiConsole.Write(new ControlCode("\u001b[?1049h\u001b[H"));
@@ -220,6 +220,23 @@ internal sealed class RunCommand : BaseCommand
                         state.CodespacesDashboardUrl = dashboardUrls.CodespacesUrlWithLoginToken;
                         return Task.CompletedTask;
                     });
+                }, cancellationToken);
+
+                _ = Task.Run(async () =>
+                {
+                    while (true)
+                    {
+                        var key = Console.ReadKey(true);
+                        await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+                        {
+                            if (key.Key == ConsoleKey.L)
+                            {
+                                state.ShowAppHostLogs = !state.ShowAppHostLogs;
+                            }
+
+                            return Task.CompletedTask;
+                        });
+                    }
                 }, cancellationToken);
 
                 // Background job to get resource states and update state.

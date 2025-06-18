@@ -16,7 +16,17 @@ internal sealed class DashboardRenderable(DashboardState state) : JustInTimeRend
 
     protected override IRenderable Build()
     {
-        return BuildResourcesTable();
+        if (!state.ShowAppHostLogs)
+        {
+            return BuildResourcesTable();
+        }
+        else
+        {
+            var lines = state.Collector.GetLines();
+            var outputText = string.Join(Environment.NewLine, lines);
+            return new Text(outputText);
+        }
+
     }
 
     private IRenderable BuildResourcesTable()
