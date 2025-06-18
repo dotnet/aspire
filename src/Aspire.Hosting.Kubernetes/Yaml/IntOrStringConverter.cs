@@ -60,8 +60,14 @@ public class IntOrStringYamlConverter : IYamlTypeConverter
             throw new InvalidOperationException($"Expected {nameof(Int32OrStringV1)} but got {value?.GetType()}");
         }
 
-        var val = obj.Value ?? string.Empty;
-
-        serializer(val);
+        if (obj.Number != null)
+        {
+            serializer(obj.Number);
+        }
+        else
+        {
+            var val = obj.Value ?? string.Empty;
+            serializer(val);
+        }
     }
 }
