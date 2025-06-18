@@ -159,9 +159,9 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         foreach (var endpoint in endpoints)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            if (endpoint.TargetPort is null)
             {
-                GenerateDefaultProjectEndpointMapping(endpoint);
+                GenerateDefaultEndpointMapping(endpoint);
                 continue;
             }
 
@@ -171,7 +171,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
+    private void GenerateDefaultEndpointMapping(EndpointAnnotation endpoint)
     {
         const string defaultPort = "8080";
 
@@ -180,8 +180,12 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
 
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
+        // Only set ASPNETCORE_URLS for project resources
+        if (resource is ProjectResource)
+        {
+            var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
+            EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
+        }
 
         EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
     }
