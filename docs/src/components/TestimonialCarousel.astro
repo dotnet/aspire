@@ -134,6 +134,8 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
         currentIndex: number;
         testimonials: Testimonial[];
         autoRotateInterval: number | null;
+        touchStartX: number | null;
+        touchStartY: number | null;
     }
 
     // Extended HTMLElement with our state
@@ -176,6 +178,8 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                 currentIndex,
                 testimonials: testimonialsData,
                 autoRotateInterval: null,
+                touchStartX: null,
+                touchStartY: null,
             };
 
             // Set up navigation
@@ -250,6 +254,50 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                 }
             }
 
+            // Touch event handlers for swipe support
+            function handleTouchStart(event: TouchEvent): void {
+                const state = carousel._state as CarouselState;
+                const touch = event.touches[0];
+                state.touchStartX = touch.clientX;
+                state.touchStartY = touch.clientY;
+                
+                // Stop auto-rotation when user interacts
+                stopAutoRotate();
+            }
+
+            function handleTouchEnd(event: TouchEvent): void {
+                const state = carousel._state as CarouselState;
+                
+                // Skip if the touch didn't start properly
+                if (state.touchStartX === null || state.touchStartY === null) {
+                    return;
+                }
+                
+                const touch = event.changedTouches[0];
+                const endX = touch.clientX;
+                const endY = touch.clientY;
+                
+                // Calculate horizontal and vertical distances
+                const diffX = state.touchStartX - endX;
+                const diffY = state.touchStartY - endY;
+                
+                // Only respond to horizontal swipes that are more significant than vertical movement
+                // This prevents accidental swipes when scrolling vertically
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                    if (diffX > 0) {
+                        // Swipe left, show next
+                        navigate(1);
+                    } else {
+                        // Swipe right, show previous
+                        navigate(-1);
+                    }
+                }
+                
+                // Reset touch state
+                state.touchStartX = null;
+                state.touchStartY = null;
+            }
+
             // Add event listeners
             if (prevButton)
                 prevButton.addEventListener("click", () => {
@@ -269,6 +317,10 @@ const nextIndex = (initialIndex + 1) % testimonials.length;
                     goToSlide(index);
                 });
             });
+
+            // Add touch event listeners for swipe support
+            carousel.addEventListener("touchstart", handleTouchStart, { passive: true });
+            carousel.addEventListener("touchend", handleTouchEnd, { passive: true });
 
             // Initial update just to be safe
             updateDisplay();
