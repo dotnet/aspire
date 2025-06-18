@@ -28,15 +28,6 @@ internal static class KubernetesServiceResourceExtensions
             formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
             formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
 
-        if (secret)
-        {
-            kubernetesResource.Secrets[formattedName] = new(expression, manifestExpressionProvider.ValueExpression);
-        }
-        else
-        {
-            kubernetesResource.EnvironmentVariables[formattedName] = new(expression, manifestExpressionProvider.ValueExpression);
-        }
-
         return expression;
     }
 
@@ -53,17 +44,6 @@ internal static class KubernetesServiceResourceExtensions
         var expression = parameter.Secret ?
             formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
             formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
-
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-
-        if (parameter.Secret)
-        {
-            kubernetesResource.Secrets[formattedName] = new(expression, value);
-        }
-        else
-        {
-            kubernetesResource.EnvironmentVariables[formattedName] = new(expression, value);
-        }
 
         return expression;
     }
@@ -116,7 +96,9 @@ internal static class KubernetesServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                return AllocateParameter(param, resource.TargetResource);
+                var expression = param.AsHelmValuePlaceholder(resource);
+                var paramValue = param.Default is null || param.Secret ? null : param.Value;
+                return new HelmExpressionWithValue(expression, paramValue);
             }
 
             if (value is ConnectionStringReference cs)
@@ -166,7 +148,9 @@ internal static class KubernetesServiceResourceExtensions
             // If we don't know how to process the value, we just return it as an external reference
             if (value is IManifestExpressionProvider r)
             {
-                return ResolveUnknownValue(r, resource.TargetResource);
+                var isSecret = r.ValueExpression.ContainsHelmSecretExpression();
+                var expression = r.AsHelmValuePlaceholder(resource, isSecret);
+                return new HelmExpressionWithValue(expression, r.ValueExpression);
             }
 
             throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
@@ -192,31 +176,5 @@ internal static class KubernetesServiceResourceExtensions
         {
             return $"{prefix}{host}{suffix}";
         }
-    }
-
-    private static HelmExpressionWithValue AllocateParameter(ParameterResource parameter, IResource resource)
-    {
-        var formattedName = parameter.Name.ToHelmValuesSectionName();
-
-        var expression = parameter.Secret ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-        return new(expression, value);
-    }
-
-    private static HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
-    {
-        var formattedName = parameter.ValueExpression.Replace("{", "")
-            .Replace("}", "")
-            .Replace(".", "_")
-            .ToHelmValuesSectionName();
-
-        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        return new(helmExpression, parameter.ValueExpression);
     }
 }
