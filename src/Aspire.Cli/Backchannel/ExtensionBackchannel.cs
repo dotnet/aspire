@@ -20,6 +20,11 @@ internal interface IExtensionBackchannel
     Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken);
     Task DisplayErrorAsync(string error, CancellationToken cancellationToken);
     Task DisplayEmptyLineAsync(CancellationToken cancellationToken);
+    Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken);
+    Task DisplayCancellationMessageAsync(CancellationToken cancellationToken);
+    Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken);
+    Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
+    Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target) : IExtensionBackchannel
@@ -88,6 +93,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 );
             }
 
+            // start listening for incoming rpc calls in the background
+            _ = Task.Run(rpc.StartListening, cancellationToken);
             _rpcTaskCompletionSource.SetResult(rpc);
         }
         catch (RemoteMethodNotFoundException ex)
@@ -173,8 +180,75 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             [_token],
             cancellationToken);
     }
-}
 
-class ExtensionRpcTarget
-{
+    public async Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent incompatible version error for capability {RequiredCapability} with hosting SDK version {AppHostHostingSdkVersion}",
+            requiredCapability, appHostHostingSdkVersion);
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayIncompatibleVersionError",
+            [_token, requiredCapability, appHostHostingSdkVersion],
+            cancellationToken);
+    }
+
+    public async Task DisplayCancellationMessageAsync(CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent cancellation message");
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayCancellationMessage",
+            [_token],
+            cancellationToken);
+    }
+
+    public async Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent lines for display");
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayLines",
+            [_token, lines],
+            cancellationToken);
+    }
+
+    public async Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent dashboard URLs for display");
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayDashboardUrls",
+            [_token, dashboardUrls],
+            cancellationToken);
+    }
+
+    public async Task ShowStatusAsync(string? status, CancellationToken cancellationToken)
+    {
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent status update: {Status}", status);
+
+        await rpc.InvokeWithCancellationAsync(
+            "showStatus",
+            [_token, status],
+            cancellationToken);
+    }
 }

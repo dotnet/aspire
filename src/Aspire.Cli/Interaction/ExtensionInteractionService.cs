@@ -38,17 +38,18 @@ internal class ExtensionInteractionService : IInteractionService
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         var task = action();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(statusText, CancellationToken.None)));
 
-        // TODO implement extension-specific handling
-        await _consoleInteractionService.ShowStatusAsync(statusText, () => task);
-
-        return await task.ConfigureAwait(false);
+        var value = await task.ConfigureAwait(false);
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(null, CancellationToken.None)));
+        return value;
     }
 
     public void ShowStatus(string statusText, Action action)
     {
-        // TODO implement extension-specific handling
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(statusText, CancellationToken.None)));
         _consoleInteractionService.ShowStatus(statusText, action);
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(null, CancellationToken.None)));
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
@@ -94,7 +95,7 @@ internal class ExtensionInteractionService : IInteractionService
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        // TODO implement extension-specific handling
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, CancellationToken.None)));
         return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
 
@@ -124,20 +125,20 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
-        // TODO implement extension-specific handling
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayDashboardUrlsAsync(dashboardUrls, CancellationToken.None)));
         _consoleInteractionService.DisplayDashboardUrls(dashboardUrls);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        // TODO implement extension-specific handling
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayLinesAsync(lines, CancellationToken.None)));
         _consoleInteractionService.DisplayLines(lines);
     }
 
     public void DisplayCancellationMessage()
     {
-        // TODO implement extension-specific handling
-       _consoleInteractionService.DisplayCancellationMessage();
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayCancellationMessageAsync(CancellationToken.None)));
+        _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
