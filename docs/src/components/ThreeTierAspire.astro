@@ -1,5 +1,5 @@
 ---
-import { Code, TabItem, Tabs } from '@astrojs/starlight/components'
+import { Code } from '@astrojs/starlight/components'
 
 const cs = `
 var builder = DistributedApplication.CreateBuilder(args);
@@ -9,7 +9,8 @@ var postgres = builder.AddPostgres("db").AddDatabase("appdata");
 
 // Add API service and reference the database
 var api = builder.AddProject("api", "../api/ApiService.csproj")
-                 .WithReference(postgres);
+                 .WithReference(postgres)
+                 .WaitFor(postgres);
 
 // Add frontend service and reference the API
 var frontend = builder.AddNpmApp("frontend", "../frontend")
@@ -19,61 +20,6 @@ var frontend = builder.AddNpmApp("frontend", "../frontend")
 
 builder.Build().Run();
 `;
-
-const ts = `
-import { createBuilder } from "./.modules/distributed-application";
-
-const builder = createBuilder();
-
-// Add database service to orbit
-const postgres = builder.addPostgres("db").addDatabase("appdata");
-
-// Add API service and reference the database
-const api = builder.addProject("api", "../api/ApiService")
-  .withReference(postgres);
-
-// Add frontend service and reference the API
-const frontend = builder.addNpmApp("frontend", "../frontend")
-  .withHttpEndpoint({ env: "PORT", targetPort: 3000 })
-  .withNpmPackageInstallation()
-  .withReference(api);
-
-builder.build().run();
-`;
-
-const py = `
-from aspire import create_builder
-
-builder = create_builder()
-
-# Add database service to orbit
-postgres = builder.add_postgres("db").add_database("appdata")
-
-# Add API service and reference the database
-api = builder.add_project("api", "../api/api_service.py") //
-       .with_reference(postgres)
-
-# Add frontend service and reference the API
-builder.add_npm_app("frontend", "../frontend") //
-          .with_http_endpoint(env="PORT", target_port=3000) //
-          .with_npm_package_installation() //
-          .with_reference(api)
-
-# Launch your services into orbit
-builder.build().run()
-`;
 ---
 
-<Tabs>
-  <TabItem label="TypeScript" icon="seti:typescript">
-    <Code code={ts} lang="ts" frame='terminal' title='index.ts' />
-  </TabItem>
-
-  <TabItem label="Python" icon="seti:python">
-    <Code code={py} lang="python" frame='terminal' title='__main.py__' />
-  </TabItem>
-
-  <TabItem label="C#" icon="seti:c-sharp">
-    <Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
-  </TabItem>
-</Tabs>
+<Code code={cs} lang="cs" frame='terminal' title='AppHost.cs' />
