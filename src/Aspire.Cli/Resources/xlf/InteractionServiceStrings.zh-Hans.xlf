@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
-        <target state="new">Dashboard</target>
+        <target state="translated">仪表板</target>
         <note />
       </trans-unit>
       <trans-unit id="DirectLink">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="OperationCancelled">
         <source>The operation was canceled.</source>
-        <target state="new">The operation was canceled.</target>
+        <target state="translated">该操作已取消。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
         <source>An unexpected error occurred: {0}</source>
-        <target state="new">An unexpected error occurred: {0}</target>
+        <target state="translated">发生意外错误: {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
