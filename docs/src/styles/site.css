@@ -28,7 +28,7 @@
 		to bottom,
 		var(--sl-color-bg) 0%,
 		var(--color-dotnet-purple) 75%,
-		var(--sl-color-bg) 100%
+		var(--sl-color-bg-nav) 100%
 	);
 	--color-purple: #9B5DE5;
 	--color-magenta: #D600AA;
@@ -63,7 +63,10 @@
 	--sl-color-gray-7: #FDF0DA;
 	--sl-color-black: #FFFFFF;
 
-	--background-gradient: linear-gradient(to bottom, var(--sl-color-bg), var(--sl-color-gray-6));
+	--background-gradient: linear-gradient(
+		to bottom, 
+		var(--sl-color-bg), 
+		var(--sl-color-gray-6));
 
 	--gradient-purple-magenta: linear-gradient(90deg, var(--color-purple), var(--color-magenta));
 	--gradient-magenta-flamingo: linear-gradient(90deg, var(--color-magenta), var(--color-flamingo));

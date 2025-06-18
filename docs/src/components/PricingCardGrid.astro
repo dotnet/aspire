@@ -1,0 +1,211 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+
+const tiers = [
+    {
+        name: "Startup Special",
+        price: "$0.00",
+        perks: [
+            "Everything included.",
+            "No hidden fees.", 
+            "No credit card required."
+        ],
+        color: "var(--color-purple)"
+    },
+    {
+        name: "Bootstrapper's Delight",
+        price: "$0.00",
+        perks: [
+            "Worried you can't afford free?",
+            "Relax—this one's on us.",
+            "No limits, no catches."
+        ],
+        color: "var(--color-blue)"
+    },
+    {
+        name: "Open Source Hero",
+        price: "$0.00",
+        perks: [
+            "Free forever.", 
+            "No strings attached, seriously.",
+            "Built with love for the community."
+        ],
+        color: "var(--color-flamingo)"
+    },
+];
+---
+
+<section class="pricing-container">
+    <div class="pricing">
+        <div class="card-grid">
+            {
+                tiers.map((tier) => (
+                    <div key={tier.name} class="card">
+                        <div class="card-header" style={`background-color: ${tier.color}`}>
+                            <h4>{tier.name}</h4>
+                        </div>
+                        <div class="card-content">
+                            <p class="price">{tier.price}</p>
+                            <ul>
+                                {tier.perks.map((perk) => (
+                                    <li key={perk}>
+                                        <span class="icons check-icon">
+                                            <Icon name="approve-check" size="1.2rem" />
+                                        </span>
+                                        <span>{perk}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                ))
+            }
+        </div>
+        <p class="cta">
+            <span class="cta-content">
+                <span class="icons heart-icon">
+                    <Icon name="heart" size="1.2rem" />
+                </span>
+                <span>Seriously though, Aspire is entirely free and open source.</span>
+            </span>
+        </p>
+    </div>
+</section>
+
+<style>
+    .pricing-container {
+        width: 100%;
+    }
+
+    .pricing {
+        text-align: center;
+        padding: .5rem 0;
+        max-width: var(--sl-content-width);
+        margin: 0 auto;
+    }
+
+    .pricing-intro {
+        font-size: 1.2rem;
+        margin-bottom: 2.5rem;
+        color: var(--sl-color-gray-1);
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .card {
+        background: var(--sl-color-black);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        margin-top: initial;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-header {
+        padding: 1.5rem;
+        position: relative;
+    }
+    
+    .card-header h4 {
+        margin: 0;
+        letter-spacing: 0.5px;
+        color: white;
+    }
+    
+    :root[data-theme='light'] .card-header {
+        color: white;
+    }
+
+    :root[data-theme='light'] .card-header h4 {
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .price {
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin: .5rem 0 .75rem;
+        color: var(--sl-color-white);
+    }
+
+    ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-top: 1.5rem;
+    }
+
+    li {
+        margin-bottom: 0.8rem;
+        color: var(--sl-color-gray-3);
+        position: relative;
+        padding-left: 0;
+        display: flex;
+        align-items: center;
+        text-align: left;
+    }
+
+    .icons {
+        display: flex;
+        align-items: center;
+        margin-right: 0.75rem;
+        color: var(--sl-color-accent);
+    }
+
+    :global(.check-icon svg) {
+        color: #22c55e;
+        flex-shrink: 0;
+    }
+
+    :global(.heart-icon svg) {
+        color: #f43f5e;
+        flex-shrink: 0;
+    }
+
+    .cta {
+        margin-top: 3rem;
+        font-weight: bold;
+        color: var(--sl-color-gray-1);
+        font-size: 1.1rem;
+        padding: 1rem 2rem;
+        background: rgba(155, 93, 229, 0.2);
+        border-radius: 8px;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .cta-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .heart-icon {
+        margin-right: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .card-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .pricing-container {
+            margin: 0 calc(var(--sl-content-pad-x) * -1);
+            padding: 0 1rem;
+        }
+    }
+</style>
