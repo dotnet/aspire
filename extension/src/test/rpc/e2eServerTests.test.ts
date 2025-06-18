@@ -42,7 +42,7 @@ suite('End-to-end RPC server auth tests', () => {
 		const rpcServerInfo = extension.exports.getRpcServerInfo() as RpcServerInformation;
 
 		// Connect as a client
-		const client = net.createConnection(rpcServerInfo.address);
+		const client = net.createConnection(rpcServerInfo.address.replace('localhost:', ''));
 		await new Promise<void>((resolve) => client.once('connect', resolve));
 
 		const connection = createMessageConnection(
