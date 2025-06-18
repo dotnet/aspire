@@ -32,15 +32,25 @@ jobs:
       - name: Install dotnet-outdated
         run: dotnet tool install --global dotnet-outdated-tool
 
+      - name: Install slngen
+        run: dotnet tool install --global Microsoft.VisualStudio.SlnGen.Tool
+
+      - name: Generate temporary solution file
+        run: slngen ./Aspire.slnx -o ./update.sln
+
+      - name: Restore temporary solution
+        run: dotnet restore ./update.sln
+
       - name: Update packages
         continue-on-error: true
-        run: dotnet outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx || echo "Some dependencies could not be updated, but continuing workflow."
+        run: dotnet outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./update.sln || echo "Some dependencies could not be updated, but continuing workflow."
 
       - name: Revert all changes except Directory.Packages.props files
         run: |
           git add "**Directory.Packages.props"
           git add "**/Directory.Packages.props"
           rm nuget.config
+          rm -f update.sln
           git checkout -- .
 
       - name: Create Pull Request
