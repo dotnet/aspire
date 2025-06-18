@@ -11,15 +11,15 @@ param principalName string
 
 param principalType string
 
-resource sql2 'Microsoft.Sql/servers@2021-11-01' existing = {
+resource sql2 'Microsoft.Sql/servers@2023-08-01' existing = {
   name: sql2_outputs_name
 }
 
-resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: sql2_outputs_sqlserveradminname
 }
 
-resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: principalName
 }
 
