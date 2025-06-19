@@ -4,67 +4,67 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>Aspire App Host</source>
-        <target state="new">Aspire App Host</target>
+        <target state="translated">Host de Aplicativo Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>Aspire Empty App</source>
-        <target state="new">Aspire Empty App</target>
+        <target state="translated">Aplicativo Aspire Vazio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>Aspire Test Project (MSTest)</source>
-        <target state="new">Aspire Test Project (MSTest)</target>
+        <target state="translated">Projeto de Teste Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>Aspire Test Project (NUnit)</source>
-        <target state="new">Aspire Test Project (NUnit)</target>
+        <target state="translated">Projeto de Teste Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Aspire Service Defaults</source>
-        <target state="new">Aspire Service Defaults</target>
+        <target state="translated">Padrões do Serviço Do Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Aspire Starter App</source>
-        <target state="new">Aspire Starter App</target>
+        <target state="translated">Aplicativo Inicial Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>Aspire Test Project (xUnit)</source>
-        <target state="new">Aspire Test Project (xUnit)</target>
+        <target state="translated">Projeto de Teste Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
         <source>At least one template factory must be provided.</source>
-        <target state="new">At least one template factory must be provided.</target>
+        <target state="translated">Pelo menos uma fábrica de modelo deve ser fornecida.</target>
         <note />
       </trans-unit>
       <trans-unit id="CertificateTrustError">
         <source>An error occurred while trusting the certificates: {0}</source>
-        <target state="new">An error occurred while trusting the certificates: {0}</target>
+        <target state="translated">Ocorreu um erro ao confiar nos certificados: {0}</target>
         <note>{0} is an exception message</note>
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
-        <target state="new">Creating new Aspire project...</target>
+        <target state="translated">Criando novo projeto Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterXUnitVersion_Description">
         <source>The version of xUnit.net to use for the test project.</source>
-        <target state="new">The version of xUnit.net to use for the test project.</target>
+        <target state="translated">A versão do xUnit.net a ser usada para o projeto de teste.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterXUnitVersion_Prompt">
         <source>Enter the xUnit.net version to use</source>
-        <target state="new">Enter the xUnit.net version to use</target>
+        <target state="translated">Digite a versão do xUnit.net a ser usada</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLatestTemplates">
         <source>Getting latest templates...</source>
-        <target state="new">Getting latest templates...</target>
+        <target state="translated">Obtendo modelos mais recentes...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="NoTemplateVersionsFound">
         <source>No template versions were found. Please check your internet connection or NuGet source configuration.</source>
-        <target state="new">No template versions were found. Please check your internet connection or NuGet source configuration.</target>
+        <target state="translated">Nenhuma versão de modelo foi encontrada. Verifique sua conexão com a internet ou a configuração da fonte NuGet.</target>
         <note />
       </trans-unit>
       <trans-unit id="None">
@@ -84,42 +84,42 @@
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
         <source>Project created successfully in {0}.</source>
-        <target state="new">Project created successfully in {0}.</target>
+        <target state="translated">Projeto criado com êxito no {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
         <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Project creation failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Falha na criação do projeto com código de saída {0}. Para mais informações, execute com a opção --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
-        <target state="new">Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</target>
+        <target state="translated">Configura se será criado um projeto para testes de integração usando MSTest, NUnit ou xUnit.net.</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Prompt">
         <source>Do you want to create a test project?</source>
-        <target state="new">Do you want to create a test project?</target>
+        <target state="translated">Deseja criar um projeto de teste?</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFM_Prompt">
         <source>Select a test framework</source>
-        <target state="new">Select a test framework</target>
+        <target state="translated">Selecionar uma estrutura de teste</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFM_UsingForTesting">
         <source>Using {0} for testing.</source>
-        <target state="new">Using {0} for testing.</target>
+        <target state="translated">Usando {0} para teste.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAvailableTemplateVersions">
         <source>Searching for available project template versions...</source>
-        <target state="new">Searching for available project template versions...</target>
+        <target state="translated">Procurando versões disponíveis do modelo de projeto...</target>
         <note />
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
         <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">The template installation failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">A instalação do modelo falhou com o código de saída {0}. Para mais informações, execute com a opção --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
       <trans-unit id="Unknown">
@@ -129,27 +129,27 @@
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">
         <source>Configures whether to setup the application to use Redis for caching.</source>
-        <target state="new">Configures whether to setup the application to use Redis for caching.</target>
+        <target state="translated">Configura se a aplicação será configurada para usar Redis como cache.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Prompt">
         <source>Use Redis Cache</source>
-        <target state="new">Use Redis Cache</target>
+        <target state="translated">Usar Redis Cache</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_UnexpectedChoice">
         <source>Unexpected choice for Redis Cache option</source>
-        <target state="new">Unexpected choice for Redis Cache option</target>
+        <target state="translated">Opção inesperada para Redis Cache</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_UsingRedisCache">
         <source>Using Redis Cache for caching.</source>
-        <target state="new">Using Redis Cache for caching.</target>
+        <target state="translated">Usando Redis Cache para cache.</target>
         <note />
       </trans-unit>
       <trans-unit id="UsingProjectTemplatesVersion">
         <source>Using project templates version: {0}</source>
-        <target state="new">Using project templates version: {0}</target>
+        <target state="translated">Usando versão dos modelos de projeto: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Yes">

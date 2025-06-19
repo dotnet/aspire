@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
-        <target state="new">Run an Aspire app host in development mode.</target>
+        <target state="translated">Uruchom hosta aplikacji platformy Aspire w trybie programowania.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -14,27 +14,27 @@
       </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
-        <target state="new">The health of the resource, eg Healthy</target>
+        <target state="translated">Kondycja zasobu, np. w dobrej kondycji</target>
         <note />
       </trans-unit>
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
-        <target state="new">IsCompatibleAppHost is null</target>
+        <target state="translated">Element IsCompatibleAppHost ma wartość null</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="new">Press [bold]Ctrl+C[/] to stop the app host and exit.</target>
+        <target state="translated">Naciśnij [bold]Ctrl+C[/], aby zatrzymać hosta aplikacji i zakończyć działanie.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Ścieżka do pliku projektu hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="new">The project could not be run. For more information run with --debug switch.</target>
+        <target state="translated">Nie można uruchomić projektu. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
-        <target state="new">Starting Aspire app host...</target>
+        <target state="translated">Trwa uruchamianie hosta aplikacji platformy Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting Aspire dashboard...</source>
-        <target state="new">Starting Aspire dashboard...</target>
+        <target state="translated">Trwa uruchamianie pulpitu nawigacyjnego platformy Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
-        <target state="new">Start project resources in watch mode.</target>
+        <target state="translated">Uruchamianie zasobów projektu w trybie obserwacji.</target>
         <note />
       </trans-unit>
     </body>

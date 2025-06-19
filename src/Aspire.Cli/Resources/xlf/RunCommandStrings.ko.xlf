@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
-        <target state="new">Run an Aspire app host in development mode.</target>
+        <target state="translated">개발 모드에서 Aspire 앱 호스트를 실행합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -14,27 +14,27 @@
       </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
-        <target state="new">The health of the resource, eg Healthy</target>
+        <target state="translated">리소스의 상태, 예: 정상</target>
         <note />
       </trans-unit>
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
-        <target state="new">IsCompatibleAppHost is null</target>
+        <target state="translated">IsCompatibleAppHost가 null입니다</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="new">Press [bold]Ctrl+C[/] to stop the app host and exit.</target>
+        <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]Ctrl+C[/]를 누르세요.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="new">The project could not be run. For more information run with --debug switch.</target>
+        <target state="translated">프로젝트를 실행할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
-        <target state="new">Starting Aspire app host...</target>
+        <target state="translated">Aspire 앱 호스트 시작 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting Aspire dashboard...</source>
-        <target state="new">Starting Aspire dashboard...</target>
+        <target state="translated">Aspire 대시보드 시작 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
-        <target state="new">Start project resources in watch mode.</target>
+        <target state="translated">watch 모드에서 프로젝트 리소스를 시작합니다.</target>
         <note />
       </trans-unit>
     </body>
