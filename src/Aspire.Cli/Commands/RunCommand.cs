@@ -13,7 +13,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
-using Spectre.Console.Rendering;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -183,93 +183,16 @@ internal sealed class RunCommand : BaseCommand
                         return backchannel;
                     });
 
-                // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await _interactionService.ShowStatusAsync(
-                    $":chart_increasing:  {RunCommandStrings.StartingDashboard}",
-                    () => backchannel.GetDashboardUrlsAsync(cancellationToken));
-
-                _interactionService.DisplayDashboardUrls(dashboardUrls);
-
-                var table = new Table().Border(TableBorder.Rounded);
-
-                // Add columns
-                table.AddColumn(RunCommandStrings.Resource);
-                table.AddColumn(RunCommandStrings.Type);
-                table.AddColumn(RunCommandStrings.State);
-                table.AddColumn(RunCommandStrings.Health);
-                table.AddColumn(RunCommandStrings.Endpoints);
-
-                // We add a default row here to say that
-                // there are no resources in the app host.
-                // This will be replaced once the first
-                // resource is streamed back from the
-                // app host which should be almost immediate
-                // if no resources are present.
-
-                // Create placeholders based on number of columns defined.
-                var placeholders = new Markup[table.Columns.Count];
-                for (int i = 0; i < table.Columns.Count; i++)
-                {
-                    placeholders[i] = new Markup("--");
-                }
-                table.Rows.Add(placeholders);
-
-                var message = new Markup(RunCommandStrings.PressCtrlCToStopAppHost);
-
-                var renderables = new List<IRenderable> {
-                    table,
-                    message
-                };
-                var rows = new Rows(renderables);
-
                 var dashboardRenderable = new DashboardRenderable(dashboardState);
 
+                // Start up an alternate console.
                 _ansiConsole.Write(new ControlCode("\u001b[?1049h\u001b[H"));
                 _ansiConsole.Clear();
 
                 // Background job to get dashboard URLs and update state.
-                _ = Task.Run(async () =>
-                {
-                    var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken);
-                    await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
-                    {
-                        state.DirectDashboardUrl = dashboardUrls.BaseUrlWithLoginToken;
-                        state.CodespacesDashboardUrl = dashboardUrls.CodespacesUrlWithLoginToken;
-                        return Task.CompletedTask;
-                    });
-                }, cancellationToken);
-
-                _ = Task.Run(async () =>
-                {
-                    while (true)
-                    {
-                        var key = Console.ReadKey(true);
-                        await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
-                        {
-                            if (key.Key == ConsoleKey.L)
-                            {
-                                state.ShowAppHostLogs = !state.ShowAppHostLogs;
-                            }
-
-                            return Task.CompletedTask;
-                        });
-                    }
-                }, cancellationToken);
-
-                // Background job to get resource states and update state.
-                _ = Task.Run(async () =>
-                {
-                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-
-                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
-                    {
-                        await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
-                        {
-                            state.ResourceStates[resourceState.Resource] = resourceState;
-                            return Task.CompletedTask;
-                        });
-                    }
-                }, cancellationToken);
+                StartRequestingDashboardUrls(dashboardState, backchannel, cancellationToken);
+                StartProcessingKeyboardInput(dashboardState, cancellationToken);
+                StartStreamingResourceStates(dashboardState, backchannel, cancellationToken);
 
                 await _ansiConsole.Live(dashboardRenderable).StartAsync(async context =>
                 {
@@ -279,82 +202,30 @@ internal sealed class RunCommand : BaseCommand
                     // That is why we immediately do a refresh.
                     context.Refresh();
 
-                    while (true)
+                    try
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var update = await dashboardState.Updates.Reader.ReadAsync(cancellationToken);
-                        await update(dashboardState, cancellationToken);
-                        context.Refresh();
+                        while (true)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var update = await dashboardState.Updates.Reader.ReadAsync(cancellationToken);
+                            await update(dashboardState, cancellationToken);
+                            context.Refresh();
+                        }
                     }
-
-                    // var knownResources = new SortedDictionary<string, RpcResourceState>();
-
-                    // var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-
-                    // try
-                    // {
-                    //     await foreach (var resourceState in resourceStates)
-                    //     {
-                    //         knownResources[resourceState.Resource] = resourceState;
-
-                    //         table.Rows.Clear();
-
-                    //         foreach (var knownResource in knownResources)
-                    //         {
-                    //             var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
-
-                    //             var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
-
-                    //             var stateRenderable = knownResource.Value.State switch
-                    //             {
-                    //                 "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                    //                 "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                    //                 "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                    //                 "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                    //                 "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                    //                 "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                    //                 "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                    //                 "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                    //                 _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                    //             };
-
-                    //             var healthRenderable = knownResource.Value.Health switch
-                    //             {
-                    //                 "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
-                    //                 "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
-                    //                 "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
-                    //                 null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
-                    //                 _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
-                    //             };
-
-                    //             IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
-                    //             if (knownResource.Value.Endpoints?.Length > 0)
-                    //             {
-                    //                 endpointsRenderable = new Rows(
-                    //                     knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                    //                 );
-                    //             }
-
-                    //             table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
-                    //         }
-
-                    //         context.Refresh();
-                    //     }
-                    // }
-                    // catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
-                    // {
-                    //     // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
-                    //     // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
-                    //     // that the apphost side of the RPC connection will be closed. Therefore if we get a
-                    //     // ConnectionLostException AND the inner exception is an OperationCancelledException we can
-                    //     // asume that the apphost was shutdown and we can ignore it.
-                    // }
-                    // catch (OperationCanceledException)
-                    // {
-                    //     // This exception will be thrown if the cancellation request reaches the our side
-                    //     // of the backchannel side first and the connection is torn down on our-side
-                    //     // gracefully. We can ignore this exception as well.
-                    // }
+                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
+                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
+                        // that the apphost side of the RPC connection will be closed. Therefore if we get a
+                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
+                        // asume that the apphost was shutdown and we can ignore it.
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // This exception will be thrown if the cancellation request reaches the our side
+                        // of the backchannel side first and the connection is torn down on our-side
+                        // gracefully. We can ignore this exception as well.
+                    }
                 });
 
                 var result = await pendingRun;
@@ -448,5 +319,79 @@ internal sealed class RunCommand : BaseCommand
         }
 
         return exitCode;
+    }
+
+    private static void StartRequestingDashboardUrls(DashboardState dashboardState, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        _ = Task.Run(async () =>
+        {
+            var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken);
+            await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+            {
+                state.DirectDashboardUrl = dashboardUrls.BaseUrlWithLoginToken;
+                state.CodespacesDashboardUrl = dashboardUrls.CodespacesUrlWithLoginToken;
+                return Task.CompletedTask;
+            });
+        }, cancellationToken);
+    }
+
+    private static void StartProcessingKeyboardInput(DashboardState dashboardState, CancellationToken cancellationToken)
+    {
+        // Keyboard input loop.
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+                await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+                {
+                    // If the user presses V, show the logs view.
+                    if (key.Key == ConsoleKey.V)
+                    {
+                        state.ShowAppHostLogs = !state.ShowAppHostLogs;
+                    }
+                    else
+                    {
+                        // Suppress all other inputs for now.
+                    }
+
+                    return Task.CompletedTask;
+                });
+            }
+        }, cancellationToken);
+    }
+
+    private static void StartStreamingResourceStates(DashboardState dashboardState, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        // Background job to get resource states and update state.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+
+                await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                {
+                    await dashboardState.Updates.Writer.WriteAsync((state, cancellationToken) =>
+                    {
+                        state.ResourceStates[resourceState.Resource] = resourceState;
+                        return Task.CompletedTask;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Here any exceptions we get from the background stream we
+                // propogate up to the UI thread so our normal error handling
+                // logic can take care of it. There are no-non fatal errors if
+                // resource state streaming fails - but there are some cases
+                // where we want to just silently exit (such as the case of
+                // cancellation).
+                dashboardState.Updates.Writer.TryWrite((state, cancellationToken) =>
+                {
+                    throw ex;
+                });
+            }
+        }, cancellationToken);
     }
 }

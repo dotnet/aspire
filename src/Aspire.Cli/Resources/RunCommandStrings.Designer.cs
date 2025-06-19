@@ -117,6 +117,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string PressVToViewLogs {
+            get {
+                return ResourceManager.GetString("PressVToViewLogs", resourceCulture);
+            }
+        }
+        
         public static string ProjectCouldNotBeRun {
             get {
                 return ResourceManager.GetString("ProjectCouldNotBeRun", resourceCulture);

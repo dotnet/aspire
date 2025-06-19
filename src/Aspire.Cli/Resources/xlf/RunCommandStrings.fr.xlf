@@ -13,9 +13,9 @@
         <note />
       </trans-unit>
       <trans-unit id="Health">
-        <source>The health of the resource, eg Healthy</source>
-        <target state="new">The health of the resource, eg Healthy</target>
-        <note />
+        <source>Health</source>
+        <target state="new">Health</target>
+        <note>The health of the resource, eg Healthy</note>
       </trans-unit>
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
@@ -25,6 +25,11 @@
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
         <target state="new">Press [bold]Ctrl+C[/] to stop the app host and exit.</target>
+        <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="PressVToViewLogs">
+        <source>Press [bold]V[/] to to view app host logs.</source>
+        <target state="new">Press [bold]V[/] to to view app host logs.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

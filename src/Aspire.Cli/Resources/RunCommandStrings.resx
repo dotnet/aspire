@@ -137,13 +137,18 @@
     <comment>The state of the resource, eg Running</comment>
   </data>
   <data name="Health" xml:space="preserve">
-    <value>The health of the resource, eg Healthy</value>
+    <value>Health</value>
+    <comment>The health of the resource, eg Healthy</comment>
   </data>
   <data name="Endpoints" xml:space="preserve">
     <value>Endpoints</value>
   </data>
   <data name="PressCtrlCToStopAppHost" xml:space="preserve">
     <value>Press [bold]Ctrl+C[/] to stop the app host and exit.</value>
+    <comment>[bold] should not be localized</comment>
+  </data>
+  <data name="PressVToViewLogs" xml:space="preserve">
+    <value>Press [bold]V[/] to to view app host logs.</value>
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">

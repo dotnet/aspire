@@ -9,6 +9,7 @@ namespace Aspire.Cli.Rendering.Dashboard;
 internal sealed class DashboardState()
 {
     public bool ShowAppHostLogs { get; set; }
+    public bool AppHostLogsHaveErrors { get; set; }
     public string? DirectDashboardUrl { get; set; }
     public string? CodespacesDashboardUrl { get; set; }
     public Dictionary<string, RpcResourceState> ResourceStates { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -25,6 +26,7 @@ internal sealed class DashboardState()
 
     public void AppendError(string error)
     {
+        AppHostLogsHaveErrors = true;
         AppHostLogs.Add(("stdout", error));
     }
 }
