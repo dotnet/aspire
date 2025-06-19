@@ -6,9 +6,7 @@
   "symbolInfo": [
     {
       "id": "AspireVersion",
-      "isVisible": true,
-      "persistenceScope": "shared",
-      "persistenceScopeName": "aspireTemplates"
+      "isVisible": true
     }
   ],
   "unsupportedHosts": [
