@@ -30,7 +30,7 @@ resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@202
   scope: infra_acr
 }
 
-resource infra_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource infra_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('infralaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {

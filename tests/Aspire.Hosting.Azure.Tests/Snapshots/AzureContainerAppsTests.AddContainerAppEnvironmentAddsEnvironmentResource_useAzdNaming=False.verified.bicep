@@ -30,7 +30,7 @@ resource env_acr_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04
   scope: env_acr
 }
 
-resource env_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource env_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('envlaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
