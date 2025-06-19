@@ -5,7 +5,7 @@
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",
   "symbols/Framework/choices/net9.0/description": "Cible net9.0",
-  "symbols/Framework/choices/net10.0/description": "Target net10.0",
+  "symbols/Framework/choices/net10.0/description": "Net10.0 cible",
   "symbols/AspireVersion/description": "La version de .NET Aspire à utiliser.",
   "symbols/AspireVersion/displayName": "Version .NET Aspire",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",

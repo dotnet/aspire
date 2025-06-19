@@ -5,7 +5,7 @@
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/Framework/choices/net9.0/description": "目標 net9.0",
-  "symbols/Framework/choices/net10.0/description": "Target net10.0",
+  "symbols/Framework/choices/net10.0/description": "目標 net10.0",
   "symbols/AspireVersion/description": "要使用的 .NET Aspire 版本。",
   "symbols/AspireVersion/displayName": ".NET Aspire 版本",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",

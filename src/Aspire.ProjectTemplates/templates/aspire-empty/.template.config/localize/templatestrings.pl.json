@@ -5,7 +5,7 @@
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",
-  "symbols/Framework/choices/net10.0/description": "Target net10.0",
+  "symbols/Framework/choices/net10.0/description": "Docelowa platforma net10.0",
   "symbols/AspireVersion/description": "Wersja programu .NET Aspire do użycia.",
   "symbols/AspireVersion/displayName": "Wersja programu .NET Aspire",
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
