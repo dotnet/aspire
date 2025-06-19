@@ -2,8 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
-// using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Exec;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -67,10 +66,17 @@ public class ExecTests(ITestOutputHelper output)
             // .WithReference(pgsqlDb);
 
         await using var app = await builder.BuildAsync();
-        await app.StartAsync();
 
-        var executionService = app.Services.GetRequiredService<ExecutionService>();
-        await executionService.ExecuteAsync(CancellationToken.None);
+        // try get logs for the future command execution
+        var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
+        var outputStream = appHostRpcTarget.ExecAsync(CancellationToken.None);
+
+        var startTask = app.StartAsync();
+        await foreach (var message in outputStream)
+        {
+            output.WriteLine($"Received output: [{message.LogLevel}] {message.Text}");
+        }
+        await startTask;
 
         AssertMigrationsCreated(myWebAppProjectMetadata);
         DeleteMigrations(myWebAppProjectMetadata);

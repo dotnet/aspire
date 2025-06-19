@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Exec;
@@ -15,7 +16,8 @@ internal class ExecutionService
     private readonly ExecOptions _execOptions;
     private readonly DistributedApplicationModel _model;
 
-    private readonly Channel<string> _logChannel = Channel.CreateUnbounded<string>();
+    private readonly Channel<(LogLevel, string)> _logChannel = Channel.CreateUnbounded<(LogLevel, string)>();
+    public Channel<(LogLevel, string)> LogChannel => _logChannel;
 
     public ExecutionService(
         IOptions<ExecOptions> execOptions,
@@ -43,6 +45,8 @@ internal class ExecutionService
         }
 
         // notification service can be used only from DCP because we need resourceId, not resourceName
+        // i am not sure we really need it here unless we need to follow the resource lifetime ???
+        // ---------
         //if (!_noticationService.TryGetCurrentState(_execOptions.ResourceName, out var resourceState))
         //{ 
         //    throw new ArgumentException($"Can't find resource with {_execOptions.ResourceName} name.");
@@ -55,6 +59,9 @@ internal class ExecutionService
         var serviceLogger = _loggerService.GetLogger(targetExecResource);
         var execLogger = new ExecLogger(serviceLogger, _logChannel);
 
-        await targetExecResource.ExecuteAsync(_execOptions, logger: execLogger, loggerDisposable: execLogger, cancellationToken).ConfigureAwait(false);
+        await targetExecResource.ExecuteAsync(_execOptions, logger: execLogger, cancellationToken).ConfigureAwait(false);
+
+        // important: complete the logging here, so clients know there are no more events coming
+        execLogger.Complete();
     }
 }

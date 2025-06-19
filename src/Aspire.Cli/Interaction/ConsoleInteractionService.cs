@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
@@ -101,9 +102,13 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
     }
 
-    public void WriteConsoleLog(string message, bool isError = false)
+    public void WriteConsoleLog(string message, LogLevel logLevel = LogLevel.Information)
     {
-        var style = isError ? s_errorMessageStyle : s_infoMessageStyle;
+        var style = logLevel switch
+        {
+            > LogLevel.Information => s_errorMessageStyle,
+            _ => s_infoMessageStyle
+        };
         _ansiConsole.WriteLine(message, style);
     }
 

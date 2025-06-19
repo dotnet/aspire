@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.Backchannel;
 
 /// <summary>
@@ -74,4 +76,10 @@ internal sealed class PublishingActivityState
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
     public bool IsError { get; init; }
+}
+
+internal sealed class CommandOutput
+{
+    public required string Text { get; init; }
+    public required LogLevel LogLevel { get; init; }
 }

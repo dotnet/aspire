@@ -43,7 +43,7 @@ public class ProjectResource(string name)
     }
 
     /// <inheritdoc />
-    public async Task ExecuteAsync(ExecOptions options, ILogger logger, IDisposable? loggerDisposable, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(ExecOptions options, ILogger logger, CancellationToken cancellationToken)
     {
         var projectMetadata = this.GetProjectMetadata();
 
@@ -76,7 +76,6 @@ public class ProjectResource(string name)
         finally
         {
             logger.LogInformation("exec '{command}' finished with exitCode {exitCode}", options.Command, exitCode);
-            loggerDisposable?.Dispose();
         }
         
 

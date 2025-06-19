@@ -8,10 +8,10 @@ namespace Aspire.Hosting.Exec;
 
 internal class ExecLogger : ILogger, IDisposable
 {
-    private readonly Channel<string> _logChannel;
+    private readonly Channel<(LogLevel, string)> _logChannel;
     private readonly ILogger _serviceLogger;
 
-    public ExecLogger(ILogger serviceLogger, Channel<string> logChannel)
+    public ExecLogger(ILogger serviceLogger, Channel<(LogLevel, string)> logChannel)
     {
         _serviceLogger = serviceLogger;
         _logChannel = logChannel;
@@ -36,7 +36,7 @@ internal class ExecLogger : ILogger, IDisposable
 
         ArgumentNullException.ThrowIfNull(formatter);
 
-        _logChannel.Writer.TryWrite($"{logLevel}: {formatter(state, exception)}");
+        _logChannel.Writer.TryWrite((logLevel, formatter(state, exception)));
         _serviceLogger.Log(logLevel, eventId, state, exception, formatter);
     }
 

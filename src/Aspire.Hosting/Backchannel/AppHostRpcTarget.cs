@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +21,21 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options
-    )
+    DistributedApplicationOptions options,
+    ExecutionService executionService)
 {
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await foreach (var (level, text) in executionService.LogChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        {
+            yield return new CommandOutput
+            {
+                LogLevel = level,
+                Text = text
+            };
+        }
+    }
+
     public async IAsyncEnumerable<PublishingActivityState> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)

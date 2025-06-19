@@ -17,8 +17,7 @@ public interface IResourceSupportsExec : IResource
     /// </summary>
     /// <param name="options"></param>
     /// <param name="logger"></param>
-    /// <param name="loggerDisposable"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task ExecuteAsync(ExecOptions options, ILogger logger, IDisposable? loggerDisposable, CancellationToken cancellationToken);
+    Task ExecuteAsync(ExecOptions options, ILogger logger, CancellationToken cancellationToken);
 }

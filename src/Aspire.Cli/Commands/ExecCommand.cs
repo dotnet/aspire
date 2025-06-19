@@ -133,6 +133,28 @@ internal class ExecCommand : BaseCommand
                     return backchannel;
                 });
 
+            _ = await _interactionService.ShowStatusAsync<int>(
+                ":running_shoe: Running exec...",
+                async () =>
+                {
+                    // execute tool and stream the output
+                    var outputStream = backchannel.ExecAsync(cancellationToken);
+                    await foreach (var output in outputStream)
+                    {
+                        _interactionService.WriteConsoleLog(output.Text, output.LogLevel);
+                    }
+
+                    return ExitCodeConstants.Success;
+                });
+
+            _ = await _interactionService.ShowStatusAsync<int>(
+                ":linked_paperclips: Stopping app host...",
+                async () =>
+                {
+                    await backchannel.RequestStopAsync(cancellationToken);
+                    return ExitCodeConstants.Success;
+                });
+
             var result = await pendingRun;
             if (result != 0)
             {

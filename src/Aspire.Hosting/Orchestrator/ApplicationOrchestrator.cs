@@ -341,7 +341,7 @@ internal sealed class ApplicationOrchestrator
             await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
 
-        // await _executionService.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        await _executionService.ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

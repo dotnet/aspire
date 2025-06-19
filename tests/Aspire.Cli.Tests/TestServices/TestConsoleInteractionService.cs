@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Tests.TestServices;
@@ -79,9 +80,8 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
-    public void WriteConsoleLog(string message, bool isError = false)
+    public void WriteConsoleLog(string message, LogLevel logLevel = LogLevel.Information)
     {
-        var type = isError ? "Error" : "Info";
-        Console.WriteLine($"[{type}] {message}");
+        Console.WriteLine($"[{logLevel.ToString()}] {message}");
     }
 }
