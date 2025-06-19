@@ -16,8 +16,8 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.2"])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.3"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.4"])]
     [Trait("category", "basic-build")]
     public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
@@ -29,7 +29,9 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
         {
             TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
             TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
+            TestSdk.Next => BuildEnvironment.ForNextSdkOnly,
             TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
+            TestSdk.NextSdkAndCurrentRuntime => BuildEnvironment.ForNextSdkAndCurrentRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 

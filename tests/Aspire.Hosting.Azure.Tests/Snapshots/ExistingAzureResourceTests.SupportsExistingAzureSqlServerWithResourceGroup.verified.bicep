@@ -3,11 +3,11 @@ param location string = resourceGroup().location
 
 param existingResourceName string
 
-resource sqlServer 'Microsoft.Sql/servers@2021-11-01' existing = {
+resource sqlServer 'Microsoft.Sql/servers@2023-08-01' existing = {
   name: existingResourceName
 }
 
-resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
     endIpAddress: '0.0.0.0'

@@ -23,7 +23,7 @@ spec:
           ports:
             - name: "http"
               protocol: "TCP"
-              containerPort: "8080"
+              containerPort: 8080
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:

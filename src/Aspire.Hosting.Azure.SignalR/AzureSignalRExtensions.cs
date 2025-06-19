@@ -83,7 +83,8 @@ public static class AzureSignalRExtensions
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } },
+                DisableLocalAuth = true,
             });
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });

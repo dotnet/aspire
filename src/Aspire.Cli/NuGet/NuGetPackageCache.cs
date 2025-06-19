@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Resources;
+using System.Globalization;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -25,7 +27,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
         {
             return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
-        }) ?? throw new NuGetPackageCacheException("Failed to retrieve template packages via cache.");
+        }) ?? throw new NuGetPackageCacheException(ErrorStrings.FailedToRetrieveCachedTemplatePackages);
 
         return packages;
     }
@@ -61,8 +63,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
             if (result.ExitCode != 0)
             {
-                throw new NuGetPackageCacheException(
-                    $"Failed to search for packages. Exit code: {result}");
+                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToSearchForPackages, result.ExitCode));
             }
             else
             {
@@ -91,7 +92,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
             var isHostingOrCommunityToolkitNamespaced = packageName.StartsWith("Aspire.Hosting.", StringComparison.Ordinal) ||
                    packageName.StartsWith("CommunityToolkit.Aspire.Hosting.", StringComparison.Ordinal) ||
                    packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal);
-            
+
             var isExcluded = packageName.StartsWith("Aspire.Hosting.AppHost") ||
                              packageName.StartsWith("Aspire.Hosting.Sdk") ||
                              packageName.StartsWith("Aspire.Hosting.Orchestration") ||

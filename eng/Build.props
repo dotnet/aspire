@@ -3,6 +3,7 @@
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)eng\clipack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
 
     <!-- `$(SkipTestProjects)` allows skipping test projects from being

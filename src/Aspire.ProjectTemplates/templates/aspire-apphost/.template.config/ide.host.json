@@ -10,15 +10,15 @@
     },
     {
       "id": "AspireVersion",
-      "isVisible": true,
-      "persistenceScope": "shared",
-      "persistenceScopeName": "aspireTemplates"
+      "isVisible": true
     },
     {
       "id": "AspireVersionNet9",
-      "isVisible": true,
-      "persistenceScope": "shared",
-      "persistenceScopeName": "aspireTemplates"
+      "isVisible": true
+    },
+    {
+      "id": "AspireVersionNet10",
+      "isVisible": true
     }
   ],
   "unsupportedHosts": [

@@ -1,0 +1,11 @@
+---
+apiVersion: "v1"
+kind: "Secret"
+metadata:
+  name: "special-app-secrets"
+  labels:
+    app: "aspire"
+    component: "SpeciaL-ApP"
+stringData:
+  param3: "{{ .Values.secrets.SpeciaL_ApP.param3 }}"
+type: "Opaque"

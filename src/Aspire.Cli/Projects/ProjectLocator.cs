@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +23,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        return await interactionService.ShowStatusAsync("Searching", async () =>
+        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
             var lockObject = new object();
@@ -32,7 +34,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 IgnoreInaccessible = true
             };
 
-            interactionService.DisplayMessage("magnifying_glass_tilted_left", "Finding app hosts...");
+            interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
@@ -97,7 +99,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     else
                     {
                         // AppHost file was specified but doesn't exist, return null to trigger fallback logic
-                        interactionService.DisplayMessage("warning", $"AppHost file was specified in '{settingsFile.FullName}' but it does not exist at '{qualifiedAppHostPath}'.");
+                        interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
                         return null;
                     }
                 }
@@ -124,7 +126,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             if (!projectFile.Exists)
             {
                 logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
-                throw new ProjectLocatorException($"Project file does not exist.");
+                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
 
             logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
@@ -148,7 +150,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (appHostProjects.Count == 0)
         {
-            throw new ProjectLocatorException("No project file found.");
+            throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
         }
         else if (appHostProjects.Count == 1)
         {
@@ -157,7 +159,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         else if (appHostProjects.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
-                "Select app host to run",
+                InteractionServiceStrings.SelectAppHostToRun,
                 appHostProjects,
                 projectFile => $"{projectFile.Name} ({Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
@@ -179,9 +181,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         // Use the configuration writer to set the appHostPath, which will merge with any existing settings
         await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
-        
+
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage("file_cabinet", $"Created settings file at [bold]'{relativeSettingsFilePath}'[/].");
+        interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
 }
 

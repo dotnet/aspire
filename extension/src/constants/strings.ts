@@ -23,5 +23,5 @@ export const noWorkspaceOpen = localize('aspire-vscode.strings.noWorkspaceOpen',
 
 // Activation and RPC Server Messages
 export const activated = localize('aspire-vscode.strings.activated', 'Aspire Extension activated.');
-export const rpcServerListening = (port: number) => localize('aspire-vscode.rpcserver.listening', 'JSON-RPC server listening on port {0}', port);
+export const rpcServerListening = (address: string) => localize('aspire-vscode.rpcserver.listening', 'Aspire extension server listening on {0}', address);
 export const rpcServerAddressError = localize('aspire-vscode.rpcserver.addressError', 'Failed to get RPC server address. The extension may not function correctly.');

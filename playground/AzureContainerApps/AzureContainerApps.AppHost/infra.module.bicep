@@ -5,13 +5,13 @@ param userPrincipalId string
 
 param tags object = { }
 
-resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
   tags: tags
 }
 
-resource infra_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+resource infra_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: take('infraacr${uniqueString(resourceGroup().id)}', 50)
   location: location
   sku: {
@@ -30,7 +30,7 @@ resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@202
   scope: infra_acr
 }
 
-resource infra_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource infra_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('infralaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
@@ -41,7 +41,7 @@ resource infra_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   tags: tags
 }
 
-resource infra 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource infra 'Microsoft.App/managedEnvironments@2025-01-01' = {
   name: take('infra${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
@@ -97,7 +97,7 @@ resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/
   parent: storageVolumeFileService
 }
 
-resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/storages@2025-01-01' = {
   name: take('managedstoragevolumescache${uniqueString(resourceGroup().id)}', 24)
   properties: {
     azureFile: {

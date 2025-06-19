@@ -11,16 +11,16 @@ param mydb_kv_outputs_name string
 
 param api_identity_outputs_clientid string
 
-resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
 
-resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
   parent: mydb_kv_outputs_name_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
   location: location
   properties: {

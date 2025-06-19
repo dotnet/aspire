@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource funcapp_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('funcapp_identity-${uniqueString(resourceGroup().id)}', 128)
   location: location
 }
