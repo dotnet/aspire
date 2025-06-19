@@ -3,6 +3,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Exec;
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -11,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class ProjectResource(string name)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport,
-    IComputeResource
+    IComputeResource, IResourceSupportsExec
 {
     // Keep track of the config host for each Kestrel endpoint annotation
     internal Dictionary<EndpointAnnotation, string> KestrelEndpointAnnotationHosts { get; } = new();
@@ -36,5 +40,27 @@ public class ProjectResource(string name)
         return !Annotations.OfType<EndpointEnvironmentInjectionFilterAnnotation>()
             .Select(a => a.Filter)
             .Any(f => !f(endpoint));
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteAsync(ExecOptions options, ILogger logger, IDisposable? loggerDisposable, CancellationToken cancellationToken)
+    {
+        var projectMetadata = this.GetProjectMetadata();
+
+        var processSpec = new ProcessSpec("dotnet")
+        {
+            Arguments = "ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
+            EnvironmentVariables = new Dictionary<string, string>(),
+            WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath),
+            OnOutputData = data => logger.Log(LogLevel.Information, data),
+            OnErrorData = data => logger.Log(LogLevel.Error, data)
+        };
+
+        var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
+        var result = await processResultTask.ConfigureAwait(false);
+
+        logger.LogInformation("exec '{command}' finished with exitCode {exitCode}", options.Command, result.ExitCode);
+        await disposable.DisposeAsync().ConfigureAwait(false);
+        loggerDisposable?.Dispose();
     }
 }

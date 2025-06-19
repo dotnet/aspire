@@ -10,13 +10,13 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 
-var app = builder.Build();
-
 builder.Services.AddDbContextPool<MyAppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("mainDb");
     options.UseNpgsql(connectionString);
 });
+
+var app = builder.Build();
 
 app.MapDefaultEndpoints();
 

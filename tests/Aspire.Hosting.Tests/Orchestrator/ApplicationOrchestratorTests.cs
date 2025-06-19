@@ -448,8 +448,8 @@ public class ApplicationOrchestratorTests
             applicationEventing ?? new DistributedApplicationEventing(),
             serviceProvider,
             new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
-            );
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider }),
+            executionService: null!);
     }
 
     private sealed class CustomResource(string name) : Resource(name);
