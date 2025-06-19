@@ -14,7 +14,8 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task EnsureCertificatesTrustedAsyncSucceedsOnNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetCliRunnerFactory = sp =>
             {
@@ -23,7 +24,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
                 runner.TrustHttpCertificateAsyncCallback = (options, _) =>
                 {
                     Assert.NotNull(options.StandardErrorCallback);
-                    options.StandardErrorCallback!.Invoke(CertificateService.DevCertsPartialTrustMessage);
+                    options.StandardErrorCallback!.Invoke("There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.");
                     return 4;
                 };
                 return runner;

@@ -61,6 +61,7 @@ public static class AzureEventHubsExtensions
 
                     var resource = new AzureProvisioning.EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
                     {
+                        DisableLocalAuth = true,
                         Sku = new AzureProvisioning.EventHubsSku()
                         {
                             Name = skuParameter

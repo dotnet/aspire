@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Data.Common;
 using Aspire.Azure.Common;
 
 using Azure.Core;
@@ -110,10 +109,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
                 return;
             }
 
-            var connectionBuilder = new DbConnectionStringBuilder()
-            {
-                ConnectionString = connectionString
-            };
+            var connectionBuilder = new StableConnectionStringBuilder(connectionString);
 
             // Note: Strip out the ConsumerGroup and EntityPath from the connection string in order
             // to tell if we are left with just Endpoint.
@@ -132,7 +128,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
                 connectionBuilder.Remove("EntityPath");
             }
 
-            if (connectionBuilder.Count == 1 &&
+            if (connectionBuilder.Count() == 1 &&
                 connectionBuilder.TryGetValue("Endpoint", out var endpoint))
             {
                 // if all that's left is Endpoint, it is a fully qualified namespace

@@ -5,7 +5,7 @@ param config_outputs_name string
 
 param principalId string
 
-resource config 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
+resource config 'Microsoft.AppConfiguration/configurationStores@2024-06-01' existing = {
   name: config_outputs_name
 }
 

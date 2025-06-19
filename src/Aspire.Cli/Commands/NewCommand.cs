@@ -2,27 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(NewCommand));
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
+    private readonly AspireCliTelemetry _telemetry;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider)
-        : base("new", "Create a new Aspire sample project.")
+    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliTelemetry telemetry)
+        : base("new", NewCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
@@ -30,30 +31,32 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
         _interactionService = interactionService;
+        _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
-        nameOption.Description = "The name of the project to create.";
+        nameOption.Description = NewCommandStrings.NameArgumentDescription;
         nameOption.Recursive = true;
         Options.Add(nameOption);
 
         var outputOption = new Option<string?>("--output", "-o");
-        outputOption.Description = "The output path for the project.";
+        outputOption.Description = NewCommandStrings.OutputArgumentDescription;
         outputOption.Recursive = true;
         Options.Add(outputOption);
 
         var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = "The NuGet source to use for the project templates.";
+        sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
         sourceOption.Recursive = true;
         Options.Add(sourceOption);
 
         var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = "The version of the project templates to use.";
+        templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
 
@@ -84,7 +87,7 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);
@@ -105,7 +108,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
-            "Select a template version:",
+            NewCommandStrings.SelectATemplateVersion,
             candidatePackages,
             (p) => $"{p.Version} ({p.Source})",
             cancellationToken
@@ -115,7 +118,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForStringAsync(
-            "Enter the output path:",
+            NewCommandStrings.EnterTheOutputPath,
             defaultValue: path,
             cancellationToken: cancellationToken
             );
@@ -124,20 +127,18 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForStringAsync(
-            "Enter the project name:",
+            NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
-            validator: (name) => {
-                return ProjectNameValidator.IsProjectNameValid(name)
-                    ? ValidationResult.Success()
-                    : ValidationResult.Error("Invalid project name.");
-            },
+            validator: name => ProjectNameValidator.IsProjectNameValid(name)
+                ? ValidationResult.Success()
+                : ValidationResult.Error(NewCommandStrings.InvalidProjectName),
             cancellationToken: cancellationToken);
     }
 
     public virtual async Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
-            "Select a project template:",
+            NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
             t => $"{t.Name} ({t.Description})",
             cancellationToken

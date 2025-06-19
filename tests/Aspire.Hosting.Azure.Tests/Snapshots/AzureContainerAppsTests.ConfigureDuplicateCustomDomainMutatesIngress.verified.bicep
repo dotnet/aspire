@@ -11,7 +11,7 @@ param customDomain string
 
 param expectedCertificateName string
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
   location: location
   properties: {

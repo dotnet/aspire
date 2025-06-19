@@ -17,7 +17,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -30,7 +31,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommandInteractiveFlowSmokeTest()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -72,7 +74,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommandDerivesOutputPathFromProjectNameForStarterTemplate()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -129,7 +132,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         IEnumerable<NuGetPackage>? promptedPackages = null;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -194,7 +198,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         IEnumerable<NuGetPackage>? promptedPackages = null;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -267,7 +272,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         var promptedForName = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -320,7 +326,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         bool promptedForPath = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -373,7 +380,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         bool promptedForTemplate = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -426,7 +434,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         bool promptedForTemplateVersion = false;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -479,9 +488,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     {
         string? displayedErrorMessage = null;
 
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options => {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestInteractionService();
+                var testInteractionService = new TestConsoleInteractionService();
                 testInteractionService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
@@ -511,7 +521,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper, options =>
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.NewCommandPrompterFactory = (sp) => {
                 var interactionService = sp.GetRequiredService<IInteractionService>();

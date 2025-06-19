@@ -39,6 +39,56 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task NoResourceName_SingleResource_RedirectToResource()
+    {
+        // Arrange
+        ILogger logger = null!;
+        var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                logger.LogInformation($"Requesting logs for: {name}");
+                subscribedResourceNamesChannel.Writer.TryWrite(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+
+        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var changeHandler = navigationManager.RegisterLocationChangingHandler(c =>
+        {
+            targetLocationTcs.SetResult(c.TargetLocation);
+            return ValueTask.CompletedTask;
+        });
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act 1
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert 1
+        Assert.Equal("/consolelogs/resource/test-resource", await targetLocationTcs.Task.DefaultTimeout());
+    }
+
+    [Fact]
     public async Task ResourceName_SubscribeOnLoadAndChange_SubscribeConsoleLogsOnce()
     {
         // Arrange

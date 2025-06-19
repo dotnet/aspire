@@ -1,5 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("env");
+
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("blob");
@@ -31,6 +33,7 @@ var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_F
     .WithReference(queue);
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
+    .WithExternalHttpEndpoints()
     .WithReference(eventHub).WaitFor(eventHub)
 #if !SKIP_UNSTABLE_EMULATORS
     .WithReference(serviceBus).WaitFor(serviceBus)

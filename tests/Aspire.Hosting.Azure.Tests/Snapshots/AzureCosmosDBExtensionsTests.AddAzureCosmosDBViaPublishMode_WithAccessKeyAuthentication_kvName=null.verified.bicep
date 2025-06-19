@@ -13,6 +13,11 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
         failoverPriority: 0
       }
     ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
@@ -46,17 +51,18 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
         paths: [
           'mypartitionkeypath'
         ]
+        kind: 'Hash'
       }
     }
   }
   parent: mydatabase
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: cosmos_kv_outputs_name
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--cosmos'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
@@ -64,7 +70,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--mydatabase'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
@@ -72,7 +78,7 @@ resource mydatabase_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-
   parent: keyVault
 }
 
-resource mycontainer_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource mycontainer_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--mycontainer'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'

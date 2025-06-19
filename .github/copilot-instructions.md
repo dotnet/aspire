@@ -37,6 +37,7 @@ In building and testing, never use `dotnet` without extension. Use `dotnet.sh` o
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Do not use Directory.SetCurrentDirectory in tests as it can cause side effects when tests execute concurrently.
 
 ## Running tests
 
@@ -48,6 +49,20 @@ Note that tests for a project can be executed without first building from the ro
 
 (4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --logger "console;verbosity=detailed" -- --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
 
+### Important: Excluding Quarantined Tests
+
+When running tests in automated environments (including Copilot agent), **always exclude quarantined tests** to avoid false negatives:
+
+```bash
+# Correct - excludes quarantined tests (use this in automation)
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter-not-trait "quarantined=true"
+
+# For specific test filters, combine with quarantine exclusion
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter "TestName" --filter-not-trait "quarantined=true"
+```
+
+Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
+
 ## Quarantined tests
 
 - Tests that are flaky and don't fail deterministically are marked with the `QuarantinedTest` attribute.
@@ -56,6 +71,14 @@ Note that tests for a project can be executed without first building from the ro
 - A github issue url is used with the attribute
 
 Example: `[QuarantinedTest("..issue url..")]`
+
+## Snapshot Testing with Verify
+
+* We use the Verify library (Verify.XunitV3) for snapshot testing in several test projects.
+* Snapshot files are stored in `Snapshots` directories within test projects.
+* When tests that use snapshot testing are updated and generate new output, the snapshots need to be accepted.
+* Use `dotnet verify accept -y` to accept all pending snapshot changes after running tests.
+* The verify tool is available globally as part of the copilot setup.
 
 ## Editing resources
 

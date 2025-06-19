@@ -53,8 +53,23 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
         _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocated);
+        _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+    }
+
+    private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
+    {
+        if (@event.Resource is IResourceWithConnectionString resourceWithConnectionString)
+        {
+            var connectionString = await resourceWithConnectionString.GetConnectionStringAsync(token).ConfigureAwait(false);
+
+            await _notificationService.PublishUpdateAsync(resourceWithConnectionString, state => state with
+            {
+                Properties = [.. state.Properties, new(CustomResourceKnownProperties.ConnectionString, connectionString) { IsSensitive = true }]
+            })
+            .ConfigureAwait(false);
+        }
     }
 
     private async Task WaitForInBeforeResourceStartedEvent(BeforeResourceStartedEvent @event, CancellationToken cancellationToken)

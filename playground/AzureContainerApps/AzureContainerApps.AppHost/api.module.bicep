@@ -33,16 +33,16 @@ param certificateName string
 
 param customDomain string
 
-resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: account_kv_outputs_name
 }
 
-resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--account'
   parent: account_kv_outputs_name_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api'
   location: location
   properties: {
@@ -81,6 +81,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: infra_outputs_azure_container_apps_environment_id
     template: {

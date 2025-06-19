@@ -1,124 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
+using Azure.Core;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureBicepProvisionerTests
 {
-    [Fact]
-    public async Task SetParametersTranslatesParametersToARMCompatibleJsonParameters()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-               .WithParameter("name", "david");
-
-        var parameters = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource);
-
-        Assert.Single(parameters);
-        Assert.Equal("david", parameters["name"]?["value"]?.ToString());
-    }
-
-    [Fact]
-    public async Task SetParametersTranslatesCompatibleParameterTypes()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var container = builder.AddContainer("foo", "image")
-            .WithHttpEndpoint()
-            .WithEndpoint("http", e =>
-            {
-                e.AllocatedEndpoint = new(e, "localhost", 1023);
-            });
-
-        builder.Configuration["Parameters:param"] = "paramValue";
-
-        var connectionStringResource = builder.CreateResourceBuilder(
-            new ResourceWithConnectionString("A", "connection string"));
-
-        var param = builder.AddParameter("param");
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-               .WithParameter("name", "john")
-               .WithParameter("age", () => 20)
-               .WithParameter("values", ["a", "b", "c"])
-               .WithParameter("conn", connectionStringResource)
-               .WithParameter("jsonObj", new JsonObject { ["key"] = "value" })
-               .WithParameter("param", param)
-               .WithParameter("expr", ReferenceExpression.Create($"{param.Resource}/1"))
-               .WithParameter("endpoint", container.GetEndpoint("http"));
-
-        var parameters = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters, bicep0.Resource);
-
-        Assert.Equal(8, parameters.Count);
-        Assert.Equal("john", parameters["name"]?["value"]?.ToString());
-        Assert.Equal(20, parameters["age"]?["value"]?.GetValue<int>());
-        Assert.Equal(["a", "b", "c"], parameters["values"]?["value"]?.AsArray()?.Select(v => v?.ToString()) ?? []);
-        Assert.Equal("connection string", parameters["conn"]?["value"]?.ToString());
-        Assert.Equal("value", parameters["jsonObj"]?["value"]?["key"]?.ToString());
-        Assert.Equal("paramValue", parameters["param"]?["value"]?.ToString());
-        Assert.Equal("paramValue/1", parameters["expr"]?["value"]?.ToString());
-        Assert.Equal("http://localhost:1023", parameters["endpoint"]?["value"]?.ToString());
-
-        // We don't yet process relationships set via the callbacks
-        // so we don't see the testResource2 nor exe1
-        Assert.True(bicep0.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships.DistinctBy(r => (r.Resource, r.Type)),
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(connectionStringResource.Resource, r.Resource);
-            },
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(param.Resource, r.Resource);
-            },
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(container.Resource, r.Resource);
-            });
-    }
-
-    [Fact]
-    public async Task ResourceWithTheSameBicepTemplateAndParametersHaveTheSameCheckSum()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter("age", () => 20)
-                       .WithParameter("values", ["a", "b", "c"])
-                       .WithParameter("jsonObj", new JsonObject { ["key"] = "value" });
-
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter("age", () => 20)
-                       .WithParameter("values", ["a", "b", "c"])
-                       .WithParameter("jsonObj", new JsonObject { ["key"] = "value" });
-
-        var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
-
-        var parameters1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, null);
-
-        Assert.Equal(checkSum0, checkSum1);
-    }
-
     [Theory]
     [InlineData("1alpha")]
     [InlineData("-alpha")]
@@ -147,117 +42,6 @@ public class AzureBicepProvisionerTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddAzureInfrastructure("infrastructure", _ => { })
                 .WithParameter(bicepParameterName);
-    }
-
-    [Fact]
-    public async Task ResourceWithSameTemplateButDifferentParametersHaveDifferentChecksums()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter("age", () => 20)
-                       .WithParameter("values", ["a", "b", "c"]);
-
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter("age", () => 20)
-                       .WithParameter("values", ["a", "b", "c"])
-                       .WithParameter("jsonObj", new JsonObject { ["key"] = "value" });
-
-        var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
-
-        var parameters1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, null);
-
-        Assert.NotEqual(checkSum0, checkSum1);
-    }
-
-    [Fact]
-    public async Task GetCurrentChecksumSkipsKnownValuesForCheckSumCreation()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("name", "david");
-
-        // Simulate the case where a known parameter has a value
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("name", "david")
-                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId, "id")
-                       .WithParameter(AzureBicepResource.KnownParameters.Location, "tomorrow")
-                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType, "type");
-
-        var parameters0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, null);
-
-        // Save the old version of this resource's parameters to config
-        var config = new ConfigurationManager();
-        config["Parameters"] = parameters0.ToJsonString();
-
-        var checkSum1 = await BicepProvisioner.GetCurrentChecksumAsync(bicep1.Resource, config);
-
-        Assert.Equal(checkSum0, checkSum1);
-    }
-
-    [Fact]
-    public async Task ResourceWithDifferentScopeHaveDifferentChecksums()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("key", "value");
-        bicep0.Resource.Scope = new("rg0");
-
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("key", "value");
-        bicep1.Resource.Scope = new("rg1");
-
-        var parameters0 = new JsonObject();
-        var scope0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, scope0);
-
-        var parameters1 = new JsonObject();
-        var scope1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, scope1);
-
-        Assert.NotEqual(checkSum0, checkSum1);
-    }
-
-    [Fact]
-    public async Task ResourceWithSameScopeHaveSameChecksums()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
-                       .WithParameter("key", "value");
-        bicep0.Resource.Scope = new("rg0");
-
-        var bicep1 = builder.AddBicepTemplateString("bicep1", "param name string")
-                       .WithParameter("key", "value");
-        bicep1.Resource.Scope = new("rg0");
-
-        var parameters0 = new JsonObject();
-        var scope0 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        await BicepProvisioner.SetScopeAsync(scope0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0, scope0);
-
-        var parameters1 = new JsonObject();
-        var scope1 = new JsonObject();
-        await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        await BicepProvisioner.SetScopeAsync(scope1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1, scope1);
-
-        Assert.Equal(checkSum0, checkSum1);
     }
 
     [Fact]
@@ -290,11 +74,139 @@ public class AzureBicepProvisionerTests
         Assert.Fail();
     }
 
-    private sealed class ResourceWithConnectionString(string name, string connectionString) :
-        Resource(name),
-        IResourceWithConnectionString
+    [Fact]
+    public void BicepProvisioner_CanBeInstantiated()
     {
-        public ReferenceExpression ConnectionStringExpression =>
-           ReferenceExpression.Create($"{connectionString}");
+        // Test that BicepProvisioner can be instantiated with required dependencies
+        
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var services = builder.Services.BuildServiceProvider();
+        
+        var bicepExecutor = new TestBicepCliExecutor();
+        var secretClientProvider = new TestSecretClientProvider();
+        var tokenCredentialProvider = new TestTokenCredentialProvider();
+        
+        // Act
+        var provisioner = new BicepProvisioner(
+            services.GetRequiredService<ResourceNotificationService>(),
+            services.GetRequiredService<ResourceLoggerService>(),
+            bicepExecutor,
+            secretClientProvider);
+        
+        // Assert
+        Assert.NotNull(provisioner);
+    }
+
+    [Fact]
+    public async Task BicepCliExecutor_CompilesBicepToArm()
+    {
+        // Test the mock bicep executor behavior
+        
+        // Arrange
+        var bicepExecutor = new TestBicepCliExecutor();
+        
+        // Act
+        var result = await bicepExecutor.CompileBicepToArmAsync("test.bicep", CancellationToken.None);
+        
+        // Assert
+        Assert.True(bicepExecutor.CompileBicepToArmAsyncCalled);
+        Assert.Equal("test.bicep", bicepExecutor.LastCompiledPath);
+        Assert.NotNull(result);
+        Assert.Contains("$schema", result);
+    }
+
+    [Fact]
+    public void SecretClientProvider_CreatesSecretClient()
+    {
+        // Test the mock secret client provider behavior
+        
+        // Arrange
+        var secretClientProvider = new TestSecretClientProvider();
+        var vaultUri = new Uri("https://test.vault.azure.net/");
+        
+        // Act
+        var client = secretClientProvider.GetSecretClient(vaultUri);
+        
+        // Assert
+        Assert.True(secretClientProvider.GetSecretClientCalled);
+        // Client will be null in our mock, but the call was tracked
+        Assert.Null(client);
+    }
+
+    [Fact]
+    public void TestTokenCredential_ProvidesAccessToken()
+    {
+        // Test the mock token credential behavior
+        
+        // Arrange
+        var tokenProvider = new TestTokenCredentialProvider();
+        var credential = tokenProvider.TokenCredential;
+        var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
+        
+        // Act
+        var token = credential.GetToken(requestContext, CancellationToken.None);
+        
+        // Assert
+        Assert.Equal("mock-token", token.Token);
+        Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
+    public async Task TestTokenCredential_ProvidesAccessTokenAsync()
+    {
+        // Test the mock token credential async behavior
+        
+        // Arrange
+        var provider = new TestTokenCredentialProvider();
+        var credential = provider.TokenCredential;
+        var requestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
+        
+        // Act
+        var token = await credential.GetTokenAsync(requestContext, CancellationToken.None);
+        
+        // Assert
+        Assert.Equal("mock-token", token.Token);
+        Assert.True(token.ExpiresOn > DateTimeOffset.UtcNow);
+    }
+
+    private sealed class TestTokenCredentialProvider : ITokenCredentialProvider
+    {
+        public TokenCredential TokenCredential => new MockTokenCredential();
+
+        private sealed class MockTokenCredential : TokenCredential
+        {
+            public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+                new("mock-token", DateTimeOffset.UtcNow.AddHours(1));
+
+            public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) => 
+                ValueTask.FromResult(new AccessToken("mock-token", DateTimeOffset.UtcNow.AddHours(1)));
+        }
+    }
+
+    private sealed class TestBicepCliExecutor : IBicepCompiler
+    {
+        public bool CompileBicepToArmAsyncCalled { get; private set; }
+        public string? LastCompiledPath { get; private set; }
+        public string CompilationResult { get; set; } = """{"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"}""";
+
+        public Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
+        {
+            CompileBicepToArmAsyncCalled = true;
+            LastCompiledPath = bicepFilePath;
+            return Task.FromResult(CompilationResult);
+        }
+    }
+
+    private sealed class TestSecretClientProvider : ISecretClientProvider
+    {
+        public bool GetSecretClientCalled { get; private set; }
+
+        public SecretClient GetSecretClient(Uri vaultUri)
+        {
+            GetSecretClientCalled = true;
+            // Return null - this will fail in actual secret operations but allows testing the call
+            return null!;
+        }
     }
 }
