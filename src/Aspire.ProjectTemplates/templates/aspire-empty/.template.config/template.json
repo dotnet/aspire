@@ -92,14 +92,14 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        },
-        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.4"
