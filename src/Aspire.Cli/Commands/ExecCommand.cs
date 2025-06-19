@@ -12,8 +12,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
-using Spectre.Console.Rendering;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -27,7 +25,7 @@ internal class ExecCommand : BaseCommand
     private readonly AspireCliTelemetry _telemetry;
 
     public ExecCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
-        : base("exec", ExecCommandStrings.Description)
+        : base("exec", "description") // TODO localize
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -44,8 +42,12 @@ internal class ExecCommand : BaseCommand
         _telemetry = telemetry;
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
+        projectOption.Description = "apphost project"; // TODO localize
         Options.Add(projectOption);
+
+        var resourceOption = new Option<string>("--resource", "-r");
+        resourceOption.Description = "target resource"; // TODO localize
+        Options.Add(resourceOption);
 
         TreatUnmatchedTokensAsErrors = false;
     }
@@ -89,15 +91,23 @@ internal class ExecCommand : BaseCommand
                 StandardErrorCallback = runOutputCollector.AppendError,
             };
 
+            var targetResource = parseResult.GetValue<string>("--resource");
+
+            var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
+
+            string[] args = [
+                "--operation", "exec",
+                "--resource", targetResource!,
+                "--command", $"\"{string.Join(" ", commandTokens)}\"", // command
+                ..arbitraryFlags, // flags for the apphost: THEY MUST BE LAST otherwise switchmapping to configuration does not work ?
+            ];
+
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-
-            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
-
             var pendingRun = _runner.RunAsync(
                 projectFile: effectiveAppHostProjectFile,
                 watch: watch,
                 noBuild: !watch,
-                args: unmatchedTokens,
+                args: args,
                 env: env,
                 backchannelCompletionSource: backchannelCompletionSource,
                 options: runOptions,
@@ -107,13 +117,13 @@ internal class ExecCommand : BaseCommand
             // the AppHost is ready to accept requests.
             var backchannel = await _interactionService.ShowStatusAsync(
                 $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
-                async () => {
-
+                async () =>
+                {
                     // If we use the --wait-for-debugger option we print out the process ID
                     // of the apphost so that the user can attach to it.
                     if (waitForDebugger)
                     {
-                        _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                        _interactionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                     }
 
                     // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
@@ -179,5 +189,62 @@ internal class ExecCommand : BaseCommand
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+    }
+
+    private (ICollection<string> arbitary, ICollection<string> command) ParseCmdArgs(ParseResult parseResult)
+    {
+        var allTokens = parseResult.UnmatchedTokens.ToList();
+        int delimiterIndex = allTokens.IndexOf("--");
+        List<string> arbitraryFlags = new();
+        List<string> commandTokens = new();
+
+        // Find the index of the first token that is not an option (doesn't start with '-') and is not the value for a known option
+        // We'll use the options defined in this command to skip known option values
+        var knownOptions = new HashSet<string>(Options.SelectMany(o => o.Aliases));
+        int i = 0;
+        while (i < allTokens.Count)
+        {
+            if (delimiterIndex >= 0 && i == delimiterIndex)
+            {
+                // Everything after -- is command
+                commandTokens.AddRange(allTokens.Skip(i + 1));
+                break;
+            }
+
+            var token = allTokens[i];
+            if (knownOptions.Contains(token))
+            {
+                // Skip the option and its value (if it has one)
+                var option = Options.FirstOrDefault(o => o.Aliases.Contains(token));
+                if (option is not null)
+                {
+                    // If the option is not a bool, it expects a value
+                    var optionType = option.GetType();
+                    var isBool = optionType.IsGenericType && optionType.GetGenericArguments()[0] == typeof(bool);
+                    if (!isBool && i + 1 < allTokens.Count)
+                    {
+                        i += 2;
+                        continue;
+                    }
+                }
+                i++;
+                continue;
+            }
+            else if (token.StartsWith("-"))
+            {
+                // Arbitrary flag
+                arbitraryFlags.Add(token);
+                i++;
+                continue;
+            }
+            else
+            {
+                // First non-option, non-flag token is the start of the command (if not using --)
+                commandTokens.AddRange(allTokens.Skip(i));
+                break;
+            }
+        }
+
+        return (arbitraryFlags, commandTokens);
     }
 }

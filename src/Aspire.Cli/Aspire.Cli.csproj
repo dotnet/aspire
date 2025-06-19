@@ -45,11 +45,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources\ExecCommandStrings.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ExecCommandStrings.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\InteractionServiceStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -103,10 +98,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\ExecCommandStrings.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ExecCommandStrings.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Update="Resources\InteractionServiceStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>

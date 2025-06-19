@@ -11,7 +11,7 @@ using TestingAppHost1.MyWebApp;
 namespace TestingAppHost1.MyWebApp.Migrations
 {
     [DbContext(typeof(MyAppDbContext))]
-    [Migration("20250619093654_Init")]
+    [Migration("20250619133955_Init")]
     partial class Init
     {
         /// <inheritdoc />

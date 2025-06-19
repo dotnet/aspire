@@ -508,7 +508,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--command", "Exec:Command" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<ExecOptions>(_innerBuilder.Configuration.GetSection(ExecOptions.SectionName));
+        var execOptions = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
+        _innerBuilder.Services.Configure<ExecOptions>(execOptions);
     }
 
     /// <inheritdoc />

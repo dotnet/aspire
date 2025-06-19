@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
+// using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Exec;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
@@ -21,20 +21,26 @@ public class ExecTests(ITestOutputHelper output)
     public async Task Exec_InitializeMigrations_ShouldCreateMigrationsInWebApp()
     {
         var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
-        DeleteMigrations(myWebAppProjectMetadata);
+        // DeleteMigrations(myWebAppProjectMetadata);
 
+        // ADD MIGRATION
+        //string[] args = [
+        //    "--operation", "exec", // EXEC type
+        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+        //    "--resource", "mywebapp1", // target resource
+        //    "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
+        //    "--add-postgres", // arbitraty flags for apphost
+        //];
+
+        // APPLY MIGRATION UPDATE ON DB
         string[] args = [
-            // separate type of command
-            "--operation", "exec",
-            // what AppHost to target
-            "--project", myWebAppProjectMetadata.ProjectPath,
-            // what resource to target
-            
-            "--resource", "mywebapp1"
-
-            // if there are other args - it will break because EF does not process extra non-mapped args correctly
-            // "--add-postgres"
+            "--operation", "exec", // EXEC type
+            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+            "--resource", "mywebapp1", // target resource
+            "--command", "\"dotnet ef database update\"", // command packed into string
+            "--add-postgres", // arbitraty flags for apphost
         ];
+
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {
         };
@@ -42,16 +48,23 @@ public class ExecTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        // dependant of the target resource
-        var postgres = builder
-            .AddPostgres("postgres")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
-        var postresDb = postgres.AddDatabase("postgresDb");
+        //// dependant of the target resource
+        //var pgsql = builder
+        //    .AddPostgres(
+        //        name: "postgres1",
+        //        port: 6000,
+        //        userName: builder.AddParameter("pgsqluser"),
+        //        password: builder.AddParameter("pgsqlpass", secret: true))
+        //    .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000));
+        //var pgsqlDb = pgsql.AddDatabase("postgresDb");
+
+        //var connStr = await pgsql.Resource.GetConnectionStringAsync();
+        //output.WriteLine("PGSQL Connection string: " + connStr);
 
         // the target resource
         var project = builder
-            .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
-            .WithReference(postgres);
+            .AddProject<TestingAppHost1_MyWebApp>("mywebapp1");
+            // .WithReference(pgsqlDb);
 
         await using var app = await builder.BuildAsync();
         await app.StartAsync();

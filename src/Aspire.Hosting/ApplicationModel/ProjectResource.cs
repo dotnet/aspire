@@ -47,20 +47,43 @@ public class ProjectResource(string name)
     {
         var projectMetadata = this.GetProjectMetadata();
 
-        var processSpec = new ProcessSpec("dotnet")
+        var (exe, args) = ParseCommand();
+        // var env = await BuildEnvironmentAsync().ConfigureAwait(false);
+        var env = new Dictionary<string, string>();
+
+        var processSpec = new ProcessSpec(exe)
         {
-            Arguments = "ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
-            EnvironmentVariables = new Dictionary<string, string>(),
+            Arguments = args,
+            EnvironmentVariables = env,
             WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath),
             OnOutputData = data => logger.Log(LogLevel.Information, data),
             OnErrorData = data => logger.Log(LogLevel.Error, data)
         };
 
-        var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
-        var result = await processResultTask.ConfigureAwait(false);
+        int exitCode = -1;
+        try
+        {
+            var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
+            var result = await processResultTask.ConfigureAwait(false);
+            exitCode = result.ExitCode;
+            
+            await disposable.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Command {command} failed", options.Command);
+        }
+        finally
+        {
+            logger.LogInformation("exec '{command}' finished with exitCode {exitCode}", options.Command, exitCode);
+            loggerDisposable?.Dispose();
+        }
+        
 
-        logger.LogInformation("exec '{command}' finished with exitCode {exitCode}", options.Command, result.ExitCode);
-        await disposable.DisposeAsync().ConfigureAwait(false);
-        loggerDisposable?.Dispose();
+        (string exe, string args) ParseCommand()
+        {
+            var split = options.Command.Split(' ', count: 2);
+            return (split[0].Trim('"'), split[1].Trim('"'));
+        }
     }
 }

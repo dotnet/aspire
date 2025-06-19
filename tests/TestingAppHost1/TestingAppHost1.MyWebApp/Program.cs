@@ -29,6 +29,13 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
+app.MapGet("/entities", async (MyAppDbContext db) =>
+{
+    var forecasts = await db.Set<MyEntity>().ToListAsync();
+    return Results.Ok(forecasts);
+})
+.WithName("GetWeatherForecastsFromDb");
+
 app.MapGet("/weatherforecast", () =>
 {
     var forecast = Enumerable.Range(1, 5).Select(index =>
@@ -60,7 +67,7 @@ app.MapGet("/get-launch-profile-var-from-app-host", () =>
 
 app.Run();
 
-sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
