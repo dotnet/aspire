@@ -5,10 +5,7 @@
   "disableHttpsSymbol": "NoHttps",
   "symbolInfo": [
     {
-      "id": "AspireVersion",
-      "isVisible": true,
-      "persistenceScope": "shared",
-      "persistenceScopeName": "aspireTemplates"
+      "id": "AspireVersion"
     }
   ],
   "unsupportedHosts": [
