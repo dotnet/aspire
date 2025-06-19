@@ -1,0 +1,286 @@
+---
+import { Code } from '@astrojs/starlight/components';
+---
+
+<div class="orbit-section">
+    <div class="environment-toggle">
+        <div class="toggle-container">
+            <button class="active toggle-btn toggle-local">Local</button>
+            <button class="toggle-btn toggle-prod">Prod</button>
+        </div>
+        <div class="subtitle">
+            Local development with containerized services
+        </div>
+    </div>
+
+    <div class="orbit-container">
+        <div class="orbit-circle"></div>
+        
+        <div class="orbit-center">
+            <div class="orbit-host">
+                <div class="terminal local-view">
+                    <Code code="aspire run" lang="bash" />
+                </div>
+                <div class="terminal prod-view">
+                    <Code code="aspire publish" lang="bash" />
+                </div>
+            </div>
+        </div>
+
+        <div class="orbit-node orbit-service orbit-redis prod-view">
+            <div class="service-name">Redis</div>
+            <div class="service-type">Azure Cache for Redis</div>
+        </div>
+        <div class="orbit-node orbit-service orbit-redis local-view">
+            <div class="service-name">Redis</div>
+            <div class="service-type">Container</div>
+        </div>
+
+        <div class="orbit-node orbit-service orbit-postgres prod-view">
+            <div class="service-name">Postgres</div>
+            <div class="service-type">Azure Database</div>
+        </div>
+        <div class="orbit-node orbit-service orbit-postgres local-view">
+            <div class="service-name">Postgres</div>
+            <div class="service-type">Container</div>
+        </div>
+
+        <div class="orbit-node orbit-service orbit-frontend prod-view">
+            <div class="service-name">Frontend</div>
+            <div class="service-type">Static Web App</div>
+        </div>
+        <div class="orbit-node orbit-service orbit-frontend local-view">
+            <div class="service-name">Frontend</div>
+            <div class="service-type">Local Process</div>
+        </div>
+
+        <div class="orbit-node orbit-service orbit-api prod-view">
+            <div class="service-name">API</div>
+            <div class="service-type">Azure Container App</div>
+        </div>
+        <div class="orbit-node orbit-service orbit-api local-view">
+            <div class="service-name">API</div>
+            <div class="service-type">Local Process</div>
+        </div>
+    </div>
+</div>
+
+<script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+        const localBtn = document.querySelector('.toggle-local');
+        const prodBtn = document.querySelector('.toggle-prod');
+        const subtitle = document.querySelector('.subtitle');
+        const container = document.querySelector('.orbit-container');
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+            container.classList.add('no-motion');
+        }
+
+        container.classList.add('local-active');
+
+        localBtn.addEventListener('click', () => {
+            localBtn.classList.add('active');
+            prodBtn.classList.remove('active');
+            container.classList.remove('prod-active');
+            container.classList.add('local-active');
+            subtitle.textContent = 'Local development with containerized services';
+        });
+
+        prodBtn.addEventListener('click', () => {
+            prodBtn.classList.add('active');
+            localBtn.classList.remove('active');
+            container.classList.remove('local-active');
+            container.classList.add('prod-active');
+            subtitle.textContent = 'Production cloud services—zero code changes';
+        });
+    });
+</script>
+
+<style>
+    .orbit-section {
+        text-align: center;
+        border: 1px solid var(--sl-color-gray-5);
+        background: var(--sl-color-bg);
+        border-radius: 0.5rem;
+    }
+
+    .orbit-container {
+        position: relative;
+        width: 30rem;
+        height: 30rem;
+        margin: 4rem auto;
+    }
+
+    .orbit-circle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0.2rem dashed var(--sl-color-accent);
+        border-radius: 50%;
+    }
+
+    .orbit-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+
+    .terminal {
+        width: 100%;
+        display: none;
+        min-width: 12rem;
+        margin-top: initial;
+        box-shadow: var(--sl-shadow-lg);
+    }
+
+    .orbit-container.prod-active .prod-view,
+    .orbit-container.local-active .local-view {
+        display: block;
+    }
+
+    .orbit-node {
+        padding: 1rem;
+        border-radius: 1.25rem;
+        min-width: 12rem;
+        background: var(--sl-color-accent);
+        color: var(--sl-color-white);
+        position: absolute;
+        display: none;
+        text-align: center;
+        z-index: 5;
+        box-shadow: var(--sl-shadow-sm);
+    }
+
+    .prod-view.orbit-node {
+        background: var(--sl-color-green-low);
+    }
+
+    .local-view.orbit-node {
+        background: var(--sl-color-accent-low);
+    }
+
+    .service-name {
+        font-size: var(--sl-text-xl);
+        white-space: nowrap;
+    }
+
+    .service-type {
+        font-size: var(--sl-text-sm);
+        margin-top: 0.25rem;
+        white-space: nowrap;
+    }
+
+    .orbit-redis {
+        top: 18%;
+        left: 18%;
+        transform: translate(-50%, -50%);
+    }
+
+    .orbit-postgres {
+        top: 18%;
+        right: 18%;
+        transform: translate(50%, -50%);
+    }
+
+    .orbit-frontend {
+        bottom: 18%;
+        right: 18%;
+        transform: translate(50%, 50%);
+    }
+
+    .orbit-api {
+        bottom: 18%;
+        left: 18%;
+        transform: translate(-50%, 50%);
+    }
+
+    .orbit-container:not(.no-motion) .orbit-circle {
+        animation: rotate 60s linear infinite;
+    }
+
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .environment-toggle {
+        margin: 2rem auto;
+        text-align: center;
+    }
+
+    .toggle-container {
+        display: inline-flex;
+        background: var(--sl-color-gray-5);
+        padding: 0.5rem;
+        border: 1px solid var(--sl-color-gray-4);
+        border-radius: 2rem;
+        margin-bottom: 0.75rem;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+
+    .toggle-btn { 
+        padding: 0.5rem 1.5rem;
+        border-radius: 1.5rem;
+        border: none;
+        background: transparent;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 1.1rem;
+        color: var(--sl-color-white);
+        margin-top: initial;
+        min-width: 7rem;
+    }
+
+    .toggle-btn:hover:not(.active) {
+        background: var(--sl-color-gray-6);
+    }
+
+    .toggle-btn.active {
+        background: var(--sl-color-accent-low);
+    }
+
+    .toggle-prod.active {
+        background: var(--sl-color-green-low);
+    }
+
+    .subtitle {
+        font-size: var(--sl-text-lg);
+        color: var(--sl-color-text);
+        text-wrap: pretty;
+        margin-top: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .orbit-container {
+            width: 32rem;
+            height: 32rem;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .orbit-container {
+            width: 22rem;
+            height: 22rem;
+        }
+
+        .orbit-node {
+            min-width: 7rem;
+            padding: 0.6rem 0.75rem;
+        }
+
+        .service-name {
+            font-size: 1rem;
+        }
+
+        .service-type {
+            font-size: 0.8rem;
+        }
+    }
+</style>
