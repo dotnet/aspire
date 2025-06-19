@@ -26,7 +26,7 @@ public class InteractionServiceTests
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
         // Act 2
-        interactionService.CompleteInteraction(interaction.Id, _ => InteractionResult.Ok(true));
+        interactionService.CompleteInteraction(interaction.InteractionId, _ => InteractionResult.Ok(true));
 
         var result = await resultTask.DefaultTimeout();
         Assert.True((bool)result.Data!);
@@ -76,18 +76,18 @@ public class InteractionServiceTests
         Assert.Collection(interactionService.GetCurrentInteractions(),
             interaction =>
             {
-                id1 = interaction.Id;
+                id1 = interaction.InteractionId;
             },
             interaction =>
             {
-                id2 = interaction.Id;
+                id2 = interaction.InteractionId;
             });
         Assert.True(id1.HasValue && id2.HasValue && id1 < id2);
 
         // Act & Assert 2
         interactionService.CompleteInteraction(id1.Value, _ => InteractionResult.Ok(true));
         Assert.True((bool)(await resultTask1.DefaultTimeout()).Data!);
-        Assert.Equal(id2.Value, Assert.Single(interactionService.GetCurrentInteractions()).Id);
+        Assert.Equal(id2.Value, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
 
         interactionService.CompleteInteraction(id2.Value, _ => InteractionResult.Ok(false));
         Assert.False((bool)(await resultTask2.DefaultTimeout()).Data!);
@@ -112,24 +112,24 @@ public class InteractionServiceTests
         // Act 1
         var resultTask1 = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation");
         var interaction1 = Assert.Single(interactionService.GetCurrentInteractions());
-        Assert.Equal(interaction1.Id, (await updates.Reader.ReadAsync().DefaultTimeout()).Id);
+        Assert.Equal(interaction1.InteractionId, (await updates.Reader.ReadAsync().DefaultTimeout()).InteractionId);
 
         var resultTask2 = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation");
         Assert.Equal(2, interactionService.GetCurrentInteractions().Count);
         var interaction2 = interactionService.GetCurrentInteractions()[1];
-        Assert.Equal(interaction2.Id, (await updates.Reader.ReadAsync().DefaultTimeout()).Id);
+        Assert.Equal(interaction2.InteractionId, (await updates.Reader.ReadAsync().DefaultTimeout()).InteractionId);
 
         // Act & Assert 2
         var result1 = InteractionResult.Ok(true);
-        interactionService.CompleteInteraction(interaction1.Id, _ => result1);
+        interactionService.CompleteInteraction(interaction1.InteractionId, _ => result1);
         Assert.Equivalent(result1, await resultTask1.DefaultTimeout());
-        Assert.Equal(interaction2.Id, Assert.Single(interactionService.GetCurrentInteractions()).Id);
+        Assert.Equal(interaction2.InteractionId, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
         var completedInteraction1 = await updates.Reader.ReadAsync().DefaultTimeout();
         Assert.True(completedInteraction1.TaskCompletionSource.Task.IsCompletedSuccessfully);
         Assert.Equivalent(result1, await completedInteraction1.TaskCompletionSource.Task.DefaultTimeout());
 
         var result2 = InteractionResult.Ok(false);
-        interactionService.CompleteInteraction(interaction2.Id, _ => result2);
+        interactionService.CompleteInteraction(interaction2.InteractionId, _ => result2);
         Assert.Equivalent(result2, await resultTask2.DefaultTimeout());
         Assert.Empty(interactionService.GetCurrentInteractions());
         var completedInteraction2 = await updates.Reader.ReadAsync().DefaultTimeout();

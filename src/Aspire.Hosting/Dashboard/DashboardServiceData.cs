@@ -156,14 +156,14 @@ internal sealed class DashboardServiceData : IDisposable
         {
             switch (request.KindCase)
             {
-                case WatchInteractionsRequestUpdate.KindOneofCase.Confirmation:
+                case WatchInteractionsRequestUpdate.KindOneofCase.ConfirmationDialog:
                     return InteractionResult.Ok(true);
-                case WatchInteractionsRequestUpdate.KindOneofCase.Inputs:
+                case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                     var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                     for (var i = 0; i < inputsInfo.Inputs.Count; i++)
                     {
                         var modelInput = inputsInfo.Inputs[i];
-                        var requestInput = request.Inputs.Inputs[i];
+                        var requestInput = request.InputsDialog.InputItems[i];
 
                         var incomingValue = requestInput.Value;
 

@@ -71,31 +71,24 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                     await foreach (var interaction in updates.WithCancellation(cts.Token).ConfigureAwait(false))
                     {
                         var change = new WatchInteractionsResponseUpdate();
-                        change.InteractionId = interaction.Id;
-
-                        if (interaction.State == InteractionState.Canceled)
+                        change.InteractionId = interaction.InteractionId;
+                        change.Title = interaction.Title;
+                        if (interaction.Message != null)
                         {
-                            change.Cancellation = new InteractionCancellation();
+                            change.Message = interaction.Message;
                         }
-                        else if (interaction.State == InteractionState.Complete)
+
+                        if (interaction.State == InteractionState.Complete)
                         {
                             change.Complete = new InteractionComplete();
                         }
                         else if (interaction.InteractionInfo is ConfirmationInteractionInfo confirmation)
                         {
-                            change.Confirmation = new InteractionConfirmation
-                            {
-                                Title = confirmation.Title,
-                                Message = confirmation.Message
-                            };
+                            change.ConfirmationDialog = new InteractionConfirmationDialog();
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {
-                            change.Inputs = new InteractionInputs
-                            {
-                                Title = inputs.Title,
-                                Message = inputs.Message
-                            };
+                            change.InputsDialog = new InteractionInputsDialog();
 
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
@@ -122,7 +115,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 }
                                 return dto;
                             }).ToList();
-                            change.Inputs.Inputs.AddRange(inputInstances);
+                            change.InputsDialog.InputItems.AddRange(inputInstances);
                         }
 
                         await responseStream.WriteAsync(change, cts.Token).ConfigureAwait(false);

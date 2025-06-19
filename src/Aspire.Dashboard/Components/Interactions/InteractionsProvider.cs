@@ -68,14 +68,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                     Func<IDialogService, Task<IDialogReference>> openDialog;
 
-                    if (item.Confirmation is { } confirmation)
+                    if (item.ConfirmationDialog is { } confirmation)
                     {
                         var dialogParameters = new DialogParameters<MessageBoxContent>
                         {
                             Content = new MessageBoxContent
                             {
-                                Title = item.Confirmation.Title,
-                                MarkupMessage = new MarkupString(item.Confirmation.Message),
+                                Title = item.Title,
+                                MarkupMessage = new MarkupString(item.Message),
                                 Intent = MessageBoxIntent.Custom
                             },
                             PrimaryAction = "OK",
@@ -90,11 +90,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                                 if (dialogResult.Cancelled)
                                 {
-                                    request.Cancellation = new InteractionCancellation();
+                                    request.Complete = new InteractionComplete();
                                 }
                                 else
                                 {
-                                    request.Confirmation = item.Confirmation;
+                                    request.ConfirmationDialog = item.ConfirmationDialog;
                                 }
 
                                 await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
@@ -103,16 +103,16 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                         openDialog = dialogService => ShowMessageBoxAsync(dialogService, dialogParameters);
                     }
-                    else if (item.Inputs is { } inputs)
+                    else if (item.InputsDialog is { } inputs)
                     {
                         var vm = new InteractionsInputsDialogViewModel
                         {
                             Interaction = item,
-                            Inputs = inputs.Inputs.ToList()
+                            Inputs = inputs.InputItems.ToList()
                         };
                         var parameters = new DialogParameters
                         {
-                            Title = inputs.Title,
+                            Title = item.Title,
                             PreventDismissOnOverlayClick = true,
                             OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                             {
@@ -123,11 +123,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                                 if (dialogResult.Cancelled)
                                 {
-                                    request.Cancellation = new InteractionCancellation();
+                                    request.Complete = new InteractionComplete();
                                 }
                                 else
                                 {
-                                    request.Inputs = item.Inputs;
+                                    request.InputsDialog = item.InputsDialog;
                                 }
 
                                 await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
@@ -174,8 +174,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
                 try
                 {
-                    if (item.Cancellation == null && item.Complete == null)
+                    if (item.Complete == null)
                     {
+                        // New or updated interaction.
                         _pendingInteractions.Remove(item.InteractionId);
                         _pendingInteractions.Add(item);
 
@@ -183,8 +184,10 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     }
                     else
                     {
+                        // Complete interaction.
                         _pendingInteractions.Remove(item.InteractionId);
 
+                        // Close the interaction's dialog if it is open.
                         if (_interactionDialogInstance != null && _interactionDialogReference != null)
                         {
                             if (_interactionDialogInstance.InteractionId == item.InteractionId)

@@ -445,7 +445,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 lock (_lock)
                 {
-                    if (response.Cancellation != null || response.Complete != null)
+                    if (response.Complete != null)
                     {
                         // Interaction finished. Remove from pending collection.
                         _pendingInteractionCollection.Remove(response.InteractionId);

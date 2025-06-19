@@ -317,31 +317,42 @@ message WatchResourceConsoleLogsUpdate {
 message WatchInteractionsRequestUpdate {
     int32 interaction_id = 1;
 
+    string title = 2;
+    string message = 3;
+    string primary_button_text = 4;
+    bool primary_button_enabled = 5;
+    string secondary_button_text = 6;
+    bool secondary_button_enabled = 7;
+
     oneof kind {
-        InteractionConfirmation confirmation = 2;
-        InteractionInputs inputs = 3;
-        InteractionCancellation cancellation = 4;
-        InteractionComplete complete = 5;
+        InteractionComplete complete = 8;
+        InteractionConfirmationDialog confirmation_dialog = 9;
+        InteractionInputsDialog inputs_dialog = 10;
     }
 }
 message WatchInteractionsResponseUpdate {
     int32 interaction_id = 1;
 
+    string title = 2;
+    string message = 3;
+    string primary_button_text = 4;
+    bool primary_button_enabled = 5;
+    string secondary_button_text = 6;
+    bool secondary_button_enabled = 7;
+
     oneof kind {
-        InteractionConfirmation confirmation = 2;
-        InteractionInputs inputs = 3;
-        InteractionCancellation cancellation = 4;
-        InteractionComplete complete = 5;
+        InteractionComplete complete = 8;
+        InteractionConfirmationDialog confirmation_dialog = 9;
+        InteractionInputsDialog inputs_dialog = 10;
     }
 }
-message InteractionConfirmation {
-    string title = 1;
-    string message = 2;
+message InteractionComplete {
 }
-message InteractionInputs {
-    string title = 1;
-    string message = 2;
-    repeated InteractionInput inputs = 3;
+message InteractionConfirmationDialog {
+    string icon_name = 1;
+}
+message InteractionInputsDialog {
+    repeated InteractionInput input_items = 1;
 }
 message InteractionInput {
     string label = 1;
@@ -358,10 +369,6 @@ enum InputType {
     SELECT = 3;
     CHECKBOX = 4;
     NUMBER = 5;
-}
-message InteractionCancellation {
-}
-message InteractionComplete {
 }
 
 ////////////////////////////////////////////

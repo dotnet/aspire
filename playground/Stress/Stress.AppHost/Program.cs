@@ -120,8 +120,8 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
-           var resultTask1 = interactionService.PromptConfirmationAsync("Are you sure?", "Command confirmation", commandContext.CancellationToken);
-           var resultTask2 = interactionService.PromptConfirmationAsync("Are you really sure?", "Command confirmation", commandContext.CancellationToken);
+           var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", commandContext.CancellationToken);
 
            await Task.WhenAll(resultTask1, resultTask2);
 
@@ -136,8 +136,8 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
            var result = await interactionService.PromptInputAsync(
-               message: "Provide your name",
                title: "Text request",
+               message: "Provide your name",
                inputLabel: "Name",
                placeHolder: "Enter your name",
                commandContext.CancellationToken);
@@ -169,7 +169,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
                new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };
-           var result = await interactionService.PromptInputsAsync("Provide your name", "Input request", inputs, commandContext.CancellationToken);
+           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, commandContext.CancellationToken);
 
            if (result.Canceled)
            {

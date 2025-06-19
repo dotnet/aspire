@@ -31,11 +31,11 @@ public class InteractionService
     /// <param name="title"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<InteractionResult> PromptConfirmationAsync(string message, string title, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult> PromptConfirmationAsync(string title, string? message, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var newState = new Interaction(new Interaction.ConfirmationInteractionInfo(message, title), cancellationToken);
+        var newState = new Interaction(title, message, new Interaction.ConfirmationInteractionInfo(iconName: null), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -43,23 +43,23 @@ public class InteractionService
         return await newState.TaskCompletionSource.Task.ConfigureAwait(false);
     }
 
-    public async Task<InteractionResult> PromptInputAsync(string message, string title, string inputLabel, string placeHolder, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, CancellationToken cancellationToken = default)
     {
-        return await PromptInputAsync(message, title, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, cancellationToken).ConfigureAwait(false);
+        return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<InteractionResult> PromptInputAsync(string message, string title, InteractionInput input, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult> PromptInputAsync(string title, string? message, InteractionInput input, CancellationToken cancellationToken = default)
     {
-        return await PromptInputsAsync(message, title, [input], cancellationToken).ConfigureAwait(false);
+        return await PromptInputsAsync(title, message, [input], cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<InteractionResult> PromptInputsAsync(string message, string title, IEnumerable<InteractionInput> inputs, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var inputList = inputs.ToList();
 
-        var newState = new Interaction(new Interaction.InputsInteractionInfo(message, title, inputList), cancellationToken);
+        var newState = new Interaction(title, message, new Interaction.InputsInteractionInfo(inputList), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -80,7 +80,7 @@ public class InteractionService
     {
         var interactionState = (Interaction)newState!;
 
-        interactionState.State = Interaction.InteractionState.Canceled;
+        interactionState.State = Interaction.InteractionState.Complete;
         interactionState.TaskCompletionSource.TrySetResult(InteractionResult.Cancel());
         AddInteractionUpdate(interactionState);
     }
@@ -91,21 +91,21 @@ public class InteractionService
         {
             var updateEvent = false;
 
-            if (interactionUpdate.State is Interaction.InteractionState.Canceled or Interaction.InteractionState.Complete)
+            if (interactionUpdate.State == Interaction.InteractionState.Complete)
             {
                 Debug.Assert(
                     interactionUpdate.TaskCompletionSource.Task.IsCompleted,
                     "TaskCompletionSource should be completed when interaction is done.");
 
                 // Only update event if interaction was previously registered and not already removed.
-                updateEvent = _interactionCollection.Remove(interactionUpdate.Id);
+                updateEvent = _interactionCollection.Remove(interactionUpdate.InteractionId);
             }
             else
             {
-                if (_interactionCollection.Contains(interactionUpdate.Id))
+                if (_interactionCollection.Contains(interactionUpdate.InteractionId))
                 {
                     // Should never happen, but throw descriptive exception if it does.
-                    throw new InvalidOperationException($"An interaction with ID {interactionUpdate.Id} already exists. Interaction IDs must be unique.");
+                    throw new InvalidOperationException($"An interaction with ID {interactionUpdate.InteractionId} already exists. Interaction IDs must be unique.");
                 }
 
                 _interactionCollection.Add(interactionUpdate);
@@ -128,7 +128,7 @@ public class InteractionService
                 var result = createResult(interactionState);
 
                 interactionState.TaskCompletionSource.TrySetResult(result);
-                interactionState.State = result.Canceled ? Interaction.InteractionState.Canceled : Interaction.InteractionState.Complete;
+                interactionState.State = Interaction.InteractionState.Complete;
                 _interactionCollection.Remove(interactionId);
                 OnInteractionUpdated?.Invoke(interactionState);
             }
@@ -181,7 +181,7 @@ public class InteractionService
 
 internal class InteractionCollection : KeyedCollection<int, Interaction>
 {
-    protected override int GetKeyForItem(Interaction item) => item.Id;
+    protected override int GetKeyForItem(Interaction item) => item.InteractionId;
 }
 
 /// <summary>
@@ -246,15 +246,20 @@ internal class Interaction
 {
     private static int s_nextInteractionId = 1;
 
-    public int Id { get; }
+    public int InteractionId { get; }
     public InteractionState State { get; set; }
     public TaskCompletionSource<InteractionResult> TaskCompletionSource { get; } = new TaskCompletionSource<InteractionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
     public InteractionInfoBase InteractionInfo { get; }
     public CancellationToken CancellationToken { get; }
 
-    public Interaction(InteractionInfoBase interactionInfo, CancellationToken cancellationToken)
+    public string Title { get; }
+    public string? Message { get; }
+
+    public Interaction(string title, string? message, InteractionInfoBase interactionInfo, CancellationToken cancellationToken)
     {
-        Id = Interlocked.Increment(ref s_nextInteractionId);
+        InteractionId = Interlocked.Increment(ref s_nextInteractionId);
+        Title = title;
+        Message = message;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;
     }
@@ -262,32 +267,26 @@ internal class Interaction
     internal enum InteractionState
     {
         InProgress,
-        Canceled,
         Complete
     }
 
     internal abstract class InteractionInfoBase
     {
-        public string Message { get; }
-        public string Title { get; }
-
-        public InteractionInfoBase(string message, string title)
-        {
-            Message = message;
-            Title = title;
-        }
     }
 
     internal sealed class ConfirmationInteractionInfo : InteractionInfoBase
     {
-        public ConfirmationInteractionInfo(string message, string title) : base(message, title)
+        public ConfirmationInteractionInfo(string? iconName)
         {
+            IconName = iconName;
         }
+
+        public string? IconName { get; }
     }
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase
     {
-        public InputsInteractionInfo(string message, string title, List<InteractionInput> inputs) : base(message, title)
+        public InputsInteractionInfo(List<InteractionInput> inputs)
         {
             Inputs = inputs;
         }
