@@ -112,6 +112,25 @@ From indie hackers to enterprises, developers are building faster and shipping w
 
 <TestimonialCarousel />
 
+## Strength in Community
+
+Aspire thrives on community contributions and feedback. Join our community forums, contribute to the codebase, or simply share your experiences. Together, we can make Aspire even better.
+
+import { ContributorList } from "starlight-contributor-list";
+
+export const ignore = [
+    "github-actions[bot]",
+    "dependabot[bot]",
+    "dependabot",
+    "dotnet-maestro[bot]",
+    "copilot-swe-agent",
+    "microsoftopensource"
+];
+
+import stats from '../../data/github-stats.json';
+
+<ContributorList githubRepo="dotnet/aspire" ignore={ignore} />
+
 ## Unabeatable pricing
 
 Aspire is free for personal and open source projects. For commercial use, it's also free...yeah, you read that right.
