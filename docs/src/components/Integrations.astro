@@ -37,9 +37,9 @@ const sortedIntegrations = integrations.sort((a, b) => {
             placeholder="Search integrations..."
         />
     </div>
-    <button class="clear-button" aria-label="Clear search" type="button"
-        >Clear</button
-    >
+    <button class="clear-button" aria-label="Clear search" type="button">
+        Clear
+    </button>
 </div>
 
 {
@@ -315,4 +315,5 @@ const sortedIntegrations = integrations.sort((a, b) => {
     });
 
     filterCards(); // Initial render
+    searchBox.focus();
 </script>
