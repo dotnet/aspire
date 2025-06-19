@@ -10,7 +10,7 @@ const tiers = [
             "No hidden fees.", 
             "No credit card required."
         ],
-        color: "var(--color-purple)"
+        color: "var(--sl-color-purple)"
     },
     {
         name: "Bootstrapper's Delight",
@@ -20,7 +20,7 @@ const tiers = [
             "Relax—this one's on us.",
             "No limits, no catches."
         ],
-        color: "var(--color-blue)"
+        color: "var(--sl-color-green)"
     },
     {
         name: "Open Source Hero",
@@ -30,7 +30,7 @@ const tiers = [
             "No strings attached, seriously.",
             "Built with love for the community."
         ],
-        color: "var(--color-flamingo)"
+        color: "var(--sl-color-blue)"
     },
 ];
 ---
@@ -45,7 +45,7 @@ const tiers = [
                             <h4>{tier.name}</h4>
                         </div>
                         <div class="card-content">
-                            <p class="price">{tier.price}</p>
+                            <p class="price" style={`color: ${tier.color}`}>{tier.price}</p>
                             <ul>
                                 {tier.perks.map((perk) => (
                                     <li key={perk}>
@@ -120,7 +120,7 @@ const tiers = [
     .card-header h4 {
         margin: 0;
         letter-spacing: 0.5px;
-        color: white;
+        color: var(--sl-color-black);
     }
     
     :root[data-theme='light'] .card-header {
@@ -139,7 +139,6 @@ const tiers = [
     .price {
         font-size: 2.2rem;
         font-weight: bold;
-        margin: .5rem 0 .75rem;
         color: var(--sl-color-white);
     }
 
