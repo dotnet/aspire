@@ -28,8 +28,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="PressVToViewLogs">
-        <source>Press [bold]V[/] to to view app host logs.</source>
-        <target state="new">Press [bold]V[/] to to view app host logs.</target>
+        <source>Press [bold]V[/] to view app host logs.</source>
+        <target state="new">Press [bold]V[/] to view app host logs.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

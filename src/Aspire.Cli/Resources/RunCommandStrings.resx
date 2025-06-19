@@ -148,7 +148,7 @@
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="PressVToViewLogs" xml:space="preserve">
-    <value>Press [bold]V[/] to to view app host logs.</value>
+    <value>Press [bold]V[/] to view app host logs.</value>
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
