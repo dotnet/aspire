@@ -11,7 +11,7 @@
   "symbols/AspireVersion/choices/9.3/displayName": "9.3",
   "symbols/AspireVersion/choices/9.3/description": ".NET Aspire 9.3 선택",
   "symbols/AspireVersion/choices/9.4/displayName": "9.4",
-  "symbols/AspireVersion/choices/9.4/description": "Chooses .NET Aspire 9.4",
+  "symbols/AspireVersion/choices/9.4/description": ".NET Aspire 9.4 선택",
   "symbols/appHostHttpPort/description": "AppHost 프로젝트의 launchSettings.json HTTP 엔드포인트에 사용할 포트 번호입니다.",
   "symbols/appHostOtlpHttpPort/description": "AppHost 프로젝트의 launchSettings.json OTLP HTTP 엔드포인트에 사용할 포트 번호입니다.",
   "symbols/appHostResourceHttpPort/description": "AppHost 프로젝트의 launchSettings.json 리소스 서비스 HTTP 엔드포인트에 사용할 포트 번호입니다.",
