@@ -27,7 +27,7 @@ resource customregistry_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@
   scope: customregistry
 }
 
-resource env_law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource env_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('envlaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
