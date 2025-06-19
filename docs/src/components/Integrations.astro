@@ -281,8 +281,20 @@ const sortedIntegrations = integrations.sort((a, b) => {
         if (updateUrl) updateURL();
     }
 
+    // Debounce helper
+    function debounce(fn, delay) {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn(...args), delay);
+        };
+    }
+
+    // Replace direct filterCards call with debounced version for input
+    const debouncedFilterCards = debounce(() => filterCards(), 500);
+
     searchBox.addEventListener("input", () => {
-        filterCards();
+        debouncedFilterCards();
     });
 
     clearButton.addEventListener("click", clearSearch);

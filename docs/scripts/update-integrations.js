@@ -2,8 +2,8 @@ import fs from 'fs';
 import fetch from 'node-fetch';
 
 const API_URLS = [
-  'https://azuresearch-usnc.nuget.org/query?q=owner:aspire&take=200',
-  'https://azuresearch-usnc.nuget.org/query?q=CommunityToolkit.Aspire&take=100'
+  'https://api-v2v3search-0.nuget.org/query?q=Aspire.&prerelease=true&take=300',
+  'https://api-v2v3search-0.nuget.org/query?q=CommunityToolkit.Aspire&prerelease=true&take=150'
 ];
 const OUTPUT_PATH = './src/data/aspire-integrations.json';
 
@@ -48,7 +48,7 @@ async function fetchAllPackages() {
       acc[pkg.id] = pkg;
       return acc;
     }, {})
-  );
+  ).sort((a, b) => a.id.localeCompare(b.id));
   const transformed = filterAndTransform(uniquePackages);
 
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(transformed, null, 2));

@@ -34,39 +34,39 @@ import sqlIcon from "../assets/icons/sql-icon.png";
 import valkeyIcon from "../assets/icons/valkey-icon.png";
 
 const icons = [
-  { meta: awsIcon, alt: "AWS" },
-  { meta: azureIcon, alt: "Microsoft Azure" },
-  { meta: azureAppconfigIcon, alt: "Azure App Configuration" },
-  { meta: azureAppinsightsIcon, alt: "Azure Application Insights" },
-  { meta: azureBlobpagestorageIcon, alt: "Azure Blob/Page Storage" },
-  { meta: azureCacheredisIcon, alt: "Azure Cache for Redis" },
-  { meta: azureCosmosdbIcon, alt: "Azure Cosmos DB" },
-  { meta: azureEventhubsIcon, alt: "Azure Event Hubs" },
-  { meta: azureFunctionappsIcon, alt: "Azure Function Apps" },
-  { meta: azureKeyvaultIcon, alt: "Azure Key Vault" },
-  { meta: azureLoganalyticsIcon, alt: "Azure Log Analytics" },
-  { meta: azureOpenaiIcon, alt: "Azure OpenAI" },
-  { meta: azurePostgresqlIcon, alt: "Azure Database for PostgreSQL" },
-  { meta: azureSearchIcon, alt: "Azure Cognitive Search" },
-  { meta: azureServicebusIcon, alt: "Azure Service Bus" },
-  { meta: azureSignalrIcon, alt: "Azure SignalR" },
-  { meta: azureSqlserverIcon, alt: "Azure SQL Server" },
-  { meta: azureStoragecontainerIcon, alt: "Azure Storage Container" },
-  { meta: azureStoragequeueIcon, alt: "Azure Storage Queue" },
-  { meta: azureTableIcon, alt: "Azure Table Storage" },
-  { meta: azureWebpubsubIcon, alt: "Azure Web PubSub" },
-  { meta: elasticIcon, alt: "Elasticsearch" },
-  { meta: garnetIcon, alt: "Garnet" },
-  { meta: milvusIcon, alt: "Milvus Vector Database" },
-  { meta: mongodbIcon, alt: "MongoDB" },
-  { meta: mysqlconnectorIcon, alt: "MySQL Connector" },
-  { meta: natsIcon, alt: "NATS Messaging" },
-  { meta: postgresqlIcon, alt: "PostgreSQL" },
-  { meta: qdrantIcon, alt: "Qdrant Vector Database" },
-  { meta: redisIcon, alt: "Redis" },
-  { meta: seqIcon, alt: "Seq Log Server" },
-  { meta: sqlIcon, alt: "SQL Database" },
-  { meta: valkeyIcon, alt: "Valkey" },
+  { meta: awsIcon, alt: "AWS", search: "aws" },
+  { meta: azureIcon, alt: "Microsoft Azure", search: "azure" },
+  { meta: azureAppconfigIcon, alt: "Azure App Configuration", search: "appconfig" },
+  { meta: azureAppinsightsIcon, alt: "Azure Application Insights", search: "appinsights" },
+  { meta: azureBlobpagestorageIcon, alt: "Azure Blob/Page Storage", search: "blob" },
+  { meta: azureCacheredisIcon, alt: "Azure Cache for Redis", search: "redis" },
+  { meta: azureCosmosdbIcon, alt: "Azure Cosmos DB", search: "cosmos" },
+  { meta: azureEventhubsIcon, alt: "Azure Event Hubs", search: "eventhubs" },
+  { meta: azureFunctionappsIcon, alt: "Azure Function Apps", search: "function" },
+  { meta: azureKeyvaultIcon, alt: "Azure Key Vault", search: "keyvault" },
+  { meta: azureLoganalyticsIcon, alt: "Azure Log Analytics", search: "loganalytics" },
+  { meta: azureOpenaiIcon, alt: "Azure OpenAI", search: "openai" },
+  { meta: azurePostgresqlIcon, alt: "Azure Database for PostgreSQL", search: "postgresql" },
+  { meta: azureSearchIcon, alt: "Azure Cognitive Search", search: "search" },
+  { meta: azureServicebusIcon, alt: "Azure Service Bus", search: "servicebus" },
+  { meta: azureSignalrIcon, alt: "Azure SignalR", search: "signalr" },
+  { meta: azureSqlserverIcon, alt: "Azure SQL Server", search: "sql" },
+  { meta: azureStoragecontainerIcon, alt: "Azure Storage Container", search: "storage" },
+  { meta: azureStoragequeueIcon, alt: "Azure Storage Queue", search: "queue" },
+  { meta: azureTableIcon, alt: "Azure Table Storage", search: "table" },
+  { meta: azureWebpubsubIcon, alt: "Azure Web PubSub", search: "pubsub" },
+  { meta: elasticIcon, alt: "Elasticsearch", search: "elasticsearch" },
+  { meta: garnetIcon, alt: "Garnet", search: "garnet" },
+  { meta: milvusIcon, alt: "Milvus Vector Database", search: "milvus" },
+  { meta: mongodbIcon, alt: "MongoDB", search: "mongodb" },
+  { meta: mysqlconnectorIcon, alt: "MySQL Connector", search: "mysql" },
+  { meta: natsIcon, alt: "NATS Messaging", search: "nats" },
+  { meta: postgresqlIcon, alt: "PostgreSQL", search: "postgresql" },
+  { meta: qdrantIcon, alt: "Qdrant Vector Database", search: "qdrant" },
+  { meta: redisIcon, alt: "Redis", search: "redis" },
+  { meta: seqIcon, alt: "Seq Log Server", search: "seq" },
+  { meta: sqlIcon, alt: "SQL Database", search: "sql" },
+  { meta: valkeyIcon, alt: "Valkey", search: "valkey" },
 ];
 
 const randomizedIcons = icons.sort(() => Math.random() - 0.5);
@@ -75,8 +75,8 @@ const randomizedIcons = icons.sort(() => Math.random() - 0.5);
 <div class="hex-grid">
   {
     randomizedIcons.map(
-      (icon: { meta: ImageMetadata; alt: string }, i: number) => (
-        <a href="/aspire/integrations/gallery" class="img" title={icon.alt}>
+      (icon: { meta: ImageMetadata; alt: string; search: string }, i: number) => (
+        <a href={`/aspire/integrations/gallery?search=${encodeURIComponent(icon.search)}`} class="img" title={icon.alt}>
           <img src={icon.meta.src} alt={icon.alt} />
         </a>
       ),
