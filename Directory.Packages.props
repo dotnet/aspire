@@ -41,7 +41,7 @@
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="1.0.0" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.KeyVault" Version="1.1.0" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.Redis" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="1.0.0" />
