@@ -40,7 +40,7 @@ const tiers = [
         <div class="card-grid">
             {
                 tiers.map((tier) => (
-                    <div key={tier.name} class="card">
+                    <div class="card">
                         <div class="card-header" style={`background-color: ${tier.color}`}>
                             <h4>{tier.name}</h4>
                         </div>
@@ -48,7 +48,7 @@ const tiers = [
                             <p class="price" style={`color: ${tier.color}`}>{tier.price}</p>
                             <ul>
                                 {tier.perks.map((perk) => (
-                                    <li key={perk}>
+                                    <li>
                                         <span class="icons check-icon">
                                             <Icon name="approve-check" size="1.2rem" />
                                         </span>
