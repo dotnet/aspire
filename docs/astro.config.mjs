@@ -111,7 +111,8 @@ export default defineConfig({
 				{
 					label: 'Integrations',
 					items: [
-						{ label: 'Gallery', slug: 'integrations/gallery' }
+						{ label: 'Gallery', slug: 'integrations/gallery' },
+						{ label: 'PostgreSQL', slug: 'integrations/postgres' },
 					],
 				},
 				{
