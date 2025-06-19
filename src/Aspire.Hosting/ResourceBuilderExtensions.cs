@@ -2031,4 +2031,60 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
+
+    /// <summary>
+    /// Adds a command to open a specified link in the browser for a resource with endpoints.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="resource">The resource to attach the command to.</param>
+    /// <param name="displayName">The display name of the command.</param>
+    /// <param name="path">The relative path to open on the specified endpoint.</param>
+    /// <param name="endpointName">The name of the endpoint to use. Defaults to <c>"https"</c>.</param>
+    /// <param name="iconName">The name of the icon to use. Defaults to <c>"Document"</c>.</param>
+    /// <param name="iconVariant">The icon variant to use. Defaults to <see cref="IconVariant.Filled"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithCommandLink<T>(
+        this IResourceBuilder<T> resource,
+        string displayName,
+        string path,
+        string endpointName = "https",
+        string iconName = "Document",
+        IconVariant iconVariant = IconVariant.Filled)
+        where T : class, IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentException.ThrowIfNullOrEmpty(displayName);
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentException.ThrowIfNullOrEmpty(endpointName);
+    
+        return resource.WithCommand(displayName, displayName,
+            context =>
+            {
+                try
+                {
+                    var endpoint = resource.Resource.GetEndpoint(endpointName).Url;
+                    var url = $"{endpoint.TrimEnd('/')}/{path.TrimStart('/')}";
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    
+                    return Task.FromResult(new ExecuteCommandResult { Success = true });
+                }
+                catch (Exception ex)
+                {
+                    return Task.FromResult(new ExecuteCommandResult
+                    {
+                        Success = false,
+                        ErrorMessage = ex.ToString()
+                    });
+                }
+            },
+            new CommandOptions
+            {
+                UpdateState = context =>
+                    context.ResourceSnapshot.HealthStatus == HealthStatus.Healthy
+                        ? ResourceCommandState.Enabled
+                        : ResourceCommandState.Disabled,
+                IconName = iconName,
+                IconVariant = iconVariant,
+            });
+    }
 }
