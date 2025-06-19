@@ -30,5 +30,13 @@
         "text": "Hit F5 to begin — skip the setup boss fight, ship code faster.",
         "avatar": "../assets/testimonials/craig-taylor.png",
         "link": "https://www.linkedin.com/in/craig-taylor-xbox/"
+    },
+    {
+        "name": "Sean Killeen",
+        "company": "SCT Software",
+        "role": "VP Innovation",
+        "text": "Aspire is a game changer for .NET developers.",
+        "avatar": "../assets/testimonials/sean-killeen.jpg",
+        "link": "https://www.linkedin.com/in/seankilleen/"
     }
 ]
