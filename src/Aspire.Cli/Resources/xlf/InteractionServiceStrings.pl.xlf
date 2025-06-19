@@ -4,42 +4,42 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="new">The app host is not compatible. Consider upgrading the app host or Aspire CLI.</target>
+        <target state="translated">Host aplikacji jest niezgodny. Rozważ uaktualnienie hosta aplikacji lub interfejsu wiersza polecenia platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
         <source>Aspire CLI Version</source>
-        <target state="new">Aspire CLI Version</target>
+        <target state="translated">Wersja interfejsu wiersza polecenia platformy Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingSDKVersion">
         <source>Aspire.Hosting Version</source>
-        <target state="new">Aspire.Hosting Version</target>
+        <target state="translated">Wersja Aspire.Hosting</target>
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host...</source>
-        <target state="new">Building app host...</target>
+        <target state="translated">Trwa tworzenie hosta aplikacji...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
         <source>Checking certificates...</source>
-        <target state="new">Checking certificates...</target>
+        <target state="translated">Sprawdzanie certyfikatów...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingProjectType">
         <source>Checking project type...</source>
-        <target state="new">Checking project type...</target>
+        <target state="translated">Sprawdzanie typu projektu...</target>
         <note />
       </trans-unit>
       <trans-unit id="CodespacesLink">
         <source>Codespaces</source>
-        <target state="new">Codespaces</target>
+        <target state="translated">Codespaces</target>
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
-        <target state="new">Created settings file at {0}.</target>
+        <target state="translated">Utworzono plik ustawień w {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -49,22 +49,22 @@
       </trans-unit>
       <trans-unit id="DirectLink">
         <source>Direct</source>
-        <target state="new">Direct</target>
+        <target state="translated">Bezpośredni</target>
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
         <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="new">An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</target>
+        <target state="translated">Wystąpił błąd podczas nawiązywania połączenia z hostem aplikacji. Host aplikacji prawdopodobnie uległ awarii, zanim był dostępny: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding app hosts...</source>
-        <target state="new">Finding app hosts...</target>
+        <target state="translated">Trwa znajdowanie hostów aplikacji...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
-        <target state="new">No items available for selection: {0}</target>
+        <target state="translated">Brak dostępnych elementów do wyboru: {0}</target>
         <note>{0} is the original selection prompt text.</note>
       </trans-unit>
       <trans-unit id="OperationCancelled">
@@ -74,52 +74,52 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
         <source>The project could not be built. For more information run with --debug switch.</source>
-        <target state="new">The project could not be built. For more information run with --debug switch.</target>
+        <target state="translated">Nie można skompilować projektu. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
         <source>The --project option specified a project that does not exist.</source>
-        <target state="new">The --project option specified a project that does not exist.</target>
+        <target state="translated">Opcja --project określiła projekt, który nie istnieje.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="new">The --project option was not specified and multiple app host project files were detected.</target>
+        <target state="translated">Nie określono opcji --project i wykryto wiele plików projektu hosta aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
         <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="new">The project argument was not specified and no *.csproj files were detected.</target>
+        <target state="translated">Nie określono argumentu projektu i nie wykryto plików *.csproj.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
         <source>Required Capability</source>
-        <target state="new">Required Capability</target>
+        <target state="translated">Wymagana możliwość</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingProjects">
         <source>Searching...</source>
-        <target state="new">Searching...</target>
+        <target state="translated">Trwa wyszukiwanie...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
         <source>Select app host to run</source>
-        <target state="new">Select app host to run</target>
+        <target state="translated">Wybierz hosta aplikacji do uruchomienia</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire app host project.</source>
-        <target state="new">The specified project file is not an Aspire app host project.</target>
+        <target state="translated">Określony plik projektu nie jest projektem hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
         <source>Stopping Aspire.</source>
-        <target state="new">Stopping Aspire.</target>
+        <target state="translated">Zatrzymywanie platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
-        <target state="new">Trusting certificates...</target>
+        <target state="translated">Ufanie certyfikatom...</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
         <source>Waiting for debugger to attach to app host process</source>
-        <target state="new">Waiting for debugger to attach to app host process</target>
+        <target state="translated">Oczekiwanie na dołączenie debugera do procesu hosta aplikacji</target>
         <note />
       </trans-unit>
     </body>
