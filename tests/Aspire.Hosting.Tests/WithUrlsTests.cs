@@ -487,6 +487,7 @@ public class WithUrlsTests
                         projectEndpointsAllocated = true;
                     }
                     else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running &&
+                             // Wait until both URLs are active
                              notification.Snapshot.Urls[^1].IsInactive == false &&
                              notification.Snapshot.Urls[^2].IsInactive == false)
                     {
@@ -526,6 +527,7 @@ public class WithUrlsTests
                         customEndpointsAllocated = true;
                     }
                     else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running &&
+                             // Wait until both URLs are active
                              notification.Snapshot.Urls[^1].IsInactive == false &&
                              notification.Snapshot.Urls[^2].IsInactive == false)
                     {
