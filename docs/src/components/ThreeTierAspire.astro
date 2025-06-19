@@ -1,6 +1,5 @@
 ---
-import SimpleAppHostCode from "./SimpleAppHostCode.astro";
-import { Tabs, TabItem, Code } from "@astrojs/starlight/components";
+import { Code, Icon } from "@astrojs/starlight/components";
 
 const compose = `
 version: '3.8'
@@ -45,19 +44,342 @@ services:
 volumes:
   db-data:
 `;
+
+const cs = `
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database service to orbit
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume();
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres)
+                 .WaitFor(postgres);
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .WithReference(api);
+
+builder.Build().Run();
+`;
 ---
 
-<Tabs>
-    <TabItem label="Docker Compose" icon="seti:docker">
-        <p>
-            Aspire lets you define your entire app in C#, making YAML optional. If you squint, you'll notice the C# and YAML definitions are similar—but with C#, you get type safety and full IDE support.
-        </p>
-        <Code code={compose} lang="yaml" frame="terminal" title="docker-compose.yml" />
-    </TabItem>
-    <TabItem label="C#" icon="seti:c-sharp">
-        <p>
-            Why settle for verbose YAML? With C#, you get a concise, extensible, and type-safe way to define your app and its dependencies. If you squint, you'll notice the structure is similar to YAML—but C# is less repetitive and far more powerful.
-        </p>
-        <SimpleAppHostCode />
-    </TabItem>
-</Tabs>
+<div class="code-comparison-container">
+  <div class="comparison-header">
+    <p>Adjust the slider to compare Docker Compose and C# AppHost definitions</p>
+  </div>
+  
+  <div class="slider-container">
+    <div class="slider-label">
+      <div class="label-docker clickable" data-value="0">
+        <Icon name="seti:docker" size="1.5rem" />
+        <span>Docker Compose</span>
+      </div>
+      
+      <div class="slider-control">
+        <input 
+          type="range" 
+          min="0" 
+          max="100" 
+          value="50" 
+          class="code-slider" 
+          id="codeSlider"
+          aria-label="Slide to compare Docker Compose and C# AppHost"
+        />
+      </div>
+      
+      <div class="label-csharp clickable" data-value="100">
+        <Icon name="seti:c-sharp" size="1.5rem" />
+        <span>AppHost</span>
+      </div>
+    </div>
+
+    <div class="code-container">
+      <div class="split-view">
+        <div class="code-panel yaml-code">
+          <div class="code-description">
+            <p>
+              Define your stack in YAML with Docker Compose - explicit but verbose.
+            </p>
+          </div>
+          <div class="code-block">
+            <Code code={compose} lang="yaml" frame="terminal" title="docker-compose.yml" />
+          </div>
+        </div>
+        <div class="code-panel csharp-code">
+          <div class="code-description">
+            <p>
+              Define the same stack in C# - concise, type-safe, and integrated with your IDE.
+            </p>
+          </div>
+          <div class="code-block">
+            <Code code={cs} lang="cs" frame="terminal" title="AppHost.cs" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="comparison-caption">
+    Both define the same three-tier application topology, but Aspire's C# approach offers type safety, IDE integration, extensibility, and a more concise syntax.
+  </p>
+</div>
+
+<style>
+  .code-comparison-container {
+    margin-bottom: 2rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .comparison-header {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .comparison-header h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .comparison-header p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
+  .slider-container {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: var(--sl-color-bg);
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--sl-color-bg-nav);
+    border-bottom: 1px solid var(--sl-color-border);
+  }
+
+  .label-docker, .label-csharp {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .clickable:active {
+    transform: translateY(0);
+  }
+
+  .label-docker {
+    background: rgba(25, 118, 210, 0.15);
+    color: #1976D2;
+    margin-top: initial;
+  }
+
+  .label-csharp {
+    background: rgba(104, 33, 122, 0.15);
+    color: #68217A;
+    margin-top: initial;
+  }
+  
+  :root[data-theme='dark'] .label-csharp {
+    color: #8A3FB5;
+  }
+
+  .slider-control {
+    position: relative;
+    width: 40%;
+    max-width: 200px;
+  }
+
+  .code-slider {
+    width: 100%;
+    height: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #1976D2 0%, #1976D2 50%, #68217A 50%, #68217A 100%);
+    border-radius: 6px;
+    outline: none;
+    margin: 0;
+    cursor: pointer;
+  }
+  
+  :root[data-theme='dark'] .code-slider {
+    background: linear-gradient(to right, #1976D2 0%, #1976D2 50%, #8A3FB5 50%, #8A3FB5 100%);
+  }
+
+  .code-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    cursor: grab;
+    transition: transform 0.2s;
+  }
+
+  .code-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    cursor: grab;
+    transition: transform 0.2s;
+    border: none;
+  }
+
+  .code-container {
+    position: relative;
+    background: var(--sl-color-bg);
+    margin-top: initial;
+  }
+
+  .split-view {
+    display: flex;
+    width: 200%;
+    transition: transform 0.3s ease;
+  }
+
+  .code-panel {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    margin-top: initial;
+  }
+
+  .code-description {
+    padding: 1rem 1rem 0;
+  }
+
+  .code-block {
+    flex-grow: 1;
+    padding: 0 1rem 1rem;
+    overflow: hidden;
+  }
+
+  .comparison-caption {
+    margin-top: 1rem;
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* Make the component wider on desktop */
+  @media (min-width: 72rem) {
+    .code-comparison-container {
+      width: calc(100% + 4rem);
+      margin-left: -2rem;
+      margin-right: -2rem;
+    }
+  }
+
+  /* Make sure we handle mobile devices properly */
+  @media (max-width: 768px) {
+    .slider-label {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .slider-control {
+      width: 100%;
+      max-width: none;
+      order: 3;
+    }
+
+    .label-docker, .label-csharp {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script type="module" is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+    const slider = document.getElementById('codeSlider');
+    const splitView = document.querySelector('.split-view');
+    const dockerLabel = document.querySelector('.label-docker');
+    const csharpLabel = document.querySelector('.label-csharp');
+    
+    if (slider && splitView) {
+      const updateSplitView = (value) => {
+        // Update slider value if provided as parameter
+        if (value !== undefined) {
+          slider.value = value;
+        } else {
+          value = parseInt(slider.value);
+        }
+        
+        // Calculate translation percentage - we're moving a double-width container
+        const translatePercent = -1 * (value / 2);
+        
+        splitView.style.transform = `translateX(${translatePercent}%)`;
+        
+        // Update gradient background - use different colors for dark/light mode
+        const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+        const csharpColor = isDarkTheme ? '#8A3FB5' : '#68217A';
+        slider.style.background = `linear-gradient(to right, #1976D2 0%, #1976D2 ${value}%, ${csharpColor} ${value}%, ${csharpColor} 100%)`;
+      };
+
+      // Handle slider input events
+      slider.addEventListener('input', () => updateSplitView());
+      
+      // Handle label click events
+      if (dockerLabel) {
+        dockerLabel.addEventListener('click', () => {
+          updateSplitView(0); // Show Docker Compose view (0%)
+        });
+      }
+      
+      if (csharpLabel) {
+        csharpLabel.addEventListener('click', () => {
+          updateSplitView(100); // Show C# AppHost view (100%)
+        });
+      }
+      
+      // Also update when theme changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'data-theme') {
+            updateSplitView();
+          }
+        });
+      });
+      observer.observe(document.documentElement, { attributes: true });
+      
+      // Initialize position
+      updateSplitView();
+      
+      // Add touch support for mobile
+      slider.addEventListener('touchstart', () => {
+        document.body.style.overflow = 'hidden'; // Prevent page scrolling
+      });
+      
+      slider.addEventListener('touchend', () => {
+        document.body.style.overflow = ''; // Re-enable page scrolling
+      });
+    }
+  });
+</script>
