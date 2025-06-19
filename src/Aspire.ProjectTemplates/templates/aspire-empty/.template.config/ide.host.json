@@ -5,7 +5,8 @@
   "disableHttpsSymbol": "NoHttps",
   "symbolInfo": [
     {
-      "id": "AspireVersion"
+      "id": "AspireVersion",
+      "isVisible": true
     }
   ],
   "unsupportedHosts": [

@@ -8,13 +8,16 @@
       "isVisible": false
     },
     {
-      "id": "AspireVersion"
+      "id": "AspireVersion",
+      "isVisible": true
     },
     {
-      "id": "AspireVersionNet9"
+      "id": "AspireVersionNet9",
+      "isVisible": true
     },
     {
-      "id": "AspireVersionNet10"
+      "id": "AspireVersionNet10",
+      "isVisible": true
     },
     {
       "id": "XUnitVersion",
