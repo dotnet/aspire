@@ -120,8 +120,8 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
-           var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", commandContext.CancellationToken);
-           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", commandContext.CancellationToken);
+           var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Icon = MessageBoxIcon.Warning }, cancellationToken: commandContext.CancellationToken);
 
            await Task.WhenAll(resultTask1, resultTask2);
 
@@ -130,6 +130,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                return CommandResults.Failure("Canceled");
            }
 
+           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Icon = MessageBoxIcon.Success });
            return CommandResults.Success();
        })
        .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
@@ -140,7 +141,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                message: "Provide your name",
                inputLabel: "Name",
                placeHolder: "Enter your name",
-               commandContext.CancellationToken);
+               cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)
            {
@@ -166,7 +167,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
                new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };
-           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, commandContext.CancellationToken);
+           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)
            {

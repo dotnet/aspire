@@ -317,17 +317,10 @@ message WatchResourceConsoleLogsUpdate {
 message WatchInteractionsRequestUpdate {
     int32 interaction_id = 1;
 
-    string title = 2;
-    string message = 3;
-    string primary_button_text = 4;
-    bool primary_button_enabled = 5;
-    string secondary_button_text = 6;
-    bool secondary_button_enabled = 7;
-
     oneof kind {
-        InteractionComplete complete = 8;
-        InteractionConfirmationDialog confirmation_dialog = 9;
-        InteractionInputsDialog inputs_dialog = 10;
+        InteractionComplete complete = 2;
+        InteractionMessageBox message_box = 3;
+        InteractionInputsDialog inputs_dialog = 4;
     }
 }
 message WatchInteractionsResponseUpdate {
@@ -336,20 +329,20 @@ message WatchInteractionsResponseUpdate {
     string title = 2;
     string message = 3;
     string primary_button_text = 4;
-    bool primary_button_enabled = 5;
-    string secondary_button_text = 6;
-    bool secondary_button_enabled = 7;
+    string secondary_button_text = 5;
+    bool show_secondary_button = 6;
+    bool show_dismiss = 7;
 
     oneof kind {
-        InteractionComplete complete = 8;
-        InteractionConfirmationDialog confirmation_dialog = 9;
-        InteractionInputsDialog inputs_dialog = 10;
+        InteractionComplete complete = 16;
+        InteractionMessageBox message_box = 17;
+        InteractionInputsDialog inputs_dialog = 18;
     }
 }
 message InteractionComplete {
 }
-message InteractionConfirmationDialog {
-    string icon_name = 1;
+message InteractionMessageBox {
+    MessageBoxIcon icon = 1;
 }
 message InteractionInputsDialog {
     repeated InteractionInput input_items = 1;
@@ -362,13 +355,21 @@ message InteractionInput {
     map<string, string> options = 5;
     string value = 6;
 }
+enum MessageBoxIcon {
+    MESSAGE_BOX_ICON_NONE = 0;
+    MESSAGE_BOX_ICON_SUCCESS = 1;
+    MESSAGE_BOX_ICON_WARNING = 2;
+    MESSAGE_BOX_ICON_ERROR = 3;
+    MESSAGE_BOX_ICON_INFORMATION = 4;
+    MESSAGE_BOX_ICON_QUESTION = 5;
+}
 enum InputType {
-    UNSPECIFIED = 0;
-    TEXT = 1;
-    PASSWORD = 2;
-    SELECT = 3;
-    CHECKBOX = 4;
-    NUMBER = 5;
+    INPUT_TYPE_UNSPECIFIED = 0;
+    INPUT_TYPE_TEXT = 1;
+    INPUT_TYPE_PASSWORD = 2;
+    INPUT_TYPE_SELECT = 3;
+    INPUT_TYPE_CHECKBOX = 4;
+    INPUT_TYPE_NUMBER = 5;
 }
 
 ////////////////////////////////////////////

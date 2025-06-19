@@ -67,7 +67,7 @@ public partial class InteractionsInputDialog
             string.IsNullOrWhiteSpace(inputModel.Value);
     }
 
-    private async Task SaveAsync()
+    private async Task OkAsync()
     {
         if (_editContext.Validate())
         {

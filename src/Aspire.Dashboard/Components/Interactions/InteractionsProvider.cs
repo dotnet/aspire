@@ -8,6 +8,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.ResourceService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Color = Microsoft.FluentUI.AspNetCore.Components.Color;
 
 namespace Aspire.Dashboard.Components.Interactions;
 
@@ -68,40 +69,58 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                     Func<IDialogService, Task<IDialogReference>> openDialog;
 
-                    if (item.ConfirmationDialog is { } confirmation)
+                    if (item.MessageBox is { } messageBox)
                     {
-                        var dialogParameters = new DialogParameters<MessageBoxContent>
+                        var dialogParameters = CreateDialogParameters(item);
+                        dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                         {
-                            Content = new MessageBoxContent
+                            var request = new WatchInteractionsRequestUpdate
                             {
-                                Title = item.Title,
-                                MarkupMessage = new MarkupString(item.Message),
-                                Intent = MessageBoxIntent.Custom
-                            },
-                            PrimaryAction = "OK",
-                            PrimaryActionEnabled = true,
-                            PreventDismissOnOverlayClick = true,
-                            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
+                                InteractionId = item.InteractionId
+                            };
+
+                            if (dialogResult.Cancelled)
                             {
-                                var request = new WatchInteractionsRequestUpdate
-                                {
-                                    InteractionId = item.InteractionId
-                                };
+                                request.Complete = new InteractionComplete();
+                            }
+                            else
+                            {
+                                request.MessageBox = item.MessageBox;
+                            }
 
-                                if (dialogResult.Cancelled)
-                                {
-                                    request.Complete = new InteractionComplete();
-                                }
-                                else
-                                {
-                                    request.ConfirmationDialog = item.ConfirmationDialog;
-                                }
+                            await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                        });
 
-                                await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
-                            }),
+                        var content = new MessageBoxContent
+                        {
+                            Title = item.Title,
+                            MarkupMessage = new MarkupString(item.Message),
                         };
+                        switch (messageBox.Icon)
+                        {
+                            case MessageBoxIcon.Success:
+                                content.IconColor = Color.Success;
+                                content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle();
+                                break;
+                            case MessageBoxIcon.Warning:
+                                content.IconColor = Color.Warning;
+                                content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Warning();
+                                break;
+                            case MessageBoxIcon.Error:
+                                content.IconColor = Color.Error;
+                                content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.DismissCircle();
+                                break;
+                            case MessageBoxIcon.Information:
+                                content.IconColor = Color.Info;
+                                content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Info();
+                                break;
+                            case MessageBoxIcon.Question:
+                                content.IconColor = Color.Success;
+                                content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.QuestionCircle();
+                                break;
+                        }
 
-                        openDialog = dialogService => ShowMessageBoxAsync(dialogService, dialogParameters);
+                        openDialog = dialogService => ShowMessageBoxAsync(dialogService, content, dialogParameters);
                     }
                     else if (item.InputsDialog is { } inputs)
                     {
@@ -215,22 +234,51 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         });
     }
 
-    public async Task<IDialogReference> ShowMessageBoxAsync(IDialogService dialogService, DialogParameters<MessageBoxContent> parameters)
+    private static DialogParameters CreateDialogParameters(WatchInteractionsResponseUpdate interaction)
+    {
+        var dialogParameters = new DialogParameters
+        {
+            ShowDismiss = interaction.ShowDismiss,
+            PrimaryAction = ResolvedPrimaryButtonText(interaction),
+            SecondaryAction = ResolvedSecondaryButtonText(interaction),
+            PreventDismissOnOverlayClick = true,
+            Title = interaction.Title
+        };
+
+        return dialogParameters;
+    }
+
+    private static string ResolvedSecondaryButtonText(WatchInteractionsResponseUpdate interaction)
+    {
+        if (!interaction.ShowSecondaryButton)
+        {
+            return string.Empty;
+        }
+
+        return interaction.SecondaryButtonText is { Length: > 0 } secondaryText ? secondaryText : "Cancel";
+    }
+
+    private static string ResolvedPrimaryButtonText(WatchInteractionsResponseUpdate interaction)
+    {
+        return interaction.PrimaryButtonText is { Length: > 0 } primaryText ? primaryText : "OK";
+    }
+
+    public async Task<IDialogReference> ShowMessageBoxAsync(IDialogService dialogService, MessageBoxContent content, DialogParameters parameters)
     {
         var dialogParameters = new DialogParameters
         {
             DialogType = DialogType.MessageBox,
             Alignment = HorizontalAlignment.Center,
-            Title = parameters.Content.Title,
+            Title = content.Title,
             ShowDismiss = false,
             PrimaryAction = parameters.PrimaryAction,
             SecondaryAction = parameters.SecondaryAction,
             Width = parameters.Width,
             Height = parameters.Height,
-            AriaLabel = (parameters.Content.Title ?? ""),
+            AriaLabel = (content.Title ?? ""),
             OnDialogResult = parameters.OnDialogResult
         };
-        return await dialogService.ShowDialogAsync(typeof(MessageBox), parameters.Content, dialogParameters);
+        return await dialogService.ShowDialogAsync(typeof(MessageBox), content, dialogParameters);
     }
 
     private void NotifyInteractionAvailable()

@@ -24,18 +24,34 @@ public class InteractionService
     private readonly object _onInteractionUpdatedLock = new();
     private readonly InteractionCollection _interactionCollection = new();
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="message"></param>
-    /// <param name="title"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string? message, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        options ??= MessageBoxInteractionOptions.CreateDefault();
+        options.Icon ??= MessageBoxIcon.Question;
+        options.PrimaryButtonText ??= "Yes";
+        options.SecondaryButtonText ??= "No";
+        options.ShowDismiss = false;
+
+        return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        options ??= MessageBoxInteractionOptions.CreateDefault();
+        options.ShowSecondaryButton = false;
+        options.ShowDismiss = false;
+
+        return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<InteractionResult<bool>> PromptMessageBoxCoreAsync(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var newState = new Interaction(title, message, new Interaction.ConfirmationInteractionInfo(iconName: null), cancellationToken);
+        options ??= MessageBoxInteractionOptions.CreateDefault();
+        options.ShowDismiss = false;
+
+        var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(icon: options.Icon ?? MessageBoxIcon.None), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -46,14 +62,14 @@ public class InteractionService
             : InteractionResultFactory.Ok((bool)completion.State!);
     }
 
-    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, cancellationToken).ConfigureAwait(false);
+        return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var result = await PromptInputsAsync(title, message, [input], cancellationToken).ConfigureAwait(false);
+        var result = await PromptInputsAsync(title, message, [input], options, cancellationToken).ConfigureAwait(false);
         if (result.Canceled)
         {
             return InteractionResultFactory.Cancel<InteractionInput>();
@@ -62,13 +78,14 @@ public class InteractionService
         return InteractionResultFactory.Ok(result.Data![0]);
     }
 
-    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var inputList = inputs.ToList();
+        options ??= InputsDialogInteractionOptions.Default;
 
-        var newState = new Interaction(title, message, new Interaction.InputsInteractionInfo(inputList), cancellationToken);
+        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputList), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -258,10 +275,36 @@ public enum InputType
     Number
 }
 
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class InputsDialogInteractionOptions : InteractionOptions
+{
+    internal static new InputsDialogInteractionOptions Default { get; } = new();
+}
+
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class MessageBoxInteractionOptions : InteractionOptions
+{
+    internal static MessageBoxInteractionOptions CreateDefault() => new();
+
+    public MessageBoxIcon? Icon { get; set; }
+}
+
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public enum MessageBoxIcon
+{
+    None = 0,
+    Success = 1,
+    Warning = 2,
+    Error = 3,
+    Information = 4,
+    Question = 5
+}
+
 /// <summary>
 /// Optional configuration for interactions added with <see cref="InteractionService"/>.
 /// </summary>
-public sealed class InteractionOptions
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class InteractionOptions
 {
     internal static InteractionOptions Default { get; } = new();
 
@@ -275,10 +318,12 @@ public sealed class InteractionOptions
     /// </summary>
     public string? SecondaryButtonText { get; set; }
 
+    public bool ShowSecondaryButton { get; set; } = true;
+
     /// <summary>
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
-    public bool ShowDismiss { get; set; }
+    public bool ShowDismiss { get; set; } = true;
 }
 
 internal sealed class InteractionCompetion
@@ -299,12 +344,14 @@ internal class Interaction
 
     public string Title { get; }
     public string? Message { get; }
+    public InteractionOptions Options { get; }
 
-    public Interaction(string title, string? message, InteractionInfoBase interactionInfo, CancellationToken cancellationToken)
+    public Interaction(string title, string? message, InteractionOptions options, InteractionInfoBase interactionInfo, CancellationToken cancellationToken)
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
         Message = message;
+        Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;
     }
@@ -319,14 +366,14 @@ internal class Interaction
     {
     }
 
-    internal sealed class ConfirmationInteractionInfo : InteractionInfoBase
+    internal sealed class MessageBoxInteractionInfo : InteractionInfoBase
     {
-        public ConfirmationInteractionInfo(string? iconName)
+        public MessageBoxInteractionInfo(MessageBoxIcon icon)
         {
-            IconName = iconName;
+            Icon = icon;
         }
 
-        public string? IconName { get; }
+        public MessageBoxIcon Icon { get; }
     }
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase

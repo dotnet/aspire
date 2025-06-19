@@ -156,7 +156,7 @@ internal sealed class DashboardServiceData : IDisposable
         {
             switch (request.KindCase)
             {
-                case WatchInteractionsRequestUpdate.KindOneofCase.ConfirmationDialog:
+                case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
                     return new InteractionCompetion { State = true };
                 case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                     var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;

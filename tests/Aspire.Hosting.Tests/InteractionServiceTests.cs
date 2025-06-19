@@ -43,7 +43,7 @@ public class InteractionServiceTests
 
         // Act 1
         var cts = new CancellationTokenSource();
-        var resultTask = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation", cts.Token);
+        var resultTask = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation", cancellationToken: cts.Token);
 
         // Assert 1
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());

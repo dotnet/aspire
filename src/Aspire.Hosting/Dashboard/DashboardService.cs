@@ -77,14 +77,25 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.Message = interaction.Message;
                         }
+                        if (interaction.Options.PrimaryButtonText != null)
+                        {
+                            change.PrimaryButtonText = interaction.Options.PrimaryButtonText;
+                        }
+                        if (interaction.Options.SecondaryButtonText != null)
+                        {
+                            change.SecondaryButtonText = interaction.Options.SecondaryButtonText;
+                        }
+                        change.ShowDismiss = interaction.Options.ShowDismiss;
+                        change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton;
 
                         if (interaction.State == InteractionState.Complete)
                         {
                             change.Complete = new InteractionComplete();
                         }
-                        else if (interaction.InteractionInfo is ConfirmationInteractionInfo confirmation)
+                        else if (interaction.InteractionInfo is MessageBoxInteractionInfo messageBox)
                         {
-                            change.ConfirmationDialog = new InteractionConfirmationDialog();
+                            change.MessageBox = new InteractionMessageBox();
+                            change.MessageBox.Icon = MapMessageBoxIcon(messageBox.Icon);
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {
@@ -148,6 +159,30 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private static MessageBoxIcon MapMessageBoxIcon(ApplicationModel.MessageBoxIcon? icon)
+    {
+        if (icon is null)
+        {
+            return MessageBoxIcon.None;
+        }
+
+        switch (icon.Value)
+        {
+            case ApplicationModel.MessageBoxIcon.Success:
+                return MessageBoxIcon.Success;
+            case ApplicationModel.MessageBoxIcon.Warning:
+                return MessageBoxIcon.Warning;
+            case ApplicationModel.MessageBoxIcon.Error:
+                return MessageBoxIcon.Error;
+            case ApplicationModel.MessageBoxIcon.Information:
+                return MessageBoxIcon.Information;
+            case ApplicationModel.MessageBoxIcon.Question:
+                return MessageBoxIcon.Question;
+            default:
+                return MessageBoxIcon.None;
+        }
+    }
+
     private static InputType MapInputType(ApplicationModel.InputType inputType)
     {
         switch (inputType)

@@ -70,10 +70,13 @@
 </FluentDialogBody>
 
 <FluentDialogFooter>
-    <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">
-        Save
+    <FluentButton Appearance="Appearance.Accent" OnClick="@OkAsync">
+        @Dialog.Instance.Parameters.PrimaryAction
     </FluentButton>
-    <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">
-        Cancel
-    </FluentButton>
+    @if (!string.IsNullOrEmpty(Dialog.Instance.Parameters.SecondaryAction))
+    {
+        <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">
+            @Dialog.Instance.Parameters.SecondaryAction
+        </FluentButton>
+    }
 </FluentDialogFooter>
