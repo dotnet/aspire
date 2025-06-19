@@ -157,7 +157,7 @@ internal sealed class DashboardServiceData : IDisposable
             switch (request.KindCase)
             {
                 case WatchInteractionsRequestUpdate.KindOneofCase.ConfirmationDialog:
-                    return InteractionResult.Ok(true);
+                    return new InteractionCompetion { State = true };
                 case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                     var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                     for (var i = 0; i < inputsInfo.Inputs.Count; i++)
@@ -175,9 +175,9 @@ internal sealed class DashboardServiceData : IDisposable
 
                         modelInput.SetValue(incomingValue);
                     }
-                    return InteractionResult.Ok(inputsInfo.Inputs);
+                    return new InteractionCompetion { State = inputsInfo.Inputs };
                 default:
-                    return InteractionResult.Cancel();
+                    return new InteractionCompetion { Canceled = true };
             }
         });
 

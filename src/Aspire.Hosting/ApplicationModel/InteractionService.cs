@@ -31,7 +31,7 @@ public class InteractionService
     /// <param name="title"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<InteractionResult> PromptConfirmationAsync(string title, string? message, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string? message, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -40,20 +40,29 @@ public class InteractionService
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-        return await newState.TaskCompletionSource.Task.ConfigureAwait(false);
+        var completion = await newState.TaskCompletionSource.Task.ConfigureAwait(false);
+        return completion.Canceled
+            ? InteractionResultFactory.Cancel<bool>()
+            : InteractionResultFactory.Ok((bool)completion.State!);
     }
 
-    public async Task<InteractionResult> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, CancellationToken cancellationToken = default)
     {
         return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<InteractionResult> PromptInputAsync(string title, string? message, InteractionInput input, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, CancellationToken cancellationToken = default)
     {
-        return await PromptInputsAsync(title, message, [input], cancellationToken).ConfigureAwait(false);
+        var result = await PromptInputsAsync(title, message, [input], cancellationToken).ConfigureAwait(false);
+        if (result.Canceled)
+        {
+            return InteractionResultFactory.Cancel<InteractionInput>();
+        }
+
+        return InteractionResultFactory.Ok(result.Data![0]);
     }
 
-    public async Task<InteractionResult> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -64,7 +73,11 @@ public class InteractionService
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-        return await newState.TaskCompletionSource.Task.ConfigureAwait(false);
+        var completion = await newState.TaskCompletionSource.Task.ConfigureAwait(false);
+
+        return completion.Canceled
+            ? InteractionResultFactory.Cancel<IReadOnlyList<InteractionInput>>()
+            : InteractionResultFactory.Ok((IReadOnlyList<InteractionInput>)completion.State!);
     }
 
     // For testing.
@@ -81,7 +94,7 @@ public class InteractionService
         var interactionState = (Interaction)newState!;
 
         interactionState.State = Interaction.InteractionState.Complete;
-        interactionState.TaskCompletionSource.TrySetResult(InteractionResult.Cancel());
+        interactionState.TaskCompletionSource.TrySetResult(new InteractionCompetion { Canceled = true });
         AddInteractionUpdate(interactionState);
     }
 
@@ -119,7 +132,7 @@ public class InteractionService
         }
     }
 
-    internal void CompleteInteraction(int interactionId, Func<Interaction, InteractionResult> createResult)
+    internal void CompleteInteraction(int interactionId, Func<Interaction, InteractionCompetion> createResult)
     {
         lock (_onInteractionUpdatedLock)
         {
@@ -188,32 +201,35 @@ internal class InteractionCollection : KeyedCollection<int, Interaction>
 /// 
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class InteractionResult
+public class InteractionResult<T>
 {
     /// <summary>
     /// 
     /// </summary>
-    public object? Data { get; }
+    public T? Data { get; }
 
     /// <summary>
     /// 
     /// </summary>
     public bool Canceled { get; }
 
-    private InteractionResult(object? data, bool canceled)
+    internal InteractionResult(T? data, bool canceled)
     {
         Data = data;
         Canceled = canceled;
     }
+}
 
-    internal static InteractionResult Ok<T>(T result)
+internal static class InteractionResultFactory
+{
+    internal static InteractionResult<T> Ok<T>(T result)
     {
-        return new InteractionResult(result, canceled: false);
+        return new InteractionResult<T>(result, canceled: false);
     }
 
-    internal static InteractionResult Cancel(object? data = null)
+    internal static InteractionResult<T> Cancel<T>(T? data = default)
     {
-        return new InteractionResult(data ?? null, canceled: true);
+        return new InteractionResult<T>(data ?? default, canceled: true);
     }
 }
 
@@ -242,13 +258,42 @@ public enum InputType
     Number
 }
 
+/// <summary>
+/// Optional configuration for interactions added with <see cref="InteractionService"/>.
+/// </summary>
+public sealed class InteractionOptions
+{
+    internal static InteractionOptions Default { get; } = new();
+
+    /// <summary>
+    /// Optional primary button text to override the default text.
+    /// </summary>
+    public string? PrimaryButtonText { get; set; }
+
+    /// <summary>
+    /// Optional secondary button text to override the default text.
+    /// </summary>
+    public string? SecondaryButtonText { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether show the dismiss button in the header.
+    /// </summary>
+    public bool ShowDismiss { get; set; }
+}
+
+internal sealed class InteractionCompetion
+{
+    public bool Canceled { get; init; }
+    public object? State { get; init; }
+}
+
 internal class Interaction
 {
     private static int s_nextInteractionId = 1;
 
     public int InteractionId { get; }
     public InteractionState State { get; set; }
-    public TaskCompletionSource<InteractionResult> TaskCompletionSource { get; } = new TaskCompletionSource<InteractionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<InteractionCompetion> TaskCompletionSource { get; } = new TaskCompletionSource<InteractionCompetion>(TaskCreationOptions.RunContinuationsAsynchronously);
     public InteractionInfoBase InteractionInfo { get; }
     public CancellationToken CancellationToken { get; }
 
