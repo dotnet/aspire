@@ -3,17 +3,17 @@ import { Icon } from '@astrojs/starlight/components';
 
 const tiers = [
     {
-        name: "Startup Special",
+        name: "🎓 Student Plan",
         price: "$0.00",
         perks: [
             "Everything included.",
             "No hidden fees.", 
             "No credit card required."
         ],
-        color: "var(--sl-color-purple)"
+        color: "var(--sl-color-orange)"
     },
     {
-        name: "Bootstrapper's Delight",
+        name: "🏁 Startup Special",
         price: "$0.00",
         perks: [
             "Worried you can't afford free?",
@@ -23,14 +23,14 @@ const tiers = [
         color: "var(--sl-color-green)"
     },
     {
-        name: "Open Source Hero",
+        name: "🏢 Enterprise Ultimate+",
         price: "$0.00",
         perks: [
             "Free forever.", 
             "No strings attached, seriously.",
             "Built with love for the community."
         ],
-        color: "var(--sl-color-blue)"
+        color: "var(--sl-color-purple)"
     },
 ];
 ---
@@ -102,7 +102,7 @@ const tiers = [
         border-radius: 12px;
         overflow: hidden;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--sl-color-gray-5);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         margin-top: initial;
     }

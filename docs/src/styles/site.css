@@ -27,8 +27,9 @@
 	--background-gradient: linear-gradient(
 		to bottom,
 		var(--sl-color-bg) 0%,
-		var(--color-dotnet-purple) 75%,
-		var(--sl-color-bg-nav) 100%
+		var(--color-dotnet-purple) 85%,
+		var(--sl-color-bg-nav) 95%,
+		var(--sl-color-bg) 100%
 	);
 	--color-purple: #9B5DE5;
 	--color-magenta: #D600AA;
@@ -64,9 +65,11 @@
 	--sl-color-black: #FFFFFF;
 
 	--background-gradient: linear-gradient(
-		to bottom, 
-		var(--sl-color-bg), 
-		var(--sl-color-gray-6));
+		to bottom,
+		var(--sl-color-bg) 0%,
+		var(--sl-color-bg-nav) 95%,
+		var(--sl-color-bg) 100%
+	);
 
 	--gradient-purple-magenta: linear-gradient(90deg, var(--color-purple), var(--color-magenta));
 	--gradient-magenta-flamingo: linear-gradient(90deg, var(--color-magenta), var(--color-flamingo));
@@ -75,10 +78,8 @@
 	--gradient-cyan-purple: linear-gradient(90deg, var(--color-cyan), var(--color-purple));
 }
 
-
 /* Dark mode by default */
 :root {
-
 	a:not(:disabled),
 	select:not(:disabled) option:not(:disabled) {
 		cursor: pointer;
