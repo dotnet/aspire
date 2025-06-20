@@ -52,7 +52,8 @@
                                           Items="localItem.Options.Select(o => new SelectViewModel<string> { Id = o.Key, Name = o.Value })"
                                           OptionValue="@(vm => vm.Id)"
                                           OptionText="@(vm => vm.Name)"
-                                          Height="300px" />
+                                          Height="250px"
+                                          Position="SelectPosition.Below" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Checkbox:
