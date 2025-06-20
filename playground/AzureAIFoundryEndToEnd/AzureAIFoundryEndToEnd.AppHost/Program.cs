@@ -4,10 +4,10 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var foundry = builder.AddAzureAIFoundry("foundry")
-    //.RunAsFoundryLocal()
+    .RunAsFoundryLocal()
     ;
 
-var chat = foundry.AddDeployment("chat", "Phi-4-mini-instruct", "1", "Microsoft");
+var chat = foundry.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

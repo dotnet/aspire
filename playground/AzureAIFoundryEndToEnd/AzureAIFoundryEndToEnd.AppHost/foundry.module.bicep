@@ -22,11 +22,11 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 }
 
 resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'Phi-4-mini-instruct'
+  name: 'qwen2.5-0.5b'
   properties: {
     model: {
       format: 'Microsoft'
-      name: 'Phi-4-mini-instruct'
+      name: 'qwen2.5-0.5b'
       version: '1'
     }
   }
