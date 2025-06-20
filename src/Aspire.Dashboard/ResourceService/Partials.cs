@@ -193,9 +193,9 @@ partial class InteractionInput
     }
 
     // Used when binding to FluentNumberField in the dashboard.
-    public int NumberValue
+    public int? NumberValue
     {
-        get => int.TryParse(Value, CultureInfo.InvariantCulture, out var result) ? result : 0;
-        set => Value = value.ToString(CultureInfo.InvariantCulture);
+        get => int.TryParse(Value, CultureInfo.InvariantCulture, out var result) ? result : null;
+        set => Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }

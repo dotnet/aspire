@@ -177,7 +177,25 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            {
                new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
                new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
-               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options = [KeyValuePair.Create("pizza", "Pizza"), KeyValuePair.Create("fried-chicken", "Fried chicken")] },
+               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options =
+               [
+                   KeyValuePair.Create("pizza", "Pizza"),
+                   KeyValuePair.Create("fried-chicken", "Fried chicken"),
+                   KeyValuePair.Create("burger", "Burger"),
+                   KeyValuePair.Create("salmon", "Salmon"),
+                   KeyValuePair.Create("chicken-pie", "Chicken pie"),
+                   KeyValuePair.Create("sushi", "Sushi"),
+                   KeyValuePair.Create("tacos", "Tacos"),
+                   KeyValuePair.Create("pasta", "Pasta"),
+                   KeyValuePair.Create("salad", "Salad"),
+                   KeyValuePair.Create("steak", "Steak"),
+                   KeyValuePair.Create("vegetarian", "Vegetarian"),
+                   KeyValuePair.Create("sausage", "Sausage"),
+                   KeyValuePair.Create("lasagne", "Lasagne"),
+                   KeyValuePair.Create("fish-pie", "Fish pie"),
+                   KeyValuePair.Create("soup", "Soup"),
+                   KeyValuePair.Create("beef-stew", "Beef stew"),
+               ] },
                new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
                new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };

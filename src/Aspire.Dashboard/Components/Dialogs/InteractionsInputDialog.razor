@@ -44,7 +44,12 @@
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Select:
-                            <FluentSelect TOption="System.String" @bind-Value="localItem.Value" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required">
+                            <FluentSelect TOption="System.String"
+                                          @bind-Value="localItem.Value"
+                                          Label="@localItem.Label"
+                                          Placeholder="@localItem.Placeholder"
+                                          Required="localItem.Required"
+                                          Height="300px">
                                 @foreach (var option in localItem.Options)
                                 {
                                     <FluentOption Value="@option.Key">@option.Value</FluentOption>
@@ -54,10 +59,10 @@
                             break;
                         case InputType.Checkbox:
                             <FluentCheckbox @bind-Value="localItem.IsChecked" Label="@localItem.Label" Placeholder="@localItem.Placeholder" />
-                            <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Number:
                             <FluentNumberField @bind-Value="localItem.NumberValue" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" />
+                            <ValidationMessage For="@(() => localItem.NumberValue)" />
                             break;
                         default:
                             @* Ignore unexpected InputTypes *@
