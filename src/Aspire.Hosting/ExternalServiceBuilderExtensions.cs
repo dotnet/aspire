@@ -90,17 +90,64 @@ public static class ExternalServiceBuilderExtensions
     /// </summary>
     private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoint(this IResourceBuilder<ExternalServiceResource> builder, ReferenceExpression urlExpression)
     {
-        // Create a default endpoint annotation
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, "http", name: "default"));
+        // For literal URLs, we can create an AllocatedEndpoint immediately with proper URL information
+        // For expressions, we'll create a placeholder that gets resolved later
+        if (IsLiteralUrl(urlExpression, out var literalUrl))
+        {
+            if (Uri.TryCreate(literalUrl, UriKind.Absolute, out var uri))
+            {
+                // Use the port from the URI, which will be -1 if not specified
+                var port = uri.Port;
+                var scheme = uri.Scheme;
+                
+                // Create endpoint annotation with the correct scheme
+                var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme, name: "default");
+                
+                // Create an AllocatedEndpoint that preserves the original URL structure
+                endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, uri.Host, port);
+                
+                builder.WithAnnotation(endpointAnnotation);
+            }
+            else
+            {
+                // Fallback for invalid URLs
+                var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, "http", name: "default");
+                endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
+                builder.WithAnnotation(endpointAnnotation);
+            }
+        }
+        else
+        {
+            // For non-literal expressions, create a placeholder that will be resolved by the runtime
+            var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, "http", name: "default");
+            endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
+            builder.WithAnnotation(endpointAnnotation);
+        }
         
         // Create an environment callback that simulates what ApplyEndpoints would do for external services
-        builder.WithEnvironment((Action<EnvironmentCallbackContext>)(context =>
+        builder.WithEnvironment(context =>
         {
             var serviceName = builder.Resource.Name;
             context.EnvironmentVariables[$"services__{serviceName}__default__0"] = urlExpression;
-        }));
+        });
 
         return builder;
+    }
+
+    /// <summary>
+    /// Checks if a ReferenceExpression represents a literal URL string.
+    /// </summary>
+    private static bool IsLiteralUrl(ReferenceExpression expression, out string url)
+    {
+        // If the expression has no value providers, it's a literal string
+        if (expression.ValueProviders.Count == 0)
+        {
+            url = expression.Format;
+            return true;
+        }
+
+        url = string.Empty;
+        return false;
     }
 
     /// <summary>
