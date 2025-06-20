@@ -203,7 +203,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
 
-        // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false
+        // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
+        // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
         if (!noBuild)
         {

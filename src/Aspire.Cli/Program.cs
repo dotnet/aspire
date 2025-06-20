@@ -10,7 +10,6 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -98,13 +97,7 @@ public class Program
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddSingleton<AspireCliTelemetry>();
-        builder.Services.AddTransient<IDotNetCliRunner>(serviceProvider =>
-        {
-            var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
-            var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
-        });
+        builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
