@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -24,6 +24,10 @@
       <PackagePath>\</PackagePath>
       <Pack>true</Pack>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="FoundryLocal\" />
   </ItemGroup>
 
 </Project>

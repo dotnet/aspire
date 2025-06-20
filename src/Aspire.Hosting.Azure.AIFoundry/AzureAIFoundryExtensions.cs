@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.Expressions;
@@ -48,9 +47,7 @@ public static class AzureAIFoundryExtensions
                     {
                         CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                         PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                        DisableLocalAuth = true,
-                        // TODO: May need to enable project management (might require a custom CDK resource to set the property, and custom API version)
-                        // AllowProjectManagement = true,
+                        DisableLocalAuth = true
                     },
                     Identity = new ManagedServiceIdentity()
                     {
@@ -97,16 +94,12 @@ public static class AzureAIFoundryExtensions
                 // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
                 // which can't be defined with the CDK
 
-                // TODO: Check if this is really necessary. If so should it be removed once deployed or will deployments
-                // suppression be an issue?
-
                 if (dependency != null)
                 {
                     cdkDeployment.DependsOn.Add(dependency);
                 }
 
                 dependency = cdkDeployment;
-
             }
         };
 

@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.AI.Foundry.Local;
+using Aspire.Hosting.Azure.Internal;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 internal sealed class FoundryHealthCheck(FoundryLocalManager manager) : IHealthCheck
 {

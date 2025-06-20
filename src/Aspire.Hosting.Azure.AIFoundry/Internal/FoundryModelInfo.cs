@@ -7,7 +7,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace Microsoft.AI.Foundry.Local;
+namespace Aspire.Hosting.Azure.Internal;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

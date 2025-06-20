@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.AIFoundry;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure AI Services Deployment.

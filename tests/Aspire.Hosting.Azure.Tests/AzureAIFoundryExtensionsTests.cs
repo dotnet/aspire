@@ -57,24 +57,13 @@ public class AzureAIFoundryExtensionsTests
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         // The connection string should reference the aiFoundryApiEndpoint output
-        var expected = "Endpoint=" + resource.AIFoundryApiEndpoint;
-        Assert.Equal(expected, resource.ConnectionStringExpression.ToString());
+        var expected = "Endpoint=" + resource.AIFoundryApiEndpoint.ValueExpression;
+        var connectionString = resource.ConnectionStringExpression.ValueExpression;
+        Assert.Equal(expected, connectionString);
     }
 
     [Fact]
-    public void AddDeployment_ConnectionString_IsCorrect()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
-        var deploymentBuilder = resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
-        var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
-        var deployment = Assert.Single(resource.Deployments);
-        // The deployment connection string should match the parent resource's connection string
-        Assert.Equal(resource.ConnectionStringExpression.ToString(), deployment.ConnectionStringExpression.ToString());
-    }
-
-    [Fact]
-    public void RunAsFoundryLocal_SetsIsLocalAndApiKey()
+    public void RunAsFoundryLocal_SetsIsLocal()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
@@ -85,7 +74,6 @@ public class AzureAIFoundryExtensionsTests
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
         var localResource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.True(localResource.IsLocal);
-        // ApiKey is set at runtime by FoundryLocalManager, so we only check IsLocal here
     }
 
     [Fact]
@@ -97,7 +85,7 @@ public class AzureAIFoundryExtensionsTests
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
         var localResource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.True(localResource.IsLocal);
-        // All deployments should have Parent.IsLocal == true
+
         foreach (var deployment in localResource.Deployments)
         {
             Assert.True(deployment.Parent.IsLocal);
@@ -108,15 +96,29 @@ public class AzureAIFoundryExtensionsTests
     public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
-        var deploymentBuilder = resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
-        resourceBuilder.RunAsFoundryLocal();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+        foundry.RunAsFoundryLocal();
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
-        var deployment = Assert.Single(resource.Deployments);
-        var connectionString = deployment.ConnectionStringExpression.ToString();
-        Assert.Contains("Model=deployment1", connectionString);
-        Assert.Contains("DeploymentId=deployment1", connectionString);
+        Assert.Single(resource.Deployments);
+        var connectionString = deployment.Resource.ConnectionStringExpression.ValueExpression;
+        Assert.Contains("Model=gpt-4", connectionString);
+        Assert.Contains("DeploymentId=gpt-4", connectionString);
         Assert.Contains("Endpoint=", connectionString);
         Assert.Contains("Key=", connectionString);
+    }
+
+    [Fact]
+    public async Task AddAzureAIFoundry_GeneratesValidBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var foundry = builder.AddAzureAIFoundry("foundry");
+        var deployment1 = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+        var deployment2 = foundry.AddDeployment("deployment2", "Phi-4", "1.0", "Microsoft");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(foundry.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
     }
 }

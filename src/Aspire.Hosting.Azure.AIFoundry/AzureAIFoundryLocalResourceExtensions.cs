@@ -2,15 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
+using Aspire.Hosting.Azure.Internal;
 using Aspire.Hosting.Eventing;
-using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Provides extension methods for configuring and managing Foundry Local resources.
@@ -36,6 +35,11 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
         var resource = new AzureAIFoundryResource(azureResource.Name, c => { }) { IsLocal = true };
         builder.ApplicationBuilder.AddResource(resource);
+
+        foreach (var deployment in azureResource.Deployments)
+        {
+            resource.AddDeployment(deployment);
+        }
 
         var resourceBuilder = builder.ApplicationBuilder
             .CreateResourceBuilder(resource);
