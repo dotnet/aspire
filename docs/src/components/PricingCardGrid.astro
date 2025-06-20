@@ -35,38 +35,13 @@ const tiers = [
 ];
 ---
 
-<section class="pricing-container">
-    <div class="pricing">
-        <div class="card-grid">
-            {
-                tiers.map((tier) => (
-                    <div class="card">
-                        <div class="card-header" style={`background-color: ${tier.color}`}>
-                            <h4>{tier.name}</h4>
-                        </div>
-                        <div class="card-content">
-                            <p class="price" style={`color: ${tier.color}`}>{tier.price}</p>
-                            <ul>
-                                {tier.perks.map((perk) => (
-                                    <li>
-                                        <span class="icons check-icon">
-                                            <Icon name="approve-check" size="1.2rem" />
-                                        </span>
-                                        <span>{perk}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                ))
-            }
-        </div>
+<section class="pricing-container">    
         <p class="cta">
             <span class="cta-content">
                 <span class="icons heart-icon">
                     <Icon name="heart" size="1.2rem" />
                 </span>
-                <span>Seriously though, Aspire is entirely free and open source.</span>
+                <span>Aspire is entirely free and open source. We believe in transparency and accessibility for all developers.</span>
             </span>
         </p>
     </div>
@@ -75,87 +50,7 @@ const tiers = [
 <style>
     .pricing-container {
         width: 100%;
-    }
-
-    .pricing {
-        text-align: center;
-        padding: .5rem 0;
-        max-width: var(--sl-content-width);
-        margin: 0 auto;
-    }
-
-    .pricing-intro {
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-        color: var(--sl-color-gray-1);
-    }
-
-    .card-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 2rem;
-        margin-top: 2rem;
-    }
-
-    .card {
-        background: var(--sl-color-black);
-        border-radius: 12px;
-        overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border: 1px solid var(--sl-color-gray-5);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        margin-top: initial;
-    }
-
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-    }
-    
-    .card-header {
-        padding: 1.5rem;
-        position: relative;
-    }
-    
-    .card-header h4 {
-        margin: 0;
-        letter-spacing: 0.5px;
-        color: var(--sl-color-black);
-    }
-    
-    :root[data-theme='light'] .card-header {
-        color: white;
-    }
-
-    :root[data-theme='light'] .card-header h4 {
-        color: white;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .card-content {
-        padding: 1.5rem;
-    }
-
-    .price {
-        font-size: 2.2rem;
-        font-weight: bold;
-        color: var(--sl-color-white);
-    }
-
-    ul {
-        list-style-type: none;
-        padding-left: 0;
-        margin-top: 1.5rem;
-    }
-
-    li {
-        margin-bottom: 0.8rem;
-        color: var(--sl-color-gray-3);
-        position: relative;
-        padding-left: 0;
-        display: flex;
-        align-items: center;
-        text-align: left;
+        text-align: center;;
     }
 
     .icons {
@@ -165,24 +60,18 @@ const tiers = [
         color: var(--sl-color-accent);
     }
 
-    :global(.check-icon svg) {
-        color: #22c55e;
-        flex-shrink: 0;
-    }
-
     :global(.heart-icon svg) {
         color: #f43f5e;
         flex-shrink: 0;
     }
 
     .cta {
-        margin-top: 3rem;
-        font-weight: bold;
+        margin-top: 1.5rem;
         color: var(--sl-color-gray-1);
-        font-size: 1.1rem;
+        font-size: var(--sl-text-xl);
         padding: 1rem 2rem;
         background: rgba(155, 93, 229, 0.2);
-        border-radius: 8px;
+        border-radius: .5rem;
         display: inline-block;
         text-align: center;
     }
