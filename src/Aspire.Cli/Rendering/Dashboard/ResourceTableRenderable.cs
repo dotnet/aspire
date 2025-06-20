@@ -17,7 +17,6 @@ internal sealed class ResourceTableRenderable(DashboardState state) : JustInTime
         table.AddColumn(RunCommandStrings.Resource);
         table.AddColumn(RunCommandStrings.Type);
         table.AddColumn(RunCommandStrings.State);
-        table.AddColumn(RunCommandStrings.Health);
         table.AddColumn(RunCommandStrings.Endpoints);
 
         if (state.ResourceStates.Count == 0)
@@ -36,26 +35,23 @@ internal sealed class ResourceTableRenderable(DashboardState state) : JustInTime
 
                 var typeRenderable = new Text(resourceStates.Value.Type, new Style().Foreground(Color.White));
 
-                var stateRenderable = resourceStates.Value.State switch
+                var stateRenderable = (resourceStates.Value.State, resourceStates.Value.Health) switch
                 {
-                    "Running" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Green)),
-                    "Starting" => new Text(resourceStates.Value.State, new Style().Foreground(Color.LightGreen)),
-                    "FailedToStart" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Red)),
-                    "Waiting" => new Text(resourceStates.Value.State, new Style().Foreground(Color.White)),
-                    "Unhealthy" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Yellow)),
-                    "Exited" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
-                    "Finished" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
-                    "NotStarted" => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
-                    _ => new Text(resourceStates.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                };
+                    // Map the combination of running states and health. If it is running but degrated or unhealthy
+                    // then we substitute in the health state (since we combine the health and state together).
+                    ("Running", "Healthy") => new Text(resourceStates.Value.State, new Style().Foreground(Color.Green)),
+                    ("Running", "Unhealthy") => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Red)),
+                    ("Running", "Degraded") => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Yellow)),
 
-                var healthRenderable = resourceStates.Value.Health switch
-                {
-                    "Healthy" => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Green)),
-                    "Degraded" => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Yellow)),
-                    "Unhealthy" => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Red)),
-                    null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
-                    _ => new Text(resourceStates.Value.Health, new Style().Foreground(Color.Grey))
+                    ("Starting", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.LightGreen)),
+                    ("FailedToStart", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.Red)),
+                    ("Waiting", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.White)),
+
+                    ("Exited", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
+                    ("Finished", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
+                    ("NotStarted", _) => new Text(resourceStates.Value.State, new Style().Foreground(Color.Grey)),
+
+                    _ => new Text(resourceStates.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
                 };
 
                 IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
@@ -66,7 +62,7 @@ internal sealed class ResourceTableRenderable(DashboardState state) : JustInTime
                     );
                 }
 
-                table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
+                table.AddRow(nameRenderable, typeRenderable, stateRenderable, endpointsRenderable);
             }
 
         table.Expand();
