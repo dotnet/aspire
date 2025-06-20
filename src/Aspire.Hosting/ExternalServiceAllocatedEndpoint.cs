@@ -14,7 +14,7 @@ internal class ExternalServiceAllocatedEndpoint : AllocatedEndpoint
     private readonly string _literalUrl;
 
     public ExternalServiceAllocatedEndpoint(EndpointAnnotation endpointAnnotation, ReferenceExpression urlExpression)
-        : base(endpointAnnotation, GetHostFromUrl(urlExpression), GetPortFromUrl(urlExpression))
+        : base(endpointAnnotation, GetHostFromUrl(urlExpression), GetPortFromUrl(urlExpression, endpointAnnotation.UriScheme))
     {
         _urlExpression = urlExpression;
         _literalUrl = IsLiteralUrl(urlExpression, out var url) ? url : "";
@@ -35,14 +35,24 @@ internal class ExternalServiceAllocatedEndpoint : AllocatedEndpoint
         return "external.service";
     }
 
-    private static int GetPortFromUrl(ReferenceExpression urlExpression)
+    private static int GetPortFromUrl(ReferenceExpression urlExpression, string uriScheme)
     {
-        // For literal URLs, extract the port; for expressions, use default port
+        // For literal URLs, extract the port; for expressions, use default port based on scheme
         if (IsLiteralUrl(urlExpression, out var literalUrl) && Uri.TryCreate(literalUrl, UriKind.Absolute, out var uri))
         {
             return uri.Port;
         }
-        return 80;
+        
+        // Return default port based on scheme
+        return uriScheme.ToLowerInvariant() switch
+        {
+            "https" => 443,
+            "http" => 80,
+            "ftp" => 21,
+            "ws" => 80,
+            "wss" => 443,
+            _ => 80 // fallback to port 80 for unknown schemes
+        };
     }
 
     private static bool IsLiteralUrl(ReferenceExpression expression, out string url)
