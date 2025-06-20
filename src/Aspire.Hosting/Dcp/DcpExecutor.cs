@@ -1806,12 +1806,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     break;
             }
 
-            if (!sp.EndpointAnnotation.IsProxied)
+            if (sp.EndpointAnnotation.TargetHost != "localhost")
             {
-                if (sp.EndpointAnnotation.TargetHost != "localhost")
-                {
-                    portSpec.HostIP = sp.EndpointAnnotation.TargetHost;
-                }
+                portSpec.HostIP = sp.EndpointAnnotation.TargetHost;
             }
 
             ports.Add(portSpec);
