@@ -96,7 +96,7 @@ public class InteractionServiceTests
     }
 
     [Fact]
-    public async Task SubscribeInteractionUpdates_MultipleCompleteResult_ReturnResult1()
+    public async Task SubscribeInteractionUpdates_MultipleCompleteResult_ReturnResult()
     {
         // Arrange
         var interactionService = CreateInteractionService();
@@ -123,7 +123,7 @@ public class InteractionServiceTests
         // Act & Assert 2
         var result1 = new InteractionCompletionState { State = true };
         interactionService.CompleteInteraction(interaction1.InteractionId, _ => result1);
-        Assert.Equivalent(result1, await resultTask1.DefaultTimeout());
+        Assert.True((await resultTask1.DefaultTimeout()).Data);
         Assert.Equal(interaction2.InteractionId, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
         var completedInteraction1 = await updates.Reader.ReadAsync().DefaultTimeout();
         Assert.True(completedInteraction1.CompletionTcs.Task.IsCompletedSuccessfully);
@@ -131,7 +131,7 @@ public class InteractionServiceTests
 
         var result2 = new InteractionCompletionState { State = false };
         interactionService.CompleteInteraction(interaction2.InteractionId, _ => result2);
-        Assert.Equivalent(result2, await resultTask2.DefaultTimeout());
+        Assert.False((await resultTask2.DefaultTimeout()).Data);
         Assert.Empty(interactionService.GetCurrentInteractions());
         var completedInteraction2 = await updates.Reader.ReadAsync().DefaultTimeout();
         Assert.True(completedInteraction2.CompletionTcs.Task.IsCompletedSuccessfully);
