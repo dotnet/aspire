@@ -14,9 +14,23 @@ public class NullPublishingActivityProgressReporterTests
     public async Task CanUseNullReporter()
     {
         var reporter = NullPublishingActivityProgressReporter.Instance;
-        var activity = await reporter.CreateActivityAsync("1", "initial", isPrimary: true, default);
-        await reporter.UpdateActivityStatusAsync(activity, (status) => status with { IsComplete = true }, default);
+        var step = await reporter.CreateStepAsync("1", "step initial", default);
+        await reporter.CompleteStepAsync(step, "step completed", default);
 
-        Assert.NotNull(activity);
+        Assert.NotNull(step);
+        Assert.Equal("1", step.Id);
+        Assert.True(step.IsComplete);
+    }
+
+    [Fact]
+    public async Task CanCreateTask()
+    {
+        var reporter = NullPublishingActivityProgressReporter.Instance;
+        var task = await reporter.CreateTaskAsync("task-1", "step-1", "task initial", default);
+        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, "task completed", default);
+
+        Assert.NotNull(task);
+        Assert.Equal("task-1", task.Id);
+        Assert.Equal("step-1", task.StepId);
     }
 }

@@ -33,9 +33,17 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
+    private const string ImageBuildStepId = "image-build";
+
     public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
+
+        await activityReporter.CreateStepAsync(
+            ImageBuildStepId,
+            $"Building container image for resource {resource.Name}",
+            cancellationToken
+            ).ConfigureAwait(false);
 
         if (resource is ProjectResource)
         {
@@ -73,10 +81,10 @@ internal sealed class ResourceContainerImageBuilder(
 
     private async Task BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        var publishingActivity = await activityReporter.CreateActivityAsync(
+        var publishingTask = await activityReporter.CreateTaskAsync(
             $"{resource.Name}-build-image",
+            ImageBuildStepId,
             $"Building image: {resource.Name}",
-            isPrimary: false,
             cancellationToken
             ).ConfigureAwait(false);
 
@@ -115,15 +123,19 @@ internal sealed class ResourceContainerImageBuilder(
             if (processResult.ExitCode != 0)
             {
                 logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-                await activityReporter.UpdateActivityStatusAsync(
-                    publishingActivity, (status) => status with { IsError = true },
+                await activityReporter.CompleteTaskAsync(
+                    publishingTask,
+                    TaskCompletionState.CompletedWithError,
+                    $"Building image: {resource.Name} failed",
                     cancellationToken).ConfigureAwait(false);
                 throw new DistributedApplicationException($"Failed to build container image.");
             }
             else
             {
-                await activityReporter.UpdateActivityStatusAsync(
-                    publishingActivity, (status) => status with { IsComplete = true },
+                await activityReporter.CompleteTaskAsync(
+                    publishingTask,
+                    TaskCompletionState.Completed,
+                    $"Building image: {resource.Name} completed",
                     cancellationToken).ConfigureAwait(false);
 
                 logger.LogDebug(
@@ -135,10 +147,10 @@ internal sealed class ResourceContainerImageBuilder(
 
     private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
     {
-        var publishingActivity = await activityReporter.CreateActivityAsync(
+        var publishingTask = await activityReporter.CreateTaskAsync(
             $"{resourceName}-build-image",
+            ImageBuildStepId,
             $"Building image: {resourceName}",
-            isPrimary: false,
             cancellationToken
             ).ConfigureAwait(false);
 
@@ -156,16 +168,20 @@ internal sealed class ResourceContainerImageBuilder(
                 imageName,
                 cancellationToken).ConfigureAwait(false);
 
-            await activityReporter.UpdateActivityStatusAsync(
-                publishingActivity, (status) => status with { IsComplete = true },
+            await activityReporter.CompleteTaskAsync(
+                publishingTask,
+                TaskCompletionState.Completed,
+                $"Building image: {resourceName} completed",
                 cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to build container image from Dockerfile.");
 
-            await activityReporter.UpdateActivityStatusAsync(
-                publishingActivity, (status) => status with { IsError = true },
+            await activityReporter.CompleteTaskAsync(
+                publishingTask,
+                TaskCompletionState.CompletedWithError,
+                $"Building image: {resourceName} failed",
                 cancellationToken).ConfigureAwait(false);
 
             throw;

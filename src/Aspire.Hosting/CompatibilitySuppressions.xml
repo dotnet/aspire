@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- Shipped as experimental in 9.2 but removed because we no longer have multiple publishers -->
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:Aspire.Hosting.PublisherDistributedApplicationBuilderExtensions</Target>
@@ -9,7 +8,27 @@
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
-  <!-- Shipped as experimental in 9.2 but removed because we are removing inspect mode -->
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.Publishing.PublishingActivity</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.Publishing.PublishingActivityStatus</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.DistributedApplicationExecutionContext.get_IsInspectMode</Target>
@@ -19,7 +38,56 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>F:Aspire.Hosting.DistributedApplicationOperation.Inspect</Target>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateActivityAsync(System.String,System.String,System.Boolean,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.UpdateActivityStatusAsync(Aspire.Hosting.Publishing.PublishingActivity,System.Func{Aspire.Hosting.Publishing.PublishingActivityStatus,Aspire.Hosting.Publishing.PublishingActivityStatus},System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CompletePublishAsync(System.Boolean,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CompleteStepAsync(Aspire.Hosting.Publishing.PublishingStep,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CompleteTaskAsync(Aspire.Hosting.Publishing.PublishingTask,Aspire.Hosting.Publishing.TaskCompletionState,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateStepAsync(System.String,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateTaskAsync(System.String,System.String,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.UpdateTaskAsync(Aspire.Hosting.Publishing.PublishingTask,System.String,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
@@ -12,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Commands;
 
@@ -35,13 +38,17 @@ internal abstract class PublishCommandBase : BaseCommand
         _projectLocator = projectLocator;
         _telemetry = telemetry;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = PublishCommandStrings.ProjectArgumentDescription;
+        var projectOption = new Option<FileInfo?>("--project")
+        {
+            Description = PublishCommandStrings.ProjectArgumentDescription
+        };
         Options.Add(projectOption);
 
-        var outputPath = new Option<string>("--output-path", "-o");
-        outputPath.Description = GetOutputPathDescription();
-        outputPath.DefaultValueFactory = GetDefaultOutputPath;
+        var outputPath = new Option<string>("--output-path", "-o")
+        {
+            Description = GetOutputPathDescription(),
+            DefaultValueFactory = GetDefaultOutputPath
+        };
         Options.Add(outputPath);
 
         // In the publish and deploy commands we forward all unrecognized tokens
@@ -207,63 +214,321 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
-    public static async Task<bool> ProcessPublishingActivitiesAsync(IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> publishingActivities, CancellationToken cancellationToken)
+    public static async Task<bool> ProcessPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, CancellationToken cancellationToken)
     {
-        var lastActivityUpdateLookup = new Dictionary<string, (string Id, string StatusText, bool IsComplete, bool IsError)>();
         await foreach (var publishingActivity in publishingActivities.WithCancellation(cancellationToken))
         {
-            lastActivityUpdateLookup[publishingActivity.Id] = publishingActivity;
-
-            if (lastActivityUpdateLookup.Any(kvp => kvp.Value.IsError) || lastActivityUpdateLookup.All(kvp => kvp.Value.IsComplete))
+            if (publishingActivity.Type == PublishingActivityTypes.PublishComplete)
             {
-                // If we have an error or all tasks are complete then we can stop
-                // processing the publishing activities. Return true if there are no errors.
-                return lastActivityUpdateLookup.All(kvp => !kvp.Value.IsError);
+                return !publishingActivity.Data.IsError;
             }
         }
 
         return true;
     }
 
-    public static async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> publishingActivities, CancellationToken cancellationToken)
+    public static async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, CancellationToken cancellationToken)
     {
-        return await AnsiConsole.Progress()
-            .AutoRefresh(true)
-            .Columns(
-                new TaskDescriptionColumn() { Alignment = Justify.Left },
-                new ProgressBarColumn() { Width = 10 },
-                new ElapsedTimeColumn())
-            .StartAsync<bool>(async context => {
+        var stepCounter = 1;
+        var steps = new ConcurrentDictionary<string, StepInfo>();
+        var tasks = new ConcurrentDictionary<string, TaskInfo>();
+        var hasErrors = false;
+        var currentStepId = string.Empty;
+        var currentProgressContext = new ProgressContextInfo();
+        var pendingTasks = new List<TaskInfo>();
 
-                var progressTasks = new Dictionary<string, ProgressTask>();
-
-                await foreach (var publishingActivity in publishingActivities.WithCancellation(cancellationToken))
+        await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
+        {
+            // PublishComplete is emitted at the end of the publishing process
+            // by the DistributedApplicationRunner. Display the final status and
+            // cancel any in-progress tasks when this happens.
+            if (activity.Type == PublishingActivityTypes.PublishComplete)
+            {
+                if (activity.Data.IsError)
                 {
-                    if (!progressTasks.TryGetValue(publishingActivity.Id, out var progressTask))
+                    hasErrors = true;
+                    AnsiConsole.MarkupLine($"[red bold]❌ PUBLISHING FAILED:[/] {activity.Data.StatusText.EscapeMarkup()}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[green bold]✅ PUBLISHING COMPLETED:[/] {activity.Data.StatusText.EscapeMarkup()}");
+                }
+
+                await currentProgressContext.DisposeAsync();
+
+                return !hasErrors;
+            }
+
+            if (activity.Type == PublishingActivityTypes.Step)
+            {
+                // If this is our first time encountering this step, initialize it by
+                // display the step header and configuring a new ProgressContext for the
+                // tasks that will be parented to this step.
+                if (!steps.TryGetValue(activity.Data.Id, out var existingStepInfo))
+                {
+                    var stepInfo = new StepInfo
                     {
-                        progressTask = context.AddTask(publishingActivity.Id);
-                        progressTask.StartTask();
-                        progressTask.IsIndeterminate();
-                        progressTasks.Add(publishingActivity.Id, progressTask);
+                        Id = activity.Data.Id,
+                        Title = activity.Data.StatusText,
+                        Number = stepCounter++,
+                        StartTime = DateTime.UtcNow
+                    };
+                    steps[activity.Data.Id] = stepInfo;
+
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.MarkupLine($"[bold]Step {stepInfo.Number}: {stepInfo.Title.EscapeMarkup()}[/]");
+
+                    currentStepId = stepInfo.Id;
+                    currentProgressContext = new ProgressContextInfo { StepId = stepInfo.Id };
+                    // Discard any pending tasks since we are starting a new step and we
+                    // expect a linear flow between steps and tasks.
+                    pendingTasks.Clear();
+                }
+
+                // If the step is complete, update the step info, clear out any pending progress tasks, and
+                // display the completion status associated with the the step.
+                if (activity.Data.IsComplete)
+                {
+                    var stepInfo = steps[activity.Data.Id];
+                    stepInfo.IsComplete = true;
+                    stepInfo.IsError = activity.Data.IsError;
+                    stepInfo.CompletionText = activity.Data.StatusText;
+
+                    await currentProgressContext.DisposeAsync();
+
+                    if (stepInfo.IsError)
+                    {
+                        hasErrors = true;
+                        AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[green bold]✅ COMPLETED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
                     }
 
-                    progressTask.Description = $":play_button:  {publishingActivity.StatusText}";
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.Write(new Rule().RuleStyle(Style.Parse("grey")).DoubleBorder().LeftJustified());
+                    AnsiConsole.WriteLine();
 
-                    if (publishingActivity.IsComplete && !publishingActivity.IsError)
+                    // Clean up the current progress context and reset the step ID so that it
+                    // can be reused by the next step.
+                    currentProgressContext = new ProgressContextInfo();
+                    currentStepId = string.Empty;
+                }
+            }
+            else
+            {
+                Debug.Assert(activity.Data.StepId != null, "Activity data should have a StepId for task activities.");
+                var stepId = activity.Data.StepId;
+
+                if (!tasks.TryGetValue(activity.Data.Id, out var task))
+                {
+                    var taskInfo = new TaskInfo
                     {
-                        progressTask.Description = $":check_mark:  {publishingActivity.StatusText}";
-                        progressTask.Value = 100;
-                        progressTask.StopTask();
+                        Id = activity.Data.Id,
+                        StepId = stepId,
+                        StatusText = activity.Data.StatusText,
+                        StartTime = DateTime.UtcNow
+                    };
+                    task = taskInfo;
+                    tasks[activity.Data.Id] = task;
+
+                    // Start progress context on first task for this step
+                    if (currentStepId == stepId && currentProgressContext.Context == null)
+                    {
+                        await StartProgressForStep(currentProgressContext, cancellationToken);
+
+                        // Add any pending tasks
+                        foreach (var pendingTask in pendingTasks)
+                        {
+                            if (currentProgressContext.Ctx != null)
+                            {
+                                pendingTask.ProgressTask = currentProgressContext.Ctx.AddTask($"  {pendingTask.StatusText.EscapeMarkup()}");
+                                pendingTask.ProgressTask.IsIndeterminate = true;
+                            }
+                        }
+                        pendingTasks.Clear();
                     }
-                    else if (publishingActivity.IsError)
+
+                    // If this is not the first task for the step, then reuse the
+                    // existing progress context if available. Otherwise, add the task to the
+                    // set of pending tasks to be processed once the context is ready.
+                    if (currentStepId == stepId && currentProgressContext.Ctx != null)
                     {
-                        progressTask.Description = $"[red bold]:cross_mark:  {publishingActivity.StatusText}[/]";
-                        progressTask.Value = 0;
-                        return false;
+                        taskInfo.ProgressTask = currentProgressContext.Ctx.AddTask($"  {activity.Data.StatusText.EscapeMarkup()}");
+                        taskInfo.ProgressTask.IsIndeterminate = true;
+                    }
+                    else if (currentStepId == stepId)
+                    {
+                        // Progress context not ready yet, add to pending
+                        pendingTasks.Add(taskInfo);
                     }
                 }
 
-                return true;
-            });
+                task.StatusText = activity.Data.StatusText;
+                task.IsComplete = activity.Data.IsComplete;
+                task.IsError = activity.Data.IsError;
+                task.IsWarning = activity.Data.IsWarning;
+
+                // Progress task should be initialized for the task at this point so use
+                // it to update the status text and completion message as we process
+                // activity updates.
+                if (task.ProgressTask != null)
+                {
+                    if (task.IsError || task.IsWarning || task.IsComplete)
+                    {
+                        var prefix = task.IsError ? "[red]✗ FAILED:[/]" :
+                            task.IsWarning ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
+                        task.ProgressTask.Description = $"  {prefix} {task.StatusText.EscapeMarkup()}";
+                        task.CompletionMessage = activity.Data.CompletionMessage;
+
+                        // Add completion message to the shared dictionary so that it can be displayed after the status text in the column view.
+                        if (currentProgressContext.TaskCompletionMessages != null && !string.IsNullOrEmpty(activity.Data.CompletionMessage))
+                        {
+                            currentProgressContext.TaskCompletionMessages[task.ProgressTask.Id] = activity.Data.CompletionMessage;
+                        }
+
+                        // We don't set hasErrors = true on task errors to avoid early exits. We only
+                        // process errors captured at the step-level or publish complete level.
+                        task.ProgressTask.StopTask();
+                    }
+                    else
+                    {
+                        task.ProgressTask.Description = $"  {task.StatusText.EscapeMarkup()}";
+                        task.ProgressTask.IsIndeterminate = true;
+                    }
+                }
+            }
+        }
+
+        return !hasErrors;
+    }
+
+    private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)
+    {
+        // Dictionary to track completion messages for tasks so that they can be rendered
+        // below the task description in the progress view using the custom column implementation.
+        var taskCompletionMessages = new ConcurrentDictionary<int, string>();
+
+        progressContext.Context = AnsiConsole.Progress()
+            .AutoClear(false)
+            .HideCompleted(false)
+            .Columns(
+            [
+                new SpinnerColumn(Spinner.Known.BouncingBar) { Style = Style.Parse("yellow") },
+                new TaskDescriptionWithCompletionColumn(taskCompletionMessages),
+                new ElapsedTimeColumn() { Style = Style.Parse("grey") }
+            ]);
+
+        // Store task completion messages reference for later access
+        progressContext.TaskCompletionMessages = taskCompletionMessages;
+
+        // Use a TaskCompletionSource to signal when the context is ready
+        var contextReadySource = new TaskCompletionSource<ProgressContext>();
+
+        // Create a cancellation token that we can control
+        var progressCts = new CancellationTokenSource();
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, progressCts.Token);
+
+        progressContext.ContextTask = progressContext.Context.StartAsync(async ctx =>
+        {
+            // Signal that the context is ready so that the invoker can start to populate
+            // it with tasks
+            progressContext.Ctx = ctx;
+            contextReadySource.SetResult(ctx);
+
+            // Cancel the Spectre progress context when a cancellation is requested
+            // explicitly by the ProgressContext.CancellationTokenSource.
+            try
+            {
+                await Task.Delay(Timeout.Infinite, linkedCts.Token);
+            }
+            catch (OperationCanceledException) { }
+        });
+
+        progressContext.CancellationTokenSource = progressCts;
+
+        // Wait for the context to be ready before returning
+        await contextReadySource.Task;
+    }
+
+    private class StepInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public int Number { get; set; }
+        public DateTime StartTime { get; set; }
+        public bool IsComplete { get; set; }
+        public bool IsError { get; set; }
+        public string CompletionText { get; set; } = string.Empty;
+    }
+
+    private class TaskInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string StepId { get; set; } = string.Empty;
+        public string StatusText { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public bool IsComplete { get; set; }
+        public bool IsError { get; set; }
+        public bool IsWarning { get; set; }
+        public string? CompletionMessage { get; set; }
+        public ProgressTask? ProgressTask { get; set; }
+    }
+
+    private class ProgressContextInfo : IAsyncDisposable
+    {
+        public string StepId { get; set; } = string.Empty;
+        public Progress? Context { get; set; }
+        public Task? ContextTask { get; set; }
+        public ProgressContext? Ctx { get; set; }
+        public CancellationTokenSource? CancellationTokenSource { get; set; }
+        public ConcurrentDictionary<int, string>? TaskCompletionMessages { get; set; }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (CancellationTokenSource is not null)
+            {
+                CancellationTokenSource.Cancel();
+
+                try
+                {
+                    if (ContextTask is not null)
+                    {
+                        await ContextTask;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancelling the progress context
+                }
+
+                CancellationTokenSource.Dispose();
+            }
+        }
+    }
+
+    // Custom column type to display the status text associated with task
+    // and the optional completion message if the task has completed below
+    // it.
+    private class TaskDescriptionWithCompletionColumn(ConcurrentDictionary<int, string> completionMessages) : ProgressColumn
+    {
+        public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
+        {
+            var description = task.Description ?? string.Empty;
+
+            if (completionMessages.TryGetValue(task.Id, out var completionMessage) && !string.IsNullOrEmpty(completionMessage))
+            {
+                List<IRenderable> items =
+                [
+                    new Markup(description),
+                    new Markup($"    [dim]{completionMessage.EscapeMarkup()}[/]")
+                ];
+
+                return new Rows(items);
+            }
+
+            return new Markup(description);
+        }
     }
 }
