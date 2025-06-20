@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="urlExpression">The URL expression for the external service.</param>
-public sealed class ExternalServiceResource(string name, ReferenceExpression urlExpression) : Resource(name), IResourceWithServiceDiscovery, IResourceWithEnvironment, IResourceWithoutLifetime
+public sealed class ExternalServiceResource(string name, ReferenceExpression urlExpression) : Resource(name), IResourceWithServiceDiscovery, IResourceWithoutLifetime
 {
     /// <summary>
     /// Gets the URL expression for the external service.

@@ -82,54 +82,56 @@ public static class ExternalServiceBuilderExtensions
                           Properties = [],
                           State = "Running"
                       })
-                      .WithExternalServiceEndpoint(urlExpression);
+                      .WithExternalServiceEndpoints();
     }
 
     /// <summary>
-    /// Adds an endpoint annotation for an external service that represents the external URL.
+    /// Adds an external service resource to the distributed application with a parameterized URL.
     /// </summary>
-    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoint(this IResourceBuilder<ExternalServiceResource> builder, ReferenceExpression urlExpression)
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{IResourceWithServiceDiscovery}"/> instance.</returns>
+    public static IResourceBuilder<IResourceWithServiceDiscovery> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
-        // For literal URLs, we can create an AllocatedEndpoint immediately with proper URL information
-        // For expressions, we'll create a placeholder that gets resolved later
-        if (IsLiteralUrl(urlExpression, out var literalUrl))
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.AddParameter(
+            new ExternalServiceParameterResource(
+                name,
+                parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault)));
+    }
+
+    private static string GetParameterValue(Microsoft.Extensions.Configuration.ConfigurationManager configuration, string name, ParameterDefault? parameterDefault)
+    {
+        var configurationKey = $"Parameters:{name}";
+        return configuration[configurationKey]
+            ?? parameterDefault?.GetDefaultValue()
+            ?? throw new DistributedApplicationException($"External service parameter resource could not be used because parameter '{name}' is missing.");
+    }
+
+    /// <summary>
+    /// Configures the external service to provide endpoints for service discovery and endpoint references.
+    /// </summary>
+    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoints(this IResourceBuilder<ExternalServiceResource> builder)
+    {
+        var urlExpression = builder.Resource.UrlExpression;
+        
+        // Determine the scheme from the URL if it's a literal URL
+        var scheme = "http"; // default
+        if (IsLiteralUrl(urlExpression, out var literalUrl) && Uri.TryCreate(literalUrl, UriKind.Absolute, out var uri))
         {
-            if (Uri.TryCreate(literalUrl, UriKind.Absolute, out var uri))
-            {
-                // Use the port from the URI, which will be -1 if not specified
-                var port = uri.Port;
-                var scheme = uri.Scheme;
-                
-                // Create endpoint annotation with the correct scheme
-                var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme, name: "default");
-                
-                // Create an AllocatedEndpoint that preserves the original URL structure
-                endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, uri.Host, port);
-                
-                builder.WithAnnotation(endpointAnnotation);
-            }
-            else
-            {
-                // Fallback for invalid URLs
-                var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, "http", name: "default");
-                endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
-                builder.WithAnnotation(endpointAnnotation);
-            }
-        }
-        else
-        {
-            // For non-literal expressions, create a placeholder that will be resolved by the runtime
-            var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, "http", name: "default");
-            endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
-            builder.WithAnnotation(endpointAnnotation);
+            scheme = uri.Scheme;
         }
         
-        // Create an environment callback that simulates what ApplyEndpoints would do for external services
-        builder.WithEnvironment(context =>
-        {
-            var serviceName = builder.Resource.Name;
-            context.EnvironmentVariables[$"services__{serviceName}__default__0"] = urlExpression;
-        });
+        // Add a default endpoint annotation that represents the external service
+        // This allows GetEndpoint() to work and enables endpoint references
+        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme, name: "default");
+        
+        // Create a special allocated endpoint that will resolve the URL expression at runtime
+        endpointAnnotation.AllocatedEndpoint = new ExternalServiceAllocatedEndpoint(endpointAnnotation, urlExpression);
+        
+        builder.WithAnnotation(endpointAnnotation);
 
         return builder;
     }
@@ -148,23 +150,5 @@ public static class ExternalServiceBuilderExtensions
 
         url = string.Empty;
         return false;
-    }
-
-    /// <summary>
-    /// Adds an external service resource to the distributed application with a parameterized URL.
-    /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-
-        // Create a parameter resource for the URL
-        var parameter = builder.AddParameter($"{name}-url");
-        var urlExpression = ReferenceExpression.Create($"{parameter}");
-        
-        return builder.AddExternalService(name, urlExpression);
     }
 }

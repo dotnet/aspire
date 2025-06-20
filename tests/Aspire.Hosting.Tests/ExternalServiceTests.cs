@@ -59,11 +59,15 @@ public class ExternalServiceTests
         var project = builder.AddProject<TestProject>("project")
                              .WithReference(externalService);
 
+        // Build the app to trigger environment variable setup
+        using var app = builder.Build();
+
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // Check that service discovery information was injected
         Assert.Contains(config, kvp => kvp.Key.StartsWith("services__weather__"));
+        Assert.Contains(config, kvp => kvp.Key == "services__weather__default__0" && kvp.Value == "https://api.weather.gov/");
     }
 
     [Fact]
@@ -76,11 +80,16 @@ public class ExternalServiceTests
         var project = builder.AddProject<TestProject>("project")
                              .WithReference(externalService);
 
+        // Build the app to trigger environment variable setup
+        using var app = builder.Build();
+
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // Check that service discovery information was injected
         Assert.Contains(config, kvp => kvp.Key.StartsWith("services__weather__"));
+        // The value should be the parameter expression
+        Assert.Contains(config, kvp => kvp.Key == "services__weather__default__0");
     }
 
     [Fact]
@@ -95,9 +104,8 @@ public class ExternalServiceTests
         Assert.Equal("weather", endpoint.Resource.Name);
         Assert.Equal("default", endpoint.EndpointName);
         Assert.True(endpoint.IsAllocated);
-        // For external services, the URL may include the port for AllocatedEndpoint format
-        Assert.Contains("api.weather.gov", endpoint.Url);
-        Assert.Contains("https", endpoint.Url);
+        // The URL should be accessible from the endpoint
+        Assert.Contains("https://api.weather.gov/", endpoint.Url);
     }
 
     [Fact]
@@ -112,6 +120,17 @@ public class ExternalServiceTests
         // Verify that the environment variable was set with the endpoint reference
         var envAnnotations = project.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
         Assert.NotEmpty(envAnnotations);
+    }
+
+    [Fact]
+    public void AddExternalServiceWithParameterOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("weather");
+
+        Assert.Equal("weather", externalService.Resource.Name);
+        Assert.IsAssignableFrom<IResourceWithServiceDiscovery>(externalService.Resource);
     }
 
     private sealed class TestProject : IProjectMetadata
