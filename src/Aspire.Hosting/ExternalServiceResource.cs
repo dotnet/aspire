@@ -9,11 +9,11 @@ namespace Aspire.Hosting;
 /// Represents an external service resource with service discovery capabilities.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="urlExpression">The URL expression for the external service.</param>
-public sealed class ExternalServiceResource(string name, ReferenceExpression urlExpression) : Resource(name), IResourceWithServiceDiscovery, IResourceWithEndpoints, IResourceWithoutLifetime
+/// <param name="url">The URL for the external service.</param>
+public sealed class ExternalServiceResource(string name, string url) : Resource(name), IResourceWithServiceDiscovery, IResourceWithEndpoints, IResourceWithoutLifetime
 {
     /// <summary>
-    /// Gets the URL expression for the external service.
+    /// Gets the URL for the external service.
     /// </summary>
-    public ReferenceExpression UrlExpression => urlExpression;
+    public string Url => url;
 }

@@ -18,7 +18,7 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", "https://api.weather.gov/");
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.Url);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", uri);
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.Url);
     }
 
     [Fact]

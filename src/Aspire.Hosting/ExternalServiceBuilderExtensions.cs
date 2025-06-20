@@ -30,8 +30,7 @@ public static class ExternalServiceBuilderExtensions
             throw new ArgumentException($"The URL '{url}' is not a valid absolute URI.", nameof(url));
         }
 
-        var uri = new Uri(url);
-        return builder.AddExternalService(name, uri);
+        return AddExternalServiceCore(builder, name, url);
     }
 
     /// <summary>
@@ -53,10 +52,7 @@ public static class ExternalServiceBuilderExtensions
             throw new ArgumentException("The URI for the external service must be absolute.", nameof(uri));
         }
 
-        var rb = new ReferenceExpressionBuilder();
-        rb.AppendLiteral(uri.ToString());
-        var urlExpression = rb.Build();
-        return builder.AddExternalService(name, urlExpression);
+        return AddExternalServiceCore(builder, name, uri.ToString());
     }
 
     /// <summary>
@@ -72,7 +68,10 @@ public static class ExternalServiceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(urlExpression);
 
-        var resource = new ExternalServiceResource(name, urlExpression);
+        // For expressions, we'll store the expression format as the URL
+        // The actual URL will be resolved at runtime through the expression
+        var url = urlExpression.ValueExpression;
+        var resource = new ExternalServiceResource(name, url);
         
         return builder.AddResource(resource)
                       .WithReferenceRelationship(urlExpression)
@@ -82,7 +81,7 @@ public static class ExternalServiceBuilderExtensions
                           Properties = [],
                           State = "Starting"
                       })
-                      .WithExternalServiceEndpoints()
+                      .WithExternalServiceEndpoints(urlExpression)
                       .WithHttpHealthCheck();
     }
 
@@ -103,6 +102,21 @@ public static class ExternalServiceBuilderExtensions
                 parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault)));
     }
 
+    private static IResourceBuilder<ExternalServiceResource> AddExternalServiceCore(IDistributedApplicationBuilder builder, string name, string url)
+    {
+        var resource = new ExternalServiceResource(name, url);
+        
+        return builder.AddResource(resource)
+                      .WithInitialState(new CustomResourceSnapshot
+                      {
+                          ResourceType = "ExternalService",
+                          Properties = [],
+                          State = "Starting"
+                      })
+                      .WithExternalServiceEndpoints()
+                      .WithHttpHealthCheck();
+    }
+
     private static string GetParameterValue(Microsoft.Extensions.Configuration.ConfigurationManager configuration, string name, ParameterDefault? parameterDefault)
     {
         var configurationKey = $"Parameters:{name}";
@@ -114,42 +128,68 @@ public static class ExternalServiceBuilderExtensions
     /// <summary>
     /// Configures the external service to provide endpoints for service discovery and endpoint references.
     /// </summary>
-    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoints(this IResourceBuilder<ExternalServiceResource> builder)
+    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoints(this IResourceBuilder<ExternalServiceResource> builder, ReferenceExpression? urlExpression = null)
     {
-        var urlExpression = builder.Resource.UrlExpression;
+        var resource = builder.Resource;
+        var url = resource.Url;
         
-        // Determine the scheme from the URL if it's a literal URL
+        // Determine the scheme from the URL
         var scheme = "http"; // default
-        if (IsLiteralUrl(urlExpression, out var literalUrl) && Uri.TryCreate(literalUrl, UriKind.Absolute, out var uri))
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             scheme = uri.Scheme;
         }
         
         // Add a default endpoint annotation that represents the external service
         // This allows GetEndpoint() to work and enables endpoint references
-        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme);
+        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, isProxied: false);
         
-        // Create a special allocated endpoint that will resolve the URL expression at runtime
-        endpointAnnotation.AllocatedEndpoint = new ExternalServiceAllocatedEndpoint(endpointAnnotation, urlExpression);
+        // Create the allocated endpoint immediately from the URL
+        AllocatedEndpoint allocatedEndpoint;
+        
+        if (urlExpression != null)
+        {
+            // For parameterized URLs, use placeholder values that will be resolved at runtime
+            var placeholderHost = "external.service";
+            var defaultPort = scheme.ToLowerInvariant() switch
+            {
+                "https" => 443,
+                "http" => 80,
+                "ftp" => 21,
+                "ws" => 80,
+                "wss" => 443,
+                _ => 80
+            };
+            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, placeholderHost, defaultPort);
+        }
+        else if (Uri.TryCreate(url, UriKind.Absolute, out var serviceUri))
+        {
+            // For literal URLs, extract the actual host and port
+            var host = serviceUri.Host;
+            var port = serviceUri.Port;
+            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, host, port);
+        }
+        else
+        {
+            // Fallback for invalid URLs
+            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
+        }
+        
+        // Assign the allocated endpoint immediately
+        endpointAnnotation.AllocatedEndpoint = allocatedEndpoint;
         
         builder.WithAnnotation(endpointAnnotation);
 
-        return builder;
-    }
-
-    /// <summary>
-    /// Checks if a ReferenceExpression represents a literal URL string.
-    /// </summary>
-    private static bool IsLiteralUrl(ReferenceExpression expression, out string url)
-    {
-        // If the expression has no value providers, it's a literal string
-        if (expression.ValueProviders.Count == 0)
+        // Subscribe to the InitializeResourceEvent to publish the ResourceEndpointsAllocatedEvent when the resource is initialized
+        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(resource, async (e, ct) =>
         {
-            url = expression.Format;
-            return true;
-        }
+            if (e.Resource == resource)
+            {
+                // Publish the ResourceEndpointsAllocatedEvent to indicate endpoints have been allocated
+                await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, e.Services), ct).ConfigureAwait(false);
+            }
+        });
 
-        url = string.Empty;
-        return false;
+        return builder;
     }
 }
