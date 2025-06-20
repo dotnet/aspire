@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -23,14 +24,22 @@ public class InteractionService
     private Action<Interaction>? OnInteractionUpdated { get; set; }
     private readonly object _onInteractionUpdatedLock = new();
     private readonly InteractionCollection _interactionCollection = new();
+    private readonly ILogger<InteractionService> _logger;
+
+    internal InteractionService(ILogger<InteractionService> logger)
+    {
+        _logger = logger;
+    }
 
     public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
-        options.Icon ??= MessageBoxIcon.Question;
+        options.Intent = MessageIntent.Confirmation;
+        options.ShowDismiss = false;
+        options.ShowSecondaryButton = true;
+
         options.PrimaryButtonText ??= "Yes";
         options.SecondaryButtonText ??= "No";
-        options.ShowDismiss = false;
 
         return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
     }
@@ -51,12 +60,12 @@ public class InteractionService
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.ShowDismiss = false;
 
-        var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(icon: options.Icon ?? MessageBoxIcon.None), cancellationToken);
+        var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-        var completion = await newState.TaskCompletionSource.Task.ConfigureAwait(false);
+        var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         return completion.Canceled
             ? InteractionResultFactory.Cancel<bool>()
             : InteractionResultFactory.Ok((bool)completion.State!);
@@ -90,11 +99,27 @@ public class InteractionService
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
-        var completion = await newState.TaskCompletionSource.Task.ConfigureAwait(false);
-
+        var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         return completion.Canceled
             ? InteractionResultFactory.Cancel<IReadOnlyList<InteractionInput>>()
             : InteractionResultFactory.Ok((IReadOnlyList<InteractionInput>)completion.State!);
+    }
+
+    public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        options ??= MessageBoxInteractionOptions.CreateDefault();
+
+        var newState = new Interaction(title, message, options, new Interaction.MessageBarInteractionInfo(intent: options.Intent ?? MessageIntent.None), cancellationToken);
+        AddInteractionUpdate(newState);
+
+        using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
+
+        var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
+        return completion.Canceled
+            ? InteractionResultFactory.Cancel<bool>()
+            : InteractionResultFactory.Ok((bool)completion.State!);
     }
 
     // For testing.
@@ -111,7 +136,7 @@ public class InteractionService
         var interactionState = (Interaction)newState!;
 
         interactionState.State = Interaction.InteractionState.Complete;
-        interactionState.TaskCompletionSource.TrySetResult(new InteractionCompetion { Canceled = true });
+        interactionState.CompletionTcs.TrySetResult(new InteractionCompleteState { Canceled = true });
         AddInteractionUpdate(interactionState);
     }
 
@@ -124,7 +149,7 @@ public class InteractionService
             if (interactionUpdate.State == Interaction.InteractionState.Complete)
             {
                 Debug.Assert(
-                    interactionUpdate.TaskCompletionSource.Task.IsCompleted,
+                    interactionUpdate.CompletionTcs.Task.IsCompleted,
                     "TaskCompletionSource should be completed when interaction is done.");
 
                 // Only update event if interaction was previously registered and not already removed.
@@ -149,7 +174,7 @@ public class InteractionService
         }
     }
 
-    internal void CompleteInteraction(int interactionId, Func<Interaction, InteractionCompetion> createResult)
+    internal void CompleteInteraction(int interactionId, Func<Interaction, InteractionCompleteState> createResult)
     {
         lock (_onInteractionUpdatedLock)
         {
@@ -157,14 +182,14 @@ public class InteractionService
             {
                 var result = createResult(interactionState);
 
-                interactionState.TaskCompletionSource.TrySetResult(result);
+                interactionState.CompletionTcs.TrySetResult(result);
                 interactionState.State = Interaction.InteractionState.Complete;
                 _interactionCollection.Remove(interactionId);
                 OnInteractionUpdated?.Invoke(interactionState);
             }
             else
             {
-                throw new InvalidOperationException($"No interaction found with ID {interactionId}.");
+                _logger.LogDebug("No interaction found with ID {InteractionId}.", interactionId);
             }
         }
     }
@@ -286,18 +311,26 @@ public class MessageBoxInteractionOptions : InteractionOptions
 {
     internal static MessageBoxInteractionOptions CreateDefault() => new();
 
-    public MessageBoxIcon? Icon { get; set; }
+    public MessageIntent? Intent { get; set; }
 }
 
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public enum MessageBoxIcon
+public class MessageBarInteractionOptions : InteractionOptions
+{
+    internal static MessageBarInteractionOptions CreateDefault() => new();
+
+    public MessageIntent? Intent { get; set; }
+}
+
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public enum MessageIntent
 {
     None = 0,
     Success = 1,
     Warning = 2,
     Error = 3,
     Information = 4,
-    Question = 5
+    Confirmation = 5
 }
 
 /// <summary>
@@ -326,19 +359,20 @@ public class InteractionOptions
     public bool ShowDismiss { get; set; } = true;
 }
 
-internal sealed class InteractionCompetion
+internal sealed class InteractionCompleteState
 {
     public bool Canceled { get; init; }
     public object? State { get; init; }
 }
 
+[DebuggerDisplay("InteractionId = {InteractionId}, State = {State}, Title = {Title}")]
 internal class Interaction
 {
     private static int s_nextInteractionId = 1;
 
     public int InteractionId { get; }
     public InteractionState State { get; set; }
-    public TaskCompletionSource<InteractionCompetion> TaskCompletionSource { get; } = new TaskCompletionSource<InteractionCompetion>(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<InteractionCompleteState> CompletionTcs { get; } = new TaskCompletionSource<InteractionCompleteState>(TaskCreationOptions.RunContinuationsAsynchronously);
     public InteractionInfoBase InteractionInfo { get; }
     public CancellationToken CancellationToken { get; }
 
@@ -368,12 +402,22 @@ internal class Interaction
 
     internal sealed class MessageBoxInteractionInfo : InteractionInfoBase
     {
-        public MessageBoxInteractionInfo(MessageBoxIcon icon)
+        public MessageBoxInteractionInfo(MessageIntent intent)
         {
-            Icon = icon;
+            Intent = intent;
         }
 
-        public MessageBoxIcon Icon { get; }
+        public MessageIntent Intent { get; }
+    }
+
+    internal sealed class MessageBarInteractionInfo : InteractionInfoBase
+    {
+        public MessageBarInteractionInfo(MessageIntent intent)
+        {
+            Intent = intent;
+        }
+
+        public MessageIntent Intent { get; }
     }
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase

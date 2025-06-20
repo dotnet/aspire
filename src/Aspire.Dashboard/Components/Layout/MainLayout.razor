@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Components.Interactions
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inherits LayoutComponentBase
 
 <div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
@@ -67,7 +68,7 @@
     }
 
     <div class="messagebar-container">
-        <FluentMessageBarProvider Section="@MessageBarSection" Class="top-messagebar"/>
+        <FluentMessageBarProvider Section="@DashboardUIHelpers.MessageBarSection" Class="top-messagebar" MaxMessageCount="null" NewestOnTop="true" />
     </div>
     <FluentBodyContent Class="custom-body-content body-content">
         <FluentToastProvider MaxToastCount="3" Timeout="5000" />

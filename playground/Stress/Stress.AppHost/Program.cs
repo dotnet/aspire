@@ -121,7 +121,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
            var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
-           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Icon = MessageBoxIcon.Warning }, cancellationToken: commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning }, cancellationToken: commandContext.CancellationToken);
 
            await Task.WhenAll(resultTask1, resultTask2);
 
@@ -130,7 +130,21 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                return CommandResults.Failure("Canceled");
            }
 
-           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Icon = MessageBoxIcon.Success });
+           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           return CommandResults.Success();
+       })
+       .WithCommand("messagebar-interaction", "Messagebar interactions", executeCommand: async commandContext =>
+       {
+           await Task.Yield();
+
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information });
+           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning });
+           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Error });
+           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Confirmation });
+           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
+
            return CommandResults.Success();
        })
        .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>

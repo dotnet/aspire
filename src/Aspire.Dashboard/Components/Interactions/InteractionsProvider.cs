@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -9,26 +10,34 @@ using Aspire.ResourceService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Color = Microsoft.FluentUI.AspNetCore.Components.Color;
+using MessageIntentUI = Microsoft.FluentUI.AspNetCore.Components.MessageIntent;
+using MessageIntentDto = Aspire.ResourceService.Proto.V1.MessageIntent;
 
 namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
+    private record InteractionMessageBarReference(WatchInteractionsResponseUpdate Interaction, Message Message);
+    private record InteractionDialogReference(WatchInteractionsResponseUpdate Interaction, IDialogReference Dialog);
+
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly KeyedInteractionCollection _pendingInteractions = new();
+    private readonly List<InteractionMessageBarReference> _openMessageBars = new();
 
     private Task? _interactionsDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private IDialogReference? _interactionDialogReference;
-    private WatchInteractionsResponseUpdate? _interactionDialogInstance;
+    private InteractionDialogReference? _interactionDialogReference;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
     public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
 
     [Inject]
     public required ILogger<InteractionsProvider> Logger { get; init; }
@@ -96,25 +105,25 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             Title = item.Title,
                             MarkupMessage = new MarkupString(item.Message),
                         };
-                        switch (messageBox.Icon)
+                        switch (messageBox.Intent)
                         {
-                            case MessageBoxIcon.Success:
+                            case MessageIntentDto.Success:
                                 content.IconColor = Color.Success;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle();
                                 break;
-                            case MessageBoxIcon.Warning:
+                            case MessageIntentDto.Warning:
                                 content.IconColor = Color.Warning;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Warning();
                                 break;
-                            case MessageBoxIcon.Error:
+                            case MessageIntentDto.Error:
                                 content.IconColor = Color.Error;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.DismissCircle();
                                 break;
-                            case MessageBoxIcon.Information:
+                            case MessageIntentDto.Information:
                                 content.IconColor = Color.Info;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Info();
                                 break;
-                            case MessageBoxIcon.Question:
+                            case MessageIntentDto.Confirmation:
                                 content.IconColor = Color.Success;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.QuestionCircle();
                                 break;
@@ -157,14 +166,17 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     }
                     else
                     {
-                        throw new InvalidOperationException("Unexpected interaction type.");
+                        Logger.LogWarning("Unexpected interaction kind: {Kind}", item.KindCase);
+                        continue;
                     }
 
                     await InvokeAsync(async () =>
                     {
-                        _interactionDialogReference = currentDialogReference = await openDialog(DialogService);
-                        _interactionDialogInstance = item;
+                        currentDialogReference = await openDialog(DialogService);
                     });
+
+                    Debug.Assert(currentDialogReference != null, "Dialog should have been created in UI thread.");
+                    _interactionDialogReference = new InteractionDialogReference(item, currentDialogReference);
                 }
                 finally
                 {
@@ -193,37 +205,137 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
                 try
                 {
-                    if (item.Complete == null)
+                    switch (item.KindCase)
                     {
-                        // New or updated interaction.
-                        _pendingInteractions.Remove(item.InteractionId);
-                        _pendingInteractions.Add(item);
+                        case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
+                        case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
+                            // New or updated interaction.
+                            _pendingInteractions.Remove(item.InteractionId);
+                            _pendingInteractions.Add(item);
 
-                        NotifyInteractionAvailable();
-                    }
-                    else
-                    {
-                        // Complete interaction.
-                        _pendingInteractions.Remove(item.InteractionId);
+                            NotifyInteractionAvailable();
+                            break;
+                        case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
+                            var messageBar = item.MessageBar;
 
-                        // Close the interaction's dialog if it is open.
-                        if (_interactionDialogInstance != null && _interactionDialogReference != null)
-                        {
-                            if (_interactionDialogInstance.InteractionId == item.InteractionId)
+                            Message? message = null;
+                            await InvokeAsync(async () =>
+                            {
+                                message = await MessageService.ShowMessageBarAsync(options =>
+                                {
+                                    options.Title = item.Title;
+                                    options.Body = item.Message;
+                                    options.Intent = MapMessageIntent(messageBar.Intent);
+                                    options.Section = DashboardUIHelpers.MessageBarSection;
+                                    options.AllowDismiss = item.ShowDismiss;
+
+                                    var primaryButtonText = item.PrimaryButtonText;
+                                    var secondaryButtonText = item.SecondaryButtonText;
+                                    if (messageBar.Intent == MessageIntentDto.Confirmation)
+                                    {
+                                        primaryButtonText = string.IsNullOrEmpty(primaryButtonText) ? "OK" : primaryButtonText;
+                                        secondaryButtonText = string.IsNullOrEmpty(secondaryButtonText) ? "Cancel" : secondaryButtonText;
+                                    }
+
+                                    bool? result = null;
+
+                                    if (!string.IsNullOrEmpty(primaryButtonText))
+                                    {
+                                        options.PrimaryAction = new ActionButton<Message>
+                                        {
+                                            Text = primaryButtonText,
+                                            OnClick = m =>
+                                            {
+                                                result = true;
+                                                m.Close();
+                                                return Task.CompletedTask;
+                                            }
+                                        };
+                                    }
+                                    if (item.ShowSecondaryButton && !string.IsNullOrEmpty(secondaryButtonText))
+                                    {
+                                        options.SecondaryAction = new ActionButton<Message>
+                                        {
+                                            Text = secondaryButtonText,
+                                            OnClick = m =>
+                                            {
+                                                result = false;
+                                                m.Close();
+                                                return Task.CompletedTask;
+                                            }
+                                        };
+                                    }
+
+                                    options.OnClose = async m =>
+                                    {
+                                        // Only send complete notification if in the open message bars list.
+                                        var openMessageBar = _openMessageBars.SingleOrDefault(r => r.Interaction.InteractionId == item.InteractionId);
+                                        if (openMessageBar != null)
+                                        {
+                                            var request = new WatchInteractionsRequestUpdate
+                                            {
+                                                InteractionId = item.InteractionId
+                                            };
+
+                                            if (result == null)
+                                            {
+                                                request.Complete = new InteractionComplete();
+                                            }
+                                            else
+                                            {
+                                                messageBar.Result = result.Value;
+                                                request.MessageBar = messageBar;
+                                            }
+
+                                            _openMessageBars.Remove(openMessageBar);
+
+                                            await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                                        }
+                                    };
+                                });
+                            });
+
+                            Debug.Assert(message != null, "Message should have been created in UI thread.");
+                            _openMessageBars.Add(new InteractionMessageBarReference(item, message));
+                            break;
+                        case WatchInteractionsResponseUpdate.KindOneofCase.Complete:
+                            // Complete interaction.
+                            _pendingInteractions.Remove(item.InteractionId);
+
+                            // Close the interaction's dialog if it is open.
+                            if (_interactionDialogReference?.Interaction.InteractionId == item.InteractionId)
                             {
                                 try
                                 {
                                     await InvokeAsync(async () =>
                                     {
-                                        await _interactionDialogReference.CloseAsync();
+                                        await _interactionDialogReference.Dialog.CloseAsync();
                                     });
                                 }
                                 catch (Exception ex)
                                 {
                                     Logger.LogDebug(ex, "Unexpected error when closing interaction {InteractionId} dialog reference.", item.InteractionId);
                                 }
+                                finally
+                                {
+                                    _interactionDialogReference = null;
+                                }
                             }
-                        }
+
+                            var openMessageBar = _openMessageBars.SingleOrDefault(r => r.Interaction.InteractionId == item.InteractionId);
+                            if (openMessageBar != null)
+                            {
+                                // Open message bars is used to decide whether to report completion to the server.
+                                // It's already complete so remove before close.
+                                _openMessageBars.Remove(openMessageBar);
+
+                                // InvokeAsync not necessary here. It is called internally.
+                                openMessageBar.Message.Close();
+                            }
+                            break;
+                        default:
+                            Logger.LogWarning("Unexpected interaction kind: {Kind}", item.KindCase);
+                            break;
                     }
                 }
                 finally
@@ -232,6 +344,23 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 }
             }
         });
+    }
+
+    private static MessageIntentUI MapMessageIntent(MessageIntentDto intent)
+    {
+        switch (intent)
+        {
+            case MessageIntentDto.Success:
+                return MessageIntentUI.Success;
+            case MessageIntentDto.Warning:
+                return MessageIntentUI.Warning;
+            case MessageIntentDto.Error:
+                return MessageIntentUI.Error;
+            case MessageIntentDto.Information:
+                return MessageIntentUI.Info;
+            default:
+                return MessageIntentUI.Info;
+        }
     }
 
     private static DialogParameters CreateDialogParameters(WatchInteractionsResponseUpdate interaction)

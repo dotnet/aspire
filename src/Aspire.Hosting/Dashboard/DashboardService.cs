@@ -95,7 +95,12 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         else if (interaction.InteractionInfo is MessageBoxInteractionInfo messageBox)
                         {
                             change.MessageBox = new InteractionMessageBox();
-                            change.MessageBox.Icon = MapMessageBoxIcon(messageBox.Icon);
+                            change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
+                        }
+                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        {
+                            change.MessageBar = new InteractionMessageBar();
+                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {
@@ -159,27 +164,27 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    private static MessageBoxIcon MapMessageBoxIcon(ApplicationModel.MessageBoxIcon? icon)
+    private static MessageIntent MapMessageIntent(ApplicationModel.MessageIntent? intent)
     {
-        if (icon is null)
+        if (intent is null)
         {
-            return MessageBoxIcon.None;
+            return MessageIntent.None;
         }
 
-        switch (icon.Value)
+        switch (intent.Value)
         {
-            case ApplicationModel.MessageBoxIcon.Success:
-                return MessageBoxIcon.Success;
-            case ApplicationModel.MessageBoxIcon.Warning:
-                return MessageBoxIcon.Warning;
-            case ApplicationModel.MessageBoxIcon.Error:
-                return MessageBoxIcon.Error;
-            case ApplicationModel.MessageBoxIcon.Information:
-                return MessageBoxIcon.Information;
-            case ApplicationModel.MessageBoxIcon.Question:
-                return MessageBoxIcon.Question;
+            case ApplicationModel.MessageIntent.Success:
+                return MessageIntent.Success;
+            case ApplicationModel.MessageIntent.Warning:
+                return MessageIntent.Warning;
+            case ApplicationModel.MessageIntent.Error:
+                return MessageIntent.Error;
+            case ApplicationModel.MessageIntent.Information:
+                return MessageIntent.Information;
+            case ApplicationModel.MessageIntent.Confirmation:
+                return MessageIntent.Confirmation;
             default:
-                return MessageBoxIcon.None;
+                return MessageIntent.None;
         }
     }
 

@@ -321,6 +321,7 @@ message WatchInteractionsRequestUpdate {
         InteractionComplete complete = 2;
         InteractionMessageBox message_box = 3;
         InteractionInputsDialog inputs_dialog = 4;
+        InteractionMessageBar message_bar = 5;
     }
 }
 message WatchInteractionsResponseUpdate {
@@ -337,12 +338,18 @@ message WatchInteractionsResponseUpdate {
         InteractionComplete complete = 16;
         InteractionMessageBox message_box = 17;
         InteractionInputsDialog inputs_dialog = 18;
+        InteractionMessageBar message_bar = 19;
     }
 }
 message InteractionComplete {
 }
 message InteractionMessageBox {
-    MessageBoxIcon icon = 1;
+    MessageIntent intent = 1;
+    optional bool result = 2;
+}
+message InteractionMessageBar {
+    MessageIntent intent = 1;
+    optional bool result = 2;
 }
 message InteractionInputsDialog {
     repeated InteractionInput input_items = 1;
@@ -355,13 +362,13 @@ message InteractionInput {
     map<string, string> options = 5;
     string value = 6;
 }
-enum MessageBoxIcon {
-    MESSAGE_BOX_ICON_NONE = 0;
-    MESSAGE_BOX_ICON_SUCCESS = 1;
-    MESSAGE_BOX_ICON_WARNING = 2;
-    MESSAGE_BOX_ICON_ERROR = 3;
-    MESSAGE_BOX_ICON_INFORMATION = 4;
-    MESSAGE_BOX_ICON_QUESTION = 5;
+enum MessageIntent {
+    MESSAGE_INTENT_NONE = 0;
+    MESSAGE_INTENT_SUCCESS = 1;
+    MESSAGE_INTENT_WARNING = 2;
+    MESSAGE_INTENT_ERROR = 3;
+    MESSAGE_INTENT_INFORMATION = 4;
+    MESSAGE_INTENT_CONFIRMATION = 5;
 }
 enum InputType {
     INPUT_TYPE_UNSPECIFIED = 0;
