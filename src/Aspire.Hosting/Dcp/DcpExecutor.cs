@@ -755,7 +755,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    "localhost",
+                    sp.EndpointAnnotation.TargetHost,
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
@@ -1441,6 +1441,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
+            spAnn.Address = ea.TargetHost;
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1803,6 +1804,14 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 case ProtocolType.Udp:
                     portSpec.Protocol = PortProtocol.UDP;
                     break;
+            }
+
+            if (!sp.EndpointAnnotation.IsProxied)
+            {
+                if (sp.EndpointAnnotation.TargetHost != "localhost")
+                {
+                    portSpec.HostIP = sp.EndpointAnnotation.TargetHost;
+                }
             }
 
             ports.Add(portSpec);
