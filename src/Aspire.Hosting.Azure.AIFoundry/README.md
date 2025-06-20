@@ -49,6 +49,9 @@ The `WithReference` method passes that connection information into a connection 
 
 In the _Program.cs_ file of `MyService`, the connection can be consumed using a client library like [Aspire.Azure.AI.Inference](https://www.nuget.org/packages/Aspire.Azure.AI.Inference) or [Aspire.OpenAI](https://www.nuget.org/packages/Aspire.OpenAI) if the model is compatible with the OpenAI API:
 
+Note: The `format` parameter of the `AddDeployment()` method can be found in the Azure AI Foundry portal in the details
+page of the model, right after the `Quick facts` text.
+
 #### Inference client usage
 ```csharp
 builder.AddAzureChatCompletionsClient("chat")
