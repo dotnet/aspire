@@ -80,9 +80,10 @@ public static class ExternalServiceBuilderExtensions
                       {
                           ResourceType = "ExternalService",
                           Properties = [],
-                          State = "Running"
+                          State = "Starting"
                       })
-                      .WithExternalServiceEndpoints();
+                      .WithExternalServiceEndpoints()
+                      .WithHttpHealthCheck();
     }
 
     /// <summary>
@@ -126,7 +127,7 @@ public static class ExternalServiceBuilderExtensions
         
         // Add a default endpoint annotation that represents the external service
         // This allows GetEndpoint() to work and enables endpoint references
-        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme, name: "default");
+        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, scheme);
         
         // Create a special allocated endpoint that will resolve the URL expression at runtime
         endpointAnnotation.AllocatedEndpoint = new ExternalServiceAllocatedEndpoint(endpointAnnotation, urlExpression);
