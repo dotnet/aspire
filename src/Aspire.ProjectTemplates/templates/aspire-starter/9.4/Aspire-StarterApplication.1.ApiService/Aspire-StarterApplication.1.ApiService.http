@@ -1,6 +1,6 @@
-@Aspire_StarterApplication.1.ApiService_HostAddress = http://localhost:5301
+@ApiService_HostAddress = http://localhost:5301
 
-GET {{Aspire_StarterApplication.1.ApiService_HostAddress}}/weatherforecast/
+GET {{ApiService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
