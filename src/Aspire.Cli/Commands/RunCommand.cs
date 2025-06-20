@@ -387,10 +387,7 @@ internal sealed class RunCommand : BaseCommand
                 // resource state streaming fails - but there are some cases
                 // where we want to just silently exit (such as the case of
                 // cancellation).
-                dashboardState.Updates.Writer.TryWrite((state, cancellationToken) =>
-                {
-                    throw ex;
-                });
+                dashboardState.Updates.Writer.Complete(ex);
             }
         }, cancellationToken);
     }
