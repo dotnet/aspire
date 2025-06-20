@@ -1,4 +1,4 @@
-# Aspire.Hosting.Aspire.Hosting.Azure.AIFoundry library
+# Aspire.Hosting.Azure.AIFoundry library
 
 Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure AI Foundry.
 
