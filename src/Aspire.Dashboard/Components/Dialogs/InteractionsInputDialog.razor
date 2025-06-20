@@ -44,17 +44,15 @@
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Select:
-                            <FluentSelect TOption="System.String"
+                            <FluentSelect TOption="SelectViewModel<string>"
                                           @bind-Value="localItem.Value"
                                           Label="@localItem.Label"
                                           Placeholder="@localItem.Placeholder"
                                           Required="localItem.Required"
-                                          Height="300px">
-                                @foreach (var option in localItem.Options)
-                                {
-                                    <FluentOption Value="@option.Key">@option.Value</FluentOption>
-                                }
-                            </FluentSelect>
+                                          Items="localItem.Options.Select(o => new SelectViewModel<string> { Id = o.Key, Name = o.Value })"
+                                          OptionValue="@(vm => vm.Id)"
+                                          OptionText="@(vm => vm.Name)"
+                                          Height="300px" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Checkbox:
