@@ -29,9 +29,8 @@ internal class AppHostRpcTarget(
         {
             var publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-            // Terminate the stream if the publishing activity is null or if the
-            // final PublishComplete activity is received.
-            if (publishingActivity == null || publishingActivity.Type == PublishingActivityTypes.PublishComplete)
+            // Terminate the stream if the publishing activity is null
+            if (publishingActivity == null)
             {
                 yield break;
             }
