@@ -71,14 +71,14 @@ internal sealed class DefaultProvisioningContextProvider(
                 """
                 The model contains Azure resources that require an Azure Subscription. 
                 Please provide the required Azure settings.
-                
-                If you do not have an Azure subscription, you can create a free account at https://azure.com/free.
+                <br /><br />
+                If you do not have an Azure subscription, you can create a <a href="https://azure.com/free" target="_blank">free account</a>.
                 """,
                 [
                     new InteractionInput { InputType = InputType.Select, Label = "Location", Placeholder = "Select Location", Required = true, Options = [..locations] },
                     new InteractionInput { InputType = InputType.Password, Label = "Subscription ID", Placeholder = "Select Subscription ID", Required = true },
                 ],
-                new InputsDialogInteractionOptions { ShowDismiss = true },
+                new InputsDialogInteractionOptions { ShowDismiss = false, EscapeMessageHtml = false },
                 cancellationToken).ConfigureAwait(false);
 
         _options.Location = result.Data?[0].Value;
