@@ -119,7 +119,6 @@ import { Code } from '@astrojs/starlight/components';
         top: 50%;
         left: 50%;
         border-radius: 50%;
-        border: 0.15rem dashed var(--sl-color-accent);
         opacity: 0.6;
         margin-top: initial;
     }
@@ -128,6 +127,7 @@ import { Code } from '@astrojs/starlight/components';
         width: 70%;
         height: 70%;
         transform: translate(-50%, -50%);
+        border: 0.25rem dashed var(--sl-color-accent);
     }
 
     .orbit-middle {
@@ -135,6 +135,7 @@ import { Code } from '@astrojs/starlight/components';
         height: 85%;
         transform: translate(-50%, -50%);
         opacity: 0.8;
+        border: 0.2rem dashed var(--sl-color-accent);
     }
 
     .orbit-outer {
@@ -142,6 +143,7 @@ import { Code } from '@astrojs/starlight/components';
         height: 100%;
         transform: translate(-50%, -50%);
         opacity: 0.4;
+        border: 0.15rem dashed var(--sl-color-accent);
     }
 
     .orbit-center {
@@ -158,7 +160,6 @@ import { Code } from '@astrojs/starlight/components';
         display: none;
         min-width: 12rem;
         margin-top: initial;
-        box-shadow: var(--sl-shadow-lg);
     }
 
     .orbit-container.prod-active .prod-view,
@@ -241,8 +242,8 @@ import { Code } from '@astrojs/starlight/components';
     }
 
     @keyframes rotate {
-        0% { transform: translate(-50%, -50%) rotate(0deg); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
+        0% { transform: translate(-50%, -50%) rotate(360deg); }
+        100% { transform: translate(-50%, -50%) rotate(0deg); }
     }
 
     @keyframes rotate-slow {
