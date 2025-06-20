@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -139,7 +140,7 @@ public class InteractionServiceTests
 
     private static InteractionService CreateInteractionService()
     {
-        return new InteractionService();
+        return new InteractionService(NullLogger<InteractionService>.Instance);
     }
 }
 
