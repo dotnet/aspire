@@ -3,16 +3,17 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.ResourceService.Proto.V1;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Color = Microsoft.FluentUI.AspNetCore.Components.Color;
-using MessageIntentUI = Microsoft.FluentUI.AspNetCore.Components.MessageIntent;
 using MessageIntentDto = Aspire.ResourceService.Proto.V1.MessageIntent;
-using System.Net;
+using MessageIntentUI = Microsoft.FluentUI.AspNetCore.Components.MessageIntent;
 
 namespace Aspire.Dashboard.Components.Interactions;
 
@@ -39,6 +40,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required IMessageService MessageService { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 
     [Inject]
     public required ILogger<InteractionsProvider> Logger { get; init; }
@@ -81,7 +85,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                     if (item.MessageBox is { } messageBox)
                     {
-                        var dialogParameters = CreateDialogParameters(item);
+                        var dialogParameters = CreateDialogParameters(item, messageBox.Intent);
                         dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                         {
                             var request = new WatchInteractionsRequestUpdate
@@ -91,11 +95,21 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
                             if (dialogResult.Cancelled)
                             {
-                                request.Complete = new InteractionComplete();
+                                // There will be data in the dialog result on cancel if the secondary button is clicked.
+                                if (dialogResult.Data != null)
+                                {
+                                    messageBox.Result = false;
+                                    request.MessageBox = messageBox;
+                                }
+                                else
+                                {
+                                    request.Complete = new InteractionComplete();
+                                }
                             }
                             else
                             {
-                                request.MessageBox = item.MessageBox;
+                                messageBox.Result = true;
+                                request.MessageBox = messageBox;
                             }
 
                             await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
@@ -139,31 +153,28 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             Interaction = item,
                             Inputs = inputs.InputItems.ToList()
                         };
-                        var parameters = new DialogParameters
+
+                        var dialogParameters = CreateDialogParameters(item, intent: null);
+                        dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                         {
-                            Title = item.Title,
-                            PreventDismissOnOverlayClick = true,
-                            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
+                            var request = new WatchInteractionsRequestUpdate
                             {
-                                var request = new WatchInteractionsRequestUpdate
-                                {
-                                    InteractionId = item.InteractionId
-                                };
+                                InteractionId = item.InteractionId
+                            };
 
-                                if (dialogResult.Cancelled)
-                                {
-                                    request.Complete = new InteractionComplete();
-                                }
-                                else
-                                {
-                                    request.InputsDialog = item.InputsDialog;
-                                }
+                            if (dialogResult.Cancelled)
+                            {
+                                request.Complete = new InteractionComplete();
+                            }
+                            else
+                            {
+                                request.InputsDialog = item.InputsDialog;
+                            }
 
-                                await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
-                            })
-                        };
+                            await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                        });
 
-                        openDialog = dialogService => dialogService.ShowDialogAsync<InteractionsInputDialog>(vm, parameters);
+                        openDialog = dialogService => dialogService.ShowDialogAsync<InteractionsInputDialog>(vm, dialogParameters);
                     }
                     else
                     {
@@ -364,12 +375,13 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static DialogParameters CreateDialogParameters(WatchInteractionsResponseUpdate interaction)
+    private DialogParameters CreateDialogParameters(WatchInteractionsResponseUpdate interaction, MessageIntentDto? intent)
     {
         var dialogParameters = new DialogParameters
         {
             ShowDismiss = interaction.ShowDismiss,
-            PrimaryAction = ResolvedPrimaryButtonText(interaction),
+            DismissTitle = Loc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            PrimaryAction = ResolvedPrimaryButtonText(interaction, intent),
             SecondaryAction = ResolvedSecondaryButtonText(interaction),
             PreventDismissOnOverlayClick = true,
             Title = interaction.Title
@@ -378,19 +390,30 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         return dialogParameters;
     }
 
-    private static string ResolvedSecondaryButtonText(WatchInteractionsResponseUpdate interaction)
+    private string ResolvedPrimaryButtonText(WatchInteractionsResponseUpdate interaction, MessageIntentDto? intent)
+    {
+        if (interaction.PrimaryButtonText is { Length: > 0 } primaryText)
+        {
+            return primaryText;
+        }
+        if (intent == MessageIntentDto.Error)
+        {
+            return Loc[nameof(Resources.Dialogs.InteractionButtonClose)];
+        }
+
+        return Loc[nameof(Resources.Dialogs.InteractionButtonOk)];
+    }
+
+    private string ResolvedSecondaryButtonText(WatchInteractionsResponseUpdate interaction)
     {
         if (!interaction.ShowSecondaryButton)
         {
             return string.Empty;
         }
 
-        return interaction.SecondaryButtonText is { Length: > 0 } secondaryText ? secondaryText : "Cancel";
-    }
-
-    private static string ResolvedPrimaryButtonText(WatchInteractionsResponseUpdate interaction)
-    {
-        return interaction.PrimaryButtonText is { Length: > 0 } primaryText ? primaryText : "OK";
+        return interaction.SecondaryButtonText is { Length: > 0 } secondaryText
+            ? secondaryText
+            : Loc[nameof(Resources.Dialogs.InteractionButtonCancel)];
     }
 
     public async Task<IDialogReference> ShowMessageBoxAsync(IDialogService dialogService, MessageBoxContent content, DialogParameters parameters)

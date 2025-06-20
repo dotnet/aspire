@@ -125,12 +125,12 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
 
            await Task.WhenAll(resultTask1, resultTask2);
 
-           if (resultTask1.Result.Canceled || resultTask2.Result.Canceled)
+           if (resultTask1.Result.Data != true || resultTask2.Result.Data != true)
            {
                return CommandResults.Failure("Canceled");
            }
 
-           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, PrimaryButtonText = "Yeah!" });
            return CommandResults.Success();
        })
        .WithCommand("messagebar-interaction", "Messagebar interactions", executeCommand: async commandContext =>

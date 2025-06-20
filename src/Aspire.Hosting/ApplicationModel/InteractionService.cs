@@ -48,9 +48,6 @@ public class InteractionService
         options.ShowDismiss = false;
         options.ShowSecondaryButton = true;
 
-        options.PrimaryButtonText ??= "Yes";
-        options.SecondaryButtonText ??= "No";
-
         return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
     }
 
