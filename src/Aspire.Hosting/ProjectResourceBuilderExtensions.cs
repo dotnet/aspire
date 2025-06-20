@@ -759,10 +759,7 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
-                var targetHost = e.EndpointAnnotation.TargetHost;
-
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 
