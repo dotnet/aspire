@@ -147,6 +147,21 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
 
            return CommandResults.Success();
        })
+       .WithCommand("html-interaction", "HTML interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+
+           _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+
+           _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
+           _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { EscapeMessageHtml = false });
+
+           return CommandResults.Success();
+       })
        .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();

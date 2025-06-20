@@ -4,6 +4,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -503,6 +504,11 @@ public class InteractionOptions
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
     public bool ShowDismiss { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to escape HTML in the message content. Defaults to <c>true</c>.
+    /// </summary>
+    public bool EscapeMessageHtml { get; set; } = true;
 }
 
 [DebuggerDisplay("State = {State}, Canceled = {Canceled}")]
@@ -531,7 +537,7 @@ internal class Interaction
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
-        Message = message;
+        Message = options.EscapeMessageHtml ? WebUtility.HtmlEncode(message) : message;
         Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;

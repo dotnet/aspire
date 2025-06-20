@@ -12,6 +12,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Color = Microsoft.FluentUI.AspNetCore.Components.Color;
 using MessageIntentUI = Microsoft.FluentUI.AspNetCore.Components.MessageIntent;
 using MessageIntentDto = Aspire.ResourceService.Proto.V1.MessageIntent;
+using System.Net;
 
 namespace Aspire.Dashboard.Components.Interactions;
 
@@ -223,8 +224,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             {
                                 message = await MessageService.ShowMessageBarAsync(options =>
                                 {
-                                    options.Title = item.Title;
-                                    options.Body = item.Message;
+                                    options.Title = WebUtility.HtmlEncode(item.Title);
+                                    options.Body = item.Message; // Message is already HTML encoded depending on options.
                                     options.Intent = MapMessageIntent(messageBar.Intent);
                                     options.Section = DashboardUIHelpers.MessageBarSection;
                                     options.AllowDismiss = item.ShowDismiss;
