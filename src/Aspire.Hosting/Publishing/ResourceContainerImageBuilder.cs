@@ -37,8 +37,8 @@ internal sealed class ResourceContainerImageBuilder(
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
 
-        await activityReporter.CreateStepAsync(
-            $"image-build-{resource.Name}",
+        var step = await activityReporter.CreateStepAsync(
+            $"{resource.Name}-build-image",
             $"Building container image for resource {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
@@ -49,6 +49,11 @@ internal sealed class ResourceContainerImageBuilder(
             // using the .NET SDK.
             await BuildProjectContainerImageAsync(
                 resource,
+                step,
+                cancellationToken).ConfigureAwait(false);
+            await activityReporter.CompleteStepAsync(
+                step,
+                $"Building project container image for resource {resource.Name} completed",
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -62,12 +67,21 @@ internal sealed class ResourceContainerImageBuilder(
                     dockerfileBuildAnnotation.ContextPath,
                     dockerfileBuildAnnotation.DockerfilePath,
                     containerImageAnnotation.Image,
+                    step,
+                    cancellationToken).ConfigureAwait(false);
+                await activityReporter.CompleteStepAsync(
+                    step,
+                    $"Building container image for resource {resource.Name} completed",
                     cancellationToken).ConfigureAwait(false);
                 return;
             }
             else
             {
                 // Nothing to do here, the resource is already a container image.
+                await activityReporter.CompleteStepAsync(
+                    step,
+                    $"Resource {resource.Name} is already a container image, no build required.",
+                    cancellationToken).ConfigureAwait(false);
                 return;
             }
         }
@@ -77,10 +91,10 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, PublishingStep step, CancellationToken cancellationToken)
     {
         var publishingTask = await activityReporter.CreateTaskAsync(
-            $"{resource.Name}-build-image",
+            step,
             $"image-build-{resource.Name}",
             $"Building image: {resource.Name}",
             cancellationToken
@@ -143,10 +157,10 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, PublishingStep step, CancellationToken cancellationToken)
     {
         var publishingTask = await activityReporter.CreateTaskAsync(
-            $"{resourceName}-build-image",
+            step,
             $"image-build-{resourceName}",
             $"Building image: {resourceName}",
             cancellationToken

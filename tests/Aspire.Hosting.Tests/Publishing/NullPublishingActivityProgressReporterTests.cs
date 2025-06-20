@@ -26,7 +26,8 @@ public class NullPublishingActivityProgressReporterTests
     public async Task CanCreateTask()
     {
         var reporter = NullPublishingActivityProgressReporter.Instance;
-        var task = await reporter.CreateTaskAsync("task-1", "step-1", "task initial", default);
+        var step = new PublishingStep("step-1", "step initial");
+        var task = await reporter.CreateTaskAsync(step, "step-1", "task initial", default);
         await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, "task completed", default);
 
         Assert.NotNull(task);

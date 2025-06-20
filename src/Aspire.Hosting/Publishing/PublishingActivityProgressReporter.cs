@@ -127,13 +127,13 @@ public interface IPublishingActivityProgressReporter
     /// <summary>
     /// Creates a new publishing task tied to a step.
     /// </summary>
+    /// <param name="step">The step this task belongs to.</param>
     /// <param name="id">Unique Id of the publishing task.</param>
-    /// <param name="stepId">The ID of the step this task belongs to.</param>
     /// <param name="statusText">The initial status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The publishing task</returns>
     /// <exception cref="InvalidOperationException">Thrown when the step does not exist or is already complete.</exception>
-    Task<PublishingTask> CreateTaskAsync(string id, string stepId, string statusText, CancellationToken cancellationToken);
+    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string id, string statusText, CancellationToken cancellationToken);
 
     /// <summary>
     /// Completes a publishing step with the specified completion text.
@@ -205,22 +205,22 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return step;
     }
 
-    public async Task<PublishingTask> CreateTaskAsync(string id, string stepId, string statusText, CancellationToken cancellationToken)
+    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string id, string statusText, CancellationToken cancellationToken)
     {
-        if (!_steps.TryGetValue(stepId, out var parentStep))
+        if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
-            throw new InvalidOperationException($"Step with ID '{stepId}' does not exist.");
+            throw new InvalidOperationException($"Step with ID '{step.Id}' does not exist.");
         }
 
         lock (parentStep)
         {
             if (parentStep.IsComplete)
             {
-                throw new InvalidOperationException($"Cannot create task for step '{stepId}' because the step is already complete.");
+                throw new InvalidOperationException($"Cannot create task for step '{step.Id}' because the step is already complete.");
             }
         }
 
-        var task = new PublishingTask(id, stepId, statusText);
+        var task = new PublishingTask(id, step.Id, statusText);
 
         var state = new PublishingActivity
         {
@@ -232,7 +232,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 IsComplete = false,
                 IsError = false,
                 IsWarning = false,
-                StepId = stepId
+                StepId = step.Id
             }
         };
 
