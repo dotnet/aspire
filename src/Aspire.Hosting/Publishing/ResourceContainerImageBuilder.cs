@@ -25,6 +25,14 @@ public interface IResourceContainerImageBuilder
     /// <param name="resource">The resource to build.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task BuildImageAsync(IResource resource, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Builds container images for a collection of resources.
+    /// </summary>
+    /// <param name="resources">The resources to build images for.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -33,15 +41,30 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
-    public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+    public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+    {
+        var step = await activityReporter.CreateStepAsync(
+            "build-container-images",
+            "Building container images for resources",
+            cancellationToken).ConfigureAwait(false);
+
+        foreach (var resource in resources)
+        {
+            // TODO: Consider parallelizing this.
+            await BuildImageAsync(step, resource, cancellationToken).ConfigureAwait(false);
+        }
+
+        await activityReporter.CompleteStepAsync(step, "Building container images completed", cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        return BuildImageAsync(step: null, resource, cancellationToken);
+    }
+
+    private async Task BuildImageAsync(PublishingStep? step, IResource resource, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
-
-        var step = await activityReporter.CreateStepAsync(
-            $"{resource.Name}-build-image",
-            $"Building container image for resource {resource.Name}",
-            cancellationToken
-            ).ConfigureAwait(false);
 
         if (resource is ProjectResource)
         {
@@ -50,10 +73,6 @@ internal sealed class ResourceContainerImageBuilder(
             await BuildProjectContainerImageAsync(
                 resource,
                 step,
-                cancellationToken).ConfigureAwait(false);
-            await activityReporter.CompleteStepAsync(
-                step,
-                $"Building project container image for resource {resource.Name} completed",
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -69,19 +88,6 @@ internal sealed class ResourceContainerImageBuilder(
                     containerImageAnnotation.Image,
                     step,
                     cancellationToken).ConfigureAwait(false);
-                await activityReporter.CompleteStepAsync(
-                    step,
-                    $"Building container image for resource {resource.Name} completed",
-                    cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            else
-            {
-                // Nothing to do here, the resource is already a container image.
-                await activityReporter.CompleteStepAsync(
-                    step,
-                    $"Resource {resource.Name} is already a container image, no build required.",
-                    cancellationToken).ConfigureAwait(false);
                 return;
             }
         }
@@ -91,9 +97,9 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, PublishingStep step, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, PublishingStep? step, CancellationToken cancellationToken)
     {
-        var publishingTask = await activityReporter.CreateTaskAsync(
+        var publishingTask = await CreateTaskAsync(
             step,
             $"image-build-{resource.Name}",
             $"Building image: {resource.Name}",
@@ -135,7 +141,8 @@ internal sealed class ResourceContainerImageBuilder(
             if (processResult.ExitCode != 0)
             {
                 logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-                await activityReporter.CompleteTaskAsync(
+
+                await CompleteTaskAsync(
                     publishingTask,
                     TaskCompletionState.CompletedWithError,
                     $"Building image: {resource.Name} failed",
@@ -144,7 +151,7 @@ internal sealed class ResourceContainerImageBuilder(
             }
             else
             {
-                await activityReporter.CompleteTaskAsync(
+                await CompleteTaskAsync(
                     publishingTask,
                     TaskCompletionState.Completed,
                     $"Building image: {resource.Name} completed",
@@ -157,9 +164,9 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, PublishingStep step, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, PublishingStep? step, CancellationToken cancellationToken)
     {
-        var publishingTask = await activityReporter.CreateTaskAsync(
+        var publishingTask = await CreateTaskAsync(
             step,
             $"image-build-{resourceName}",
             $"Building image: {resourceName}",
@@ -180,7 +187,7 @@ internal sealed class ResourceContainerImageBuilder(
                 imageName,
                 cancellationToken).ConfigureAwait(false);
 
-            await activityReporter.CompleteTaskAsync(
+            await CompleteTaskAsync(
                 publishingTask,
                 TaskCompletionState.Completed,
                 $"Building image: {resourceName} completed",
@@ -190,7 +197,7 @@ internal sealed class ResourceContainerImageBuilder(
         {
             logger.LogError(ex, "Failed to build container image from Dockerfile.");
 
-            await activityReporter.CompleteTaskAsync(
+            await CompleteTaskAsync(
                 publishingTask,
                 TaskCompletionState.CompletedWithError,
                 $"Building image: {resourceName} failed",
@@ -199,5 +206,34 @@ internal sealed class ResourceContainerImageBuilder(
             throw;
         }
 
+    }
+
+    private async Task<PublishingTask?> CreateTaskAsync(
+        PublishingStep? step,
+        string taskId,
+        string description,
+        CancellationToken cancellationToken)
+    {
+
+        if (step is null)
+        {
+            return null;
+        }
+
+        return await activityReporter.CreateTaskAsync(step, taskId, description, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task CompleteTaskAsync(
+        PublishingTask? task,
+        TaskCompletionState state,
+        string description,
+        CancellationToken cancellationToken)
+    {
+        if (task is null)
+        {
+            return;
+        }
+
+        await activityReporter.CompleteTaskAsync(task, state, description, cancellationToken).ConfigureAwait(false);
     }
 }
