@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="DeploymentCanceled">
         <source>The deployment was canceled.</source>
-        <target state="new">The deployment was canceled.</target>
+        <target state="translated">Развертывание было отменено.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {exitCode}. For more information run with --debug switch.</target>
+        <target state="translated">Развертывание завершилось с ошибкой, код завершения: {exitCode}. Для получения дополнительных сведений запустите команду с параметром --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="new">Deploy an Aspire app host project to its supported deployment targets.</target>
+        <target state="translated">Разверните проект хоста приложений Aspire на поддерживаемых целевых объектах развертывания.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
-        <target state="new">The output path for deployment artifacts.</target>
+        <target state="translated">Путь вывода для артефактов развертывания.</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">
         <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="new">Successfully deployed. Artifacts available at: {0}</target>
+        <target state="translated">Развертывание выполнено успешно. Артефакты доступны по адресу: {0}</target>
         <note />
       </trans-unit>
     </body>
