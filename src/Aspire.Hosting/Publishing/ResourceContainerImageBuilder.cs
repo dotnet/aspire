@@ -33,14 +33,12 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
-    private const string ImageBuildStepId = "image-build";
-
     public async Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
 
         await activityReporter.CreateStepAsync(
-            ImageBuildStepId,
+            $"image-build-{resource.Name}",
             $"Building container image for resource {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
@@ -83,7 +81,7 @@ internal sealed class ResourceContainerImageBuilder(
     {
         var publishingTask = await activityReporter.CreateTaskAsync(
             $"{resource.Name}-build-image",
-            ImageBuildStepId,
+            $"image-build-{resource.Name}",
             $"Building image: {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
@@ -149,7 +147,7 @@ internal sealed class ResourceContainerImageBuilder(
     {
         var publishingTask = await activityReporter.CreateTaskAsync(
             $"{resourceName}-build-image",
-            ImageBuildStepId,
+            $"image-build-{resourceName}",
             $"Building image: {resourceName}",
             cancellationToken
             ).ConfigureAwait(false);
