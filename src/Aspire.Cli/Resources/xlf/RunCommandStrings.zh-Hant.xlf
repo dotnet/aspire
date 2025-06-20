@@ -4,67 +4,67 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
-        <target state="new">Run an Aspire app host in development mode.</target>
+        <target state="translated">在開發模式中執行 Aspire 應用程式主機。</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">端點</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
-        <target state="new">The health of the resource, eg Healthy</target>
+        <target state="translated">資源的健康狀況，例如：健康</target>
         <note />
       </trans-unit>
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
-        <target state="new">IsCompatibleAppHost is null</target>
+        <target state="translated">IsCompatibleAppHost 為 null</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="new">Press [bold]Ctrl+C[/] to stop the app host and exit.</target>
+        <target state="translated">按 [bold]Ctrl+C[/] 以停止應用程式主機並結束。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Aspire 應用程式主機專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="new">The project could not be run. For more information run with --debug switch.</target>
+        <target state="translated">無法執行專案。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">資源</target>
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
-        <target state="new">Starting Aspire app host...</target>
+        <target state="translated">正在啟動 Aspire 應用程式主機...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting Aspire dashboard...</source>
-        <target state="new">Starting Aspire dashboard...</target>
+        <target state="translated">正在啟動 Aspire 儀表板...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">狀態</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">類型</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
-        <target state="new">Start project resources in watch mode.</target>
+        <target state="translated">以監視模式啟動專案資源。</target>
         <note />
       </trans-unit>
     </body>
