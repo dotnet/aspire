@@ -179,6 +179,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
         {
