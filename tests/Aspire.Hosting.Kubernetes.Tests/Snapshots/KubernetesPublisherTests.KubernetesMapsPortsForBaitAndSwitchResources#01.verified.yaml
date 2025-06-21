@@ -1,0 +1,6 @@
+﻿parameters:
+  api:
+    port_http: "8080"
+    api_image: "api:latest"
+secrets: {}
+config: {}

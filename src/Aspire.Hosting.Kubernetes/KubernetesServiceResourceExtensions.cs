@@ -10,7 +10,68 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal static class KubernetesServiceResourceExtensions
 {
-    internal static async Task<object> ProcessValueAsync(this KubernetesResource resource, KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    /// <summary>
+    /// Creates a Helm value placeholder for the specified <see cref="IManifestExpressionProvider"/>.
+    /// </summary>
+    /// <param name="manifestExpressionProvider">The manifest expression provider.</param>
+    /// <param name="kubernetesResource">The Kubernetes resource to associate the value with.</param>
+    /// <param name="secret">Whether this should be placed in secrets vs values.</param>
+    /// <returns>A string representing the Helm value placeholder.</returns>
+    public static string AsHelmValuePlaceholder(this IManifestExpressionProvider manifestExpressionProvider, KubernetesResource kubernetesResource, bool secret = false)
+    {
+        var formattedName = manifestExpressionProvider.ValueExpression.Replace("{", "")
+            .Replace("}", "")
+            .Replace(".", "_")
+            .ToHelmValuesSectionName();
+
+        var expression = secret ?
+            formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
+            formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
+
+        var helmExpressionWithValue = new KubernetesResource.HelmExpressionWithValue(expression, manifestExpressionProvider.ValueExpression);
+
+        if (secret)
+        {
+            kubernetesResource.Secrets[formattedName] = helmExpressionWithValue;
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = helmExpressionWithValue;
+        }
+
+        return expression;
+    }
+
+    /// <summary>
+    /// Creates a Helm value placeholder for the specified <see cref="ParameterResource"/>.
+    /// </summary>
+    /// <param name="parameter">The parameter resource for which to create the Helm value placeholder.</param>
+    /// <param name="kubernetesResource">The Kubernetes resource to associate the value with.</param>
+    /// <returns>A string representing the Helm value placeholder.</returns>
+    public static string AsHelmValuePlaceholder(this ParameterResource parameter, KubernetesResource kubernetesResource)
+    {
+        var formattedName = parameter.Name.ToHelmValuesSectionName();
+
+        var expression = parameter.Secret ?
+            formattedName.ToHelmSecretExpression(kubernetesResource.TargetResource.Name) :
+            formattedName.ToHelmConfigExpression(kubernetesResource.TargetResource.Name);
+
+        var paramValue = parameter.Default is null || parameter.Secret ? null : parameter.Value;
+        var helmExpressionWithValue = new KubernetesResource.HelmExpressionWithValue(expression, paramValue);
+
+        if (parameter.Secret)
+        {
+            kubernetesResource.Secrets[formattedName] = helmExpressionWithValue;
+        }
+        else
+        {
+            kubernetesResource.EnvironmentVariables[formattedName] = helmExpressionWithValue;
+        }
+
+        return expression;
+    }
+
+    internal static object ProcessValue(this KubernetesResource resource, object value)
     {
         while (true)
         {
@@ -21,9 +82,9 @@ internal static class KubernetesServiceResourceExtensions
 
             if (value is EndpointReference ep)
             {
-                var referencedResource = ep.Resource == resource
+                var referencedResource = ep.Resource == resource.TargetResource
                     ? resource
-                    : await context.CreateKubernetesResourceAsync(ep.Resource, executionContext, default).ConfigureAwait(false);
+                    : resource.Parent.ResourceMapping[ep.Resource];
 
                 var mapping = referencedResource.EndpointMappings[ep.EndpointName];
 
@@ -34,7 +95,7 @@ internal static class KubernetesServiceResourceExtensions
 
             if (value is ParameterResource param)
             {
-                return AllocateParameter(param, resource.TargetResource);
+                return new AlreadyProcessedValue(param.AsHelmValuePlaceholder(resource));
             }
 
             if (value is ConnectionStringReference cs)
@@ -51,9 +112,9 @@ internal static class KubernetesServiceResourceExtensions
 
             if (value is EndpointReferenceExpression epExpr)
             {
-                var referencedResource = epExpr.Endpoint.Resource == resource
+                var referencedResource = epExpr.Endpoint.Resource == resource.TargetResource
                     ? resource
-                    : await context.CreateKubernetesResourceAsync(epExpr.Endpoint.Resource, executionContext, default).ConfigureAwait(false);
+                    : resource.Parent.ResourceMapping[epExpr.Endpoint.Resource];
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 
@@ -66,7 +127,7 @@ internal static class KubernetesServiceResourceExtensions
             {
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
-                    return (await resource.ProcessValueAsync(context, executionContext, expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
+                    return resource.ProcessValue(expr.ValueProviders[0]).ToString() ?? string.Empty;
                 }
 
                 var args = new object[expr.ValueProviders.Count];
@@ -74,7 +135,7 @@ internal static class KubernetesServiceResourceExtensions
 
                 foreach (var vp in expr.ValueProviders)
                 {
-                    var val = await resource.ProcessValueAsync(context, executionContext, vp).ConfigureAwait(false);
+                    var val = resource.ProcessValue(vp);
                     args[index++] = val ?? throw new InvalidOperationException("Value is null");
                 }
 
@@ -84,9 +145,8 @@ internal static class KubernetesServiceResourceExtensions
             // If we don't know how to process the value, we just return it as an external reference
             if (value is IManifestExpressionProvider r)
             {
-                context.Logger.NotSupportedResourceWarning(nameof(value), r.GetType().Name);
-
-                return ResolveUnknownValue(r, resource.TargetResource);
+                var isSecret = r.ValueExpression.ContainsHelmSecretExpression();
+                return new AlreadyProcessedValue(r.AsHelmValuePlaceholder(resource, isSecret));
             }
 
             throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
@@ -112,31 +172,5 @@ internal static class KubernetesServiceResourceExtensions
         {
             return $"{prefix}{host}{suffix}";
         }
-    }
-
-    private static HelmExpressionWithValue AllocateParameter(ParameterResource parameter, IResource resource)
-    {
-        var formattedName = parameter.Name.ToHelmValuesSectionName();
-
-        var expression = parameter.Secret ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-        return new(expression, value);
-    }
-
-    private static HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
-    {
-        var formattedName = parameter.ValueExpression.Replace("{", "")
-            .Replace("}", "")
-            .Replace(".", "_")
-            .ToHelmValuesSectionName();
-
-        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
-            formattedName.ToHelmSecretExpression(resource.Name) :
-            formattedName.ToHelmConfigExpression(resource.Name);
-
-        return new(helmExpression, parameter.ValueExpression);
     }
 }

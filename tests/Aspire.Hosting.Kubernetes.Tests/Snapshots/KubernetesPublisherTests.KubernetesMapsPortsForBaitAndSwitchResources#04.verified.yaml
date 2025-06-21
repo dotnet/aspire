@@ -1,0 +1,10 @@
+﻿---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "api-config"
+  labels:
+    app: "aspire"
+    component: "api"
+data:
+  PORT: "{{ .Values.config.api.PORT }}"

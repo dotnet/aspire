@@ -263,6 +263,52 @@ public class KubernetesPublisherTests()
         public override PodTemplateSpecV1 PodTemplate => Spec.Template;
     }
 
+    [Fact]
+    public async Task KubernetesMapsPortsForBaitAndSwitchResources()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        builder.AddExecutable("api", "node", ".")
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/api/deployment.yaml",
+            "templates/api/service.yaml",
+            "templates/api/config.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
