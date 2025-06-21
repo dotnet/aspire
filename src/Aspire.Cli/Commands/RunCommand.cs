@@ -330,6 +330,11 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        catch (ExtensionInputCanceledException ex)
+        {
+            _interactionService.DisplayError(ex.Message);
+            return ExitCodeConstants.InputCanceled;
+        }
         catch (Exception ex)
         {
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));

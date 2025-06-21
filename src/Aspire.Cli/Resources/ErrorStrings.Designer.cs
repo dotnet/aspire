@@ -69,6 +69,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string ExtensionIncompatibleWithCli {
+            get {
+                return ResourceManager.GetString("ExtensionIncompatibleWithCli", resourceCulture);
+            }
+        }
+        
         public static string CertificatesMayNotBeFullyTrusted {
             get {
                 return ResourceManager.GetString("CertificatesMayNotBeFullyTrusted", resourceCulture);
@@ -192,6 +198,24 @@ namespace Aspire.Cli.Resources {
         public static string ErrorDeletingConfiguration {
             get {
                 return ResourceManager.GetString("ErrorDeletingConfiguration", resourceCulture);
+            }
+        }
+        
+        public static string ExtensionTokenMustBeSet {
+            get {
+                return ResourceManager.GetString("ExtensionTokenMustBeSet", resourceCulture);
+            }
+        }
+        
+        public static string InvalidSocketPath {
+            get {
+                return ResourceManager.GetString("InvalidSocketPath", resourceCulture);
+            }
+        }
+        
+        public static string NoSelectionMade {
+            get {
+                return ResourceManager.GetString("NoSelectionMade", resourceCulture);
             }
         }
     }
