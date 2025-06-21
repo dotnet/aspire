@@ -13,10 +13,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
-using Xunit;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
 using Polly;
+using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
 

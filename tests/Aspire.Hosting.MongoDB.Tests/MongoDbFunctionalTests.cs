@@ -8,10 +8,10 @@ using Microsoft.Extensions.Hosting;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Xunit;
 using Polly;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Xunit;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
