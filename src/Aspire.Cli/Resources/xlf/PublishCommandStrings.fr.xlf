@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="new">Generates deployment artifacts for an Aspire app host project.</target>
+        <target state="translated">Génère des artefacts de déploiement pour un projet hôte d'application Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">
         <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">La publication des artefacts a échoué avec le code de sortie {0}. Pour plus d’informations, exécutez avec le commutateur --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
-        <target state="new">Generating artifacts...</target>
+        <target state="translated">Génération d’artefacts...</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts.</source>
-        <target state="new">The output path for the generated artifacts.</target>
+        <target state="translated">Le chemin de sortie des artefacts générés.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Le chemin d’accès au fichier projet hôte de l’application Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
-        <target state="new">Select a publisher:</target>
+        <target state="translated">Sélectionnez un éditeur :</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyPublishedArtifacts">
         <source>Successfully published artifacts to: {0}</source>
-        <target state="new">Successfully published artifacts to: {0}</target>
+        <target state="translated">Artefacts publiés sur : {0}</target>
         <note />
       </trans-unit>
     </body>

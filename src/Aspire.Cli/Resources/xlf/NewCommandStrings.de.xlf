@@ -4,52 +4,52 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire sample project.</source>
-        <target state="new">Create a new Aspire sample project.</target>
+        <target state="translated">Erstellen Sie ein neues Aspire-Beispielprojekt.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path:</source>
-        <target state="new">Enter the output path:</target>
+        <target state="translated">Ausgabepfad eingeben:</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
         <source>Enter the project name:</source>
-        <target state="new">Enter the project name:</target>
+        <target state="translated">Projektnamen eingeben:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
         <source>Invalid project name.</source>
-        <target state="new">Invalid project name.</target>
+        <target state="translated">Ungültiger Projektname.</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
-        <target state="new">The name of the project to create.</target>
+        <target state="translated">Der Name des zu erstellenden Projekts.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
-        <target state="new">The output path for the project.</target>
+        <target state="translated">Der Ausgabepfad für das Projekt.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
-        <target state="new">Select a project template:</target>
+        <target state="translated">Projektvorlage auswählen:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
         <source>Select a template version:</source>
-        <target state="new">Select a template version:</target>
+        <target state="translated">Vorlagenversion auswählen:</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
-        <target state="new">The NuGet source to use for the project templates.</target>
+        <target state="translated">Die NuGet-Quelle, die für die Projektvorlagen verwendet werden soll.</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
-        <target state="new">The version of the project templates to use.</target>
+        <target state="translated">Die Version der zu verwendenden Projektvorlagen.</target>
         <note />
       </trans-unit>
     </body>

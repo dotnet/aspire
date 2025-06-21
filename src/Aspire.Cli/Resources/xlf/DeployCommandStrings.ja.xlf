@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="DeploymentCanceled">
         <source>The deployment was canceled.</source>
-        <target state="new">The deployment was canceled.</target>
+        <target state="translated">デプロイが取り消されました。</target>
         <note />
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {exitCode}. For more information run with --debug switch.</target>
+        <target state="translated">デプロイは終了コード {exitCode} で失敗しました。詳細情報については、--debug スイッチを使用し実行してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="new">Deploy an Aspire app host project to its supported deployment targets.</target>
+        <target state="translated">Aspire アプリ ホスティング プロセス プロジェクトを、サポートされているデプロイ ターゲットにデプロイします。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
-        <target state="new">The output path for deployment artifacts.</target>
+        <target state="translated">デプロイ成果物の出力パス。</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">
         <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="new">Successfully deployed. Artifacts available at: {0}</target>
+        <target state="translated">正常にデプロイされました。成果物は次の場所で入手できます: {0}</target>
         <note />
       </trans-unit>
     </body>
