@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 internal class Publisher(
-    IPublishingActivityProgressReporter publishingActivityProgressReporter,
+    IPublishingActivityProgressReporter progressReporter,
     ILogger<Publisher> logger,
     IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,
@@ -28,12 +28,12 @@ internal class Publisher(
         var outputPath = Path.GetFullPath(options.Value.OutputPath);
 
         // Add a step to do model analysis before publishing/deploying
-        var step = await publishingActivityProgressReporter.CreateStepAsync(
+        var step = await progressReporter.CreateStepAsync(
             "Analyzing model.",
             cancellationToken)
             .ConfigureAwait(false);
 
-        var task = await publishingActivityProgressReporter.CreateTaskAsync(
+        var task = await progressReporter.CreateTaskAsync(
             step,
             "Analyzing the distributed application model for publishing and deployment capabilities.",
             cancellationToken)
@@ -74,7 +74,7 @@ internal class Publisher(
             };
         }
 
-        await publishingActivityProgressReporter.CompleteTaskAsync(
+        await progressReporter.CompleteTaskAsync(
                     task,
                     taskInfo.State,
                     taskInfo.Message,
@@ -82,7 +82,7 @@ internal class Publisher(
                     .ConfigureAwait(false);
 
         // This should be automagically handled by the progress reporter
-        await publishingActivityProgressReporter.CompleteStepAsync(
+        await progressReporter.CompleteStepAsync(
                     step,
                     "Model analysis completed.",
                     isError: taskInfo.State == TaskCompletionState.CompletedWithError,
@@ -92,7 +92,7 @@ internal class Publisher(
         if (taskInfo.State == TaskCompletionState.CompletedWithError)
         {
             // TOOD: This should be automatically handled (if any steps fail)
-            await publishingActivityProgressReporter.CompletePublishAsync(false, cancellationToken)
+            await progressReporter.CompletePublishAsync(false, cancellationToken)
                 .ConfigureAwait(false);
 
             // If there are no resources to publish or deploy, we can exit early
