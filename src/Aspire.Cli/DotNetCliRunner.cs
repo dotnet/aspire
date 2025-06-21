@@ -11,6 +11,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -38,10 +39,15 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool NoLaunchProfile { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration) : IDotNetCliRunner
 {
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
+
+    private string GetMsBuildServerValue()
+    {
+        return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
+    }
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -197,9 +203,20 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
 
+        // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
+        // dictionary here because we don't want to mutate the input.
+        IDictionary<string, string>? finalEnv = env;
+        if (!noBuild)
+        {
+            finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>())
+            {
+                ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
+            };
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
-            env: env,
+            env: finalEnv,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
             options: options,
@@ -572,9 +589,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
+        
+        // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
+        var env = new Dictionary<string, string>
+        {
+            ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
+        };
+        
         return await ExecuteAsync(
             args: cliArgs,
-            env: null,
+            env: env,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
