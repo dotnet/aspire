@@ -756,7 +756,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", Dns.GetHostName()).Replace("+", Dns.GetHostName()).Replace("*", Dns.GetHostName()),
+                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", Dns.GetHostName()).Replace("[::]", Dns.GetHostName()).Replace("+", Dns.GetHostName()).Replace("*", Dns.GetHostName()),
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
