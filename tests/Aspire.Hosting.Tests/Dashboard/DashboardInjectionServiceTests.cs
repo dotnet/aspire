@@ -13,6 +13,7 @@ using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,7 +23,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
-public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
+public class DashboardInjectionServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
     [MemberData(nameof(Data))]
@@ -42,10 +43,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create(logger: factory.CreateLogger<ResourceNotificationService>());
         var configuration = new ConfigurationBuilder().Build();
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, loggerFactory: factory);
-
         var model = new DistributedApplicationModel(new ResourceCollection());
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        var injectionService = CreateInjectonService(resourceLoggerService, resourceNotificationService, configuration, loggerFactory: factory);
+
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
 
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s).DefaultTimeout();
 
@@ -77,18 +78,18 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task BeforeStartAsync_ExcludeLifecycleCommands_CommandsNotAddedToDashboard()
+    public void BeforeStartAsync_ExcludeLifecycleCommands_CommandsNotAddedToDashboard()
     {
         // Arrange
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration);
-
         var model = new DistributedApplicationModel(new ResourceCollection());
+        var injectionService = CreateInjectonService(resourceLoggerService, resourceNotificationService, configuration);
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
 
         // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        injectionService.InjectDashboard(model);
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         dashboardResource.AddLifeCycleCommands();
 
@@ -131,12 +132,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             DashboardUrl = "http://localhost:8080",
             OtlpGrpcEndpointUrl = "http://localhost:4317"
         });
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
-
         var model = new DistributedApplicationModel(new ResourceCollection());
+        var injectionService = CreateInjectonService(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
 
         // Act
-        await hook.BeforeStartAsync(model, CancellationToken.None).DefaultTimeout();
+        injectionService.InjectDashboard(model);
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
@@ -167,7 +167,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             DashboardUrl = "http://localhost:8080",
             OtlpGrpcEndpointUrl = "http://localhost:4317",
         });
-        var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+        var hook = CreateInjectonService(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
 
         var envVars = new Dictionary<string, object>();
 
@@ -178,7 +178,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
     }
 
-    private static DashboardLifecycleHook CreateHook(
+    private static DashboardInjectionService CreateInjectonService(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
         IConfiguration configuration,
@@ -194,7 +194,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var settingsWriter = new DevcontainerSettingsWriter(NullLogger<DevcontainerSettingsWriter>.Instance, codespacesOptions, devcontainersOptions);
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
-        return new DashboardLifecycleHook(
+        return new DashboardInjectionService(
             configuration,
             dashboardOptions,
             NullLogger<DistributedApplication>.Instance,
