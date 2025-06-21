@@ -162,12 +162,14 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (exitCode == 0 && noFailuresReported)
             {
-                _interactionService.DisplaySuccess(GetSuccessMessage(fullyQualifiedOutputPath));
                 return ExitCodeConstants.Success;
             }
 
-            _interactionService.DisplayLines(operationOutputCollector.GetLines());
-            _interactionService.DisplayError(GetFailureMessage(exitCode));
+            if (debugMode)
+            {
+                _interactionService.DisplayLines(operationOutputCollector.GetLines());
+            }
+
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
