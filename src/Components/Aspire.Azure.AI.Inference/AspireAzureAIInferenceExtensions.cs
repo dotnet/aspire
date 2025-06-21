@@ -6,6 +6,7 @@ using Azure;
 using Azure.AI.Inference;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Core.Pipeline;
 using Azure.Identity;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Azure;
@@ -113,15 +114,29 @@ public static class AspireAzureAIInferenceExtensions
                 }
                 else
                 {
+                    var endpoint = settings.Endpoint;
+
+                    if (endpoint.Host.EndsWith(".ai.azure.com", StringComparison.OrdinalIgnoreCase) &&
+                        !endpoint.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Azure AI Foundry endpoints require the path to end with "/models" when used with the Azure AI Inference SDK.
+                        endpoint = new Uri(endpoint, "/models");
+                    }
+
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
                         var credential = new AzureKeyCredential(settings.Key);
-                        return new ChatCompletionsClient(settings.Endpoint, credential, options);
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                     else
                     {
-                        return new ChatCompletionsClient(settings.Endpoint, settings.TokenCredential ?? new DefaultAzureCredential(), options);
+                        var credential = settings.TokenCredential ?? new DefaultAzureCredential();
+
+                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, ["https://cognitiveservices.azure.com/.default"]);
+                        options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry);
+
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                 }
             });

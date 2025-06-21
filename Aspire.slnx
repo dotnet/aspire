@@ -72,6 +72,7 @@
     <Project Path="src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj" />
   </Folder>
   <Folder Name="/Hosting/Azure/">
+    <Project Path="src/Aspire.Hosting.Azure.AIFoundry/Aspire.Hosting.Azure.AIFoundry.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppConfiguration/Aspire.Hosting.Azure.AppConfiguration.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.ApplicationInsights/Aspire.Hosting.Azure.ApplicationInsights.csproj" />
@@ -99,6 +100,10 @@
     <File Path="playground/Directory.Build.targets" />
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/playground/AzureAIFoundryEndToEnd/">
+    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
+    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
   </Folder>
   <Folder Name="/playground/AzureAppService/">
     <Project Path="playground/AzureAppService/AzureAppService.ApiService/AzureAppService.ApiService.csproj" />
@@ -403,8 +408,8 @@
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
-    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
+    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />

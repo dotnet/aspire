@@ -103,17 +103,17 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue(nameof(DeploymentId), out var modelId))
+        if (connectionBuilder.TryGetValue("DeploymentId", out var modelId))
         {
             DeploymentId = modelId.ToString();
         }
 
-        if (connectionBuilder.TryGetValue(nameof(Endpoint), out var endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var serviceUri))
+        if (connectionBuilder.TryGetValue("Endpoint", out var endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var serviceUri))
         {
             Endpoint = serviceUri;
         }
 
-        if (connectionBuilder.TryGetValue(nameof(Key), out var key) && !string.IsNullOrWhiteSpace(key.ToString()))
+        if (connectionBuilder.TryGetValue("Key", out var key) && !string.IsNullOrWhiteSpace(key.ToString()))
         {
             Key = key.ToString();
         }
