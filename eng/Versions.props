@@ -50,6 +50,8 @@
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
+    <!-- Fuzzing tests -->
+    <SharpFuzzPackageVersion>2.1.1</SharpFuzzPackageVersion>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">

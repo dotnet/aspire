@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
@@ -23,7 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests"/>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests" />
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests.Fuzzing" />
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Yarp.Tests" />
   </ItemGroup>
 
 </Project>

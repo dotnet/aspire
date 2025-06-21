@@ -126,6 +126,8 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Archives" Version="$(MicrosoftDotNetBuildTasksArchivesVersion)" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta5.25256.109" />
+    <!-- Fuzzing tests dependencies -->
+    <PackageVersion Include="SharpFuzz" Version="$(SharpFuzzPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.1.2" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.1.2" />
