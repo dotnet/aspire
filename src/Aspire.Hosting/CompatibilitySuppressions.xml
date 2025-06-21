@@ -73,14 +73,14 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateStepAsync(System.String,System.String,System.Threading.CancellationToken)</Target>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateStepAsync(System.String,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateTaskAsync(Aspire.Hosting.Publishing.PublishingStep,System.String,System.String,System.Threading.CancellationToken)</Target>
+    <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.CreateTaskAsync(Aspire.Hosting.Publishing.PublishingStep,System.String,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -88,6 +88,13 @@
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
     <Target>M:Aspire.Hosting.Publishing.IPublishingActivityProgressReporter.UpdateTaskAsync(Aspire.Hosting.Publishing.PublishingTask,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImagesAsync(System.Collections.Generic.IEnumerable{Aspire.Hosting.ApplicationModel.IResource},System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
