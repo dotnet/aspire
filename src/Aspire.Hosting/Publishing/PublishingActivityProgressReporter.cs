@@ -138,9 +138,10 @@ public interface IPublishingActivityProgressReporter
     /// </summary>
     /// <param name="step">The step to complete.</param>
     /// <param name="completionText">The completion text for the step.</param>
+    /// <param name="isError">Whether the step completed with an error.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task CompleteStepAsync(PublishingStep step, string completionText, CancellationToken cancellationToken);
+    Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the status text of an existing publishing task.
@@ -234,7 +235,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return task;
     }
 
-    public async Task CompleteStepAsync(PublishingStep step, string completionText, CancellationToken cancellationToken)
+    public async Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
     {
         lock (step)
         {
@@ -250,7 +251,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = step.Id,
                 StatusText = completionText,
                 IsComplete = true,
-                IsError = false,
+                IsError = isError,
                 IsWarning = false,
                 StepId = null
             }

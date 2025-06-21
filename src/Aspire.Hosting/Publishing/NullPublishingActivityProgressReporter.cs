@@ -35,7 +35,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompleteStepAsync(PublishingStep step, string completionText, CancellationToken cancellationToken)
+    public Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
     {
         step.IsComplete = true;
         step.CompletionText = completionText;

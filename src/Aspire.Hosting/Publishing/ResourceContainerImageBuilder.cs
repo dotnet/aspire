@@ -53,7 +53,7 @@ internal sealed class ResourceContainerImageBuilder(
             await BuildImageAsync(step, resource, cancellationToken).ConfigureAwait(false);
         }
 
-        await activityReporter.CompleteStepAsync(step, "Building container images completed", cancellationToken).ConfigureAwait(false);
+        await activityReporter.CompleteStepAsync(step, "Building container images completed", cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)

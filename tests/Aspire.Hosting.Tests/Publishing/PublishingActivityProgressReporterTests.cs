@@ -100,7 +100,7 @@ public class PublishingActivityProgressReporterTests
 
         // Create and complete step
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-        await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -109,12 +109,13 @@ public class PublishingActivityProgressReporterTests
         Assert.Contains($"Step with ID '{step.Id}' does not exist.", exception.Message);
     }
 
-    [Fact]
-    public async Task CompleteStepAsync_CompletesStepAndEmitsActivity()
+    [Theory]
+    [InlineData(false, "Step completed successfully", false)]
+    [InlineData(true, "Step completed with errors", true)]
+    public async Task CompleteStepAsync_CompletesStepWithCorrectErrorStateAndEmitsActivity(bool isError, string completionText, bool expectedIsError)
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var completionText = "Step completed successfully";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
@@ -122,7 +123,7 @@ public class PublishingActivityProgressReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        await reporter.CompleteStepAsync(step, completionText, CancellationToken.None);
+        await reporter.CompleteStepAsync(step, completionText, isError, CancellationToken.None);
 
         // Assert
         Assert.True(step.IsComplete);
@@ -135,7 +136,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal(completionText, activity.Data.StatusText);
         Assert.True(activity.Data.IsComplete);
-        Assert.False(activity.Data.IsError);
+        Assert.Equal(expectedIsError, activity.Data.IsError);
         Assert.False(activity.Data.IsWarning);
     }
 
@@ -196,7 +197,7 @@ public class PublishingActivityProgressReporterTests
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
-        await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -250,7 +251,7 @@ public class PublishingActivityProgressReporterTests
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
-        await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -306,7 +307,7 @@ public class PublishingActivityProgressReporterTests
                     });
 
                 var completedTasks = await Task.WhenAll(taskCreationTasks);
-                await reporter.CompleteStepAsync(step, $"Step {i} completed", CancellationToken.None);
+                await reporter.CompleteStepAsync(step, $"Step {i} completed", cancellationToken: CancellationToken.None);
 
                 return new { Step = step, Tasks = completedTasks };
             });
@@ -386,7 +387,7 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Act - Complete the step
-        await reporter.CompleteStepAsync(step, "Step completed", CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Step completed", cancellationToken: CancellationToken.None);
 
         // Assert - Verify that operations on tasks belonging to the completed step now fail
         // because the step has been removed from the dictionary
