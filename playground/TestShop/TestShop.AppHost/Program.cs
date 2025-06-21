@@ -75,7 +75,7 @@ var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
        .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
-        .WithReference(messaging).WaitFor(messaging);
+       .WithReference(messaging).WaitFor(messaging);
 
 builder.AddYarp("apigateway")
        .WithConfigFile("yarp.json")

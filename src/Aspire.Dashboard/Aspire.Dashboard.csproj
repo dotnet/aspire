@@ -35,7 +35,6 @@
     </Protobuf>
 
     <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
-      <Access>Internal</Access>
       <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
 

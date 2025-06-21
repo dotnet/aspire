@@ -22,6 +22,8 @@ using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
@@ -234,7 +236,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory.CreateLogger<DashboardServiceData>(),
-            new ResourceCommandService(resourceNotificationService, resourceLoggerService, new ServiceCollection().BuildServiceProvider()));
+            new ResourceCommandService(resourceNotificationService, resourceLoggerService, new ServiceCollection().BuildServiceProvider()),
+            new InteractionService(NullLogger<InteractionService>.Instance));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment
@@ -263,3 +266,5 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         }
     }
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

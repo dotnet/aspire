@@ -1,0 +1,7 @@
+.interaction-input-dialog .interaction-input ::deep {
+    width: 100%;
+}
+
+.interaction-input-dialog .interaction-input ::deep fluent-text-field, .interaction-input-dialog .interaction-input ::deep fluent-select {
+    width: 75%;
+}

@@ -1,0 +1,86 @@
+﻿@using Aspire.Dashboard.Components.Controls.Chart
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@using Aspire.Dashboard.Extensions
+@using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.ResourceService.Proto.V1
+@using Dialogs = Aspire.Dashboard.Resources.Dialogs
+@implements IDialogContentComponent<InteractionsInputsDialogViewModel>
+
+@inject IStringLocalizer<Dialogs> Loc
+
+<FluentDialogHeader ShowDismiss="true">
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+<FluentDialogBody Class="interaction-input-dialog">
+    @if (!string.IsNullOrEmpty(Content.Interaction.Message))
+    {
+        <p>@((MarkupString)Content.Interaction.Message)</p>
+    }
+
+    <EditForm EditContext="@_editContext">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            @foreach (var ss in Content.Inputs)
+            {
+                var localItem = ss;
+                <div class="interaction-input">
+                    @switch (ss.InputType)
+                    {
+                        case InputType.Text:
+                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.Password:
+                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" TextFieldType="TextFieldType.Password" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.Select:
+                            <FluentSelect TOption="SelectViewModel<string>"
+                                          @bind-Value="localItem.Value"
+                                          Label="@localItem.Label"
+                                          Placeholder="@localItem.Placeholder"
+                                          Required="localItem.Required"
+                                          Items="localItem.Options.Select(o => new SelectViewModel<string> { Id = o.Key, Name = o.Value })"
+                                          OptionValue="@(vm => vm.Id)"
+                                          OptionText="@(vm => vm.Name)"
+                                          Height="250px"
+                                          Position="SelectPosition.Below" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.Checkbox:
+                            <FluentCheckbox @bind-Value="localItem.IsChecked" Label="@localItem.Label" Placeholder="@localItem.Placeholder" />
+                            break;
+                        case InputType.Number:
+                            <FluentNumberField @bind-Value="localItem.NumberValue" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" />
+                            <ValidationMessage For="@(() => localItem.NumberValue)" />
+                            break;
+                        default:
+                            @* Ignore unexpected InputTypes *@
+                            break;
+                    }
+                </div>
+            }
+        </FluentStack>
+    </EditForm>
+</FluentDialogBody>
+
+<FluentDialogFooter>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@OkAsync">
+        @Dialog.Instance.Parameters.PrimaryAction
+    </FluentButton>
+    @if (!string.IsNullOrEmpty(Dialog.Instance.Parameters.SecondaryAction))
+    {
+        <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">
+            @Dialog.Instance.Parameters.SecondaryAction
+        </FluentButton>
+    }
+</FluentDialogFooter>

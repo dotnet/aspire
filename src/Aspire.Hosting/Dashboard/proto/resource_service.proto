@@ -314,6 +314,71 @@ message WatchResourceConsoleLogsUpdate {
     repeated ConsoleLogLine log_lines = 1;
 }
 
+message WatchInteractionsRequestUpdate {
+    int32 interaction_id = 1;
+
+    oneof kind {
+        InteractionComplete complete = 2;
+        InteractionMessageBox message_box = 3;
+        InteractionInputsDialog inputs_dialog = 4;
+        InteractionMessageBar message_bar = 5;
+    }
+}
+message WatchInteractionsResponseUpdate {
+    int32 interaction_id = 1;
+
+    string title = 2;
+    string message = 3;
+    string primary_button_text = 4;
+    string secondary_button_text = 5;
+    bool show_secondary_button = 6;
+    bool show_dismiss = 7;
+
+    oneof kind {
+        InteractionComplete complete = 16;
+        InteractionMessageBox message_box = 17;
+        InteractionInputsDialog inputs_dialog = 18;
+        InteractionMessageBar message_bar = 19;
+    }
+}
+message InteractionComplete {
+}
+message InteractionMessageBox {
+    MessageIntent intent = 1;
+    optional bool result = 2;
+}
+message InteractionMessageBar {
+    MessageIntent intent = 1;
+    optional bool result = 2;
+}
+message InteractionInputsDialog {
+    repeated InteractionInput input_items = 1;
+}
+message InteractionInput {
+    string label = 1;
+    string placeholder = 2;
+    InputType input_type = 3;
+    bool required = 4;
+    map<string, string> options = 5;
+    string value = 6;
+}
+enum MessageIntent {
+    MESSAGE_INTENT_NONE = 0;
+    MESSAGE_INTENT_SUCCESS = 1;
+    MESSAGE_INTENT_WARNING = 2;
+    MESSAGE_INTENT_ERROR = 3;
+    MESSAGE_INTENT_INFORMATION = 4;
+    MESSAGE_INTENT_CONFIRMATION = 5;
+}
+enum InputType {
+    INPUT_TYPE_UNSPECIFIED = 0;
+    INPUT_TYPE_TEXT = 1;
+    INPUT_TYPE_PASSWORD = 2;
+    INPUT_TYPE_SELECT = 3;
+    INPUT_TYPE_CHECKBOX = 4;
+    INPUT_TYPE_NUMBER = 5;
+}
+
 ////////////////////////////////////////////
 
 service DashboardService {
@@ -321,4 +386,5 @@ service DashboardService {
     rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
     rpc WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest) returns (stream WatchResourceConsoleLogsUpdate);
     rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
+    rpc WatchInteractions(stream WatchInteractionsRequestUpdate) returns (stream WatchInteractionsResponseUpdate);
 }
