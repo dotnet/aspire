@@ -19,15 +19,4 @@
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="README.md">
-      <PackagePath>\</PackagePath>
-      <Pack>true</Pack>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="FoundryLocal\" />
-  </ItemGroup>
-
 </Project>
