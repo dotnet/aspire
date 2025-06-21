@@ -9,7 +9,6 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
-using Xunit;
 
 namespace Aspire.Hosting.Backchannel;
 
