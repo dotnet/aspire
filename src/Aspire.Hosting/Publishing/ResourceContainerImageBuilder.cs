@@ -41,10 +41,47 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
+    private IContainerRuntime? _containerRuntime;
+    private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
+    {
+        string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
+        null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
+    };
+
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
         var step = await activityReporter.CreateStepAsync(
             "Building container images for resources",
+            cancellationToken).ConfigureAwait(false);
+
+        // Currently, we build these images to the local Docker daemon. We need to ensure that
+        // the Docker daemon is running and accessible
+
+        var task = await activityReporter.CreateTaskAsync(
+            step,
+            $"Checking {ContainerRuntime.Name} health",
+            cancellationToken).ConfigureAwait(false);
+
+        var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!containerRuntimeHealthy)
+        {
+            logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
+
+            await activityReporter.CompleteTaskAsync(
+                task,
+                TaskCompletionState.CompletedWithError,
+                $"{ContainerRuntime.Name} is not running or is unhealthy.",
+                cancellationToken).ConfigureAwait(false);
+
+            await activityReporter.CompleteStepAsync(step, "Building container images failed", cancellationToken: cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        await activityReporter.CompleteTaskAsync(
+            task,
+            containerRuntimeHealthy ? TaskCompletionState.Completed : TaskCompletionState.CompletedWithError,
+            $"{ContainerRuntime.Name} is healthy.",
             cancellationToken).ConfigureAwait(false);
 
         foreach (var resource in resources)
@@ -143,7 +180,7 @@ internal sealed class ResourceContainerImageBuilder(
                 await CompleteTaskAsync(
                     publishingTask,
                     TaskCompletionState.CompletedWithError,
-                    $"Building image: {resource.Name} failed",
+                    $"Building image for {resource.Name} failed",
                     cancellationToken).ConfigureAwait(false);
                 throw new DistributedApplicationException($"Failed to build container image.");
             }
@@ -152,7 +189,7 @@ internal sealed class ResourceContainerImageBuilder(
                 await CompleteTaskAsync(
                     publishingTask,
                     TaskCompletionState.Completed,
-                    $"Building image: {resource.Name} completed",
+                    $"Building image for {resource.Name} completed",
                     cancellationToken).ConfigureAwait(false);
 
                 logger.LogDebug(
@@ -172,13 +209,7 @@ internal sealed class ResourceContainerImageBuilder(
 
         try
         {
-            var containerRuntime = dcpOptions.Value.ContainerRuntime switch
-            {
-                string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
-                null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
-            };
-
-            await containerRuntime.BuildImageAsync(
+            await ContainerRuntime.BuildImageAsync(
                 contextPath,
                 dockerfilePath,
                 imageName,
@@ -187,7 +218,7 @@ internal sealed class ResourceContainerImageBuilder(
             await CompleteTaskAsync(
                 publishingTask,
                 TaskCompletionState.Completed,
-                $"Building image: {resourceName} completed",
+                $"Building image for {resourceName} completed",
                 cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -197,7 +228,7 @@ internal sealed class ResourceContainerImageBuilder(
             await CompleteTaskAsync(
                 publishingTask,
                 TaskCompletionState.CompletedWithError,
-                $"Building image: {resourceName} failed",
+                $"Building image for {resourceName} failed",
                 cancellationToken).ConfigureAwait(false);
 
             throw;

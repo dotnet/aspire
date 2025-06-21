@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -23,9 +24,12 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
-    ILogger logger)
+    ILogger logger,
+    IPublishingActivityProgressReporter progressReporter)
 {
     private ILogger Logger => logger;
+
+    private IPublishingActivityProgressReporter ProgressReporter => progressReporter;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -71,12 +75,43 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        await WriteAzureArtifactsOutputAsync(model, environment, cancellationToken).ConfigureAwait(false);
+        var step = await ProgressReporter.CreateStepAsync(
+            "Publishing Azure Bicep templates",
+            cancellationToken
+        ).ConfigureAwait(false);
 
-        await SaveToDiskAsync(outputPath).ConfigureAwait(false);
+        (string Message, bool IsError) stepInfo;
+
+        try
+        {
+            await WriteAzureArtifactsOutputAsync(step, model, environment, cancellationToken).ConfigureAwait(false);
+
+            await SaveToDiskAsync(outputPath).ConfigureAwait(false);
+
+            stepInfo = (
+                $"Azure Bicep templates written successfully to {outputPath}.",
+                false
+            );
+        }
+        catch (Exception ex)
+        {
+            stepInfo = (
+                $"Failed to write Azure Bicep templates: {ex.Message}",
+                true
+            );
+
+            Logger.LogError(ex, "Failed to write Azure Bicep templates to {OutputPath}", outputPath);
+        }
+
+        await ProgressReporter.CompleteStepAsync(
+                step,
+                stepInfo.Message,
+                stepInfo.IsError,
+                cancellationToken
+            ).ConfigureAwait(false);
     }
 
-    private Task WriteAzureArtifactsOutputAsync(DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
+    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -181,8 +216,28 @@ public sealed class AzurePublishingContext(
             };
         }
 
+        var computeEnvironments = new List<IAzureComputeEnvironmentResource>();
+
+        var computeEnvironmentTask = await ProgressReporter.CreateTaskAsync(
+            step,
+            "Analyzing model for compute environments.",
+            cancellationToken: default
+            ).ConfigureAwait(false);
+
         foreach (var resource in bicepResourcesToPublish)
         {
+            if (resource is IAzureComputeEnvironmentResource computeEnvironment)
+            {
+                computeEnvironments.Add(computeEnvironment);
+            }
+
+            var task = await ProgressReporter.CreateTaskAsync(
+                step,
+                $"Processing Azure resource {resource.Name}",
+                cancellationToken: default
+            )
+            .ConfigureAwait(false);
+
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
@@ -206,7 +261,28 @@ public sealed class AzurePublishingContext(
 
                 module.Parameters.Add(parameter.Key, value);
             }
+
+            await ProgressReporter.CompleteTaskAsync(
+                task,
+                TaskCompletionState.Completed,
+                $"Wrote bicep module for resource {resource.Name} to {module.Path}",
+                cancellationToken: default
+            ).ConfigureAwait(false);
         }
+
+        var (message, state) = computeEnvironments.Count switch
+        {
+            0 => ("No azure compute environments found in the model.", TaskCompletionState.CompletedWithWarning),
+            _ => ($"Found {computeEnvironments.Count} compute environment(s) in the model.", TaskCompletionState.Completed)
+        };
+
+        // Report the completion of the compute environment task.
+        await ProgressReporter.CompleteTaskAsync(
+            computeEnvironmentTask,
+            state,
+            message,
+            cancellationToken: default
+        ).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
@@ -232,6 +308,13 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
+                var task = await ProgressReporter.CreateTaskAsync(
+                    step,
+                    $"Processing deployment target {resource.Name}",
+                    cancellationToken: default
+                )
+                .ConfigureAwait(false);
+
                 var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
                 var modulePath = Path.Combine(moduleDirectory.FullName, $"{resource.Name}.bicep");
@@ -250,6 +333,13 @@ public sealed class AzurePublishingContext(
                 }
 
                 CaptureBicepOutputsFromParameters(br);
+
+                await ProgressReporter.CompleteTaskAsync(
+                    task,
+                    TaskCompletionState.Completed,
+                    $"Wrote bicep module for deployment target {resource.Name} to {modulePath}",
+                    cancellationToken: default
+                ).ConfigureAwait(false);
             }
             else if (resource is IResourceWithParameters rwp && !bicepResourcesToPublish.Contains(resource))
             {
@@ -283,8 +373,6 @@ public sealed class AzurePublishingContext(
             OutputLookup[output] = bicepOutput;
             MainInfrastructure.Add(bicepOutput);
         }
-
-        return Task.CompletedTask;
     }
 
     private void MapParameter(object? candidate)

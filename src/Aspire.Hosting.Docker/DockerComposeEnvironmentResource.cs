@@ -68,6 +68,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             imageBuilder,
             context.OutputPath,
             context.Logger,
+            context.ProgressReporter,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

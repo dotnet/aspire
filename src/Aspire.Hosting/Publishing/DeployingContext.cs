@@ -59,20 +59,14 @@ public sealed class DeployingContext(
     /// </summary>
     /// <param name="model">The distributed application model whose resources will be processed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    internal async Task<bool> WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
-        var anyDeployingCallbacks = false;
-
         foreach (var resource in model.Resources)
         {
             if (resource.TryGetLastAnnotation<DeployingCallbackAnnotation>(out var annotation))
             {
-                anyDeployingCallbacks = true;
-
                 await annotation.Callback(this).ConfigureAwait(false);
             }
         }
-
-        return anyDeployingCallbacks;
     }
 }
