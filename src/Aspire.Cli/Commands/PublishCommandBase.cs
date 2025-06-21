@@ -246,8 +246,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
                 break;
             }
-
-            if (activity.Type == PublishingActivityTypes.Step)
+            else if (activity.Type == PublishingActivityTypes.Step)
             {
                 // If this is our first time encountering this step, initialize it by
                 // display the step header and configuring a new ProgressContext for the
@@ -256,7 +255,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     if (currentStepProgress.Step is not null)
                     {
-                        throw new InvalidOperationException($"Step activity with ID '{activity.Data.Id}' is not complete. Expected it to be complete before processing tasks.");
+                        throw new InvalidOperationException($"Step activity with ID '{currentStepProgress.Step?.Id}' is not complete. Expected it to be complete before processing tasks.");
                     }
 
                     stepInfo = new StepInfo
@@ -389,6 +388,12 @@ internal abstract class PublishCommandBase : BaseCommand
 
     private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)
     {
+        if (progressContext.Context is not null)
+        {
+            // If the context is already started, we don't need to do anything.
+            return;
+        }
+
         progressContext.Context = AnsiConsole.Progress()
             .AutoClear(false)
             .HideCompleted(false)

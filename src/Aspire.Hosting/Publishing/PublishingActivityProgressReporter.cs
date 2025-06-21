@@ -117,23 +117,21 @@ public interface IPublishingActivityProgressReporter
     /// <summary>
     /// Creates a new publishing step with the specified ID and title.
     /// </summary>
-    /// <param name="id">Unique Id of the publishing step.</param>
     /// <param name="title">The title of the publishing step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The publishing step</returns>
     /// <exception cref="InvalidOperationException">Thrown when a step with the same ID already exists.</exception>
-    Task<PublishingStep> CreateStepAsync(string id, string title, CancellationToken cancellationToken);
+    Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates a new publishing task tied to a step.
     /// </summary>
     /// <param name="step">The step this task belongs to.</param>
-    /// <param name="id">Unique Id of the publishing task.</param>
     /// <param name="statusText">The initial status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The publishing task</returns>
     /// <exception cref="InvalidOperationException">Thrown when the step does not exist or is already complete.</exception>
-    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string id, string statusText, CancellationToken cancellationToken);
+    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
 
     /// <summary>
     /// Completes a publishing step with the specified completion text.
@@ -178,14 +176,9 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
 
-    public async Task<PublishingStep> CreateStepAsync(string id, string title, CancellationToken cancellationToken)
+    public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var step = new PublishingStep(id, title);
-
-        if (!_steps.TryAdd(id, step))
-        {
-            throw new InvalidOperationException($"Step with ID '{id}' already exists.");
-        }
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
 
         var state = new PublishingActivity
         {
@@ -205,7 +198,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return step;
     }
 
-    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string id, string statusText, CancellationToken cancellationToken)
+    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -220,7 +213,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             }
         }
 
-        var task = new PublishingTask(id, step.Id, statusText);
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
 
         var state = new PublishingActivity
         {

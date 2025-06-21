@@ -16,15 +16,15 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
         var title = "Test Step";
 
         // Act
-        var step = await reporter.CreateStepAsync(stepId, title, CancellationToken.None);
+        var step = await reporter.CreateStepAsync(title, CancellationToken.None);
 
         // Assert
         Assert.NotNull(step);
-        Assert.Equal(stepId, step.Id);
+        Assert.NotNull(step.Id);
+        Assert.NotEmpty(step.Id);
         Assert.Equal(title, step.Title);
         Assert.False(step.IsComplete);
         Assert.Equal(string.Empty, step.CompletionText);
@@ -33,7 +33,7 @@ public class PublishingActivityProgressReporterTests
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
-        Assert.Equal(stepId, activity.Data.Id);
+        Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal(title, activity.Data.StatusText);
         Assert.False(activity.Data.IsComplete);
         Assert.False(activity.Data.IsError);
@@ -46,23 +46,22 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
         var statusText = "Test Task";
 
         // Create parent step first
-        var step = await reporter.CreateStepAsync(stepId, "Parent Step", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Parent Step", CancellationToken.None);
 
         // Clear the step creation activity
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        var task = await reporter.CreateTaskAsync(step, taskId, statusText, CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, statusText, CancellationToken.None);
 
         // Assert
         Assert.NotNull(task);
-        Assert.Equal(taskId, task.Id);
-        Assert.Equal(stepId, task.StepId);
+        Assert.NotNull(task.Id);
+        Assert.NotEmpty(task.Id);
+        Assert.Equal(step.Id, task.StepId);
         Assert.Equal(statusText, task.StatusText);
         Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
         Assert.Equal(string.Empty, task.CompletionMessage);
@@ -71,9 +70,9 @@ public class PublishingActivityProgressReporterTests
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
-        Assert.Equal(taskId, activity.Data.Id);
+        Assert.Equal(task.Id, activity.Data.Id);
         Assert.Equal(statusText, activity.Data.StatusText);
-        Assert.Equal(stepId, activity.Data.StepId);
+        Assert.Equal(step.Id, activity.Data.StepId);
         Assert.False(activity.Data.IsComplete);
         Assert.False(activity.Data.IsError);
         Assert.False(activity.Data.IsWarning);
@@ -85,11 +84,10 @@ public class PublishingActivityProgressReporterTests
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
         var nonExistentStep = new PublishingStep("non-existent-step", "Non-existent Step");
-        var taskId = "test-task";
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CreateTaskAsync(nonExistentStep, taskId, "Test Task", CancellationToken.None));
+            () => reporter.CreateTaskAsync(nonExistentStep, "Test Task", CancellationToken.None));
 
         Assert.Contains($"Step with ID 'non-existent-step' does not exist.", exception.Message);
     }
@@ -99,18 +97,16 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
         // Create and complete step
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None));
+            () => reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None));
 
-        Assert.Contains($"Step with ID '{stepId}' does not exist.", exception.Message);
+        Assert.Contains($"Step with ID '{step.Id}' does not exist.", exception.Message);
     }
 
     [Fact]
@@ -118,10 +114,9 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
         var completionText = "Step completed successfully";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Clear the step creation activity
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -137,7 +132,7 @@ public class PublishingActivityProgressReporterTests
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
-        Assert.Equal(stepId, activity.Data.Id);
+        Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal(completionText, activity.Data.StatusText);
         Assert.True(activity.Data.IsComplete);
         Assert.False(activity.Data.IsError);
@@ -149,12 +144,10 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
         var newStatusText = "Updated status";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Initial status", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
         // Clear previous activities
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -170,9 +163,9 @@ public class PublishingActivityProgressReporterTests
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
-        Assert.Equal(taskId, activity.Data.Id);
+        Assert.Equal(task.Id, activity.Data.Id);
         Assert.Equal(newStatusText, activity.Data.StatusText);
-        Assert.Equal(stepId, activity.Data.StepId);
+        Assert.Equal(step.Id, activity.Data.StepId);
         Assert.False(activity.Data.IsComplete);
     }
 
@@ -181,14 +174,12 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Initial status", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
         // Simulate step removal by creating a task with invalid step ID
-        task = new PublishingTask(taskId, "non-existent-step", "Initial status");
+        task = new PublishingTask(task.Id, "non-existent-step", "Initial status");
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -202,18 +193,16 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Initial status", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
         await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.UpdateTaskAsync(task, "New status", CancellationToken.None));
 
-        Assert.Contains($"Parent step with ID '{stepId}' does not exist.", exception.Message);
+        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", exception.Message);
     }
 
     [Theory]
@@ -225,12 +214,10 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
         var completionMessage = "Task completed";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Clear previous activities
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -247,8 +234,8 @@ public class PublishingActivityProgressReporterTests
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
-        Assert.Equal(taskId, activity.Data.Id);
-        Assert.Equal(stepId, activity.Data.StepId);
+        Assert.Equal(task.Id, activity.Data.Id);
+        Assert.Equal(step.Id, activity.Data.StepId);
         Assert.True(activity.Data.IsComplete);
         Assert.Equal(expectedIsError, activity.Data.IsError);
         Assert.Equal(expectedIsWarning, activity.Data.IsWarning);
@@ -260,18 +247,16 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
         await reporter.CompleteStepAsync(step, "Completed", CancellationToken.None);
 
         // Act & Assert - Step is now removed from dictionary when completed
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
 
-        Assert.Contains($"Parent step with ID '{stepId}' does not exist.", exception.Message);
+        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", exception.Message);
     }
 
     [Theory]
@@ -308,15 +293,13 @@ public class PublishingActivityProgressReporterTests
         var stepTasks = Enumerable.Range(0, stepCount)
             .Select(async i =>
             {
-                var stepId = $"step-{i}";
-                var step = await reporter.CreateStepAsync(stepId, $"Step {i}", CancellationToken.None);
+                var step = await reporter.CreateStepAsync($"Step {i}", CancellationToken.None);
 
                 // Create tasks for each step concurrently
                 var taskCreationTasks = Enumerable.Range(0, tasksPerStep)
                     .Select(async j =>
                     {
-                        var taskId = $"task-{i}-{j}";
-                        var task = await reporter.CreateTaskAsync(step, taskId, $"Task {i}-{j}", CancellationToken.None);
+                        var task = await reporter.CreateTaskAsync(step, $"Task {i}-{j}", CancellationToken.None);
                         await reporter.UpdateTaskAsync(task, $"Updated Task {i}-{j}", CancellationToken.None);
                         await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
                         return task;
@@ -363,11 +346,9 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Act
         await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
@@ -377,32 +358,13 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
-    public async Task CreateStepAsync_WithSameId_ThrowsException()
-    {
-        // Arrange
-        var reporter = new PublishingActivityProgressReporter();
-        var stepId = "duplicate-step";
-
-        // Act
-        await reporter.CreateStepAsync(stepId, "First Step", CancellationToken.None);
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CreateStepAsync(stepId, "Second Step", CancellationToken.None));
-
-        Assert.Contains($"Step with ID '{stepId}' already exists.", exception.Message);
-    }
-
-    [Fact]
     public async Task CompleteTaskAsync_ThrowsWhenTaskAlreadyCompleted()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Complete the task first time
         await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
@@ -411,7 +373,7 @@ public class PublishingActivityProgressReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
 
-        Assert.Contains($"Cannot complete task '{taskId}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
+        Assert.Contains($"Cannot complete task '{task.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
     }
 
     [Fact]
@@ -419,11 +381,9 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
-        var stepId = "test-step";
-        var taskId = "test-task";
 
-        var step = await reporter.CreateStepAsync(stepId, "Test Step", CancellationToken.None);
-        var task = await reporter.CreateTaskAsync(step, taskId, "Test Task", CancellationToken.None);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Act - Complete the step
         await reporter.CompleteStepAsync(step, "Step completed", CancellationToken.None);
@@ -432,15 +392,15 @@ public class PublishingActivityProgressReporterTests
         // because the step has been removed from the dictionary
         var updateException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.UpdateTaskAsync(task, "New status", CancellationToken.None));
-        Assert.Contains($"Parent step with ID '{stepId}' does not exist.", updateException.Message);
+        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", updateException.Message);
 
         var completeException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
-        Assert.Contains($"Parent step with ID '{stepId}' does not exist.", completeException.Message);
+        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", completeException.Message);
 
         // Also verify that creating new tasks for the completed step fails
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CreateTaskAsync(step, "new-task", "New Task", CancellationToken.None));
-        Assert.Contains($"Step with ID '{stepId}' does not exist.", createException.Message);
+            () => reporter.CreateTaskAsync(step, "New Task", CancellationToken.None));
+        Assert.Contains($"Step with ID '{step.Id}' does not exist.", createException.Message);
     }
 }

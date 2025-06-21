@@ -44,7 +44,6 @@ internal sealed class ResourceContainerImageBuilder(
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
         var step = await activityReporter.CreateStepAsync(
-            "build-container-images",
             "Building container images for resources",
             cancellationToken).ConfigureAwait(false);
 
@@ -101,7 +100,6 @@ internal sealed class ResourceContainerImageBuilder(
     {
         var publishingTask = await CreateTaskAsync(
             step,
-            $"image-build-{resource.Name}",
             $"Building image: {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
@@ -168,7 +166,6 @@ internal sealed class ResourceContainerImageBuilder(
     {
         var publishingTask = await CreateTaskAsync(
             step,
-            $"image-build-{resourceName}",
             $"Building image: {resourceName}",
             cancellationToken
             ).ConfigureAwait(false);
@@ -210,7 +207,6 @@ internal sealed class ResourceContainerImageBuilder(
 
     private async Task<PublishingTask?> CreateTaskAsync(
         PublishingStep? step,
-        string taskId,
         string description,
         CancellationToken cancellationToken)
     {
@@ -220,7 +216,7 @@ internal sealed class ResourceContainerImageBuilder(
             return null;
         }
 
-        return await activityReporter.CreateTaskAsync(step, taskId, description, cancellationToken).ConfigureAwait(false);
+        return await activityReporter.CreateTaskAsync(step, description, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CompleteTaskAsync(

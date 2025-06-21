@@ -21,16 +21,16 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task<PublishingStep> CreateStepAsync(string id, string title, CancellationToken cancellationToken)
+    public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var step = new PublishingStep(id, title);
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
         return Task.FromResult(step);
     }
 
     /// <inheritdoc/>
-    public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string id, string statusText, CancellationToken cancellationToken)
+    public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        var task = new PublishingTask(id, step.Id, statusText);
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
         return Task.FromResult(task);
     }
 
