@@ -22,7 +22,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureAppServiceEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
+    public partial class AzureAppServiceEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
         public AzureAppServiceEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
