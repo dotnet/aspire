@@ -3,69 +3,109 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
+using Aspire.Hosting.Backchannel;
 
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// Represents a publishing activity.
+/// Represents the completion state of a publishing task.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingActivity
+public enum TaskCompletionState
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="PublishingActivity"/> class.
+    /// The task is in progress.
     /// </summary>
-    /// <param name="id">The unique identifier for the publishing activity.</param>
-    /// <param name="isPrimary">Indicates whether this activity is the primary activity.</param>
-    public PublishingActivity(string id, bool isPrimary = false)
-    {
-        Id = id;
-        IsPrimary = isPrimary;
-    }
+    InProgress,
 
     /// <summary>
-    /// Unique Id of the publishing activity.
+    /// The task completed successfully.
     /// </summary>
-    public string Id { get; private set; }
+    Completed,
 
     /// <summary>
-    /// Indicates whether the publishing activity is the primary activity.
+    /// The task completed with warnings.
     /// </summary>
-    public bool IsPrimary { get; private set; }
+    CompletedWithWarning,
 
     /// <summary>
-    /// The status text of the publishing activity.
+    /// The task completed with an error.
     /// </summary>
-    public PublishingActivityStatus? LastStatus { get; set; }
+    CompletedWithError
 }
 
 /// <summary>
-/// Represents the status of a publishing activity.
+/// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="PublishingStep"/> class.
+/// </remarks>
+/// <param name="id">The unique identifier for the publishing step.</param>
+/// <param name="title">The title of the publishing step.</param>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed record PublishingActivityStatus
+public sealed class PublishingStep(string id, string title)
+{
+
+    /// <summary>
+    /// Unique Id of the step.
+    /// </summary>
+    public string Id { get; private set; } = id;
+
+    /// <summary>
+    /// The title of the publishing step.
+    /// </summary>
+    public string Title { get; private set; } = title;
+
+    /// <summary>
+    /// Indicates whether the step is complete.
+    /// </summary>
+    public bool IsComplete { get; internal set; }
+
+    /// <summary>
+    /// The completion text for the step.
+    /// </summary>
+    public string CompletionText { get; internal set; } = string.Empty;
+}
+
+/// <summary>
+/// Represents a publishing task, which belongs to a step.
+/// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="PublishingTask"/> class.
+/// </remarks>
+/// <param name="id">The unique identifier for the publishing task.</param>
+/// <param name="stepId">The identifier of the step this task belongs to.</param>
+/// <param name="statusText">The initial status text for the task.</param>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class PublishingTask(string id, string stepId, string statusText)
 {
     /// <summary>
-    /// The publishing activity associated with this status.
+    /// Unique Id of the task.
     /// </summary>
-    public required PublishingActivity Activity { get; init; }
+    public string Id { get; private set; } = id;
 
     /// <summary>
-    /// The status text of the publishing activity.
+    /// The identifier of the step this task belongs to.
     /// </summary>
-    public required string StatusText { get; init; }
+    public string StepId { get; private set; } = stepId;
 
     /// <summary>
-    /// Indicates whether the publishing activity is complete.
+    /// The current status text of the task.
     /// </summary>
-    public required bool IsComplete { get; init; }
+    public string StatusText { get; internal set; } = statusText;
 
     /// <summary>
-    /// Indicates whether the publishing activity encountered an error.
+    /// The completion state of the task.
     /// </summary>
-    public required bool IsError { get; init; }
+    public TaskCompletionState CompletionState { get; internal set; } = TaskCompletionState.InProgress;
+
+    /// <summary>
+    /// Optional completion message for the task.
+    /// </summary>
+    public string CompletionMessage { get; internal set; } = string.Empty;
 }
 
 /// <summary>
@@ -75,86 +115,245 @@ public sealed record PublishingActivityStatus
 public interface IPublishingActivityProgressReporter
 {
     /// <summary>
-    /// Creates a new publishing activity with the specified ID.
+    /// Creates a new publishing step with the specified ID and title.
     /// </summary>
-    /// <param name="id">Unique Id of the publishing activity.</param>
-    /// <param name="initialStatusText"></param>
-    /// <param name="isPrimary">Indicates that this activity is the primary activity.</param>
+    /// <param name="title">The title of the publishing step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The publishing activity</returns>
-    /// <remarks>
-    /// When an activity is created the <paramref name="isPrimary"/> flag indicates whether this
-    /// activity is the primary activity. When the primary activity is completed any launcher
-    /// which is reading activities will stop listening for updates.
-    /// </remarks>
-    Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, CancellationToken cancellationToken);
+    /// <returns>The publishing step</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a step with the same ID already exists.</exception>
+    Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Updates the status of an existing publishing activity.
+    /// Creates a new publishing task tied to a step.
     /// </summary>
-    /// <param name="publishingActivity">The activity with updated properties.</param>
-    /// <param name="statusUpdate"></param>
+    /// <param name="step">The step this task belongs to.</param>
+    /// <param name="statusText">The initial status text.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The publishing task</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the step does not exist or is already complete.</exception>
+    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Completes a publishing step with the specified completion text.
+    /// </summary>
+    /// <param name="step">The step to complete.</param>
+    /// <param name="completionText">The completion text for the step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, CancellationToken cancellationToken);
+    Task CompleteStepAsync(PublishingStep step, string completionText, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates the status text of an existing publishing task.
+    /// </summary>
+    /// <param name="task">The task to update.</param>
+    /// <param name="statusText">The new status text.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
+    Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Completes a publishing task with the specified completion state and optional completion message.
+    /// </summary>
+    /// <param name="task">The task to complete.</param>
+    /// <param name="completionState">The completion state.</param>
+    /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
+    Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Signals that the entire publishing process has completed.
+    /// </summary>
+    /// <param name="success">Whether the publishing process completed successfully.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    Task CompletePublishAsync(bool success, CancellationToken cancellationToken);
 }
 
 internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter
 {
-    public async Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, CancellationToken cancellationToken)
-    {
-        var publishingActivity = new PublishingActivity(id, isPrimary);
-        await UpdateActivityStatusAsync(
-            publishingActivity,
-            (status) => status with
-            {
-                StatusText = initialStatusText,
-                IsComplete = false,
-                IsError = false
-            },
-            cancellationToken
-            ).ConfigureAwait(false);
+    private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
 
-        return publishingActivity;
+    public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
+    {
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        _steps.TryAdd(step.Id, step);
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Step,
+            Data = new PublishingActivityData
+            {
+                Id = step.Id,
+                StatusText = title,
+                IsComplete = false,
+                IsError = false,
+                IsWarning = false,
+                StepId = null
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+        return step;
     }
 
-    private readonly object _updateLock = new object();
-
-    public async Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, CancellationToken cancellationToken)
+    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        PublishingActivityStatus? lastStatus;
-        PublishingActivityStatus? newStatus;
-
-        lock (_updateLock)
+        if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
-            lastStatus = publishingActivity.LastStatus ?? new PublishingActivityStatus
+            throw new InvalidOperationException($"Step with ID '{step.Id}' does not exist.");
+        }
+
+        lock (parentStep)
+        {
+            if (parentStep.IsComplete)
             {
-                Activity = publishingActivity,
-                StatusText = string.Empty,
+                throw new InvalidOperationException($"Cannot create task for step '{step.Id}' because the step is already complete.");
+            }
+        }
+
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Task,
+            Data = new PublishingActivityData
+            {
+                Id = task.Id,
+                StatusText = statusText,
                 IsComplete = false,
-                IsError = false
-            };
-            
-            newStatus = statusUpdate(lastStatus);
-            publishingActivity.LastStatus = newStatus;
-        }
+                IsError = false,
+                IsWarning = false,
+                StepId = step.Id
+            }
+        };
 
-        if (lastStatus == newStatus)
-        {
-            throw new DistributedApplicationException(
-                $"The status of the publishing activity '{publishingActivity.Id}' was not updated. The status update function must return a new instance of the status."
-                );
-        }
-
-        await ActivityStatusUpdated.Writer.WriteAsync(newStatus, cancellationToken).ConfigureAwait(false);
-
-        if (publishingActivity.IsPrimary && (newStatus.IsComplete || newStatus.IsError))
-        {
-            // If the activity is complete or an error and it is the primary activity,
-            // we can stop listening for updates.
-            ActivityStatusUpdated.Writer.Complete();
-        }
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+        return task;
     }
 
-    internal Channel<PublishingActivityStatus> ActivityStatusUpdated { get; } = Channel.CreateUnbounded<PublishingActivityStatus>();
+    public async Task CompleteStepAsync(PublishingStep step, string completionText, CancellationToken cancellationToken)
+    {
+        lock (step)
+        {
+            step.IsComplete = true;
+            step.CompletionText = completionText;
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Step,
+            Data = new PublishingActivityData
+            {
+                Id = step.Id,
+                StatusText = completionText,
+                IsComplete = true,
+                IsError = false,
+                IsWarning = false,
+                StepId = null
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+
+        // Remove the completed step to prevent further updates.
+        _steps.TryRemove(step.Id, out _);
+    }
+
+    public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
+    {
+        if (!_steps.TryGetValue(task.StepId, out var parentStep))
+        {
+            throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
+        }
+
+        lock (parentStep)
+        {
+            if (parentStep.IsComplete)
+            {
+                throw new InvalidOperationException($"Cannot update task '{task.Id}' because its parent step '{task.StepId}' is already complete.");
+            }
+
+            task.StatusText = statusText;
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Task,
+            Data = new PublishingActivityData
+            {
+                Id = task.Id,
+                StatusText = statusText,
+                IsComplete = false,
+                IsError = false,
+                IsWarning = false,
+                StepId = task.StepId
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    {
+        if (!_steps.TryGetValue(task.StepId, out var parentStep))
+        {
+            throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
+        }
+
+        if (task.CompletionState != TaskCompletionState.InProgress)
+        {
+            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{task.CompletionState}'. Only 'InProgress' tasks can be completed.");
+        }
+
+        lock (parentStep)
+        {
+            if (parentStep.IsComplete)
+            {
+                throw new InvalidOperationException($"Cannot complete task '{task.Id}' because its parent step '{task.StepId}' is already complete.");
+            }
+
+            task.CompletionState = completionState;
+            task.CompletionMessage = completionMessage ?? string.Empty;
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Task,
+            Data = new PublishingActivityData
+            {
+                Id = task.Id,
+                StatusText = task.StatusText,
+                IsComplete = true,
+                IsError = completionState == TaskCompletionState.CompletedWithError,
+                IsWarning = completionState == TaskCompletionState.CompletedWithWarning,
+                StepId = task.StepId,
+                CompletionMessage = completionMessage
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    {
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.PublishComplete,
+            Data = new PublishingActivityData
+            {
+                Id = PublishingActivityTypes.PublishComplete,
+                StatusText = success ? "Publishing completed successfully" : "Publishing completed with errors",
+                IsComplete = true,
+                IsError = !success,
+                IsWarning = false
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal Channel<PublishingActivity> ActivityItemUpdated { get; } = Channel.CreateUnbounded<PublishingActivity>();
 }

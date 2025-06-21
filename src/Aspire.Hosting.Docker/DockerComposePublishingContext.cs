@@ -75,13 +75,15 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
+        var containerImagesToBuild = new List<IResource>();
+
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
                 if (environment.BuildContainerImages)
                 {
-                    await ImageBuilder.BuildImageAsync(serviceResource.TargetResource, cancellationToken).ConfigureAwait(false);
+                    containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
                 var composeService = serviceResource.BuildComposeService();
@@ -115,6 +117,12 @@ internal sealed class DockerComposePublishingContext(
 
                 composeFile.AddService(composeService);
             }
+        }
+
+        // Build container images for the services that require it
+        if (containerImagesToBuild.Count > 0)
+        {
+            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, cancellationToken).ConfigureAwait(false);
         }
 
         // Call the environment's ConfigureComposeFile method to allow for custom modifications

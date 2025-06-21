@@ -23,33 +23,19 @@ internal class AppHostRpcTarget(
     DistributedApplicationOptions options
     )
 {
-    public async IAsyncEnumerable<PublishingActivityState> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
         {
-            var publishingActivityStatus = await activityReporter.ActivityStatusUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-            if (publishingActivityStatus == null)
+            // Terminate the stream if the publishing activity is null
+            if (publishingActivity == null)
             {
-                // If the publishing activity is null, it means that the activity has been removed.
-                // This can happen if the activity is complete or an error occurred.
                 yield break;
             }
 
-            yield return new PublishingActivityState
-            {
-                Id = publishingActivityStatus.Activity.Id,
-                StatusText = publishingActivityStatus.StatusText,
-                IsComplete = publishingActivityStatus.IsComplete,
-                IsError = publishingActivityStatus.IsError
-            };
-
-            if (publishingActivityStatus.Activity.IsPrimary && (publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
-            {
-                // If the activity is complete or an error and it is the primary activity,
-                // we can stop listening for updates.
-                yield break;
-            }
+            yield return publishingActivity;
         }
     }
 
