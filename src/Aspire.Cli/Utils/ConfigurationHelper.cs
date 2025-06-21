@@ -16,7 +16,7 @@ internal static class ConfigurationHelper
 
         while (currentDirectory is not null)
         {
-            var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+            var settingsFilePath = BuildPathToSettingsJsonFile(currentDirectory.FullName);
 
             if (File.Exists(settingsFilePath))
             {
@@ -38,5 +38,10 @@ internal static class ConfigurationHelper
         {
             configuration.AddJsonFile(localSettingsFile.FullName, optional: true);
         }
+    }
+
+    internal static string BuildPathToSettingsJsonFile(string workingDirectory)
+    {
+        return Path.Combine(workingDirectory, ".aspire", "settings.json");
     }
 }
