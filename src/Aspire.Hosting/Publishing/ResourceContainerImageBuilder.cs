@@ -41,7 +41,8 @@ internal sealed class ResourceContainerImageBuilder(
     IServiceProvider serviceProvider,
     IPublishingActivityProgressReporter activityReporter) : IResourceContainerImageBuilder
 {
-    private IContainerRuntime ContainerRuntime => field ??= dcpOptions.Value.ContainerRuntime switch
+    private IContainerRuntime? _containerRuntime;
+    private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
     {
         string rt => serviceProvider.GetRequiredKeyedService<IContainerRuntime>(rt),
         null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
