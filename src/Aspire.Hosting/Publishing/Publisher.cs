@@ -62,7 +62,7 @@ internal class Publisher(
             taskInfo = deployingResources.Count switch
             {
                 0 => ("No resources in the distributed application model support deployment.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(',', deployingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
+                _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
             };
         }
         else
@@ -70,7 +70,7 @@ internal class Publisher(
             taskInfo = publishingResources.Count switch
             {
                 0 => ("No resources in the distributed application model support publishing.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(',', deployingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
+                _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
             };
         }
 

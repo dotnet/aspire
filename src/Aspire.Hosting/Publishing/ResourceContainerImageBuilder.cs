@@ -58,7 +58,7 @@ internal sealed class ResourceContainerImageBuilder(
 
         var task = await activityReporter.CreateTaskAsync(
             step,
-            $"Checking container runtime health",
+            $"Checking {ContainerRuntime.Name} health",
             cancellationToken).ConfigureAwait(false);
 
         var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
@@ -70,7 +70,7 @@ internal sealed class ResourceContainerImageBuilder(
             await activityReporter.CompleteTaskAsync(
                 task,
                 TaskCompletionState.CompletedWithError,
-                $"The container runtime {ContainerRuntime.Name} is not running or is unhealthy.",
+                $"{ContainerRuntime.Name} is not running or is unhealthy.",
                 cancellationToken).ConfigureAwait(false);
 
             await activityReporter.CompleteStepAsync(step, "Building container images failed", cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -80,7 +80,7 @@ internal sealed class ResourceContainerImageBuilder(
         await activityReporter.CompleteTaskAsync(
             task,
             containerRuntimeHealthy ? TaskCompletionState.Completed : TaskCompletionState.CompletedWithError,
-            "Container runtime is running",
+            $"{ContainerRuntime.Name} is healthy.",
             cancellationToken).ConfigureAwait(false);
 
         foreach (var resource in resources)
