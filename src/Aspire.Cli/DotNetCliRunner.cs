@@ -24,7 +24,7 @@ internal interface IDotNetCliRunner
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> NewProjectAsync(string templateName, string name, string outputPath, string? framework, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -345,11 +345,28 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, string? framework, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath, ..extraArgs];
+        var cliArgsList = new List<string>
+        {
+            "new",
+            templateName,
+            "--name",
+            name,
+            "--output",
+            outputPath
+        };
+
+        if (!string.IsNullOrEmpty(framework))
+        {
+            cliArgsList.Add("--framework");
+            cliArgsList.Add(framework);
+        }
+
+        string[] cliArgs = [.. cliArgsList, ..extraArgs];
+
         return await ExecuteAsync(
             args: cliArgs,
             env: null,

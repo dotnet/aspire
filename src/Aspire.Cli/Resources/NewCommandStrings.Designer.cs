@@ -74,6 +74,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("VersionArgumentDescription", resourceCulture);
             }
         }
+
+        public static string FrameworkArgumentDescription {
+            get {
+                return ResourceManager.GetString("FrameworkArgumentDescription", resourceCulture);
+            }
+        }
         
         public static string SelectATemplateVersion {
             get {
