@@ -85,8 +85,8 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.SecondaryButtonText = interaction.Options.SecondaryButtonText;
                         }
-                        change.ShowDismiss = interaction.Options.ShowDismiss;
-                        change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton;
+                        change.ShowDismiss = interaction.Options.ShowDismiss ?? true;
+                        change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton ?? true;
 
                         if (interaction.State == InteractionState.Complete)
                         {

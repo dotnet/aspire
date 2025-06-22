@@ -25,7 +25,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly KeyedInteractionCollection _pendingInteractions = new();
-    private readonly List<InteractionMessageBarReference> _openMessageBars = new();
+    private readonly KeyedMessageCollection _openMessageBars = new();
 
     private Task? _interactionsDisplayTask;
     private Task? _watchInteractionsTask;
@@ -242,11 +242,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                     options.AllowDismiss = item.ShowDismiss;
 
                                     var primaryButtonText = item.PrimaryButtonText;
-                                    var secondaryButtonText = item.SecondaryButtonText;
+                                    var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;
                                     if (messageBar.Intent == MessageIntentDto.Confirmation)
                                     {
-                                        primaryButtonText = string.IsNullOrEmpty(primaryButtonText) ? "OK" : primaryButtonText;
-                                        secondaryButtonText = string.IsNullOrEmpty(secondaryButtonText) ? "Cancel" : secondaryButtonText;
+                                        primaryButtonText = ResolvedPrimaryButtonText(item, messageBar.Intent);
+                                        secondaryButtonText = ResolvedSecondaryButtonText(item);
                                     }
 
                                     bool? result = null;
@@ -281,8 +281,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                     options.OnClose = async m =>
                                     {
                                         // Only send complete notification if in the open message bars list.
-                                        var openMessageBar = _openMessageBars.SingleOrDefault(r => r.Interaction.InteractionId == item.InteractionId);
-                                        if (openMessageBar != null)
+                                        if (_openMessageBars.TryGetValue(item.InteractionId, out var openMessageBar))
                                         {
                                             var request = new WatchInteractionsRequestUpdate
                                             {
@@ -299,7 +298,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                                 request.MessageBar = messageBar;
                                             }
 
-                                            _openMessageBars.Remove(openMessageBar);
+                                            _openMessageBars.Remove(item.InteractionId);
 
                                             await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
                                         }
@@ -334,14 +333,13 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                 }
                             }
 
-                            var openMessageBar = _openMessageBars.SingleOrDefault(r => r.Interaction.InteractionId == item.InteractionId);
-                            if (openMessageBar != null)
+                            if (_openMessageBars.TryGetValue(item.InteractionId, out var openMessageBar))
                             {
-                                // Open message bars is used to decide whether to report completion to the server.
-                                // It's already complete so remove before close.
-                                _openMessageBars.Remove(openMessageBar);
+                                // The presence of the item in the collection is used to decide whether to report completion to the server.
+                                // This item is already completed (we're reacting to a completion notification) so remove before close.
+                                _openMessageBars.Remove(item.InteractionId);
 
-                                // InvokeAsync not necessary here. It is called internally.
+                                // InvokeAsync not necessary here. It's called internally.
                                 openMessageBar.Message.Close();
                             }
                             break;
@@ -456,6 +454,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         protected override int GetKeyForItem(WatchInteractionsResponseUpdate item)
         {
             return item.InteractionId;
+        }
+    }
+
+    private class KeyedMessageCollection : KeyedCollection<int, InteractionMessageBarReference>
+    {
+        protected override int GetKeyForItem(InteractionMessageBarReference item)
+        {
+            return item.Interaction.InteractionId;
         }
     }
 }
