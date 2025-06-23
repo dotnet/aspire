@@ -5,9 +5,10 @@ import IntegrationTotals from "./IntegrationTotals.astro";
 
 interface Props {
     integrations: Integrations;
+    availableDocs: AvailableDocs;
 }
 
-const { integrations } = Astro.props;
+const { integrations, availableDocs } = Astro.props;
 
 interface Integration {
     title: string;
@@ -17,9 +18,17 @@ interface Integration {
     downloads?: number;
     version?: string;
     tags?: string[];
+    docs?: string;
 }
 
 type Integrations = Integration[];
+
+interface AvailableDoc {
+    match: string;
+    href: string;
+}
+
+type AvailableDocs = AvailableDoc[];
 
 const sortedIntegrations = integrations.sort((a, b) => {
     const aDownloads = a.downloads ?? 0;
@@ -51,9 +60,21 @@ const sortedIntegrations = integrations.sort((a, b) => {
 
             <div class="equal-columns">
                 <CardGrid>
-                    {sortedIntegrations.map((pkg) => (
-                        <IntegrationCard pkg={pkg} />
-                    ))}
+                    {sortedIntegrations.map((pkg) => {
+                        // Find a matching doc by checking if pkg.title, pkg.description, or any tag matches availableDocs.match
+                        const doc = availableDocs.find((doc) => {
+                            const match = doc.match.toLowerCase();
+                            const titleMatch = pkg.title.toLowerCase().includes(match);
+                            const descMatch = pkg.description.toLowerCase().includes(match);
+                            const tagsMatch = pkg.tags?.some(tag => tag.toLowerCase().includes(match));
+                            return titleMatch || descMatch || tagsMatch;
+                        });
+
+                        // Assign docs property if a match is found
+                        const pkgWithDocs = doc ? { ...pkg, docs: doc.href } : pkg;
+
+                        return <IntegrationCard pkg={pkgWithDocs} />;
+                    })}
                 </CardGrid>
             </div>
 

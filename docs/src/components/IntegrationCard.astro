@@ -21,6 +21,7 @@ interface Props {
         downloads?: number;
         version?: string;
         tags?: string[];
+        docs?: string;
     };
 }
 
@@ -54,9 +55,11 @@ const { pkg } = Astro.props;
                 const filteredTags = (pkg.tags ?? [])
                     .filter((tag: string) => {
                         const lower = tag.toLowerCase();
-                        return lower !== "aspire"
-                            && lower !== "dotnetcommunitytoolkit"
-                            && lower !== "integration";
+                        return (
+                            lower !== "aspire" &&
+                            lower !== "dotnetcommunitytoolkit" &&
+                            lower !== "integration"
+                        );
                     })
                     .slice(0, 5);
                 return (
@@ -88,114 +91,130 @@ const { pkg } = Astro.props;
                     <span class="sr-only">Visit {pkg.title} package</span>
                 </a>
             </div>
+            {
+                pkg.docs && (
+                    <div>
+                        <a
+                            href={pkg.docs}
+                            class="link"
+                        >
+                            Docs
+                            <Icon name="document" size="2rem" />
+                            <span class="sr-only">
+                                Visit {pkg.title} documentation
+                            </span>
+                        </a>
+                    </div>
+                )
+            }
         </div>
     </div>
+
+    <style>
+        .card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            border: 1px solid var(--sl-color-gray-5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: var(--sl-shadow-sm);
+            background-color: var(--sl-color-white);
+            height: 100%;
+        }
+
+        .card .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+            padding-top: 0.75em;
+            border-top: 1px solid var(--sl-color-gray-5);
+            width: 100%;
+        }
+
+        .card .footer * {
+            margin-top: 0;
+        }
+
+        .card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            margin-bottom: 0.5em;
+            max-width: 100%;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .card .icon {
+            height: 2.5rem !important;
+            width: 2.5rem !important;
+            object-fit: contain;
+            background: var(--sl-color-gray-5);
+            border-radius: 0.25rem;
+            padding: 0.2em;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .card .title {
+            font-size: 1.2em;
+            font-weight: 600;
+            padding-bottom: 0;
+            margin: 0;
+            color: var(--sl-color-text-accent);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card .body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            gap: 0.75em;
+        }
+
+        .card .desc {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--sl-color-gray-2);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            line-height: 1.5em;
+            margin: 0;
+        }
+
+        .card .downloads {
+            display: flex;
+            align-items: center;
+            color: var(--sl-color-gray-3);
+        }
+
+        .card .downloads .count {
+            margin-left: 0.5em;
+        }
+
+        .card .link {
+            display: flex;
+            align-items: center;
+        }
+
+        .card .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3em;
+            align-items: flex-start;
+            justify-content: flex-start;
+            margin: 0;
+            padding: 0;
+            flex-grow: 1;
+        }
+    </style>
 </article>
-
-<style>
-    .card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5em;
-        border: 1px solid var(--sl-color-gray-5);
-        border-radius: 0.5rem;
-        padding: 1rem;
-        box-shadow: var(--sl-shadow-sm);
-        background-color: var(--sl-color-white);
-        height: 100%;
-    }
-    
-    .card .footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: auto;
-        padding-top: 0.75em;
-        border-top: 1px solid var(--sl-color-gray-5);
-        width: 100%;
-    }
-
-    .card .footer * {
-        margin-top: 0;;
-    }
-    
-    .card .card-header {
-        display: flex;
-        align-items: center;
-        gap: 1em;
-        margin-bottom: 0.5em;
-        max-width: 100%;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
-        min-width: 0;
-    }
-    
-    .card .icon {
-        height: 2.5rem !important;
-        width: 2.5rem !important;
-        object-fit: contain;
-        background: var(--sl-color-gray-5);
-        border-radius: 0.25rem;
-        padding: 0.2em;
-        margin: 0;
-        flex-shrink: 0;
-    }
-    
-    .card .title {
-        font-size: 1.2em;
-        font-weight: 600;
-        padding-bottom: 0;
-        margin: 0;
-        color: var(--sl-color-text-accent);
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    
-    .card .body {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-        gap: 0.75em;
-    }
-    
-    .card .desc {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: var(--sl-color-gray-2);
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        line-height: 1.5em;
-        margin: 0;
-    }
-    
-    .card .downloads {
-        display: flex;
-        align-items: center;
-        color: var(--sl-color-gray-3);
-    }
-    
-    .card .downloads .count {
-        margin-left: 0.5em;
-    }
-    
-    .card .link {
-        display: flex;
-        align-items: center;
-    }
-    
-    .card .badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.3em;
-        align-items: flex-start;
-        justify-content: flex-start;
-        margin: 0;
-        padding: 0;
-        flex-grow: 1;
-    }
-</style>

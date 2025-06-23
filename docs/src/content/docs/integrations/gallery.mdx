@@ -6,7 +6,8 @@ lastUpdated: false
 editUrl: false
 ---
 
-import integrations from '../../../data/aspire-integrations.json';
+import integrationJson from '../../../data/aspire-integrations.json';
+import integrationDocsJson from '../../../data/integration-docs.json';
 import Integrations from '../../../components/Integrations.astro';
 
-<Integrations integrations={integrations} />
+<Integrations integrations={integrationJson} availableDocs={integrationDocsJson} />
