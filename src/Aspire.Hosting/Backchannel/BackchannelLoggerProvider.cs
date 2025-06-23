@@ -10,30 +10,28 @@ namespace Aspire.Hosting.Backchannel;
 internal class BackchannelLoggerProvider : ILoggerProvider
 {
     private readonly Channel<BackchannelLogEntry> _channel = Channel.CreateUnbounded<BackchannelLogEntry>();
-    private readonly DistributedApplicationExecutionContext _context;
+    private readonly IServiceProvider _serviceProvider;
     private readonly object _channelRegisteredLock = new();
     private readonly CancellationTokenSource _backgroundChannelRegistrationCts = new();
     private Task? _backgroundChannelRegistrationTask;
 
-    public BackchannelLoggerProvider(DistributedApplicationExecutionContext context)
+    public BackchannelLoggerProvider(IServiceProvider serviceProvider)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        _context = context;
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _serviceProvider = serviceProvider;
     }
 
-    private async Task RegisterLogChannelAsync(CancellationToken cancellationToken)
+    private void RegisterLogChannel()
     {
-        using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1));
-
-        while (await periodic.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
-        {
-            if (_context.UnsafeServiceProvider is { } serviceProvider)
-            {
-                var rpcTarget = serviceProvider.GetRequiredService<AppHostRpcTarget>();
-                rpcTarget.RegisterLogChannel(_channel);
-                // Resolve backchannel and register log channel so logs can be sent to the backchannel.
-            }
-        }
+        // Why do we execute this on a background task? This method is spawned on a background
+        // task by the CreateLogger method. The CreateLogger method is called when creating many
+        // of the services registered in DI - but registering the log channel requires that we
+        // can resolve the AppHostRpcTarget service (thus creating a circular dependency). To resolve
+        // this we take a dependency on IServiceProvider so that on a separate background task we
+        // can resolve AppHostRpcTarget which in turn would have taken a dependency on a logger
+        // from this provider.
+        var target = _serviceProvider.GetRequiredService<AppHostRpcTarget>();
+        target.RegisterLogChannel(_channel);
     }
 
     public ILogger CreateLogger(string categoryName)
@@ -45,7 +43,7 @@ internal class BackchannelLoggerProvider : ILoggerProvider
                 if (_backgroundChannelRegistrationTask == null)
                 {
                     _backgroundChannelRegistrationTask = Task.Run(
-                        () => RegisterLogChannelAsync(_backgroundChannelRegistrationCts.Token),
+                        RegisterLogChannel,
                         _backgroundChannelRegistrationCts.Token);
                 }
             }

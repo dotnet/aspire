@@ -169,6 +169,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, BackchannelLoggerProvider>();
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -204,9 +205,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
-
-        // Can't register backchannel logging provider until after we have execution context.
-        _innerBuilder.Logging.AddProvider(new BackchannelLoggerProvider(ExecutionContext));
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
