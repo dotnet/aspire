@@ -172,40 +172,28 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             return MessageIntent.None;
         }
 
-        switch (intent.Value)
+        return intent.Value switch
         {
-            case ApplicationModel.MessageIntent.Success:
-                return MessageIntent.Success;
-            case ApplicationModel.MessageIntent.Warning:
-                return MessageIntent.Warning;
-            case ApplicationModel.MessageIntent.Error:
-                return MessageIntent.Error;
-            case ApplicationModel.MessageIntent.Information:
-                return MessageIntent.Information;
-            case ApplicationModel.MessageIntent.Confirmation:
-                return MessageIntent.Confirmation;
-            default:
-                return MessageIntent.None;
-        }
+            ApplicationModel.MessageIntent.Success => MessageIntent.Success,
+            ApplicationModel.MessageIntent.Warning => MessageIntent.Warning,
+            ApplicationModel.MessageIntent.Error => MessageIntent.Error,
+            ApplicationModel.MessageIntent.Information => MessageIntent.Information,
+            ApplicationModel.MessageIntent.Confirmation => MessageIntent.Confirmation,
+            _ => MessageIntent.None,
+        };
     }
 
     private static InputType MapInputType(ApplicationModel.InputType inputType)
     {
-        switch (inputType)
+        return inputType switch
         {
-            case ApplicationModel.InputType.Text:
-                return InputType.Text;
-            case ApplicationModel.InputType.Password:
-                return InputType.Password;
-            case ApplicationModel.InputType.Select:
-                return InputType.Select;
-            case ApplicationModel.InputType.Checkbox:
-                return InputType.Checkbox;
-            case ApplicationModel.InputType.Number:
-                return InputType.Number;
-            default:
-                throw new InvalidOperationException($"Unexpected input type: {inputType}");
-        }
+            ApplicationModel.InputType.Text => InputType.Text,
+            ApplicationModel.InputType.Password => InputType.Password,
+            ApplicationModel.InputType.Select => InputType.Select,
+            ApplicationModel.InputType.Checkbox => InputType.Checkbox,
+            ApplicationModel.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 

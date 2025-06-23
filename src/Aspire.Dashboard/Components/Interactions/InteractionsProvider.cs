@@ -384,19 +384,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
     private static MessageIntentUI MapMessageIntent(MessageIntentDto intent)
     {
-        switch (intent)
+        return intent switch
         {
-            case MessageIntentDto.Success:
-                return MessageIntentUI.Success;
-            case MessageIntentDto.Warning:
-                return MessageIntentUI.Warning;
-            case MessageIntentDto.Error:
-                return MessageIntentUI.Error;
-            case MessageIntentDto.Information:
-                return MessageIntentUI.Info;
-            default:
-                return MessageIntentUI.Info;
-        }
+            MessageIntentDto.Success => MessageIntentUI.Success,
+            MessageIntentDto.Warning => MessageIntentUI.Warning,
+            MessageIntentDto.Error => MessageIntentUI.Error,
+            MessageIntentDto.Information => MessageIntentUI.Info,
+            _ => MessageIntentUI.Info,
+        };
     }
 
     private DialogParameters CreateDialogParameters(WatchInteractionsResponseUpdate interaction, MessageIntentDto? intent)

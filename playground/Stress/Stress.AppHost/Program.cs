@@ -22,9 +22,9 @@ for (var i = 0; i < 5; i++)
     var rb = builder.AddTestResource(name);
     IResource parent = rb.Resource;
 
-    for (int j = 0; j < 3; j++)
+    for (var j = 0; j < 3; j++)
     {
-        name = name + $"-n{j}";
+        name += $"-n{j}";
         var nestedRb = builder.AddNestedResource(name, parent);
         parent = nestedRb.Resource;
     }
