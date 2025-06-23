@@ -116,8 +116,6 @@ internal abstract class PublishCommandBase : BaseCommand
             var outputPath = parseResult.GetValue<string>("--output-path");
             var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
 
-            _interactionService.DisplayMessage($"hammer_and_wrench", GetProgressMessage());
-
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var operationRunOptions = new DotNetCliRunnerInvocationOptions
@@ -146,7 +144,11 @@ internal abstract class PublishCommandBase : BaseCommand
                 _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await backchannelCompletionSource.Task.ConfigureAwait(false);
+            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
+            {
+                return await backchannelCompletionSource.Task.ConfigureAwait(false);
+            });
+
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
             var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
@@ -162,12 +164,14 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (exitCode == 0 && noFailuresReported)
             {
-                _interactionService.DisplaySuccess(GetSuccessMessage(fullyQualifiedOutputPath));
                 return ExitCodeConstants.Success;
             }
 
-            _interactionService.DisplayLines(operationOutputCollector.GetLines());
-            _interactionService.DisplayError(GetFailureMessage(exitCode));
+            if (debugMode)
+            {
+                _interactionService.DisplayLines(operationOutputCollector.GetLines());
+            }
+
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
