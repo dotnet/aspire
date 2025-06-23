@@ -28,10 +28,10 @@ public class InteractionServiceTests
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
         // Act 2
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { State = true });
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = true });
 
         var result = await resultTask.DefaultTimeout();
-        Assert.True(result.Data!);
+        Assert.True(result.Data);
 
         // Assert 2
         Assert.Empty(interactionService.GetCurrentInteractions());
@@ -71,10 +71,12 @@ public class InteractionServiceTests
         // Act 1
         var resultTask1 = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation");
         var resultTask2 = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation");
+        var resultTask3 = interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation");
 
         // Assert 1
         int? id1 = null;
         int? id2 = null;
+        int? id3 = null;
         Assert.Collection(interactionService.GetCurrentInteractions(),
             interaction =>
             {
@@ -83,16 +85,31 @@ public class InteractionServiceTests
             interaction =>
             {
                 id2 = interaction.InteractionId;
+            },
+            interaction =>
+            {
+                id3 = interaction.InteractionId;
             });
-        Assert.True(id1.HasValue && id2.HasValue && id1 < id2);
+        Assert.True(id1.HasValue && id2.HasValue && id3.HasValue && id1 < id2 && id2 < id3);
 
         // Act & Assert 2
-        await CompleteInteractionAsync(interactionService, id1.Value, new InteractionCompletionState { State = true });
-        Assert.True((bool)(await resultTask1.DefaultTimeout()).Data!);
-        Assert.Equal(id2.Value, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
+        await CompleteInteractionAsync(interactionService, id1.Value, new InteractionCompletionState { Complete = true, State = true });
+        var result1 = await resultTask1.DefaultTimeout();
+        Assert.True(result1.Data);
+        Assert.False(result1.Canceled);
+        Assert.Collection(interactionService.GetCurrentInteractions(),
+            interaction => Assert.Equal(interaction.InteractionId, id2),
+            interaction => Assert.Equal(interaction.InteractionId, id3));
 
-        await CompleteInteractionAsync(interactionService, id2.Value, new InteractionCompletionState { State = false });
-        Assert.False((bool)(await resultTask2.DefaultTimeout()).Data!);
+        await CompleteInteractionAsync(interactionService, id2.Value, new InteractionCompletionState { Complete = true, State = false });
+        var result2 = await resultTask2.DefaultTimeout();
+        Assert.False(result2.Data);
+        Assert.False(result1.Canceled);
+        Assert.Equal(id3.Value, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
+
+        await CompleteInteractionAsync(interactionService, id3.Value, new InteractionCompletionState { Complete = true });
+        var result3 = await resultTask3.DefaultTimeout();
+        Assert.True(result3.Canceled);
         Assert.Empty(interactionService.GetCurrentInteractions());
     }
 
@@ -122,7 +139,7 @@ public class InteractionServiceTests
         Assert.Equal(interaction2.InteractionId, (await updates.Reader.ReadAsync().DefaultTimeout()).InteractionId);
 
         // Act & Assert 2
-        var result1 = new InteractionCompletionState { State = true };
+        var result1 = new InteractionCompletionState { Complete = true, State = true };
         await CompleteInteractionAsync(interactionService, interaction1.InteractionId, result1);
         Assert.True((await resultTask1.DefaultTimeout()).Data);
         Assert.Equal(interaction2.InteractionId, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
@@ -130,7 +147,7 @@ public class InteractionServiceTests
         Assert.True(completedInteraction1.CompletionTcs.Task.IsCompletedSuccessfully);
         Assert.Equivalent(result1, await completedInteraction1.CompletionTcs.Task.DefaultTimeout());
 
-        var result2 = new InteractionCompletionState { State = false };
+        var result2 = new InteractionCompletionState { Complete = true, State = false };
         await CompleteInteractionAsync(interactionService, interaction2.InteractionId, result2);
         Assert.False((await resultTask2.DefaultTimeout()).Data);
         Assert.Empty(interactionService.GetCurrentInteractions());

@@ -96,9 +96,10 @@ public class InteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Complete
+        var promptState = completion.State as bool?;
+        return promptState == null
             ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok((bool)completion.State!);
+            : InteractionResultFactory.Ok(promptState.Value);
     }
 
     /// <summary>
@@ -597,7 +598,7 @@ public class InteractionOptions
     public bool? EscapeMessageHtml { get; set; } = true;
 }
 
-[DebuggerDisplay("State = {State}, Canceled = {Canceled}")]
+[DebuggerDisplay("State = {State}, Complete = {Complete}")]
 internal sealed class InteractionCompletionState
 {
     public bool Complete { get; init; }
