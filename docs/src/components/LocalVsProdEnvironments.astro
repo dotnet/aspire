@@ -8,8 +8,11 @@ import { Code } from '@astrojs/starlight/components';
             <button class="active toggle-btn toggle-local">Local</button>
             <button class="toggle-btn toggle-prod">Prod</button>
         </div>
-        <div class="subtitle">
+        <div class="subtitle local local-active">
             Local development with containerized services
+        </div>
+        <div class="subtitle prod">
+            Production cloud services—zero code changes
         </div>
     </div>
 
@@ -71,7 +74,8 @@ import { Code } from '@astrojs/starlight/components';
     document.addEventListener('DOMContentLoaded', () => {
         const localBtn = document.querySelector('.toggle-local');
         const prodBtn = document.querySelector('.toggle-prod');
-        const subtitle = document.querySelector('.subtitle');
+        const localSubtitle = document.querySelector('.subtitle.local');
+        const prodSubtitle = document.querySelector('.subtitle.prod');
         const container = document.querySelector('.orbit-container');
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -86,7 +90,8 @@ import { Code } from '@astrojs/starlight/components';
             prodBtn.classList.remove('active');
             container.classList.remove('prod-active');
             container.classList.add('local-active');
-            subtitle.textContent = 'Local development with containerized services';
+            localSubtitle.classList.add('local-active');
+            prodSubtitle.classList.remove('prod-active');
         });
 
         prodBtn.addEventListener('click', () => {
@@ -94,7 +99,8 @@ import { Code } from '@astrojs/starlight/components';
             localBtn.classList.remove('active');
             container.classList.remove('local-active');
             container.classList.add('prod-active');
-            subtitle.textContent = 'Production cloud services—zero code changes';
+            prodSubtitle.classList.add('prod-active');
+            localSubtitle.classList.remove('local-active');
         });
     });
 </script>
@@ -121,20 +127,22 @@ import { Code } from '@astrojs/starlight/components';
         border-radius: 50%;
         opacity: 0.6;
         margin-top: initial;
+        transition: all 0.3s ease-in-out;
     }
 
     .orbit-inner {
         width: 70%;
         height: 70%;
         transform: translate(-50%, -50%);
-        border: 0.25rem dashed var(--sl-color-accent);
+        opacity: 0.9;
+        border: 0.3rem dashed var(--sl-color-accent);
     }
 
     .orbit-middle {
         width: 85%;
         height: 85%;
         transform: translate(-50%, -50%);
-        opacity: 0.8;
+        opacity: 0.6;
         border: 0.2rem dashed var(--sl-color-accent);
     }
 
@@ -142,9 +150,20 @@ import { Code } from '@astrojs/starlight/components';
         width: 100%;
         height: 100%;
         transform: translate(-50%, -50%);
-        opacity: 0.4;
-        border: 0.15rem dashed var(--sl-color-accent);
+        opacity: 0.3;
+        border: 0.1rem dashed var(--sl-color-accent);
     }
+
+    .local-active .orbit-inner,
+    .local-active .orbit-middle,
+    .local-active .orbit-outer {
+        border-color: var(--sl-color-accent);
+    }
+    .prod-active .orbit-inner,
+    .prod-active .orbit-middle,
+    .prod-active .orbit-outer {
+        border-color: var(--sl-color-green-low);
+    }    
 
     .orbit-center {
         position: absolute;
@@ -177,6 +196,7 @@ import { Code } from '@astrojs/starlight/components';
         display: none;
         text-align: center;
         z-index: 5;
+        transition: all 0.3s ease-in-out;
         border: 1px solid var(--sl-color-gray-3);
         box-shadow: var(--sl-shadow-sm);
     }
@@ -297,7 +317,13 @@ import { Code } from '@astrojs/starlight/components';
         font-size: var(--sl-text-lg);
         color: var(--sl-color-text);
         text-wrap: pretty;
+        display: none;;
         margin-top: 0.75rem;
+    }
+
+    .subtitle.local-active,
+    .subtitle.prod-active {
+        display: block;
     }
 
     @media (max-width: 768px) {
