@@ -16,7 +16,6 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 using DashboardService = Aspire.Hosting.Dashboard.DashboardService;
 using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
