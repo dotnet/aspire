@@ -44,7 +44,7 @@ internal class ExtensionInteractionService : IInteractionService
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         var task = action();
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken)));
 
         var value = await task.ConfigureAwait(false);
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
@@ -53,7 +53,7 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken)));
         _consoleInteractionService.ShowStatus(statusText, action);
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
     }
@@ -69,7 +69,7 @@ internal class ExtensionInteractionService : IInteractionService
             {
                 try
                 {
-                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -101,7 +101,7 @@ internal class ExtensionInteractionService : IInteractionService
             {
                 try
                 {
-                    var result = await _backchannel.ConfirmAsync(promptText.RemoveFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
+                    var result = await _backchannel.ConfirmAsync(promptText.RemoveSpectreFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -135,7 +135,7 @@ internal class ExtensionInteractionService : IInteractionService
             {
                 try
                 {
-                    var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -166,25 +166,25 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayErrorAsync(errorMessage.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayErrorAsync(errorMessage.RemoveSpectreFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
     public void DisplayMessage(string emoji, string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayMessageAsync(emoji, message.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayMessageAsync(emoji, message.RemoveSpectreFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplayMessage(emoji, message);
     }
 
     public void DisplaySuccess(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySuccessAsync(message.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySuccessAsync(message.RemoveSpectreFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplaySuccess(message);
     }
 
     public void DisplaySubtleMessage(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySubtleMessageAsync(message.RemoveFormatting(), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplaySubtleMessage(message);
     }
 
@@ -196,7 +196,7 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => (Stream: line.Stream.RemoveFormatting(), Line: line.Line.RemoveFormatting())), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => (Stream: line.Stream.RemoveSpectreFormatting(), Line: line.Line.RemoveSpectreFormatting())), _cancellationToken)));
         _consoleInteractionService.DisplayLines(lines);
     }
 

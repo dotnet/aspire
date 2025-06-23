@@ -7,11 +7,11 @@ namespace Aspire.Cli.Utils;
 
 internal static partial class StringUtils
 {
-    public static string RemoveFormatting(this string input)
+    public static string RemoveSpectreFormatting(this string input)
     {
-        return RemoveFormattingRegex().Replace(input, string.Empty).Trim();
+        return RemoveSpectreFormattingRegex().Replace(input, string.Empty).Trim();
     }
 
     [GeneratedRegex(@"\[[^\]]+\]")]
-    private static partial Regex RemoveFormattingRegex();
+    private static partial Regex RemoveSpectreFormattingRegex();
 }

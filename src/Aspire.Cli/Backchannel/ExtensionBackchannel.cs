@@ -388,7 +388,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var choicesList = choices.ToList();
         // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
-        var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveFormatting(), choice => choice);
+        var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveSpectreFormatting(), choice => choice);
 
         using var activity = _activitySource.StartActivity();
 
