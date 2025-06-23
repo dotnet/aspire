@@ -56,6 +56,7 @@ export class InteractionService implements IInteractionService {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
             this._outputChannelWriter.appendLine(failedToShowPromptEmpty);
+            return null;
         }
 
         const input = await vscode.window.showInputBox({
