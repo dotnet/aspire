@@ -133,13 +133,22 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
+            {
+                return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+            });
 
+            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            {
+                return await backchannel.GetDashboardUrlsAsync(cancellationToken);
+            });
+
+            _interactionService.DisplayDashboardUrls(dashboardUrls);
+            
             var logEntires = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
-
             await foreach (var entry in logEntires.WithCancellation(cancellationToken))
             {
-                _ansiConsole.WriteLine(entry.Message);
+                _ansiConsole.MarkupLine($"[[{entry.Timestamp:HH:mm:ss}]] [[{entry.LogLevel}]] {entry.CategoryName}: {entry.Message}");
             }
 
             return await pendingRun;
