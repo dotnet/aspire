@@ -16,7 +16,7 @@ export let rpcServerInfo: RpcServerInformation | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));
-	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.addPackage', () => tryExecuteCommand(addCommand));
+	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand(addCommand));
 	const cliNewCommand = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand(newCommand));
 	const cliConfigCommand = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand(configCommand));
 	const cliDeployCommand = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand(deployCommand));

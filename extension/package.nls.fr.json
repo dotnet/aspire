@@ -2,7 +2,7 @@
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
 	"command.run": "Run an Aspire app host in development mode.",
-	"command.addPackage": "Add an integration to the Aspire project.",
+	"command.add": "Add an integration to the Aspire project.",
 	"command.new": "Create a new Aspire sample project",
 	"command.publish": "Generates deployment artifacts for an Aspire app host project.",
 	"command.config": "Manage configuration settings.",

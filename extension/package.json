@@ -19,8 +19,8 @@
         "category": "Aspire"
       },
       {
-        "command": "aspire-vscode.addPackage",
-        "title": "%command.addPackage%",
+        "command": "aspire-vscode.add",
+        "title": "%command.add%",
         "category": "Aspire"
       },
       {
