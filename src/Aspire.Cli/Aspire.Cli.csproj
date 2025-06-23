@@ -20,6 +20,9 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
+    <!--<PublishAot>true</PublishAot>-->
+    <!--JsonSerializerIsReflectionEnabledByDefault can be removed when PublishAot is enabled. -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault> 
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +30,7 @@
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="StreamJsonRpc" />
+    <PackageReference Include="StreamJsonRpc" VersionOverride="2.23.32-alpha" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
