@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Projects;
@@ -8,6 +9,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -142,18 +144,38 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
     }
+    private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var logEntryIndex = 0;
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await Task.Delay(1000, cancellationToken);
+            // Simulate log entries being returned
+            yield return new BackchannelLogEntry
+            {
+                Timestamp = DateTimeOffset.UtcNow,
+                LogLevel = LogLevel.Information,
+                Message = $"Test log entry {logEntryIndex++}",
+                EventId = new EventId(),
+                CategoryName = "TestCategory"
+            };
+        }
+    }
 
     [Fact]
     public async Task RunCommand_CompletesSuccessfully()
     {
         var getResourceStatesAsyncCalled = new TaskCompletionSource();
 
-        var backchannelFactory = (IServiceProvider sp) => {
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
             var backchannel = new TestAppHostBackchannel();
 
-            backchannel.GetResourceStatesAsyncCalled = getResourceStatesAsyncCalled;
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
 
             return backchannel;
+            
         };
 
         var runnerFactory = (IServiceProvider sp) => {
@@ -201,8 +223,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         var pendingRun = result.InvokeAsync(cts.Token);
 
-        await getResourceStatesAsyncCalled.Task.WaitAsync(CliTestConstants.DefaultTimeout);
-
         // Simulate CTRL-C.
         cts.Cancel();
 
@@ -219,7 +239,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             backchannel.GetResourceStatesAsyncCalled = getResourceStatesAsyncCalled;
             
             // Return empty resources using an empty enumerable
-            backchannel.GetResourceStatesAsyncCallback = _ => EmptyAsyncEnumerable<RpcResourceState>.Instance;
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
             
             return backchannel;
         };
@@ -257,8 +277,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         using var cts = new CancellationTokenSource();
         var pendingRun = result.InvokeAsync(cts.Token);
-
-        await getResourceStatesAsyncCalled.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Simulate CTRL-C.
         cts.Cancel();

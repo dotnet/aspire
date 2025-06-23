@@ -20,6 +20,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetResourceStatesAsyncCalled { get; set; }
     public Func<CancellationToken, IAsyncEnumerable<RpcResourceState>>? GetResourceStatesAsyncCallback { get; set; }
 
+    public TaskCompletionSource? GetAppHostLogEntriesAsyncCalled { get; set; }
+    public Func<CancellationToken, IAsyncEnumerable<BackchannelLogEntry>>? GetAppHostLogEntriesAsyncCallback { get; set; }
+
     public TaskCompletionSource? ConnectAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task>? ConnectAsyncCallback { get; set; }
 
@@ -235,6 +238,18 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         else
         {
             return ["baseline.v2"];
+        }
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        GetAppHostLogEntriesAsyncCalled?.SetResult();
+        if (GetAppHostLogEntriesAsyncCallback != null)
+        {
+            await foreach (var entry in GetAppHostLogEntriesAsyncCallback.Invoke(cancellationToken))
+            {
+                yield return entry;
+            }
         }
     }
 }
