@@ -42,13 +42,11 @@ suite('End-to-end RPC server auth tests', () => {
 
 		const rpcServerInfo = extension.exports.getRpcServerInfo() as RpcServerInformation;
 
-		// Connect as a TLS client using the server's certificate
 		const port = Number(rpcServerInfo.address.replace('localhost:', ''));
 		const client = tls.connect({
 			port,
 			host: 'localhost',
-			rejectUnauthorized: false, // For self-signed certs in test
-			// ca: [rpcServerInfo.cert], // If you want to verify the server's cert
+			rejectUnauthorized: false,
 		});
 		await new Promise<void>((resolve) => client.once('secureConnect', resolve));
 
