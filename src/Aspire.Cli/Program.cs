@@ -105,6 +105,7 @@ public class Program
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddSingleton<ICliUpdateNotificationService, CliUpdateNotificationService>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -177,6 +178,22 @@ public class Program
         using var activity = telemetry.ActivitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
+        // Check for CLI updates after command execution
+        // Skip update check for help commands or if the command failed
+        if (exitCode == 0 && !IsHelpCommand(args))
+        {
+            try
+            {
+                var updateNotificationService = app.Services.GetRequiredService<ICliUpdateNotificationService>();
+                var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+                await updateNotificationService.NotifyIfUpdateAvailableAsync(currentDirectory);
+            }
+            catch
+            {
+                // Ignore any errors during update check to avoid impacting the main command
+            }
+        }
+
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
@@ -206,6 +223,9 @@ public class Program
             builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
         }
     }
+    
+    private static bool IsHelpCommand(string[] args) =>
+        args.Length == 0 || args.Any(arg => arg is "--help" or "-h" or "-?");
 
     private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
 
