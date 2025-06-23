@@ -25,11 +25,20 @@ public class InteractionService
     private readonly object _onInteractionUpdatedLock = new();
     private readonly InteractionCollection _interactionCollection = new();
     private readonly ILogger<InteractionService> _logger;
+    private readonly DistributedApplicationOptions _distributedApplicationOptions;
 
-    internal InteractionService(ILogger<InteractionService> logger)
+    internal InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions)
     {
         _logger = logger;
+        _distributedApplicationOptions = distributedApplicationOptions;
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the interaction service is available. If <c>false</c>,
+    /// this service is not available to interact with the user and service methods will throw
+    /// an exception.
+    /// </summary>
+    public bool IsAvailable => !_distributedApplicationOptions.DisableDashboard;
 
     /// <summary>
     /// Prompts the user for confirmation with a dialog.
@@ -72,6 +81,8 @@ public class InteractionService
 
     private async Task<InteractionResult<bool>> PromptMessageBoxCoreAsync(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= MessageBoxInteractionOptions.CreateDefault();
@@ -140,6 +151,8 @@ public class InteractionService
     /// </returns>
     public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         var inputList = inputs.ToList();
@@ -168,6 +181,8 @@ public class InteractionService
     /// </returns>
     public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= MessageBoxInteractionOptions.CreateDefault();
@@ -291,6 +306,14 @@ public class InteractionService
             }
 
             channel.Writer.TryComplete();
+        }
+    }
+
+    private void EnsureServiceAvailable()
+    {
+        if (!IsAvailable)
+        {
+            throw new InvalidOperationException($"InteractionService is not available because the dashboard is not enabled. Use the {IsAvailable} property to determine whether the service is available.");
         }
     }
 }

@@ -138,9 +138,24 @@ public class InteractionServiceTests
         Assert.Equivalent(result2, await completedInteraction2.CompletionTcs.Task.DefaultTimeout());
     }
 
-    private static InteractionService CreateInteractionService()
+    [Fact]
+    public async Task PublicApis_DashboardDisabled_ThrowErrors()
     {
-        return new InteractionService(NullLogger<InteractionService>.Instance);
+        // Arrange
+        var interactionService = CreateInteractionService(options: new DistributedApplicationOptions { DisableDashboard = true });
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptMessageBarAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+    }
+
+    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
+    {
+        return new InteractionService(NullLogger<InteractionService>.Instance, options ?? new DistributedApplicationOptions());
     }
 }
 
