@@ -111,15 +111,14 @@ export class InteractionService implements IInteractionService {
 
         const errorLines = [
             incompatibleAppHostError,
-            '',
-            `\t${aspireHostingSdkVersion(appHostHostingSdkVersion)}`,
-            `\t${aspireCliVersion(cliInformationalVersion)}`,
-            `\t${requiredCapability(requiredCapabilityStr)}`,
-            ''
+            aspireHostingSdkVersion(appHostHostingSdkVersion),
+            aspireCliVersion(cliInformationalVersion),
+            requiredCapability(requiredCapabilityStr),
         ];
 
+        vscode.window.showErrorMessage(formatText(errorLines.join('. ')));
+
         errorLines.forEach(line => {
-            vscode.window.showErrorMessage(formatText(line));
             this._outputChannelWriter.appendLine(formatText(line));
         });
     }
