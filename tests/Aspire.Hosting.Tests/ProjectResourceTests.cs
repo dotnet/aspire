@@ -600,8 +600,8 @@ public class ProjectResourceTests
     }
 
     [Theory]
-    [InlineData(true, "localhost")]
-    [InlineData(false, "*")]
+    [InlineData(true, "0.0.0.0")]
+    [InlineData(false, "0.0.0.0")]
     public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
@@ -609,13 +609,13 @@ public class ProjectResourceTests
         appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
             .WithEndpoint("http", e =>
             {
-                Assert.Equal("*", e.TargetHost);
+                Assert.Equal("0.0.0.0", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
                 e.IsProxied = isProxied;
             })
             .WithEndpoint("https", e =>
             {
-                Assert.Equal("*", e.TargetHost);
+                Assert.Equal("0.0.0.0", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
                 e.IsProxied = isProxied;
             });
