@@ -45,13 +45,6 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task UpdateStepAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
-    {
-        step.StatusText = statusText;
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
     public Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
     {
         task.StatusText = statusText;

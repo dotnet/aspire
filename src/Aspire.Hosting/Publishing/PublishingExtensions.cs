@@ -14,28 +14,6 @@ namespace Aspire.Hosting.Publishing;
 public static class PublishingExtensions
 {
     /// <summary>
-    /// Updates the status text of a publishing step.
-    /// </summary>
-    /// <param name="step">The step to update.</param>
-    /// <param name="statusText">The new status text.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The updated step.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the step is already complete or no reporter is available.</exception>
-    public static async Task<PublishingStep> UpdateStatusAsync(
-        this PublishingStep step,
-        string statusText,
-        CancellationToken cancellationToken = default)
-    {
-        if (step.Reporter is null)
-        {
-            throw new InvalidOperationException("No progress reporter is available for this step.");
-        }
-
-        await step.Reporter.UpdateStepAsync(step, statusText, cancellationToken).ConfigureAwait(false);
-        return step;
-    }
-
-    /// <summary>
     /// Completes a publishing step successfully.
     /// </summary>
     /// <param name="step">The step to complete.</param>

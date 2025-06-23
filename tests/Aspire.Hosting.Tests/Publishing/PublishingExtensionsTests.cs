@@ -11,21 +11,6 @@ namespace Aspire.Hosting.Tests.Publishing;
 public class PublishingExtensionsTests
 {
     [Fact]
-    public async Task PublishingStepExtensions_UpdateStatus_WorksCorrectly()
-    {
-        // Arrange
-        var reporter = new PublishingActivityProgressReporter();
-        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-
-        // Act
-        var result = await step.UpdateStatusAsync("Updated status", CancellationToken.None);
-
-        // Assert
-        Assert.Equal(step, result);
-        Assert.Equal("Updated status", step.StatusText);
-    }
-
-    [Fact]
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange

@@ -60,11 +60,6 @@ public sealed class PublishingStep(string id, string title)
     public string Title { get; private set; } = title;
 
     /// <summary>
-    /// The current status text of the step.
-    /// </summary>
-    public string StatusText { get; internal set; } = title;
-
-    /// <summary>
     /// Indicates whether the step is complete.
     /// </summary>
     public bool IsComplete { get; internal set; }
@@ -159,16 +154,6 @@ public interface IPublishingActivityProgressReporter
     Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates the status text of an existing publishing step.
-    /// </summary>
-    /// <param name="step">The step to update.</param>
-    /// <param name="statusText">The new status text.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException">Thrown when the step is already complete.</exception>
-    Task UpdateStepAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Updates the status text of an existing publishing task.
     /// </summary>
     /// <param name="task">The task to update.</param>
@@ -214,7 +199,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             Data = new PublishingActivityData
             {
                 Id = step.Id,
-                StatusText = step.StatusText,
+                StatusText = step.Title,
                 IsComplete = false,
                 IsError = false,
                 IsWarning = false,
@@ -288,40 +273,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
         // Remove the completed step to prevent further updates.
         _steps.TryRemove(step.Id, out _);
-    }
-
-    public async Task UpdateStepAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
-    {
-        if (!_steps.TryGetValue(step.Id, out var existingStep))
-        {
-            throw new InvalidOperationException($"Step with ID '{step.Id}' does not exist.");
-        }
-
-        lock (existingStep)
-        {
-            if (existingStep.IsComplete)
-            {
-                throw new InvalidOperationException($"Cannot update step '{step.Id}' because it is already complete.");
-            }
-
-            step.StatusText = statusText;
-        }
-
-        var state = new PublishingActivity
-        {
-            Type = PublishingActivityTypes.Step,
-            Data = new PublishingActivityData
-            {
-                Id = step.Id,
-                StatusText = statusText,
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
-                StepId = null
-            }
-        };
-
-        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
