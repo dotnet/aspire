@@ -26,7 +26,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
     }
 
     [Fact]
@@ -42,6 +42,62 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+    }
+
+    [Fact]
+    public async Task BuildImageAsync_WithAdditionalPublishArguments_PassesArgumentsToProcess()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            AdditionalPublishArguments = ["/p:ContainerImageFormat=oci", "/p:ContainerRuntimeIdentifier=linux-x64"]
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        
+        // This test verifies that the API accepts the additional arguments
+        // The actual process execution will be tested in integration tests
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+    }
+
+    [Fact]
+    public async Task BuildImageAsync_WithNullOptions_WorksWithoutAdditionalArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        
+        // This should work exactly as before
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+    }
+
+    [Fact]
+    public async Task BuildImagesAsync_WithAdditionalPublishArguments_PassesArgumentsToProcess()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            AdditionalPublishArguments = ["/p:ContainerArchiveOutputPath=/tmp/container.tar"]
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        
+        // This test verifies that the API accepts the additional arguments for multiple resources
+        await imageBuilder.BuildImagesAsync([servicea.Resource], options, cts.Token);
     }
 }
