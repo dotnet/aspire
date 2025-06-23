@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using static Aspire.Hosting.VolumeNameGenerator;
-using Xunit;
 using Aspire.Hosting.Utils;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Utils;
 
