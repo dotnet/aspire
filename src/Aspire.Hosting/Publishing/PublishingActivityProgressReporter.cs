@@ -60,6 +60,11 @@ public sealed class PublishingStep(string id, string title)
     public string Title { get; private set; } = title;
 
     /// <summary>
+    /// The current status text of the step.
+    /// </summary>
+    public string StatusText { get; internal set; } = title;
+
+    /// <summary>
     /// Indicates whether the step is complete.
     /// </summary>
     public bool IsComplete { get; internal set; }
@@ -68,6 +73,11 @@ public sealed class PublishingStep(string id, string title)
     /// The completion text for the step.
     /// </summary>
     public string CompletionText { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// The progress reporter that created this step.
+    /// </summary>
+    internal IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
@@ -106,6 +116,11 @@ public sealed class PublishingTask(string id, string stepId, string statusText)
     /// Optional completion message for the task.
     /// </summary>
     public string CompletionMessage { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// The progress reporter that created this task.
+    /// </summary>
+    internal IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
@@ -144,6 +159,16 @@ public interface IPublishingActivityProgressReporter
     Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates the status text of an existing publishing step.
+    /// </summary>
+    /// <param name="step">The step to update.</param>
+    /// <param name="statusText">The new status text.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Thrown when the step is already complete.</exception>
+    Task UpdateStepAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Updates the status text of an existing publishing task.
     /// </summary>
     /// <param name="task">The task to update.</param>
@@ -180,6 +205,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        step.Reporter = this;
         _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
@@ -188,7 +214,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             Data = new PublishingActivityData
             {
                 Id = step.Id,
-                StatusText = title,
+                StatusText = step.StatusText,
                 IsComplete = false,
                 IsError = false,
                 IsWarning = false,
@@ -216,6 +242,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         }
 
         var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        task.Reporter = this;
 
         var state = new PublishingActivity
         {
@@ -261,6 +288,40 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
         // Remove the completed step to prevent further updates.
         _steps.TryRemove(step.Id, out _);
+    }
+
+    public async Task UpdateStepAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
+    {
+        if (!_steps.TryGetValue(step.Id, out var existingStep))
+        {
+            throw new InvalidOperationException($"Step with ID '{step.Id}' does not exist.");
+        }
+
+        lock (existingStep)
+        {
+            if (existingStep.IsComplete)
+            {
+                throw new InvalidOperationException($"Cannot update step '{step.Id}' because it is already complete.");
+            }
+
+            step.StatusText = statusText;
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Step,
+            Data = new PublishingActivityData
+            {
+                Id = step.Id,
+                StatusText = statusText,
+                IsComplete = false,
+                IsError = false,
+                IsWarning = false,
+                StepId = null
+            }
+        };
+
+        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
