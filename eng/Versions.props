@@ -50,6 +50,8 @@
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
+    <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
+    <StreamJsonRpcPackageVersionForCli>2.23.32-alpha</StreamJsonRpcPackageVersionForCli>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">

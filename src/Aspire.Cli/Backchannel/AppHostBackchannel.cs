@@ -1,13 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
+using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -116,7 +120,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
 
             var stream = new NetworkStream(socket, true);
-            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, new SystemTextJsonFormatter()));
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, CreateMessageFormatter()));
             rpc.StartListening();
 
             var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
@@ -142,6 +146,15 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
                 BaselineCapability
                 );
         }
+    }
+
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode", Justification = "Using the Json source generator.")]
+    private static SystemTextJsonFormatter CreateMessageFormatter()
+    {
+        var formatter = new SystemTextJsonFormatter();
+        formatter.JsonSerializerOptions.TypeInfoResolver = SourceGenerationContext.Default;
+        return formatter;
     }
 
     public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -181,3 +194,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         return capabilities;
     }
 }
+
+[JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(DashboardUrlsState))]
+[JsonSerializable(typeof(JsonElement))]
+[JsonSerializable(typeof(IAsyncEnumerable<RpcResourceState>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<RpcResourceState>))]
+[JsonSerializable(typeof(IAsyncEnumerable<PublishingActivity>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
+[JsonSerializable(typeof(RequestId))]
+internal partial class SourceGenerationContext : JsonSerializerContext;
