@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {exitCode}. For more information run with --debug switch.</target>
+        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
