@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="DeploymentCanceled">
         <source>The deployment was canceled.</source>
-        <target state="new">The deployment was canceled.</target>
+        <target state="translated">Die Bereitstellung wurde abgebrochen.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeploymentFailed">
@@ -14,17 +14,17 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="new">Deploy an Aspire app host project to its supported deployment targets.</target>
+        <target state="translated">Stellen Sie ein Aspire-App-Hostprojekt für die unterstützten Bereitstellungsziele bereit.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
-        <target state="new">The output path for deployment artifacts.</target>
+        <target state="translated">Der Ausgabepfad für Bereitstellungsartefakte.</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">
         <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="new">Successfully deployed. Artifacts available at: {0}</target>
+        <target state="translated">Erfolgreich bereitgestellt. Artefakte verfügbar unter: {0}</target>
         <note />
       </trans-unit>
     </body>

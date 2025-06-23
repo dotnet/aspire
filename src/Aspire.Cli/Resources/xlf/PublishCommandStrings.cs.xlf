@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="new">Generates deployment artifacts for an Aspire app host project.</target>
+        <target state="translated">Generuje artefakty nasazení pro projekt hostitele aplikací Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">
         <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Publikování artefaktů se nezdařilo s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
-        <target state="new">Generating artifacts...</target>
+        <target state="translated">Generování artefaktů...</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts.</source>
-        <target state="new">The output path for the generated artifacts.</target>
+        <target state="translated">Výstupní cesta pro vygenerované artefakty</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Cesta k souboru projektu hostitele aplikací Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
-        <target state="new">Select a publisher:</target>
+        <target state="translated">Vyberte vydavatele:</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyPublishedArtifacts">
         <source>Successfully published artifacts to: {0}</source>
-        <target state="new">Successfully published artifacts to: {0}</target>
+        <target state="translated">Artefakty se úspěšně publikovaly do: {0}</target>
         <note />
       </trans-unit>
     </body>

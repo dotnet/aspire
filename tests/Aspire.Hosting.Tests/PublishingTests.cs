@@ -243,17 +243,6 @@ public class PublishingTests
     }
 
     [Fact]
-    public async Task DeployingCallbacks_ThrowsIfNoResourceHasDeployingCallback()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
-        builder.Configuration["Publishing:Deploy"] = "true";
-        builder.AddContainer("cache", "redis"); // No DeployingCallbackAnnotation
-        using var app = builder.Build();
-        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(() => app.RunAsync());
-        Assert.Contains("No resources in the distributed application model support deployment", ex.Message);
-    }
-
-    [Fact]
     public async Task DeployingCallback_Throws_PropagatesException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");

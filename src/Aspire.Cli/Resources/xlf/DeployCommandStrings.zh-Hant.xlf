@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="DeploymentCanceled">
         <source>The deployment was canceled.</source>
-        <target state="new">The deployment was canceled.</target>
+        <target state="translated">部署已取消。</target>
         <note />
       </trans-unit>
       <trans-unit id="DeploymentFailed">
@@ -14,17 +14,17 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="new">Deploy an Aspire app host project to its supported deployment targets.</target>
+        <target state="translated">將 Aspire 應用程式主機專案部署到其支援的部署目標。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
-        <target state="new">The output path for deployment artifacts.</target>
+        <target state="translated">部署成品的輸出路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">
         <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="new">Successfully deployed. Artifacts available at: {0}</target>
+        <target state="translated">已成功部署。成品可用於: {0}</target>
         <note />
       </trans-unit>
     </body>

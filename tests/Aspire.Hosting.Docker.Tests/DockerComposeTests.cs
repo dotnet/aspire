@@ -1,3 +1,5 @@
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -5,7 +7,9 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker.Tests;
 
@@ -15,6 +19,8 @@ public class DockerComposeTests(ITestOutputHelper output)
     public async Task DockerComposeSetsComputeEnvironment()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -34,6 +40,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -56,6 +64,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
 
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
         builder.AddDockerComposeEnvironment("docker-compose");
 
         // Add a container with both external and non-external endpoints
@@ -74,6 +84,23 @@ public class DockerComposeTests(ITestOutputHelper output)
         await Verify(composeContent, "yaml");
         
         tempDir.Delete(recursive: true);
+    }
+
+    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    {
+        public bool BuildImageCalled { get; private set; }
+
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        {
+            BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+        {
+            BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
