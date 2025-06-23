@@ -208,11 +208,6 @@ internal abstract class PublishCommandBase : BaseCommand
             _interactionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
-        catch (ExtensionInputCanceledException ex)
-        {
-            _interactionService.DisplayError(ex.Message);
-            return ExitCodeConstants.InputCanceled;
-        }
         catch (Exception ex)
         {
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));

@@ -184,11 +184,6 @@ internal sealed class AddCommand : BaseCommand
             _interactionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
-        catch (ExtensionInputCanceledException ex)
-        {
-            _interactionService.DisplayError(ex.Message);
-            return ExitCodeConstants.InputCanceled;
-        }
         catch (Exception ex)
         {
             _interactionService.DisplayLines(outputCollector.GetLines());

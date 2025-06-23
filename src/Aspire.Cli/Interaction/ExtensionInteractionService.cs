@@ -69,7 +69,7 @@ internal class ExtensionInteractionService : IInteractionService
                     var result = await backchannel.PromptForStringAsync(promptText.RemoveFormatting(), defaultValue, validator, CancellationToken.None).ConfigureAwait(false);
                     if (result is null)
                     {
-                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                        throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
                     }
 
                     tcs.SetResult(result);
@@ -101,7 +101,7 @@ internal class ExtensionInteractionService : IInteractionService
                     var result = await backchannel.ConfirmAsync(promptText.RemoveFormatting(), defaultValue, CancellationToken.None).ConfigureAwait(false);
                     if (result is null)
                     {
-                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                        throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
                     }
 
                     tcs.SetResult(result.Value);
@@ -135,7 +135,7 @@ internal class ExtensionInteractionService : IInteractionService
                     var result = await backchannel.PromptForSelectionAsync(promptText.RemoveFormatting(), choices, choiceFormatter, CancellationToken.None).ConfigureAwait(false);
                     if (result is null)
                     {
-                        throw new ExtensionInputCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+                        throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
                     }
 
                     tcs.SetResult(result);
