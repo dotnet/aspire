@@ -24,6 +24,8 @@ public sealed class InputViewModel
             var optionsVM = input.Options
                 .Select(option => new SelectViewModel<string> { Id = option.Key, Name = option.Value, })
                 .ToList();
+
+            SelectOptions.Clear();
             SelectOptions.AddRange(optionsVM);
         }
     }
