@@ -2,13 +2,13 @@ import * as vscode from 'vscode';
 import { getAspireTerminal } from '../utils/terminal';
 import { isWorkspaceOpen } from '../utils/vsc';
 
-export async function addCommand() {
+export async function deployCommand() {
     if (!isWorkspaceOpen()) {
         return;
     }
 
     const terminal = getAspireTerminal();
     
-    terminal.sendText(`aspire add`);
+    terminal.sendText(`aspire deploy`);
     terminal.show();
 }
