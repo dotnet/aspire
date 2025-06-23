@@ -14,14 +14,18 @@ namespace Aspire.Cli.Interaction;
 internal class ExtensionInteractionService : IInteractionService
 {
     private readonly ConsoleInteractionService _consoleInteractionService;
+    private readonly IExtensionBackchannel _backchannel;
     private readonly bool _extensionPromptEnabled;
-    private readonly Channel<Func<IExtensionBackchannel, Task>> _extensionTaskChannel;
+    private readonly CancellationToken _cancellationToken;
+    private readonly Channel<Func<Task>> _extensionTaskChannel;
 
-    public ExtensionInteractionService(ConsoleInteractionService consoleInteractionService, ExtensionBackchannelConnector backchannelConnector, bool extensionPromptEnabled, CancellationToken? cancellationToken = null)
+    public ExtensionInteractionService(ConsoleInteractionService consoleInteractionService, IExtensionBackchannel backchannel, bool extensionPromptEnabled, CancellationToken? cancellationToken = null)
     {
         _consoleInteractionService = consoleInteractionService;
+        _backchannel = backchannel;
         _extensionPromptEnabled = extensionPromptEnabled;
-        _extensionTaskChannel = Channel.CreateUnbounded<Func<IExtensionBackchannel, Task>>(new UnboundedChannelOptions
+        _cancellationToken = cancellationToken ?? CancellationToken.None;
+        _extensionTaskChannel = Channel.CreateUnbounded<Func<Task>>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = true
@@ -31,9 +35,8 @@ internal class ExtensionInteractionService : IInteractionService
         {
             while (await _extensionTaskChannel.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
-                var extensionBackchannel = await backchannelConnector.WaitForConnectionAsync(cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
                 var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
-                await taskFunction.Invoke(extensionBackchannel);
+                await taskFunction.Invoke();
             }
         });
     }
@@ -41,18 +44,18 @@ internal class ExtensionInteractionService : IInteractionService
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         var task = action();
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(statusText.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveFormatting(), _cancellationToken)));
 
         var value = await task.ConfigureAwait(false);
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(null, CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
         return value;
     }
 
     public void ShowStatus(string statusText, Action action)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(statusText.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveFormatting(), _cancellationToken)));
         _consoleInteractionService.ShowStatus(statusText, action);
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.ShowStatusAsync(null, CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
@@ -62,11 +65,11 @@ internal class ExtensionInteractionService : IInteractionService
         {
             var tcs = new TaskCompletionSource<string>();
 
-            await _extensionTaskChannel.Writer.WriteAsync(async backchannel =>
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
             {
                 try
                 {
-                    var result = await backchannel.PromptForStringAsync(promptText.RemoveFormatting(), defaultValue, validator, CancellationToken.None).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -94,11 +97,11 @@ internal class ExtensionInteractionService : IInteractionService
         {
             var tcs = new TaskCompletionSource<bool>();
 
-            await _extensionTaskChannel.Writer.WriteAsync(async backchannel =>
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
             {
                 try
                 {
-                    var result = await backchannel.ConfirmAsync(promptText.RemoveFormatting(), defaultValue, CancellationToken.None).ConfigureAwait(false);
+                    var result = await _backchannel.ConfirmAsync(promptText.RemoveFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -128,11 +131,11 @@ internal class ExtensionInteractionService : IInteractionService
         {
             var tcs = new TaskCompletionSource<T>();
 
-            await _extensionTaskChannel.Writer.WriteAsync(async backchannel =>
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
             {
                 try
                 {
-                    var result = await backchannel.PromptForSelectionAsync(promptText.RemoveFormatting(), choices, choiceFormatter, CancellationToken.None).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new OperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -157,55 +160,55 @@ internal class ExtensionInteractionService : IInteractionService
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken)));
         return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
 
     public void DisplayError(string errorMessage)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayErrorAsync(errorMessage.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayErrorAsync(errorMessage.RemoveFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
     public void DisplayMessage(string emoji, string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayMessageAsync(emoji, message.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayMessageAsync(emoji, message.RemoveFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplayMessage(emoji, message);
     }
 
     public void DisplaySuccess(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplaySuccessAsync(message.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySuccessAsync(message.RemoveFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplaySuccess(message);
     }
 
     public void DisplaySubtleMessage(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplaySubtleMessageAsync(message.RemoveFormatting(), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySubtleMessageAsync(message.RemoveFormatting(), _cancellationToken)));
         _consoleInteractionService.DisplaySubtleMessage(message);
     }
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayDashboardUrlsAsync(dashboardUrls, CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayDashboardUrlsAsync(dashboardUrls, _cancellationToken)));
         _consoleInteractionService.DisplayDashboardUrls(dashboardUrls);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayLinesAsync(lines.Select(line => (Stream: line.Stream.RemoveFormatting(), Line: line.Line.RemoveFormatting())), CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => (Stream: line.Stream.RemoveFormatting(), Line: line.Line.RemoveFormatting())), _cancellationToken)));
         _consoleInteractionService.DisplayLines(lines);
     }
 
     public void DisplayCancellationMessage()
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayCancellationMessageAsync(CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayCancellationMessageAsync(_cancellationToken)));
         _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(backchannel => backchannel.DisplayEmptyLineAsync(CancellationToken.None)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayEmptyLineAsync(_cancellationToken)));
         _consoleInteractionService.DisplayEmptyLine();
     }
 }

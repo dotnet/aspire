@@ -188,8 +188,6 @@ public class Program
         {
             builder.Services.AddSingleton<ExtensionRpcTarget>();
             builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
-            builder.Services.AddSingleton<ExtensionBackchannelConnector>();
-            builder.Services.AddHostedService<ExtensionBackchannelConnector>(provider => provider.GetRequiredService<ExtensionBackchannelConnector>());
 
             var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
             builder.Services.AddSingleton<IInteractionService>(provider =>
@@ -197,7 +195,7 @@ public class Program
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
                 return new ExtensionInteractionService(consoleInteractionService,
-                    provider.GetRequiredService<ExtensionBackchannelConnector>(),
+                    provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
             });
         }

@@ -43,8 +43,12 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     private readonly string _token = configuration[KnownConfigNames.ExtensionToken]
         ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
 
+    private readonly TaskCompletionSource _connectionSetupTcs = new();
+
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -61,64 +65,129 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
     {
-        try
+        var endpoint = configuration[KnownConfigNames.ExtensionEndpoint];
+        Debug.Assert(endpoint is not null);
+
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        var connectionAttempts = 0;
+        logger.LogDebug("Starting backchannel connection to Aspire extension at {Endpoint}", endpoint);
+
+        var startTime = DateTimeOffset.UtcNow;
+
+        do
         {
-            using var activity = _activitySource.StartActivity();
+            connectionAttempts++;
 
-            if (_rpcTaskCompletionSource.Task.IsCompleted)
+            try
             {
-                throw new InvalidOperationException($"Already connected to {Name} backchannel.");
+                await ConnectCoreAsync().ConfigureAwait(false);
+                logger.LogDebug("Connected to ExtensionBackchannel at {Endpoint}", endpoint);
+                _connectionSetupTcs.SetResult();
             }
-
-            logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, socketPath);
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var addressParts= socketPath.Split(':');
-            if (addressParts.Length != 2 || !int.TryParse(addressParts[1], out var port) || port <= 0 || port > 65535)
+            catch (SocketException ex)
             {
-                throw new ArgumentException(
-                    string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidSocketPath, socketPath),
-                    nameof(socketPath));
+                var waitingFor = DateTimeOffset.UtcNow - startTime;
+                if (waitingFor > TimeSpan.FromSeconds(10))
+                {
+                    logger.LogDebug("Slow polling for backchannel connection (attempt {ConnectionAttempts}), {SocketException}", connectionAttempts, ex);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // We don't want to spam the logs with our early connection attempts.
+                }
             }
-
-            await socket.ConnectAsync(addressParts[0], port, cancellationToken);
-            logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, socketPath);
-
-            var stream = new NetworkStream(socket, true);
-            var rpc = JsonRpc.Attach(stream, target);
-
-            var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
-                "getCapabilities",
-                [_token],
-                cancellationToken);
-
-            if (!capabilities.Any(s => s == BaselineCapability))
+            catch (ExtensionIncompatibleException ex)
             {
+                logger.LogError(
+                    "The Aspire extension is incompatible with the CLI and must be updated to a version that supports the {RequiredCapability} capability.",
+                    ex.RequiredCapability
+                    );
+
+                // If the extension is incompatible then there is no point
+                // trying to reconnect, we should propogate the exception
+                // up to the code that needs to back channel so it can display
+                // and error message to the user.
+                _connectionSetupTcs.SetException(ex);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
+                _connectionSetupTcs.SetException(ex);
+                throw;
+            }
+        } while (await timer.WaitForNextTickAsync(cancellationToken));
+
+        return;
+
+        async Task ConnectCoreAsync()
+        {
+            try
+            {
+                using var activity = _activitySource.StartActivity();
+
+                if (_rpcTaskCompletionSource.Task.IsCompleted)
+                {
+                    throw new InvalidOperationException($"Already connected to {Name} backchannel.");
+                }
+
+                logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, socketPath);
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                var addressParts = socketPath.Split(':');
+                if (addressParts.Length != 2 || !int.TryParse(addressParts[1], out var port) || port <= 0 ||
+                    port > 65535)
+                {
+                    throw new ArgumentException(
+                        string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidSocketPath, socketPath),
+                        nameof(socketPath));
+                }
+
+                await socket.ConnectAsync(addressParts[0], port, cancellationToken);
+                logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, socketPath);
+
+                var stream = new NetworkStream(socket, true);
+                var rpc = JsonRpc.Attach(stream, target);
+
+                var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+                    "getCapabilities",
+                    [_token],
+                    cancellationToken);
+
+                if (!capabilities.Any(s => s == BaselineCapability))
+                {
+                    throw new ExtensionIncompatibleException(
+                        string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
+                            BaselineCapability),
+                        BaselineCapability
+                    );
+                }
+
+                // start listening for incoming rpc calls in the background
+                _ = Task.Run(rpc.StartListening, cancellationToken);
+                _rpcTaskCompletionSource.SetResult(rpc);
+            }
+            catch (RemoteMethodNotFoundException ex)
+            {
+                logger.LogError(ex,
+                    "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
+                    Name,
+                    BaselineCapability);
+
                 throw new ExtensionIncompatibleException(
-                    string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli, BaselineCapability),
+                    string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
+                        BaselineCapability),
                     BaselineCapability
                 );
             }
-
-            // start listening for incoming rpc calls in the background
-            _ = Task.Run(rpc.StartListening, cancellationToken);
-            _rpcTaskCompletionSource.SetResult(rpc);
-        }
-        catch (RemoteMethodNotFoundException ex)
-        {
-            logger.LogError(ex,
-                "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
-                Name,
-                BaselineCapability);
-
-            throw new ExtensionIncompatibleException(
-                string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli, BaselineCapability),
-                BaselineCapability
-            );
         }
     }
 
     public async Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -133,6 +202,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplaySuccessAsync(string message, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -147,6 +218,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -161,6 +234,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayErrorAsync(string error, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -175,6 +250,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayEmptyLineAsync(CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -189,6 +266,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -204,6 +283,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayCancellationMessageAsync(CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -218,6 +299,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -232,6 +315,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -246,6 +331,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task ShowStatusAsync(string? status, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -261,6 +348,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     public async Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
         CancellationToken cancellationToken) where T : notnull
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         var choicesList = choices.ToList();
         // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
         var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveFormatting(), choice => choice);
@@ -283,6 +372,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
@@ -300,6 +391,8 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     public async Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator,
         CancellationToken cancellationToken)
     {
+        await WaitForConnectionAsync(cancellationToken);
+
         target.ValidationFunction = validator;
 
         using var activity = _activitySource.StartActivity();
@@ -314,5 +407,14 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result;
+    }
+
+    private async Task WaitForConnectionAsync(CancellationToken cancellationToken)
+    {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var cancellationTask = Task.Delay(Timeout.Infinite, linkedCts.Token);
+        var completedTask = Task.WhenAny(_connectionSetupTcs.Task, cancellationTask).ConfigureAwait(false);
+
+        await completedTask;
     }
 }
