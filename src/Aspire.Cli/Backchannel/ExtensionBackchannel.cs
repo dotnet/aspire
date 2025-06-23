@@ -16,7 +16,7 @@ namespace Aspire.Cli.Backchannel;
 
 internal interface IExtensionBackchannel
 {
-    Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
+    Task ConnectAsync(CancellationToken cancellationToken);
     Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken);
     Task DisplaySuccessAsync(string message, CancellationToken cancellationToken);
@@ -43,11 +43,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     private readonly string _token = configuration[KnownConfigNames.ExtensionToken]
         ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
 
-    private readonly TaskCompletionSource _connectionSetupTcs = new();
+    private TaskCompletionSource? _connectionSetupTcs;
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -63,8 +63,18 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
         return responseTimestamp;
     }
 
-    public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public async Task ConnectAsync(CancellationToken cancellationToken)
     {
+        if (_connectionSetupTcs is not null)
+        {
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var cancellationTask = Task.Delay(Timeout.Infinite, linkedCts.Token);
+            await Task.WhenAny(_connectionSetupTcs.Task, cancellationTask).ConfigureAwait(false);
+            return;
+        }
+
+        _connectionSetupTcs = new TaskCompletionSource();
+
         var endpoint = configuration[KnownConfigNames.ExtensionEndpoint];
         Debug.Assert(endpoint is not null);
 
@@ -83,6 +93,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 await ConnectCoreAsync().ConfigureAwait(false);
                 logger.LogDebug("Connected to ExtensionBackchannel at {Endpoint}", endpoint);
                 _connectionSetupTcs.SetResult();
+                return;
             }
             catch (SocketException ex)
             {
@@ -133,19 +144,17 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     throw new InvalidOperationException($"Already connected to {Name} backchannel.");
                 }
 
-                logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, socketPath);
+                logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, endpoint);
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                var addressParts = socketPath.Split(':');
+                var addressParts = endpoint.Split(':');
                 if (addressParts.Length != 2 || !int.TryParse(addressParts[1], out var port) || port <= 0 ||
                     port > 65535)
                 {
-                    throw new ArgumentException(
-                        string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidSocketPath, socketPath),
-                        nameof(socketPath));
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidSocketPath, endpoint));
                 }
 
                 await socket.ConnectAsync(addressParts[0], port, cancellationToken);
-                logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, socketPath);
+                logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, endpoint);
 
                 var stream = new NetworkStream(socket, true);
                 var rpc = JsonRpc.Attach(stream, target);
@@ -186,7 +195,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -202,7 +211,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplaySuccessAsync(string message, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -218,7 +227,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -234,7 +243,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayErrorAsync(string error, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -250,7 +259,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayEmptyLineAsync(CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -266,7 +275,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -283,7 +292,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayCancellationMessageAsync(CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -299,7 +308,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -315,7 +324,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -331,7 +340,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task ShowStatusAsync(string? status, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -348,7 +357,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     public async Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
         CancellationToken cancellationToken) where T : notnull
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         var choicesList = choices.ToList();
         // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
@@ -372,7 +381,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
 
@@ -391,7 +400,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     public async Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator,
         CancellationToken cancellationToken)
     {
-        await WaitForConnectionAsync(cancellationToken);
+        await ConnectAsync(cancellationToken);
 
         target.ValidationFunction = validator;
 
@@ -407,14 +416,5 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result;
-    }
-
-    private async Task WaitForConnectionAsync(CancellationToken cancellationToken)
-    {
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var cancellationTask = Task.Delay(Timeout.Infinite, linkedCts.Token);
-        var completedTask = Task.WhenAny(_connectionSetupTcs.Task, cancellationTask).ConfigureAwait(false);
-
-        await completedTask;
     }
 }
