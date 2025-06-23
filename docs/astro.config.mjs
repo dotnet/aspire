@@ -7,6 +7,7 @@ import starlightKbd from 'starlight-kbd'
 import starlightImageZoom from 'starlight-image-zoom'
 import starlightLinksValidator from 'starlight-links-validator'
 import starlightScrollToTop from 'starlight-scroll-to-top'
+import starlightSidebarTopics from 'starlight-sidebar-topics'
 
 // https://astro.build/config
 export default defineConfig({
@@ -56,6 +57,11 @@ export default defineConfig({
 					href: 'https://www.youtube.com/@aspiredotdev'
 				},
 				{
+					icon: 'twitch',
+					label: 'Twitch',
+					href: 'https://www.twitch.tv/aspiredotdev'
+				},
+				{
 					icon: 'threads',
 					label: 'Threads',
 					href: 'https://www.threads.com/@dotnet.developers'
@@ -90,58 +96,69 @@ export default defineConfig({
 				themes: ['laserwave', 'slack-ochin'],
 				styleOverrides: { borderRadius: '0.5rem', codeFontSize: '1rem' },
 			},
-			sidebar: [
-				{
-					label: 'Home',
-					link: '/'
-				},
-				{
-					label: 'Get Aspire',
-					link: '/get'
-				},
-				{
-					label: 'Welcome',
-					items: [
-						{ label: 'Overview', slug: 'get-started/overview' },
-						{ label: 'Prerequisites', slug: 'get-started/prerequisites' },
-						{ label: 'Installation', slug: 'get-started/installation' },
-						{ label: 'First app', slug: 'get-started/first-app', badge: 'Quickstart' }
-					],
-				},
-				{
-					label: 'Integrations',
-					items: [
-						{ label: 'Gallery', slug: 'integrations/gallery' },
-						{ label: 'PostgreSQL', slug: 'integrations/postgres' },
-						{ label: 'RabbitMQ', slug: 'integrations/rabbitmq' },
-					],
-				},
-				{
-					label: 'Community',
-					items: [
-						{
-							label: 'Videos',
-							slug: 'community/videos'
-						},
-						{
-							label: 'BlueSky',
-							slug: 'community/posts',
-							badge: {
-								text: '#aspire',
-								variant: 'note'
-							}
-						},
-						{
-							label: 'Contributors',
-							slug: 'community/contributors',
-						}
-					]
-				}
-			],
 			plugins: [
 				catppuccin(),
+				starlightSidebarTopics([
+					{
+						label: 'Start',
+						link: '/get-started/overview',
+						icon: 'rocket',
+						items: [
+							{ label: 'Get Aspire', slug: 'get' },
+							{
+								label: 'Get Started', items: [
+									{ label: 'Overview', slug: 'get-started/overview' },
+									{ label: 'Prerequisites', slug: 'get-started/prerequisites' },
+									{ label: 'Installation', slug: 'get-started/installation' },
+									{ label: 'First app', slug: 'get-started/first-app', badge: 'Quickstart' }
+								]
+							}
+						]
+					},
+					{
+						label: 'Integrations',
+						link: '/integrations/gallery',
+						icon: 'puzzle',
+						items: [
+							{ label: 'Gallery', slug: 'integrations/gallery' },
+							{
+								label: 'Database', items: [
+									{ label: 'PostgreSQL', slug: 'integrations/postgres' },
+								]
+							},
+							{
+								label: 'Messaging', items: [
+									{ label: 'RabbitMQ', slug: 'integrations/rabbitmq' },
+								]
+							}
+						],
+					},
+					{
+						label: 'Community',
+						link: '/community/videos',
+						icon: 'heart',
+						items: [
+							{
+								label: 'Videos',
+								slug: 'community/videos'
+							},
+							{
+								label: 'BlueSky',
+								slug: 'community/posts',
+								badge: {
+									text: '#aspire',
+									variant: 'note'
+								}
+							},
+							{
+								label: 'Contributors',
+								slug: 'community/contributors',
+							}
+						]
+					}
+				]),
 				starlightLinksValidator({
-					exclude: [ '#', '/' ],
+					exclude: ['#', '/'],
 					errorOnRelativeLinks: false
 				}),
 				starlightScrollToTop({
@@ -159,11 +176,11 @@ export default defineConfig({
 				}),
 				starlightKbd({
 					types: [
-					  { id: 'mac', label: 'macOS' },
-					  { id: 'windows', label: 'Windows', default: true },
-					  { id: 'linux', label: 'Linux' },
+						{ id: 'mac', label: 'macOS' },
+						{ id: 'windows', label: 'Windows', default: true },
+						{ id: 'linux', label: 'Linux' },
 					],
-				  }),
+				}),
 			],
 		}),
 	],
