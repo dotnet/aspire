@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -58,18 +57,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
-
-    private readonly Lazy<string> _hostName = new(() =>
-    {
-        try
-        {
-            return Dns.GetHostName();
-        }
-        catch
-        {
-            return "localhost";
-        }
-    });
 
     // Internal for testing.
     internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
@@ -766,9 +753,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
+                var hostname = Environment.MachineName;
+
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", _hostName.Value).Replace("[::]", _hostName.Value).Replace("::", _hostName.Value),
+                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", hostname).Replace("[::]", hostname).Replace("::", hostname),
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
