@@ -205,6 +205,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
+        // Can't register backchannel logging provider until after we have execution context.
+        _innerBuilder.Logging.AddProvider(new BackchannelLoggerProvider(ExecutionContext));
+
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
         // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,

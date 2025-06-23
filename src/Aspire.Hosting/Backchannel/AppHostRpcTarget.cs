@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
@@ -23,6 +24,33 @@ internal class AppHostRpcTarget(
     DistributedApplicationOptions options
     )
 {
+    private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
+
+    public void RegisterLogChannel(Channel<BackchannelLogEntry> channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+        _logChannelTcs.TrySetResult(channel);
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = await _logChannelTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            // Read log entries from the channel
+            var logEntry = await channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            // If the log entry is null, terminate the stream
+            if (logEntry == null)
+            {
+                yield break;
+            }
+
+            yield return logEntry;
+        }
+    }
+
     public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (cancellationToken.IsCancellationRequested == false)
