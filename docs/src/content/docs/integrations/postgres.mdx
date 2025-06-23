@@ -26,7 +26,7 @@ To access these types and APIs for expressing them as resources in your [AppHost
 
 In your app host project, call `AddPostgres` on the `builder` instance to add a PostgreSQL server resource then call `AddDatabase` on the `postgres` instance to add a database resource as shown in the following example:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres");
@@ -58,13 +58,13 @@ var exampleProject = builder.AddProject<Projects.ExampleProject>()
 
 By default, when you add a `PostgresDatabaseResource`, it relies on the following script to create the database:
 
-```sql
+```sql title="SQL — Default database creation script"
 CREATE DATABASE "<QUOTED_DATABASE_NAME>"
 ```
 
 To alter the default script, chain a call to the `WithCreationScript` method on the database resource builder:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres");
@@ -96,7 +96,7 @@ The preceding example creates a database named `app_db`. The script is run when 
 
 When adding PostgreSQL resources to the `builder` with the `AddPostgres` method, you can chain calls to `WithPgAdmin` to add the [**dpage/pgadmin4**](https://www.pgadmin.org/) container. This container is a cross-platform client for PostgreSQL databases, that serves a web-based admin dashboard. Consider the following example:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -116,7 +116,7 @@ The preceding code adds a container based on the `docker.io/dpage/pgadmin4` imag
 
 To configure the host port for the pgAdmin container, call the `WithHostPort` method on the PostgreSQL server resource. The following example shows how to configure the host port for the pgAdmin container:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -136,7 +136,7 @@ The preceding code adds and configures the host port for the pgAdmin container. 
 
 When adding PostgreSQL resources to the `builder` with the `AddPostgres` method, you can chain calls to `WithPgWeb` to add the [**sosedoff/pgweb**](https://sosedoff.github.io/pgweb/) container. This container is a cross-platform client for PostgreSQL databases, that serves a web-based admin dashboard. Consider the following example:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -156,7 +156,7 @@ The preceding code adds a container based on the `docker.io/sosedoff/pgweb` imag
 
 To configure the host port for the pgWeb container, call the `WithHostPort` method on the PostgreSQL server resource. The following example shows how to configure the host port for the pgAdmin container:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -176,7 +176,7 @@ The preceding code adds and configures the host port for the pgWeb container. Th
 
 To add a data volume to the PostgreSQL server resource, call the `WithDataVolume` method on the PostgreSQL server resource:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -197,7 +197,7 @@ The data volume is used to persist the PostgreSQL server data outside the lifecy
 
     You can resolve the problem by using the managed service **Azure Database for PostgreSQL** to host the deployed database instead of a container in ACA, which is the recommended approach regardless of this issue. The following App Host code shows how to deploy a database to Azure Database for PostgreSQL, but run it as a container, with a data volume, during development:
 
-    ```csharp
+    ```csharp title="C# — AppHost.cs"
     var builder = DistributedApplication.CreateBuilder(args);
 
     var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
@@ -214,7 +214,7 @@ The data volume is used to persist the PostgreSQL server data outside the lifecy
 
 To add a data bind mount to the PostgreSQL server resource, call the `WithDataBindMount` method:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -240,7 +240,7 @@ Data bind mounts rely on the host machine's filesystem to persist the PostgreSQL
 
 To add an init bind mount to the PostgreSQL server resource, call the `WithInitBindMount` method:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -260,7 +260,7 @@ The init bind mount relies on the host machine's filesystem to initialize the Po
 
 When you want to explicitly provide the username and password used by the container image, you can provide these credentials as parameters. Consider the following alternative example:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var username = builder.AddParameter("username", secret: true);
@@ -291,7 +291,7 @@ To get started with the Aspire PostgreSQL client integration, install the [📦 
 
 In the `Program.cs` file of your client-consuming project, call the `AddNpgsqlDataSource` extension method on any `IHostApplicationBuilder` to register an `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddNpgsqlDataSource(connectionName: "postgresdb");
 ```
 
@@ -301,7 +301,7 @@ builder.AddNpgsqlDataSource(connectionName: "postgresdb");
 
 After adding `NpgsqlDataSource` to the builder, you can get the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve your data source object from an example service define it as a constructor parameter and ensure the `ExampleService` class is registered with the dependency injection container:
 
-```csharp
+```csharp title="C# — ExampleService.cs"
 public class ExampleService(NpgsqlDataSource dataSource)
 {
     // Use dataSource...
@@ -312,14 +312,14 @@ public class ExampleService(NpgsqlDataSource dataSource)
 
 There might be situations where you want to register multiple `NpgsqlDataSource` instances with different connection names. To register keyed Npgsql clients, call the `AddKeyedNpgsqlDataSource` method:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddKeyedNpgsqlDataSource(name: "chat");
 builder.AddKeyedNpgsqlDataSource(name: "queue");
 ```
 
 Then you can retrieve the `NpgsqlDataSource` instances using dependency injection. For example, to retrieve the connection from an example service:
 
-```csharp
+```csharp title="C# — ExampleService.cs"
 public class ExampleService(
     [FromKeyedServices("chat")] NpgsqlDataSource chatDataSource,
     [FromKeyedServices("queue")] NpgsqlDataSource queueDataSource)
@@ -336,13 +336,13 @@ The Aspire PostgreSQL integration provides multiple configuration approaches and
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling the `AddNpgsqlDataSource` method:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddNpgsqlDataSource("postgresdb");
 ```
 
 Then the connection string will be retrieved from the `ConnectionStrings` configuration section:
 
-```json
+```json title="JSON — appsettings.json"
 {
   "ConnectionStrings": {
     "postgresdb": "Host=myserver;Database=postgresdb"
@@ -358,7 +358,7 @@ The Aspire PostgreSQL integration supports `Microsoft.Extensions.Configuration`.
 
 The following example shows an `appsettings.json` file that configures some of the available options:
 
-```json
+```json title="JSON — appsettings.json"
 {
   "Aspire": {
     "Npgsql": {
@@ -377,7 +377,7 @@ For the complete PostgreSQL client integration JSON schema, see [Aspire.Npgsql/C
 
 You can also pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddNpgsqlDataSource(
     "postgresdb",
      static settings => settings.DisableHealthChecks = true);

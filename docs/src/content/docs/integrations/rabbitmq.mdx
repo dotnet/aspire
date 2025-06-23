@@ -19,7 +19,7 @@ The RabbitMQ hosting integration models a RabbitMQ server as the `RabbitMQServer
 
 In your app host project, call `AddRabbitMQ` on the `builder` instance to add a RabbitMQ server resource:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var rabbitmq = builder.AddRabbitMQ("messaging");
@@ -47,7 +47,7 @@ builder.AddProject<Projects.ExampleProject>()
 
 To add a data volume to the RabbitMQ server resource, call the `WithDataVolume` method on the RabbitMQ server resource:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var rabbitmq = builder.AddRabbitMQ("messaging")
@@ -65,7 +65,7 @@ The data volume is used to persist the RabbitMQ server data outside the lifecycl
 
 To add a data bind mount to the RabbitMQ server resource, call the `WithDataBindMount` method:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var rabbitmq = builder.AddRabbitMQ("messaging")
@@ -89,7 +89,7 @@ Data bind mounts rely on the host machine's filesystem to persist the RabbitMQ s
 
 When you want to explicitly provide the username and password used by the container image, you can provide these credentials as parameters. Consider the following alternative example:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var username = builder.AddParameter("username", secret: true);
@@ -107,7 +107,7 @@ builder.AddProject<Projects.ExampleProject>()
 
 To add the [RabbitMQ management plugin](https://www.rabbitmq.com/docs/management) to the RabbitMQ server resource, call the `WithManagementPlugin` method. Remember to use parameters to set the credentials for the container. You'll need these credentials to log into the management plugin:
 
-```csharp
+```csharp title="C# — AppHost.cs"
 var builder = DistributedApplication.CreateBuilder(args);
 
 var username = builder.AddParameter("username", secret: true);
@@ -150,7 +150,7 @@ To get started with the Aspire RabbitMQ client integration, install the [📦 As
 
 In the `Program.cs` file of your client-consuming project, call the `AddRabbitMQClient` extension method on any `IHostApplicationBuilder` to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddRabbitMQClient(connectionName: "messaging");
 ```
 
@@ -160,7 +160,7 @@ builder.AddRabbitMQClient(connectionName: "messaging");
 
 You can then retrieve the `IConnection` instance using dependency injection. For example, to retrieve the connection from an example service:
 
-```csharp
+```csharp title="C# — ExampleService.cs"
 public class ExampleService(IConnection connection)
 {
     // Use connection...
@@ -171,14 +171,14 @@ public class ExampleService(IConnection connection)
 
 There might be situations where you want to register multiple `IConnection` instances with different connection names. To register keyed RabbitMQ clients, call the `AddKeyedRabbitMQClient` method:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddKeyedRabbitMQClient(name: "chat");
 builder.AddKeyedRabbitMQClient(name: "queue");
 ```
 
 Then you can retrieve the `IConnection` instances using dependency injection. For example, to retrieve the connection from an example service:
 
-```csharp
+```csharp title="C# — ExampleService.cs"
 public class ExampleService(
     [FromKeyedServices("chat")] IConnection chatConnection,
     [FromKeyedServices("queue")] IConnection queueConnection)
@@ -195,13 +195,13 @@ The Aspire RabbitMQ integration provides multiple options to configure the conne
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling the `AddRabbitMQClient` method:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddRabbitMQClient(connectionName: "messaging");
 ```
 
 Then the connection string is retrieved from the `ConnectionStrings` configuration section:
 
-```json
+```json title="JSON — appsettings.json"
 {
   "ConnectionStrings": {
     "messaging": "amqp://username:password@localhost:5672"
@@ -215,7 +215,7 @@ For more information on how to format this connection string, see the [RabbitMQ 
 
 The Aspire RabbitMQ integration supports `Configuration`. It loads the `RabbitMQClientSettings` from configuration by using the `Aspire:RabbitMQ:Client` key. The following snippet is an example of a _:::no-loc text="appsettings.json":::_ file that configures some of the options:
 
-```json
+```json title="JSON — appsettings.json"
 {
   "Aspire": {
     "RabbitMQ": {
@@ -236,7 +236,7 @@ For the complete RabbitMQ client integration JSON schema, see [Aspire.RabbitMQ.C
 
 Also you can pass the `Action<RabbitMQClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddRabbitMQClient(
     "messaging",
     static settings => settings.DisableHealthChecks = true);
@@ -244,7 +244,7 @@ builder.AddRabbitMQClient(
 
 You can also set up the [IConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnectionFactory.html) using the `Action<IConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQClient` method. For example to set the client provided name for connections:
 
-```csharp
+```csharp title="C# — Program.cs"
 builder.AddRabbitMQClient(
     "messaging",
     configureConnectionFactory:

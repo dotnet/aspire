@@ -7,12 +7,11 @@ export interface Props {
 
 const { packageName } = Astro.props;
 
-const cliCommandTitle = `.NET CLI command to install ${packageName} package`;
+const cliCommandTitle = `.NET CLI — Add ${packageName} package`;
 const cliCode = `dotnet add package ${packageName}`;
 
-const packageReferenceTitle = `Add ${packageName} package reference`;
-const packageCode = `<PackageReference Include="${packageName}"
-                  Version="*" />`;
+const packageReferenceTitle = `XML — Add ${packageName} package reference`;
+const packageCode = `<PackageReference Include="${packageName}" Version="*" />`;
 ---
 
 <Tabs>
