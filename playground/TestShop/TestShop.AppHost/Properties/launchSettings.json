@@ -1,5 +1,15 @@
 {
   "profiles": {
+    "noconfig": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
+      }
+    },
     "https": {
       "commandName": "Project",
       "launchBrowser": true,

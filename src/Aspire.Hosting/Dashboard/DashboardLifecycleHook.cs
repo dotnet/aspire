@@ -201,8 +201,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         // Options should have been validated these should not be null
 
-        Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
-        Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
+        //Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
+        //Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
 
         var environment = options.AspNetCoreEnvironment;
         var browserToken = options.DashboardToken;
@@ -211,13 +211,16 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
         context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
-        context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = options.DashboardUrl;
+        if (options.DashboardUrl is not null)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = options.DashboardUrl;
+        }
         context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-        if (options.OtlpGrpcEndpointUrl != null)
+        if (options.OtlpGrpcEndpointUrl is not null)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = options.OtlpGrpcEndpointUrl;
         }
-        if (options.OtlpHttpEndpointUrl != null)
+        if (options.OtlpHttpEndpointUrl is not null)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = options.OtlpHttpEndpointUrl;
 

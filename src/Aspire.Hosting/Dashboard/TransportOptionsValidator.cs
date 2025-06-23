@@ -22,19 +22,21 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         var applicationUrls = configuration[KnownConfigNames.AspNetCoreUrls];
         if (string.IsNullOrEmpty(applicationUrls))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");
+            //return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");
         }
-
-        var firstApplicationUrl = applicationUrls.Split(";").First();
-
-        if (!Uri.TryCreate(firstApplicationUrl, UriKind.Absolute, out var parsedFirstApplicationUrl))
+        else
         {
-            return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
-        }
+            var firstApplicationUrl = applicationUrls.Split(";").First();
 
-        if (parsedFirstApplicationUrl.Scheme == "http")
-        {
-            return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            if (!Uri.TryCreate(firstApplicationUrl, UriKind.Absolute, out var parsedFirstApplicationUrl))
+            {
+                return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
+            }
+
+            if (parsedFirstApplicationUrl.Scheme == "http")
+            {
+                return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            }
         }
 
         // Validate ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL
@@ -42,33 +44,37 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         var dashboardOtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
         if (string.IsNullOrEmpty(dashboardOtlpGrpcEndpointUrl) && string.IsNullOrEmpty(dashboardOtlpHttpEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
+            //return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
-
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+        else
         {
-            return resultGrpc;
-        }
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
-        {
-            return resultHttp;
+            if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+            {
+                return resultGrpc;
+            }
+            if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+            {
+                return resultHttp;
+            }
         }
 
         // Validate ASPIRE_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
         var resourceServiceEndpointUrl = configuration.GetString(KnownConfigNames.ResourceServiceEndpointUrl, KnownConfigNames.Legacy.ResourceServiceEndpointUrl);
         if (string.IsNullOrEmpty(resourceServiceEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.ResourceServiceEndpointUrl} setting defined.");
+            //return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.ResourceServiceEndpointUrl} setting defined.");
         }
-
-        if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))
+        else
         {
-            return ValidateOptionsResult.Fail($"The {KnownConfigNames.ResourceServiceEndpointUrl} setting with a value of '{resourceServiceEndpointUrl}' could not be parsed as a URI.");
-        }
+            if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))
+            {
+                return ValidateOptionsResult.Fail($"The {KnownConfigNames.ResourceServiceEndpointUrl} setting with a value of '{resourceServiceEndpointUrl}' could not be parsed as a URI.");
+            }
 
-        if (parsedResourceServiceEndpointUrl.Scheme == "http")
-        {
-            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            if (parsedResourceServiceEndpointUrl.Scheme == "http")
+            {
+                return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            }
         }
 
         return ValidateOptionsResult.Success;
