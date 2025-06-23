@@ -54,7 +54,9 @@ const { pkg } = Astro.props;
                 const filteredTags = (pkg.tags ?? [])
                     .filter((tag: string) => {
                         const lower = tag.toLowerCase();
-                        return lower !== "aspire" && lower !== "dotnetcommunitytoolkit";
+                        return lower !== "aspire"
+                            && lower !== "dotnetcommunitytoolkit"
+                            && lower !== "integration";
                     })
                     .slice(0, 5);
                 return (
