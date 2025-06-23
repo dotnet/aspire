@@ -76,8 +76,6 @@ internal sealed class RunCommand : BaseCommand
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
-            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
-
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
