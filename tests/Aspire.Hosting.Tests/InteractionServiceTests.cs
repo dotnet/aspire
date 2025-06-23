@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -27,7 +28,7 @@ public class InteractionServiceTests
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
         // Act 2
-        interactionService.CompleteInteraction(interaction.InteractionId, _ => new InteractionCompletionState { State = true });
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { State = true });
 
         var result = await resultTask.DefaultTimeout();
         Assert.True(result.Data!);
@@ -86,11 +87,11 @@ public class InteractionServiceTests
         Assert.True(id1.HasValue && id2.HasValue && id1 < id2);
 
         // Act & Assert 2
-        interactionService.CompleteInteraction(id1.Value, _ => new InteractionCompletionState { State = true });
+        await CompleteInteractionAsync(interactionService, id1.Value, new InteractionCompletionState { State = true });
         Assert.True((bool)(await resultTask1.DefaultTimeout()).Data!);
         Assert.Equal(id2.Value, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
 
-        interactionService.CompleteInteraction(id2.Value, _ => new InteractionCompletionState { State = false });
+        await CompleteInteractionAsync(interactionService, id2.Value, new InteractionCompletionState { State = false });
         Assert.False((bool)(await resultTask2.DefaultTimeout()).Data!);
         Assert.Empty(interactionService.GetCurrentInteractions());
     }
@@ -122,7 +123,7 @@ public class InteractionServiceTests
 
         // Act & Assert 2
         var result1 = new InteractionCompletionState { State = true };
-        interactionService.CompleteInteraction(interaction1.InteractionId, _ => result1);
+        await CompleteInteractionAsync(interactionService, interaction1.InteractionId, result1);
         Assert.True((await resultTask1.DefaultTimeout()).Data);
         Assert.Equal(interaction2.InteractionId, Assert.Single(interactionService.GetCurrentInteractions()).InteractionId);
         var completedInteraction1 = await updates.Reader.ReadAsync().DefaultTimeout();
@@ -130,7 +131,7 @@ public class InteractionServiceTests
         Assert.Equivalent(result1, await completedInteraction1.CompletionTcs.Task.DefaultTimeout());
 
         var result2 = new InteractionCompletionState { State = false };
-        interactionService.CompleteInteraction(interaction2.InteractionId, _ => result2);
+        await CompleteInteractionAsync(interactionService, interaction2.InteractionId, result2);
         Assert.False((await resultTask2.DefaultTimeout()).Data);
         Assert.Empty(interactionService.GetCurrentInteractions());
         var completedInteraction2 = await updates.Reader.ReadAsync().DefaultTimeout();
@@ -153,9 +154,17 @@ public class InteractionServiceTests
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
     }
 
+    private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
+    {
+        await interactionService.CompleteInteractionAsync(interactionId, (_, _, _) => Task.FromResult(state));
+    }
+
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
     {
-        return new InteractionService(NullLogger<InteractionService>.Instance, options ?? new DistributedApplicationOptions());
+        return new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            options ?? new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
     }
 }
 

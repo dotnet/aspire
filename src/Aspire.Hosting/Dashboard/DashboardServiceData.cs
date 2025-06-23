@@ -150,9 +150,9 @@ internal sealed class DashboardServiceData : IDisposable
         }
     }
 
-    internal Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request)
+    internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request)
     {
-        _interactionService.CompleteInteraction(request.InteractionId, interaction =>
+        await _interactionService.CompleteInteractionAsync(request.InteractionId, async (interaction, serviceProvider, cancellationToken) =>
         {
             switch (request.KindCase)
             {
@@ -162,6 +162,8 @@ internal sealed class DashboardServiceData : IDisposable
                     return new InteractionCompletionState { State = request.MessageBar.Result };
                 case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                     var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+                    var options = (InputsDialogInteractionOptions)interaction.Options;
+
                     for (var i = 0; i < inputsInfo.Inputs.Count; i++)
                     {
                         var modelInput = inputsInfo.Inputs[i];
@@ -176,14 +178,28 @@ internal sealed class DashboardServiceData : IDisposable
                         }
 
                         modelInput.SetValue(incomingValue);
+                        modelInput.ValidationErrors.Clear();
                     }
-                    return new InteractionCompletionState { State = inputsInfo.Inputs };
-                default:
-                    return new InteractionCompletionState { Canceled = true };
-            }
-        });
 
-        return Task.CompletedTask;
+                    var hasErrors = false;
+                    if (options.ValidationCallback is { } validationCallback)
+                    {
+                        var context = new InputsDialogValidationContext
+                        {
+                            CancellationToken = cancellationToken,
+                            ServiceProvider = serviceProvider,
+                            Inputs = inputsInfo.Inputs
+                        };
+                        await validationCallback(context).ConfigureAwait(false);
+
+                        hasErrors = context.HasErrors;
+                    }
+
+                    return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                default:
+                    return new InteractionCompletionState { Complete = true };
+            }
+        }).ConfigureAwait(false);
     }
 }
 

@@ -26,11 +26,13 @@ public class InteractionService
     private readonly InteractionCollection _interactionCollection = new();
     private readonly ILogger<InteractionService> _logger;
     private readonly DistributedApplicationOptions _distributedApplicationOptions;
+    private readonly IServiceProvider _serviceProvider;
 
-    internal InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions)
+    internal InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _distributedApplicationOptions = distributedApplicationOptions;
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -94,7 +96,7 @@ public class InteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Canceled
+        return completion.Complete
             ? InteractionResultFactory.Cancel<bool>()
             : InteractionResultFactory.Ok((bool)completion.State!);
     }
@@ -149,24 +151,24 @@ public class InteractionService
     /// <returns>
     /// An <see cref="InteractionResult{T}"/> containing the user's inputs.
     /// </returns>
-    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var inputList = inputs.ToList();
         options ??= InputsDialogInteractionOptions.Default;
 
-        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputList), cancellationToken);
+        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputs), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Canceled
+        var inputState = completion.State as IReadOnlyList<InteractionInput>;
+        return inputState == null
             ? InteractionResultFactory.Cancel<IReadOnlyList<InteractionInput>>()
-            : InteractionResultFactory.Ok((IReadOnlyList<InteractionInput>)completion.State!);
+            : InteractionResultFactory.Ok(inputState);
     }
 
     /// <summary>
@@ -193,7 +195,7 @@ public class InteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Canceled
+        return completion.Complete
             ? InteractionResultFactory.Cancel<bool>()
             : InteractionResultFactory.Ok((bool)completion.State!);
     }
@@ -212,7 +214,7 @@ public class InteractionService
         var interactionState = (Interaction)newState!;
 
         interactionState.State = Interaction.InteractionState.Complete;
-        interactionState.CompletionTcs.TrySetResult(new InteractionCompletionState { Canceled = true });
+        interactionState.CompletionTcs.TrySetResult(new InteractionCompletionState { Complete = true });
         AddInteractionUpdate(interactionState);
     }
 
@@ -250,23 +252,38 @@ public class InteractionService
         }
     }
 
-    internal void CompleteInteraction(int interactionId, Func<Interaction, InteractionCompletionState> createResult)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, Task<InteractionCompletionState>> createResult)
     {
+        Interaction? interactionState = null;
+
         lock (_onInteractionUpdatedLock)
         {
-            if (_interactionCollection.TryGetValue(interactionId, out var interactionState))
+            if (!_interactionCollection.TryGetValue(interactionId, out interactionState))
             {
-                var result = createResult(interactionState);
+                _logger.LogDebug("No interaction found with ID {InteractionId}.", interactionId);
+                return;
+            }
+        }
 
+        var result = await createResult(interactionState, _serviceProvider, CancellationToken.None).ConfigureAwait(false);
+
+        lock (_onInteractionUpdatedLock)
+        {
+            // Double check interaction is still in collection after awaiting the result creation.
+            if (!_interactionCollection.TryGetValue(interactionId, out interactionState))
+            {
+                return;
+            }
+
+            if (result.Complete)
+            {
                 interactionState.CompletionTcs.TrySetResult(result);
                 interactionState.State = Interaction.InteractionState.Complete;
                 _interactionCollection.Remove(interactionId);
-                OnInteractionUpdated?.Invoke(interactionState);
             }
-            else
-            {
-                _logger.LogDebug("No interaction found with ID {InteractionId}.", interactionId);
-            }
+
+            // Either broadcast out the interaction is complete, or its updated state.
+            OnInteractionUpdated?.Invoke(interactionState);
         }
     }
 
@@ -399,6 +416,8 @@ public sealed class InteractionInput
     public string? Placeholder { get; set; }
 
     internal void SetValue(string value) => _value = value;
+
+    internal List<string> ValidationErrors { get; } = new List<string>();
 }
 
 /// <summary>
@@ -436,6 +455,52 @@ public enum InputType
 public class InputsDialogInteractionOptions : InteractionOptions
 {
     internal static new InputsDialogInteractionOptions Default { get; } = new();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Func<InputsDialogValidationContext, Task>? ValidationCallback { get; set; }
+}
+
+/// <summary>
+/// 
+/// </summary>
+public sealed class InputsDialogValidationContext
+{
+    internal bool HasErrors { get; private set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public required IReadOnlyList<InteractionInput> Inputs { get; init; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public required CancellationToken CancellationToken { get; init; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public required IServiceProvider ServiceProvider { get; init; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="errorMessage"></param>
+    public void AddValidationError(InteractionInput input, string errorMessage)
+    {
+        ArgumentNullException.ThrowIfNull(input, nameof(input));
+
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            throw new ArgumentException("Error message cannot be null or empty.", nameof(errorMessage));
+        }
+
+        input.ValidationErrors.Add(errorMessage);
+        HasErrors = true;
+    }
 }
 
 /// <summary>
@@ -535,7 +600,7 @@ public class InteractionOptions
 [DebuggerDisplay("State = {State}, Canceled = {Canceled}")]
 internal sealed class InteractionCompletionState
 {
-    public bool Canceled { get; init; }
+    public bool Complete { get; init; }
     public object? State { get; init; }
 }
 
@@ -596,12 +661,12 @@ internal class Interaction
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase
     {
-        public InputsInteractionInfo(List<InteractionInput> inputs)
+        public InputsInteractionInfo(IReadOnlyList<InteractionInput> inputs)
         {
             Inputs = inputs;
         }
 
-        public List<InteractionInput> Inputs { get; }
+        public IReadOnlyList<InteractionInput> Inputs { get; }
     }
 }
 

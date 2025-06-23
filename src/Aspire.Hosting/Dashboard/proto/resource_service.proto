@@ -361,6 +361,7 @@ message InteractionInput {
     bool required = 4;
     map<string, string> options = 5;
     string value = 6;
+    repeated string validation_errors = 7;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;

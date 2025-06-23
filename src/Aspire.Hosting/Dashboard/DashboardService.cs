@@ -129,6 +129,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
+                                dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;
                             }).ToList();
                             change.InputsDialog.InputItems.AddRange(inputInstances);

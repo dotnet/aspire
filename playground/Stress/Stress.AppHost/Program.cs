@@ -170,6 +170,18 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                message: "Provide your name",
                inputLabel: "Name",
                placeHolder: "Enter your name",
+               options: new InputsDialogInteractionOptions
+               {
+                   ValidationCallback = context =>
+                   {
+                       var input = context.Inputs[0];
+                       if (!string.IsNullOrEmpty(input.Value) && input.Value.Length < 3)
+                       {
+                           context.AddValidationError(input, "Name must be at least 3 characters long.");
+                       }
+                       return Task.CompletedTask;
+                   }
+               },
                cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)

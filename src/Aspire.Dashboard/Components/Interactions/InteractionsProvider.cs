@@ -19,8 +19,8 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
-    private record InteractionMessageBarReference(WatchInteractionsResponseUpdate Interaction, Message Message);
-    private record InteractionDialogReference(WatchInteractionsResponseUpdate Interaction, IDialogReference Dialog);
+    private record InteractionMessageBarReference(int InteractionId, Message Message);
+    private record InteractionDialogReference(int InteractionId, IDialogReference Dialog);
 
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
@@ -151,27 +151,33 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         var vm = new InteractionsInputsDialogViewModel
                         {
                             Interaction = item,
-                            Inputs = inputs.InputItems.ToList()
+                            OnSubmitCallback = async savedInteraction =>
+                            {
+                                var request = new WatchInteractionsRequestUpdate
+                                {
+                                    InteractionId = item.InteractionId,
+                                    InputsDialog = savedInteraction.InputsDialog
+                                };
+
+                                await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                            }
                         };
 
                         var dialogParameters = CreateDialogParameters(item, intent: null);
                         dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                         {
-                            var request = new WatchInteractionsRequestUpdate
-                            {
-                                InteractionId = item.InteractionId
-                            };
-
+                            // Only send notification of completion if the dialog was cancelled.
+                            // A non-cancelled dialog result means the user submitted the form and we already sent the request.
                             if (dialogResult.Cancelled)
                             {
-                                request.Complete = new InteractionComplete();
-                            }
-                            else
-                            {
-                                request.InputsDialog = item.InputsDialog;
-                            }
+                                var request = new WatchInteractionsRequestUpdate
+                                {
+                                    InteractionId = item.InteractionId,
+                                    Complete = new InteractionComplete()
+                                };
 
-                            await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                                await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
+                            }
                         });
 
                         openDialog = dialogService => dialogService.ShowDialogAsync<InteractionsInputDialog>(vm, dialogParameters);
@@ -188,7 +194,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     });
 
                     Debug.Assert(currentDialogReference != null, "Dialog should have been created in UI thread.");
-                    _interactionDialogReference = new InteractionDialogReference(item, currentDialogReference);
+                    _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference);
                 }
                 finally
                 {
@@ -221,11 +227,31 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     {
                         case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
                         case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
-                            // New or updated interaction.
-                            _pendingInteractions.Remove(item.InteractionId);
-                            _pendingInteractions.Add(item);
+                            if (_interactionDialogReference != null &&
+                                _interactionDialogReference.InteractionId == item.InteractionId)
+                            {
+                                // If the dialog is already open for this interaction, update it with the new data.
+                                var c = (InteractionsInputsDialogViewModel)_interactionDialogReference.Dialog.Instance.Content;
+                                await c.UpdateInteractionAsync(item);
+                            }
+                            else
+                            {
+                                // New or updated interaction.
+                                if (_pendingInteractions.Contains(item.InteractionId))
+                                {
+                                    // Update existing interaction at the same place in collection.
+                                    var existingItem = _pendingInteractions[item.InteractionId];
+                                    var index = _pendingInteractions.IndexOf(existingItem);
+                                    _pendingInteractions.RemoveAt(index);
+                                    _pendingInteractions.Insert(index, item); // Reinsert at the same index to maintain order.
+                                }
+                                else
+                                {
+                                    _pendingInteractions.Add(item);
+                                }
 
-                            NotifyInteractionAvailable();
+                                NotifyInteractionAvailable();
+                            }
                             break;
                         case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
                             var messageBar = item.MessageBar;
@@ -307,14 +333,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             });
 
                             Debug.Assert(message != null, "Message should have been created in UI thread.");
-                            _openMessageBars.Add(new InteractionMessageBarReference(item, message));
+                            _openMessageBars.Add(new InteractionMessageBarReference(item.InteractionId, message));
                             break;
                         case WatchInteractionsResponseUpdate.KindOneofCase.Complete:
                             // Complete interaction.
                             _pendingInteractions.Remove(item.InteractionId);
 
                             // Close the interaction's dialog if it is open.
-                            if (_interactionDialogReference?.Interaction.InteractionId == item.InteractionId)
+                            if (_interactionDialogReference?.InteractionId == item.InteractionId)
                             {
                                 try
                                 {
@@ -461,7 +487,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     {
         protected override int GetKeyForItem(InteractionMessageBarReference item)
         {
-            return item.Interaction.InteractionId;
+            return item.InteractionId;
         }
     }
 }

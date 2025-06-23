@@ -7,6 +7,25 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class InteractionsInputsDialogViewModel
 {
-    public required WatchInteractionsResponseUpdate Interaction { get; init; }
-    public required List<InteractionInput> Inputs { get; init; }
+    private WatchInteractionsResponseUpdate _interaction = default!;
+
+    public required WatchInteractionsResponseUpdate Interaction
+    {
+        get => _interaction;
+        init => _interaction = value;
+    }
+    public required Func<WatchInteractionsResponseUpdate, Task> OnSubmitCallback { get; init; }
+
+    public List<InteractionInput> Inputs => Interaction.InputsDialog!.InputItems.ToList();
+
+    public Func<Task>? OnInteractionUpdated { get; set; }
+
+    internal async Task UpdateInteractionAsync(WatchInteractionsResponseUpdate item)
+    {
+        _interaction = item;
+        if (OnInteractionUpdated is not null)
+        {
+            await OnInteractionUpdated().ConfigureAwait(false);
+        }
+    }
 }
