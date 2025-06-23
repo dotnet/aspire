@@ -2,14 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
-using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Projects;
 using Xunit;
+using Aspire.Hosting.Backchannel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.E2E;
 
@@ -44,26 +45,29 @@ public class ExecTests(ITestOutputHelper output)
         {
         };
 
+        Environment.SetEnvironmentVariable("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
         //// dependant of the target resource
-        //var pgsql = builder
-        //    .AddPostgres(
-        //        name: "postgres1",
-        //        port: 6000,
-        //        userName: builder.AddParameter("pgsqluser"),
-        //        password: builder.AddParameter("pgsqlpass", secret: true))
-        //    .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000));
-        //var pgsqlDb = pgsql.AddDatabase("postgresDb");
+        var pgsql = builder
+            .AddPostgres(
+                name: "postgres1",
+                port: 6000,
+                userName: builder.AddParameter("pgsqluser"),
+                password: builder.AddParameter("pgsqlpass", secret: true))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000));
+        var pgsqlDb = pgsql.AddDatabase("postgresDb");
 
         //var connStr = await pgsql.Resource.GetConnectionStringAsync();
         //output.WriteLine("PGSQL Connection string: " + connStr);
 
         // the target resource
         var project = builder
-            .AddProject<TestingAppHost1_MyWebApp>("mywebapp1");
-            // .WithReference(pgsqlDb);
+            .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
+            .WithReference(pgsqlDb);
+            //.WaitFor(pgsqlDb);
 
         await using var app = await builder.BuildAsync();
 
@@ -74,7 +78,7 @@ public class ExecTests(ITestOutputHelper output)
         var startTask = app.StartAsync();
         await foreach (var message in outputStream)
         {
-            output.WriteLine($"Received output: [{message.LogLevel}] {message.Text}");
+            output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
         }
         await startTask;
 

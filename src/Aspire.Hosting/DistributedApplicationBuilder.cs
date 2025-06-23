@@ -373,15 +373,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
         }
 
-        if (ExecutionContext.IsExecMode)
-        {
-            _innerBuilder.Services.AddSingleton<IExecutionService, ExecutionService>();
-        }
-        else
-        {
-            _innerBuilder.Services.AddSingleton<IExecutionService, NoopExecutionService>();
-        }
-        
+        _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+
+        //if (ExecutionContext.IsExecMode)
+        //{
+        //    _innerBuilder.Services.AddSingleton<IExecutionService, ExecutionService>();
+        //}
+        //else
+        //{
+        //    _innerBuilder.Services.AddSingleton<IExecutionService, NoopExecutionService>();
+        //}
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);

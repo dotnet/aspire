@@ -1279,7 +1279,8 @@ public class DcpExecutorTests
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
-            events ?? new DcpExecutorEvents());
+            events ?? new DcpExecutorEvents(),
+            execResourceManager: null!);
     }
 
     private sealed class TestProject : IProjectMetadata

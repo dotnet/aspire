@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Exec;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +22,6 @@ internal sealed class ApplicationOrchestrator
     private readonly ResourceNotificationService _notificationService;
     private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
-    private readonly IExecutionService _executionService;
     private readonly IServiceProvider _serviceProvider;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly CancellationTokenSource _shutdownCancellation = new();
@@ -36,8 +34,7 @@ internal sealed class ApplicationOrchestrator
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
                                    IServiceProvider serviceProvider,
-                                   DistributedApplicationExecutionContext executionContext,
-                                   IExecutionService executionService)
+                                   DistributedApplicationExecutionContext executionContext)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -48,7 +45,6 @@ internal sealed class ApplicationOrchestrator
         _eventing = eventing;
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
-        _executionService = executionService;
 
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
@@ -340,8 +336,6 @@ internal sealed class ApplicationOrchestrator
         {
             await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
-
-        await _executionService.ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

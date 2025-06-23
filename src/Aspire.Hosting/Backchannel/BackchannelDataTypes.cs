@@ -82,4 +82,5 @@ internal sealed class CommandOutput
 {
     public required string Text { get; init; }
     public required LogLevel LogLevel { get; init; }
+    public int LineNumber { get; init; }
 }
