@@ -90,8 +90,8 @@ internal sealed class NewCommand : BaseCommand
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
-        var exitCode = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        return exitCode;
+        var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        return templateResult.ExitCode;
     }
 }
 

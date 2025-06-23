@@ -186,12 +186,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         command.Options.Add(xunitVersionOption);
     }
 
-    private async Task<int> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
     {
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
-    private async Task<int> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         try
         {
@@ -224,7 +224,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             {
                 interactionService.DisplayLines(templateInstallCollector.GetLines());
                 interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode));
-                return ExitCodeConstants.FailedToInstallTemplates;
+                return new TemplateResult(ExitCodeConstants.FailedToInstallTemplates);
             }
 
             interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
@@ -255,29 +255,29 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             {
                 interactionService.DisplayLines(newProjectCollector.GetLines());
                 interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
-                return ExitCodeConstants.FailedToCreateNewProject;
+                return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
             }
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
-            return ExitCodeConstants.Success;
+            return new TemplateResult(ExitCodeConstants.Success);
         }
         catch (OperationCanceledException)
         {
             interactionService.DisplayCancellationMessage();
-            return ExitCodeConstants.FailedToCreateNewProject;
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
         catch (CertificateServiceException ex)
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
-            return ExitCodeConstants.FailedToTrustCertificates;
+            return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
         catch (EmptyChoicesException ex)
         {
             interactionService.DisplayError(ex.Message);
-            return ExitCodeConstants.FailedToCreateNewProject;
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
     }
 
