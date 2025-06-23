@@ -140,6 +140,7 @@ public partial class InteractionsInputDialog
         // 1. Validate the model that required fields are present.
         // 2. Run submit callback. Sends input values to the server.
         // 3. If validation on the server passes, a completion dialog is send back to the client which closes the dialog.
+        // 4. If validation fails, the server sends back validation errors which are displayed in the dialog.
         if (_editContext.Validate())
         {
             await Content.OnSubmitCallback(Content.Interaction);
