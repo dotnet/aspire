@@ -417,7 +417,7 @@ public sealed class InteractionInput
 
     internal void SetValue(string value) => _value = value;
 
-    internal List<string> ValidationErrors { get; } = new List<string>();
+    internal List<string> ValidationErrors { get; } = [];
 }
 
 /// <summary>
