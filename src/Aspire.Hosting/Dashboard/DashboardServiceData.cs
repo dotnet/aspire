@@ -157,9 +157,9 @@ internal sealed class DashboardServiceData : IDisposable
             switch (request.KindCase)
             {
                 case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
-                    return new InteractionCompletionState { State = request.MessageBox.Result };
+                    return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
                 case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
-                    return new InteractionCompletionState { State = request.MessageBar.Result };
+                    return new InteractionCompletionState { Complete = true, State = request.MessageBar.Result };
                 case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                     var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                     var options = (InputsDialogInteractionOptions)interaction.Options;

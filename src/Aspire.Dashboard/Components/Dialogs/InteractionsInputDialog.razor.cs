@@ -38,24 +38,31 @@ public partial class InteractionsInputDialog
             _content = Content;
             _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
 
+            AddValidationErrorsFromModel();
+
             Content.OnInteractionUpdated = async () =>
             {
-                for (var i = 0; i < Content.Inputs.Count; i++)
-                {
-                    var inputModel = Content.Inputs[i];
-                    var inputViewModel = _inputDialogInputViewModels[i];
-
-                    inputViewModel.SetInput(inputModel);
-
-                    var field = GetFieldIdentifier(inputViewModel);
-                    foreach (var validationError in inputModel.ValidationErrors)
-                    {
-                        _validationMessages.Add(field, validationError);
-                    }
-                }
+                AddValidationErrorsFromModel();
 
                 await InvokeAsync(StateHasChanged);
             };
+        }
+    }
+
+    private void AddValidationErrorsFromModel()
+    {
+        for (var i = 0; i < Content.Inputs.Count; i++)
+        {
+            var inputModel = Content.Inputs[i];
+            var inputViewModel = _inputDialogInputViewModels[i];
+
+            inputViewModel.SetInput(inputModel);
+
+            var field = GetFieldIdentifier(inputViewModel);
+            foreach (var validationError in inputModel.ValidationErrors)
+            {
+                _validationMessages.Add(field, validationError);
+            }
         }
     }
 
