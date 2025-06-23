@@ -33,6 +33,7 @@ internal interface IExtensionBackchannel
     Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, CancellationToken cancellationToken);
+    Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
@@ -442,6 +443,22 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result;
+    }
+
+    public async Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Opening project at path: {ProjectPath}", projectPath);
+
+        await rpc.InvokeWithCancellationAsync(
+            "openProject",
+            [_token, projectPath],
+            cancellationToken);
     }
 
     private X509Certificate2 GetCertificate()

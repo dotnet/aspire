@@ -211,4 +211,9 @@ internal class ExtensionInteractionService : IInteractionService
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayEmptyLineAsync(_cancellationToken)));
         _consoleInteractionService.DisplayEmptyLine();
     }
+
+    public void OpenNewProject(string projectPath)
+    {
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken)));
+    }
 }

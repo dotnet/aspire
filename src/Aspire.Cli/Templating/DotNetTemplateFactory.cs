@@ -262,7 +262,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
-            return new TemplateResult(ExitCodeConstants.Success);
+            return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }
         catch (OperationCanceledException)
         {
