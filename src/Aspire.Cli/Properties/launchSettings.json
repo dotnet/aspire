@@ -33,6 +33,13 @@
     "exec-add-migration": {
       "commandName": "Project",
       "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 -- dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
+      "environmentVariables": {
+      }
+    },
+    "exec-add-migration-withdb": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
       "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres -- dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
       "environmentVariables": {
       }

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Exec;
 
-internal class ExecutionService
+internal class ExecutionService : IExecutionService
 {
     private readonly ResourceLoggerService _loggerService;
     private readonly ResourceNotificationService _noticationService;
@@ -47,10 +47,10 @@ internal class ExecutionService
         // notification service can be used only from DCP because we need resourceId, not resourceName
         // i am not sure we really need it here unless we need to follow the resource lifetime ???
         // ---------
-        //if (!_noticationService.TryGetCurrentState(_execOptions.ResourceName, out var resourceState))
-        //{ 
-        //    throw new ArgumentException($"Can't find resource with {_execOptions.ResourceName} name.");
-        //}
+        if (!_noticationService.TryGetCurrentState(_execOptions.ResourceName, out var resourceState))
+        {
+            throw new ArgumentException($"Can't find resource with {_execOptions.ResourceName} name.");
+        }
         //if (resourceState.Resource is not IResourceSupportsExec targetExecResource)
         //{
         //    throw new ArgumentException($"Resource {_execOptions.ResourceName} does not support exec.");
@@ -59,7 +59,7 @@ internal class ExecutionService
         var serviceLogger = _loggerService.GetLogger(targetExecResource);
         var execLogger = new ExecLogger(serviceLogger, _logChannel);
 
-        await targetExecResource.ExecuteAsync(_execOptions, logger: execLogger, cancellationToken).ConfigureAwait(false);
+        await targetExecResource.ExecuteAsync(_execOptions, execLogger, cancellationToken).ConfigureAwait(false);
 
         // important: complete the logging here, so clients know there are no more events coming
         execLogger.Complete();

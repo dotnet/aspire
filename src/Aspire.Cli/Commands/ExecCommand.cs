@@ -169,6 +169,9 @@ internal class ExecCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }

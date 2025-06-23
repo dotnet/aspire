@@ -22,11 +22,16 @@ internal class AppHostRpcTarget(
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
-    ExecutionService executionService)
+    IExecutionService executionService)
 {
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await foreach (var (level, text) in executionService.LogChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        if (executionService is not ExecutionService service)
+        {
+            throw new ArgumentException("incorrect setup; does not run in exec mode");
+        }
+
+        await foreach (var (level, text) in service.LogChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
             yield return new CommandOutput
             {

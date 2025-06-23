@@ -23,7 +23,7 @@ internal sealed class ApplicationOrchestrator
     private readonly ResourceNotificationService _notificationService;
     private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
-    private readonly ExecutionService _executionService;
+    private readonly IExecutionService _executionService;
     private readonly IServiceProvider _serviceProvider;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly CancellationTokenSource _shutdownCancellation = new();
@@ -37,7 +37,7 @@ internal sealed class ApplicationOrchestrator
                                    IDistributedApplicationEventing eventing,
                                    IServiceProvider serviceProvider,
                                    DistributedApplicationExecutionContext executionContext,
-                                   ExecutionService executionService)
+                                   IExecutionService executionService)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;

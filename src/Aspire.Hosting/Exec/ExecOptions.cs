@@ -16,6 +16,11 @@ public class ExecOptions
     /// <summary>
     /// 
     /// </summary>
+    public string? Operation { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public required string ResourceName { get; set; }
 
     /// <summary>

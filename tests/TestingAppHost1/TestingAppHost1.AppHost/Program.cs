@@ -36,7 +36,9 @@ var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
 
 if (args.Contains("--add-postgres") && pgsqlDb is not null)
 {
-    webApp.WaitFor(pgsqlDb);
+    webApp
+        .WithReference(pgsqlDb) // injects configuration and has the connection string from pgsql
+        .WaitFor(pgsqlDb);
 }
 
 if (builder.Configuration.GetValue("USE_HTTPS", false))
