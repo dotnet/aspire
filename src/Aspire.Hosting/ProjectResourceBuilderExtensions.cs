@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -395,11 +396,12 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.TargetHost = endpoint.BindingAddress.Host;
+
+                    e.TargetHost = ParseKestrelHost(endpoint.BindingAddress.Host);
 
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
-                    builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
+                    builder.Resource.KestrelEndpointAnnotationHosts[e] = e.TargetHost;
                 },
                 createIfNotExists: true);
             }
@@ -451,7 +453,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(endpointName, e =>
                     {
                         e.Port = bindingAddress.Port;
-                        e.TargetHost = bindingAddress.Host;
+                        e.TargetHost = ParseKestrelHost(bindingAddress.Host);
                         e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
@@ -843,6 +845,26 @@ public static class ProjectResourceBuilderExtensions
                 }
             }
         });
+    }
+
+    private static string ParseKestrelHost(string host)
+    {
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            // If the host is localhost, we set it to null so that it uses the default host
+            return "localhost";
+        }
+        else if (IPAddress.TryParse(host, out var ipAddress))
+        {
+            // If the host is an IP address, we use it as is
+            return ipAddress.ToString();
+        }
+
+        // This is a simplified version of the Asp.NET logic for parsing host URLs
+        // If the host is not localhost or an IP address, it's treated as binding to all
+        // interfaces. In this case, we assume the IPv4 0.0.0.0 address rather than testing
+        // for IPv6 vs. IPv4 support.
+        return "0.0.0.0";
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource

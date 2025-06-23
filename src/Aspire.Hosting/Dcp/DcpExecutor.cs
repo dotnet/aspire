@@ -59,6 +59,18 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
+    private readonly Lazy<string> _hostName = new(() =>
+    {
+        try
+        {
+            return Dns.GetHostName();
+        }
+        catch
+        {
+            return "localhost";
+        }
+    });
+
     // Internal for testing.
     internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
@@ -756,7 +768,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", Dns.GetHostName()).Replace("[::]", Dns.GetHostName()).Replace("+", Dns.GetHostName()).Replace("*", Dns.GetHostName()),
+                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", _hostName.Value).Replace("[::]", _hostName.Value).Replace("::", _hostName.Value),
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
