@@ -3,7 +3,9 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -144,6 +146,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     throw new InvalidOperationException($"Already connected to {Name} backchannel.");
                 }
 
+                while (!Debugger.IsAttached){}
                 logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, endpoint);
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var addressParts = endpoint.Split(':');
@@ -156,7 +159,31 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 await socket.ConnectAsync(addressParts[0], port, cancellationToken);
                 logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, endpoint);
 
-                var stream = new NetworkStream(socket, true);
+                var stream = new SslStream(new NetworkStream(socket, true),
+                    leaveInnerStreamOpen: true,
+                    userCertificateValidationCallback: (_, c, _, e) =>
+                    {
+                        // Server certificate is already considered valid.
+                        if (e == SslPolicyErrors.None)
+                        {
+                            return true;
+                        }
+
+                        if (c == null)
+                        {
+                            return false;
+                        }
+
+                        // Certificate isn't immediately valid. Check if it is the same as the one we expect.
+                        // It's ok that comparison isn't time constant because this is public information.
+                        return GetCertificate().RawData.SequenceEqual(c.GetRawCertData());
+                    });
+
+                await stream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                {
+                    ClientCertificates = [GetCertificate()],
+                }, cancellationToken);
+
                 var rpc = JsonRpc.Attach(stream, target);
 
                 var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
@@ -416,5 +443,13 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result;
+    }
+
+    private X509Certificate2 GetCertificate()
+    {
+        var serverCertificate = configuration[KnownConfigNames.ExtensionCert];
+        Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
+        var data = Convert.FromBase64String(serverCertificate);
+        return new X509Certificate2(data);
     }
 }
