@@ -1,11 +1,13 @@
 ---
 title: PostgreSQL Integration
-next: false
+prev: false
 ---
 
+import InstallPackage from '../../../components/InstallPackage.astro';
+import InstallDotNetPackage from '../../../components/InstallDotNetPackage.astro';
 import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-[PostgreSQL](https://www.postgresql.org/) is a powerful, open source object-relational database system with many years of active development that has earned it a strong reputation for reliability, feature robustness, and performance. The Aspire PostgreSQL integration provides a way to connect to existing PostgreSQL databases, or create new instances from .NET with the [`docker.io/library/postgres` container image](https://hub.docker.com/_/postgres).
+[PostgreSQL](https://www.postgresql.org/) is a powerful, open source object-relational database system with many years of active development that has earned it a strong reputation for reliability, feature robustness, and performance. The Aspire PostgreSQL integration provides a way to connect to existing PostgreSQL databases, or create new instances from the [`docker.io/library/postgres` container image](https://hub.docker.com/_/postgres).
 
 ## Hosting integration
 
@@ -16,18 +18,9 @@ The PostgreSQL hosting integration models various PostgreSQL resources as the fo
 - `PostgresPgAdminContainerResource`
 - `PostgresPgWebContainerResource`
 
-To access these types and APIs for expressing them as resources in your [app host](xref:dotnet/aspire/app-host) project, install the [📦 Aspire.Hosting.PostgreSQL](https://www.nuget.org/packages/Aspire.Hosting.PostgreSQL) NuGet package:
+To access these types and APIs for expressing them as resources in your [AppHost](../get-started/overview.mdx) project, install the [📦 Aspire.Hosting.PostgreSQL](https://www.nuget.org/packages/Aspire.Hosting.PostgreSQL) NuGet package:
 
-<Tabs>
-    <TabItem label="Aspire CLI">
-        <Code language="bash" frame='terminal' code="aspire add integration Aspire.Hosting.PostgreSQL" />
-    </TabItem>
-    <TabItem label="PackageReference">
-        <Code language="xml" code={`
-<PackageReference Include="Aspire.Hosting.PostgreSQL"
-                    Version="*" />`} />
-    </TabItem>
-</Tabs>
+<InstallPackage packageName="Aspire.Hosting.PostgreSQL" shortName="postgresql" />
 
 ### Add PostgreSQL server resource
 
@@ -292,20 +285,11 @@ The hosting integration relies on the [📦 AspNetCore.HealthChecks.Npgsql](http
 
 To get started with the Aspire PostgreSQL client integration, install the [📦 Aspire.Npgsql](https://www.nuget.org/packages/Aspire.Npgsql) NuGet package in the client-consuming project, that is, the project for the application that uses the PostgreSQL client. The PostgreSQL client integration registers an [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) instance that you can use to interact with PostgreSQL.
 
-<Tabs>
-    <TabItem label=".NET CLI">
-        <Code language="bash" frame='terminal' code="aspire add integration Aspire.Npgsql" />
-    </TabItem>
-    <TabItem label="PackageReference">
-        ```xml
-        <PackageReference Include="Aspire.Npgsql" Version="*" />
-        ```
-    </TabItem>
-</Tabs>
+<InstallDotNetPackage packageName="Aspire.Npgsql" />
 
 ### Add Npgsql client
 
-In the _:::no-loc text="Program.cs":::_ file of your client-consuming project, call the `AddNpgsqlDataSource` extension method on any `IHostApplicationBuilder` to register an `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the `Program.cs` file of your client-consuming project, call the `AddNpgsqlDataSource` extension method on any `IHostApplicationBuilder` to register an `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddNpgsqlDataSource(connectionName: "postgresdb");

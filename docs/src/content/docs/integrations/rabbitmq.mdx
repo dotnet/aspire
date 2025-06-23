@@ -1,0 +1,279 @@
+---
+title: RabbitMQ Integration
+next: false
+---
+
+import InstallPackage from '../../../components/InstallPackage.astro';
+import InstallDotNetPackage from '../../../components/InstallDotNetPackage.astro';
+import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+[RabbitMQ](https://www.rabbitmq.com/) is a reliable messaging and streaming broker, which is easy to deploy on cloud environments, on-premises, and on your local machine. The Aspire RabbitMQ integration enables you to connect to existing RabbitMQ instances, or create new instances from the [`docker.io/library/rabbitmq` container image](https://hub.docker.com/_/rabbitmq).
+
+## Hosting integration
+
+The RabbitMQ hosting integration models a RabbitMQ server as the `RabbitMQServerResource` type. To access this type and its APIs add the [📦 Aspire.Hosting.RabbitMQ](https://www.nuget.org/packages/Aspire.Hosting.RabbitMQ) NuGet package in the [AppHost](../get-started/overview.mdx) project.
+
+<InstallPackage packageName="Aspire.Hosting.RabbitMQ" shortName="rabbit" />
+
+### Add RabbitMQ server resource
+
+In your app host project, call `AddRabbitMQ` on the `builder` instance to add a RabbitMQ server resource:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var rabbitmq = builder.AddRabbitMQ("messaging");
+
+builder.AddProject<Projects.ExampleProject>()
+       .WithReference(rabbitmq);
+
+// After adding all resources, run the app...
+```
+<Steps>
+
+1. When Aspire adds a container image to the app host, as shown in the preceding example with the `docker.io/library/rabbitmq` image, it creates a new RabbitMQ server instance on your local machine. A reference to your RabbitMQ server (the `rabbitmq` variable) is added to the `ExampleProject`.
+
+1. The RabbitMQ server resource includes default credentials with a `username` of `"guest"` and randomly generated `password` using the `CreateDefaultPasswordParameter` method.
+
+1. The `WithReference` method configures a connection in the `ExampleProject` named `"messaging"`.
+
+</Steps>
+
+<Aside type="tip">
+    If you'd rather connect to an existing RabbitMQ server, chain a call to `AsExisting` instead—passing the appropriate parameters.
+</Aside>
+
+### Add RabbitMQ server resource with data volume
+
+To add a data volume to the RabbitMQ server resource, call the `WithDataVolume` method on the RabbitMQ server resource:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var rabbitmq = builder.AddRabbitMQ("messaging")
+                      .WithDataVolume(isReadOnly: false);
+
+builder.AddProject<Projects.ExampleProject>()
+        .WithReference(rabbitmq);
+
+// After adding all resources, run the app...
+```
+
+The data volume is used to persist the RabbitMQ server data outside the lifecycle of its container. The data volume is mounted at the `/var/lib/rabbitmq` path in the RabbitMQ server container and when a `name` parameter isn't provided, the name is generated at random. For more information on data volumes and details on why they're preferred over [bind mounts](#add-rabbitmq-server-resource-with-data-bind-mount), see [Docker docs: Volumes](https://docs.docker.com/engine/storage/volumes).
+
+### Add RabbitMQ server resource with data bind mount
+
+To add a data bind mount to the RabbitMQ server resource, call the `WithDataBindMount` method:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var rabbitmq = builder.AddRabbitMQ("messaging")
+                      .WithDataBindMount(
+                          source: @"/RabbitMQ/Data",
+                          isReadOnly: false);
+
+builder.AddProject<Projects.ExampleProject>()
+        .WithReference(rabbitmq);
+
+// After adding all resources, run the app...
+```
+
+<Aside type="note">
+    Data [bind mounts](https://docs.docker.com/engine/storage/bind-mounts/) have limited functionality compared to [volumes](https://docs.docker.com/engine/storage/volumes/), which offer better performance, portability, and security, making them more suitable for production environments. However, bind mounts allow direct access and modification of files on the host system, ideal for development and testing where real-time changes are needed.
+</Aside>
+
+Data bind mounts rely on the host machine's filesystem to persist the RabbitMQ server data across container restarts. The data bind mount is mounted at the `C:\RabbitMQ\Data` on Windows (or `/RabbitMQ/Data` on Unix) path on the host machine in the RabbitMQ server container. For more information on data bind mounts, see [Docker docs: Bind mounts](https://docs.docker.com/engine/storage/bind-mounts).
+
+### Add RabbitMQ server resource with parameters
+
+When you want to explicitly provide the username and password used by the container image, you can provide these credentials as parameters. Consider the following alternative example:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var username = builder.AddParameter("username", secret: true);
+var password = builder.AddParameter("password", secret: true);
+
+var rabbitmq = builder.AddRabbitMQ("messaging", username, password);
+
+builder.AddProject<Projects.ExampleProject>()
+       .WithReference(rabbitmq);
+
+// After adding all resources, run the app...
+```
+
+### Add RabbitMQ server resource with management plugin
+
+To add the [RabbitMQ management plugin](https://www.rabbitmq.com/docs/management) to the RabbitMQ server resource, call the `WithManagementPlugin` method. Remember to use parameters to set the credentials for the container. You'll need these credentials to log into the management plugin:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var username = builder.AddParameter("username", secret: true);
+var password = builder.AddParameter("password", secret: true);
+
+var rabbitmq = builder.AddRabbitMQ("messaging", username, password)
+                      .WithManagementPlugin();
+
+builder.AddProject<Projects.ExampleProject>()
+        .WithReference(rabbitmq);
+
+// After adding all resources, run the app...
+```
+
+The RabbitMQ management plugin provides an HTTP-based API for management and monitoring of your RabbitMQ server. Aspire adds another container image [`docker.io/library/rabbitmq-management`](https://hub.docker.com/_/rabbitmq) to the app host that runs the management plugin. You can access the management plugin from the Aspire dashboard by selecting an endpoint for your RabbitMQ resource:
+
+![The Aspire dashboard interface displays a list of resources with RabbitMQ selected. The right panel shows endpoints including a link labeled Management Plugin. The environment is a web-based dashboard with a clean, organized layout. Visible text includes Management Plugin and other resource names. The tone is neutral and informative, focusing on guiding users to access the RabbitMQ management plugin.](../../../assets/integrations/rabbitmq/dashboard-access-rabbitmq-management.png)
+
+Log into the management plugin using the credentials you configured with parameters:
+
+![RabbitMQ management plugin dashboard showing an overview of queues, exchanges, and connections. The interface displays navigation tabs for Overview, Connections, Channels, Exchanges, Queues, Admin, and a search bar. Visible text includes RabbitMQ Management, Overview, Queues, Exchanges, and Connections. The environment is a web-based dashboard with a clean and organized layout. The tone is neutral and informative, focusing on providing management and monitoring information for RabbitMQ.](../../../assets/integrations/rabbitmq/rabbitmq-management-plugin.png)
+
+### Hosting integration health checks
+
+The RabbitMQ hosting integration automatically adds a health check for the RabbitMQ server resource. The health check verifies that the RabbitMQ server is running and that a connection can be established to it.
+
+The hosting integration relies on the [📦 AspNetCore.HealthChecks.Rabbitmq](https://www.nuget.org/packages/AspNetCore.HealthChecks.Rabbitmq) NuGet package.
+
+## Client integration
+
+To get started with the Aspire RabbitMQ client integration, install the [📦 Aspire.RabbitMQ.Client](https://www.nuget.org/packages/Aspire.RabbitMQ.Client) NuGet package in the client-consuming project, that is, the project for the application that uses the RabbitMQ client. The RabbitMQ client integration registers an [IConnection](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnection.html) instance that you can use to interact with RabbitMQ.
+
+<InstallDotNetPackage packageName="Aspire.RabbitMQ.Client" />
+
+<Aside type="note">
+    The `Aspire.RabbitMQ.Client` NuGet package depends on the `RabbitMQ.Client` NuGet package. With the release of version 7.0.0 of `RabbitMQ.Client`, a binary breaking change was introduced. To address this, a new client integration package, `Aspire.RabbitMQ.Client.v7`, was created. The original `Aspire.RabbitMQ.Client` package continues to reference `RabbitMQ.Client` version 6.8.1, ensuring compatibility with previous versions of the RabbitMQ client integration. The new `Aspire.RabbitMQ.Client.v7` package references `RabbitMQ.Client` version 7.0.0. In a future version of Aspire, the `Aspire.RabbitMQ.Client` will be updated to version `7.x` and the `Aspire.RabbitMQ.Client.v7` package will be deprecated. For more information, see [Migrating to RabbitMQ .NET Client 7.x](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/main/v7-MIGRATION.md).
+</Aside>
+
+### Add RabbitMQ client
+
+In the `Program.cs` file of your client-consuming project, call the `AddRabbitMQClient` extension method on any `IHostApplicationBuilder` to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
+
+```csharp
+builder.AddRabbitMQClient(connectionName: "messaging");
+```
+
+<Aside type="tip">
+    The `connectionName` parameter must match the name used when adding the RabbitMQ server resource in the app host project. For more information, see [Add RabbitMQ server resource](#add-rabbitmq-server-resource).
+</Aside>
+
+You can then retrieve the `IConnection` instance using dependency injection. For example, to retrieve the connection from an example service:
+
+```csharp
+public class ExampleService(IConnection connection)
+{
+    // Use connection...
+}
+```
+
+### Add keyed RabbitMQ client
+
+There might be situations where you want to register multiple `IConnection` instances with different connection names. To register keyed RabbitMQ clients, call the `AddKeyedRabbitMQClient` method:
+
+```csharp
+builder.AddKeyedRabbitMQClient(name: "chat");
+builder.AddKeyedRabbitMQClient(name: "queue");
+```
+
+Then you can retrieve the `IConnection` instances using dependency injection. For example, to retrieve the connection from an example service:
+
+```csharp
+public class ExampleService(
+    [FromKeyedServices("chat")] IConnection chatConnection,
+    [FromKeyedServices("queue")] IConnection queueConnection)
+{
+    // Use connections...
+}
+```
+
+### Configuration
+
+The Aspire RabbitMQ integration provides multiple options to configure the connection based on the requirements and conventions of your project.
+
+#### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling the `AddRabbitMQClient` method:
+
+```csharp
+builder.AddRabbitMQClient(connectionName: "messaging");
+```
+
+Then the connection string is retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "messaging": "amqp://username:password@localhost:5672"
+  }
+}
+```
+
+For more information on how to format this connection string, see the [RabbitMQ URI specification docs](https://www.rabbitmq.com/uri-spec.html).
+
+#### Use configuration providers
+
+The Aspire RabbitMQ integration supports `Configuration`. It loads the `RabbitMQClientSettings` from configuration by using the `Aspire:RabbitMQ:Client` key. The following snippet is an example of a _:::no-loc text="appsettings.json":::_ file that configures some of the options:
+
+```json
+{
+  "Aspire": {
+    "RabbitMQ": {
+      "Client": {
+        "ConnectionString": "amqp://username:password@localhost:5672",
+        "DisableHealthChecks": true,
+        "DisableTracing": true,
+        "MaxConnectRetryCount": 2
+      }
+    }
+  }
+}
+```
+
+For the complete RabbitMQ client integration JSON schema, see [Aspire.RabbitMQ.Client/ConfigurationSchema.json](https://github.com/dotnet/aspire/blob/v9.1.0/src/Components/Aspire.RabbitMQ.Client/ConfigurationSchema.json).
+
+#### Use inline delegates
+
+Also you can pass the `Action<RabbitMQClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
+
+```csharp
+builder.AddRabbitMQClient(
+    "messaging",
+    static settings => settings.DisableHealthChecks = true);
+```
+
+You can also set up the [IConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnectionFactory.html) using the `Action<IConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQClient` method. For example to set the client provided name for connections:
+
+```csharp
+builder.AddRabbitMQClient(
+    "messaging",
+    configureConnectionFactory:
+        static factory => factory.ClientProvidedName = "MyApp");
+```
+
+### Client integration health checks
+
+By default, Aspire integrations enable health checks for all services. The Aspire RabbitMQ integration:
+
+- Adds the health check when `DisableHealthChecks?displayProperty=nameWithType` is `false`, which attempts to connect to and create a channel on the RabbitMQ server.
+- Integrates with the `/health` HTTP endpoint, which specifies all registered health checks must pass for app to be considered ready to accept traffic.
+
+### Observability and telemetry
+
+Aspire integrations automatically set up Logging, Tracing, and Metrics configurations, which are sometimes known as *the pillars of observability*. Depending on the backing service, some integrations might only support some of these features. For example, some integrations support logging and tracing, but not metrics. Telemetry features can also be disabled using the techniques presented in the [Configuration](#configuration) section.
+
+#### Logging
+
+The Aspire RabbitMQ integration uses the following log categories:
+
+- `RabbitMQ.Client`
+
+#### Tracing
+
+The Aspire RabbitMQ integration emits the following tracing activities using OpenTelemetry:
+
+- `Aspire.RabbitMQ.Client`
+
+#### Metrics
+
+The Aspire RabbitMQ integration currently doesn't support metrics by default.

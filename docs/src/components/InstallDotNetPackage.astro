@@ -1,0 +1,25 @@
+---
+import { Code, TabItem, Tabs } from '@astrojs/starlight/components';
+
+export interface Props {
+    packageName: string;
+}
+
+const { packageName } = Astro.props;
+
+const cliCommandTitle = `.NET CLI command to install ${packageName} package`;
+const cliCode = `dotnet add package ${packageName}`;
+
+const packageReferenceTitle = `Add ${packageName} package reference`;
+const packageCode = `<PackageReference Include="${packageName}"
+                  Version="*" />`;
+---
+
+<Tabs>
+    <TabItem label=".NET CLI">
+        <Code lang="bash" frame='terminal' title={cliCommandTitle} code={cliCode} />
+    </TabItem>
+    <TabItem label="PackageReference">
+        <Code lang="xml" title={packageReferenceTitle} code={packageCode} />
+    </TabItem>
+</Tabs>

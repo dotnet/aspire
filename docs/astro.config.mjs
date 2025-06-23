@@ -113,6 +113,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Gallery', slug: 'integrations/gallery' },
 						{ label: 'PostgreSQL', slug: 'integrations/postgres' },
+						{ label: 'RabbitMQ', slug: 'integrations/rabbitmq' },
 					],
 				},
 				{

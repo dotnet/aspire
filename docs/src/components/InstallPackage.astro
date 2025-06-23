@@ -1,0 +1,35 @@
+---
+import { Aside, Code, TabItem, Tabs } from '@astrojs/starlight/components';
+
+export interface Props {
+    packageName: string;
+    shortName: string;
+}
+
+const { packageName, shortName } = Astro.props;
+
+const cliCommandTitle = `Aspire CLI command to install ${packageName} package`;
+const cliCode = `aspire add ${shortName}`;
+const cliPromptCode = `Select an integration to add:
+
+> ${shortName} (${packageName})
+> Other results listed as selectable options...`;
+
+const packageReferenceTitle = `Add ${packageName} package reference`;
+const packageCode = `<PackageReference Include="${packageName}"
+                  Version="*" />`;
+---
+
+<Tabs>
+    <TabItem label="Aspire CLI">
+        <Code lang="bash" frame='terminal' title={cliCommandTitle} code={cliCode} />
+        <p>The Aspire CLI is interactive, be sure to select the appropriate search result when prompted:</p>
+        <Code lang="bash" frame='none' code={cliPromptCode} />
+        <Aside type="note">
+            If there's only one result, the CLI selects it automatically. You'll still need to confirm the version.
+        </Aside>
+    </TabItem>
+    <TabItem label="PackageReference">
+        <Code lang="xml" title={packageReferenceTitle} code={packageCode} />
+    </TabItem>
+</Tabs>

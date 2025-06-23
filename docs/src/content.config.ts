@@ -6,7 +6,19 @@ export const collections = {
 	docs: defineCollection({
 		loader: docsLoader(),
 		schema: docsSchema(
-			{ extend: z.object({ renderBlocking: z.string().optional() }) }
+			{
+				extend: ({ image }) => z.object({
+					renderBlocking: z.string().optional(),
+					category: z.enum([
+						'conceptual',
+						'quickstart',
+						'tutorial',
+						'blog',
+						'reference',
+						'sample'
+					]).optional(),
+				})
+			}
 		)
 	}),
 };
