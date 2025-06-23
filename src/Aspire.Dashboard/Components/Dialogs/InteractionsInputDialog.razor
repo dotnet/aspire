@@ -49,7 +49,7 @@
                                           Label="@localItem.Input.Label"
                                           Placeholder="@localItem.Input.Placeholder"
                                           Required="localItem.Input.Required"
-                                          Items="localItem.Input.Options.Select(o => new SelectViewModel<string> { Id = o.Key, Name = o.Value })"
+                                          Items="localItem.SelectOptions"
                                           OptionValue="@(vm => vm.Id)"
                                           OptionText="@(vm => vm.Name)"
                                           Height="250px"

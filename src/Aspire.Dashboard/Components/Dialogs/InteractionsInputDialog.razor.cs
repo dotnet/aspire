@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.ResourceService.Proto.V1;
 using Microsoft.AspNetCore.Components;
@@ -9,31 +8,6 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
-
-public class InputDialogInputViewModel
-{
-    public required InteractionInput Input { get; set; }
-
-    public string? Value
-    {
-        get => Input.Value;
-        set => Input.Value = value;
-    }
-
-    // Used when binding to FluentCheckbox.
-    public bool IsChecked
-    {
-        get => bool.TryParse(Input.Value, out var result) && result;
-        set => Input.Value = value ? "true" : "false";
-    }
-
-    // Used when binding to FluentNumberField.
-    public int? NumberValue
-    {
-        get => int.TryParse(Input.Value, CultureInfo.InvariantCulture, out var result) ? result : null;
-        set => Input.Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-    }
-}
 
 public partial class InteractionsInputDialog
 {
@@ -46,7 +20,7 @@ public partial class InteractionsInputDialog
     private InteractionsInputsDialogViewModel? _content;
     private EditContext _editContext = default!;
     private ValidationMessageStore _validationMessages = default!;
-    private List<InputDialogInputViewModel> _inputDialogInputViewModels = default!;
+    private List<InputViewModel> _inputDialogInputViewModels = default!;
 
     protected override void OnInitialized()
     {
@@ -62,7 +36,7 @@ public partial class InteractionsInputDialog
         if (_content != Content)
         {
             _content = Content;
-            _inputDialogInputViewModels = Content.Inputs.Select(input => new InputDialogInputViewModel { Input = input }).ToList();
+            _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
 
             Content.OnInteractionUpdated = async () =>
             {
@@ -71,7 +45,7 @@ public partial class InteractionsInputDialog
                     var inputModel = Content.Inputs[i];
                     var inputViewModel = _inputDialogInputViewModels[i];
 
-                    inputViewModel.Input = inputModel;
+                    inputViewModel.SetInput(inputModel);
 
                     var field = GetFieldIdentifier(inputViewModel);
                     foreach (var validationError in inputModel.ValidationErrors)
@@ -105,7 +79,7 @@ public partial class InteractionsInputDialog
     {
         _validationMessages.Clear(field);
 
-        if (field.Model is InputDialogInputViewModel inputModel)
+        if (field.Model is InputViewModel inputModel)
         {
             if (IsMissingRequiredValue(inputModel))
             {
@@ -116,7 +90,7 @@ public partial class InteractionsInputDialog
         _editContext.NotifyValidationStateChanged();
     }
 
-    private static FieldIdentifier GetFieldIdentifier(InputDialogInputViewModel inputModel)
+    private static FieldIdentifier GetFieldIdentifier(InputViewModel inputModel)
     {
         var fieldName = inputModel.Input.InputType switch
         {
@@ -127,7 +101,7 @@ public partial class InteractionsInputDialog
         return new FieldIdentifier(inputModel, fieldName);
     }
 
-    private static bool IsMissingRequiredValue(InputDialogInputViewModel inputModel)
+    private static bool IsMissingRequiredValue(InputViewModel inputModel)
     {
         return inputModel.Input.Required &&
             inputModel.Input.InputType != InputType.Checkbox &&
