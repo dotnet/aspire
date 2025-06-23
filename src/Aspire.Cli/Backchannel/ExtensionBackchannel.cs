@@ -146,7 +146,6 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     throw new InvalidOperationException($"Already connected to {Name} backchannel.");
                 }
 
-                while (!Debugger.IsAttached){}
                 logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, endpoint);
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var addressParts = endpoint.Split(':');
