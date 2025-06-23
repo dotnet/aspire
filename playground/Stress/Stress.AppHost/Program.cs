@@ -180,7 +180,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
            var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
 
-           var input = result.Data!;
+           var input = result.Data;
            logger.LogInformation("Input: {Label} = {Value}", input.Label, input.Value);
 
            return CommandResults.Success();
@@ -224,7 +224,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
            var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
 
-           foreach (var updatedInput in result.Data!)
+           foreach (var updatedInput in result.Data)
            {
                logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
            }

@@ -29,6 +29,20 @@ public class SelectViewModel<T> : IEquatable<SelectViewModel<T>>
         return EqualityComparer<T>.Default.Equals(Id, other.Id);
     }
 
+    public override bool Equals(object? obj)
+    {
+        if (obj is SelectViewModel<T> other)
+        {
+            return Equals(other);
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, Id);
+    }
+
     public override string ToString()
     {
         return $"Name = {Name}, Id = {{{Id}}}";

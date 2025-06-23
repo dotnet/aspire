@@ -25,11 +25,20 @@ public class InteractionService
     private readonly object _onInteractionUpdatedLock = new();
     private readonly InteractionCollection _interactionCollection = new();
     private readonly ILogger<InteractionService> _logger;
+    private readonly DistributedApplicationOptions _distributedApplicationOptions;
 
-    internal InteractionService(ILogger<InteractionService> logger)
+    internal InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions)
     {
         _logger = logger;
+        _distributedApplicationOptions = distributedApplicationOptions;
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the interaction service is available. If <c>false</c>,
+    /// this service is not available to interact with the user and service methods will throw
+    /// an exception.
+    /// </summary>
+    public bool IsAvailable => !_distributedApplicationOptions.DisableDashboard;
 
     /// <summary>
     /// Prompts the user for confirmation with a dialog.
@@ -45,8 +54,8 @@ public class InteractionService
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
         options.Intent = MessageIntent.Confirmation;
-        options.ShowDismiss = false;
-        options.ShowSecondaryButton = true;
+        options.ShowDismiss ??= false;
+        options.ShowSecondaryButton ??= true;
 
         return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
     }
@@ -64,18 +73,20 @@ public class InteractionService
     public async Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= MessageBoxInteractionOptions.CreateDefault();
-        options.ShowSecondaryButton = false;
-        options.ShowDismiss = false;
+        options.ShowSecondaryButton ??= false;
+        options.ShowDismiss ??= false;
 
         return await PromptMessageBoxCoreAsync(title, message, options, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<InteractionResult<bool>> PromptMessageBoxCoreAsync(string title, string message, MessageBoxInteractionOptions options, CancellationToken cancellationToken)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= MessageBoxInteractionOptions.CreateDefault();
-        options.ShowDismiss = false;
+        options.ShowDismiss ??= false;
 
         var newState = new Interaction(title, message, options, new Interaction.MessageBoxInteractionInfo(intent: options.Intent ?? MessageIntent.None), cancellationToken);
         AddInteractionUpdate(newState);
@@ -124,7 +135,7 @@ public class InteractionService
             return InteractionResultFactory.Cancel<InteractionInput>();
         }
 
-        return InteractionResultFactory.Ok(result.Data![0]);
+        return InteractionResultFactory.Ok(result.Data[0]);
     }
 
     /// <summary>
@@ -140,6 +151,8 @@ public class InteractionService
     /// </returns>
     public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IEnumerable<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         var inputList = inputs.ToList();
@@ -168,6 +181,8 @@ public class InteractionService
     /// </returns>
     public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
+        EnsureServiceAvailable();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= MessageBoxInteractionOptions.CreateDefault();
@@ -293,6 +308,14 @@ public class InteractionService
             channel.Writer.TryComplete();
         }
     }
+
+    private void EnsureServiceAvailable()
+    {
+        if (!IsAvailable)
+        {
+            throw new InvalidOperationException($"InteractionService is not available because the dashboard is not enabled. Use the {nameof(IsAvailable)} property to determine whether the service is available.");
+        }
+    }
 }
 
 internal class InteractionCollection : KeyedCollection<int, Interaction>
@@ -314,6 +337,7 @@ public class InteractionResult<T>
     /// <summary>
     /// 
     /// </summary>
+    [MemberNotNullWhen(false, nameof(Data))]
     public bool Canceled { get; }
 
     internal InteractionResult(T? data, bool canceled)
@@ -493,19 +517,19 @@ public class InteractionOptions
     public string? SecondaryButtonText { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether show the secondary button. Defaults to <c>true</c>.
+    /// Gets or sets a value indicating whether show the secondary button.
     /// </summary>
-    public bool ShowSecondaryButton { get; set; } = true;
+    public bool? ShowSecondaryButton { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
-    public bool ShowDismiss { get; set; } = true;
+    public bool? ShowDismiss { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether to escape HTML in the message content. Defaults to <c>true</c>.
     /// </summary>
-    public bool EscapeMessageHtml { get; set; } = true;
+    public bool? EscapeMessageHtml { get; set; } = true;
 }
 
 [DebuggerDisplay("State = {State}, Canceled = {Canceled}")]
@@ -534,7 +558,7 @@ internal class Interaction
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
-        Message = options.EscapeMessageHtml ? WebUtility.HtmlEncode(message) : message;
+        Message = options.EscapeMessageHtml == false ? message : WebUtility.HtmlEncode(message);
         Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;
