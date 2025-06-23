@@ -13,6 +13,7 @@ internal interface INuGetPackageCache
 {
     Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
     Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry) : INuGetPackageCache
@@ -35,6 +36,20 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
     public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", prerelease, source, cancellationToken);
+    }
+
+    public async Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    {
+        var key = $"CliPackages-{workingDirectory.FullName}-{prerelease}-{source}";
+
+        var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
+        {
+            // Set cache expiration to 1 hour for CLI updates
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            return await GetPackagesAsync(workingDirectory, "Aspire.Cli", prerelease, source, cancellationToken);
+        }) ?? [];
+
+        return packages;
     }
 
     internal async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, string? source, CancellationToken cancellationToken)

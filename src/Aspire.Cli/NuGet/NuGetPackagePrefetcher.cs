@@ -15,6 +15,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         {
             try
             {
+                // Prefetch template packages
                 await nuGetPackageCache.GetTemplatePackagesAsync(
                     workingDirectory: currentDirectory,
                     prerelease: true,
@@ -28,6 +29,24 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                 // This prefetching is best effort. If it fails we log (above) and then the
                 // background service will exit gracefully. Code paths that depend on this
                 // data will handle the absence of pre-fetched packages gracefully.
+            }
+        }, stoppingToken);
+
+        // Also prefetch CLI packages for update notifications
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await nuGetPackageCache.GetCliPackagesAsync(
+                    workingDirectory: currentDirectory,
+                    prerelease: true,
+                    source: null,
+                    cancellationToken: stoppingToken
+                    );
+            }
+            catch (System.Exception ex)
+            {
+                logger.LogDebug(ex, "Non-fatal error while prefetching CLI packages. This is not critical to the operation of the CLI.");
             }
         }, stoppingToken);
 
