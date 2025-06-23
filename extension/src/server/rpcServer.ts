@@ -2,7 +2,7 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError } from '../constants/strings';
+import { rpcServerAddressError, rpcServerListening } from '../constants/strings';
 import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
@@ -56,7 +56,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 const fullAddress = (addressInfo.address === "::" ? "localhost" : `${addressInfo.address}`) + ":" + addressInfo.port;
-                outputChannelWriter.appendLine(`Aspire extension server listening on: ${fullAddress}`);
+                outputChannelWriter.appendLine(rpcServerListening(fullAddress));
                 resolve({
                     token: token,
                     server: rpcServer,

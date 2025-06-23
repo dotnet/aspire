@@ -8,6 +8,7 @@ export async function addCommand() {
     }
 
     const terminal = getAspireTerminal();
+    
     terminal.sendText(`aspire add`);
     terminal.show();
 }

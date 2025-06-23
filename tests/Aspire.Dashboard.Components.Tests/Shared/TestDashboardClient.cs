@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
+using Aspire.ResourceService.Proto.V1;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
 
@@ -86,5 +87,15 @@ public class TestDashboardClient : IDashboardClient
                 yield return item;
             }
         }
+    }
+
+    public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

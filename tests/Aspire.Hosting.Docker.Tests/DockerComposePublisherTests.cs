@@ -480,6 +480,12 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
+
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+        {
+            BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class TestProject : IProjectMetadata

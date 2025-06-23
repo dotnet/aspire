@@ -3,6 +3,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
@@ -113,7 +116,121 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                await ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-start", c.CancellationToken);
                return CommandResults.Success();
            },
-           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled });
+           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled })
+       .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning }, cancellationToken: commandContext.CancellationToken);
+
+           await Task.WhenAll(resultTask1, resultTask2);
+
+           if (resultTask1.Result.Data != true || resultTask2.Result.Data != true)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           _ = interactionService.PromptMessageBoxAsync("Command executed", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, PrimaryButtonText = "Yeah!" });
+           return CommandResults.Success();
+       })
+       .WithCommand("messagebar-interaction", "Messagebar interactions", executeCommand: async commandContext =>
+       {
+           await Task.Yield();
+
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information });
+           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning });
+           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Error });
+           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Confirmation });
+           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
+
+           return CommandResults.Success();
+       })
+       .WithCommand("html-interaction", "HTML interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+
+           _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+
+           _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
+           _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { EscapeMessageHtml = false });
+
+           return CommandResults.Success();
+       })
+       .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var result = await interactionService.PromptInputAsync(
+               title: "Text request",
+               message: "Provide your name",
+               inputLabel: "Name",
+               placeHolder: "Enter your name",
+               cancellationToken: commandContext.CancellationToken);
+
+           if (result.Canceled)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+           var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+           var input = result.Data!;
+           logger.LogInformation("Input: {Label} = {Value}", input.Label, input.Value);
+
+           return CommandResults.Success();
+       })
+       .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
+       {
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var inputs = new List<InteractionInput>
+           {
+               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
+               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
+               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options =
+               [
+                   KeyValuePair.Create("pizza", "Pizza"),
+                   KeyValuePair.Create("fried-chicken", "Fried chicken"),
+                   KeyValuePair.Create("burger", "Burger"),
+                   KeyValuePair.Create("salmon", "Salmon"),
+                   KeyValuePair.Create("chicken-pie", "Chicken pie"),
+                   KeyValuePair.Create("sushi", "Sushi"),
+                   KeyValuePair.Create("tacos", "Tacos"),
+                   KeyValuePair.Create("pasta", "Pasta"),
+                   KeyValuePair.Create("salad", "Salad"),
+                   KeyValuePair.Create("steak", "Steak"),
+                   KeyValuePair.Create("vegetarian", "Vegetarian"),
+                   KeyValuePair.Create("sausage", "Sausage"),
+                   KeyValuePair.Create("lasagne", "Lasagne"),
+                   KeyValuePair.Create("fish-pie", "Fish pie"),
+                   KeyValuePair.Create("soup", "Soup"),
+                   KeyValuePair.Create("beef-stew", "Beef stew"),
+               ] },
+               new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
+               new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
+           };
+           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, cancellationToken: commandContext.CancellationToken);
+
+           if (result.Canceled)
+           {
+               return CommandResults.Failure("Canceled");
+           }
+
+           var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+           var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+           foreach (var updatedInput in result.Data!)
+           {
+               logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+           }
+
+           return CommandResults.Success();
+       });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -158,3 +275,5 @@ static async Task ExecuteCommandForAllResourcesAsync(IServiceProvider servicePro
     }
     await Task.WhenAll(commandTasks).ConfigureAwait(false);
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

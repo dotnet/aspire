@@ -7,6 +7,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static Aspire.Hosting.ApplicationModel.Interaction;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -50,6 +51,162 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             };
         }
     }
+
+    public override async Task WatchInteractions(IAsyncStreamReader<WatchInteractionsRequestUpdate> requestStream, IServerStreamWriter<WatchInteractionsResponseUpdate> responseStream, ServerCallContext context)
+    {
+        await ExecuteAsync(
+            WatchInteractionsInternal,
+            context).ConfigureAwait(false);
+
+        async Task WatchInteractionsInternal(CancellationToken cancellationToken)
+        {
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var updates = serviceData.SubscribeInteractionUpdates();
+
+            // Send
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach (var interaction in updates.WithCancellation(cts.Token).ConfigureAwait(false))
+                    {
+                        var change = new WatchInteractionsResponseUpdate();
+                        change.InteractionId = interaction.InteractionId;
+                        change.Title = interaction.Title;
+                        if (interaction.Message != null)
+                        {
+                            change.Message = interaction.Message;
+                        }
+                        if (interaction.Options.PrimaryButtonText != null)
+                        {
+                            change.PrimaryButtonText = interaction.Options.PrimaryButtonText;
+                        }
+                        if (interaction.Options.SecondaryButtonText != null)
+                        {
+                            change.SecondaryButtonText = interaction.Options.SecondaryButtonText;
+                        }
+                        change.ShowDismiss = interaction.Options.ShowDismiss;
+                        change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton;
+
+                        if (interaction.State == InteractionState.Complete)
+                        {
+                            change.Complete = new InteractionComplete();
+                        }
+                        else if (interaction.InteractionInfo is MessageBoxInteractionInfo messageBox)
+                        {
+                            change.MessageBox = new InteractionMessageBox();
+                            change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
+                        }
+                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        {
+                            change.MessageBar = new InteractionMessageBar();
+                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
+                        }
+                        else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
+                        {
+                            change.InputsDialog = new InteractionInputsDialog();
+
+                            var inputInstances = inputs.Inputs.Select(input =>
+                            {
+                                var dto = new InteractionInput
+                                {
+                                    InputType = MapInputType(input.InputType),
+                                    Required = input.Required
+                                };
+                                if (input.Label != null)
+                                {
+                                    dto.Label = input.Label;
+                                }
+                                if (input.Placeholder != null)
+                                {
+                                    dto.Placeholder = input.Placeholder;
+                                }
+                                if (input.Value != null)
+                                {
+                                    dto.Value = input.Value;
+                                }
+                                if (input.Options != null)
+                                {
+                                    dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                return dto;
+                            }).ToList();
+                            change.InputsDialog.InputItems.AddRange(inputInstances);
+                        }
+
+                        await responseStream.WriteAsync(change, cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "Error while watching interactions.");
+                }
+                finally
+                {
+                    cts.Cancel();
+                }
+            }, cts.Token);
+
+            // Receive
+            try
+            {
+                await foreach (var request in requestStream.ReadAllAsync(cts.Token).ConfigureAwait(false))
+                {
+                    await serviceData.SendInteractionRequestAsync(request).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                // Ensure the write task is cancelled if we exit the loop.
+                cts.Cancel();
+            }
+        }
+    }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private static MessageIntent MapMessageIntent(ApplicationModel.MessageIntent? intent)
+    {
+        if (intent is null)
+        {
+            return MessageIntent.None;
+        }
+
+        switch (intent.Value)
+        {
+            case ApplicationModel.MessageIntent.Success:
+                return MessageIntent.Success;
+            case ApplicationModel.MessageIntent.Warning:
+                return MessageIntent.Warning;
+            case ApplicationModel.MessageIntent.Error:
+                return MessageIntent.Error;
+            case ApplicationModel.MessageIntent.Information:
+                return MessageIntent.Information;
+            case ApplicationModel.MessageIntent.Confirmation:
+                return MessageIntent.Confirmation;
+            default:
+                return MessageIntent.None;
+        }
+    }
+
+    private static InputType MapInputType(ApplicationModel.InputType inputType)
+    {
+        switch (inputType)
+        {
+            case ApplicationModel.InputType.Text:
+                return InputType.Text;
+            case ApplicationModel.InputType.Password:
+                return InputType.Password;
+            case ApplicationModel.InputType.Select:
+                return InputType.Select;
+            case ApplicationModel.InputType.Checkbox:
+                return InputType.Checkbox;
+            case ApplicationModel.InputType.Number:
+                return InputType.Number;
+            default:
+                throw new InvalidOperationException($"Unexpected input type: {inputType}");
+        }
+    }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(
         WatchResourcesRequest request,
@@ -196,7 +353,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error executing service method '{serverCallContext.Method}'.");
+            logger.LogError(ex, "Error executing service method '{Method}'.", serverCallContext.Method);
             throw;
         }
     }

@@ -33,11 +33,11 @@ param certificateName string
 
 param customDomain string
 
-resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource account_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: account_kv_outputs_name
 }
 
-resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource account_kv_outputs_name_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--account'
   parent: account_kv_outputs_name_kv
 }

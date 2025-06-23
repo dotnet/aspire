@@ -28,7 +28,7 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
-    "publish-manifest": {
+    "generate-manifest": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
