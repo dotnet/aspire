@@ -14,5 +14,5 @@ const emojiMap: { [key: string]: string } = {
 };
 
 export function formatText(str: string): string {
-  return str.replace(/:\w+:/g, match => emojiMap[match] || match);
+  return str.replace(/:[a-z]+(?:_[a-z]+)*:/g, match => emojiMap[match] || match);
 }
