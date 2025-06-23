@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.ResourceService.Proto.V1;
 using Microsoft.AspNetCore.Components;
@@ -18,15 +19,19 @@ public class InputDialogInputViewModel
         get => Input.Value;
         set => Input.Value = value;
     }
-    public int? NumberValue
-    {
-        get => Input.NumberValue;
-        set => Input.NumberValue = value;
-    }
+
+    // Used when binding to FluentCheckbox.
     public bool IsChecked
     {
-        get => Input.IsChecked;
-        set => Input.IsChecked = value;
+        get => bool.TryParse(Input.Value, out var result) && result;
+        set => Input.Value = value ? "true" : "false";
+    }
+
+    // Used when binding to FluentNumberField.
+    public int? NumberValue
+    {
+        get => int.TryParse(Input.Value, CultureInfo.InvariantCulture, out var result) ? result : null;
+        set => Input.Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }
 

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -200,11 +201,13 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
-           var inputs = new List<InteractionInput>
+           var dinnerInput = new InteractionInput
            {
-               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
-               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
-               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options =
+               InputType = InputType.Select,
+               Label = "Dinner",
+               Placeholder = "Select dinner",
+               Required = true,
+               Options =
                [
                    KeyValuePair.Create("pizza", "Pizza"),
                    KeyValuePair.Create("fried-chicken", "Fried chicken"),
@@ -222,11 +225,33 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                    KeyValuePair.Create("fish-pie", "Fish pie"),
                    KeyValuePair.Create("soup", "Soup"),
                    KeyValuePair.Create("beef-stew", "Beef stew"),
-               ] },
-               new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
+               ]
+           };
+           var numberOfPeopleInput = new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
+           var inputs = new List<InteractionInput>
+           {
+               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
+               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
+               dinnerInput,
+               numberOfPeopleInput,
                new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };
-           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, cancellationToken: commandContext.CancellationToken);
+           var result = await interactionService.PromptInputsAsync(
+               "Input request",
+               "Provide your name",
+               inputs,
+               options: new InputsDialogInteractionOptions
+               {
+                   ValidationCallback = context =>
+                   {
+                       if (dinnerInput.Value == "steak" && int.TryParse(numberOfPeopleInput.Value, CultureInfo.InvariantCulture, out var i) && i > 4)
+                       {
+                           context.AddValidationError(numberOfPeopleInput, "Number of people can't be greater than 4 when eating steak.");
+                       }
+                       return Task.CompletedTask;
+                   }
+               },
+               cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)
            {
