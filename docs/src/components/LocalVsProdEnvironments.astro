@@ -198,7 +198,7 @@ import { Code } from '@astrojs/starlight/components';
         z-index: 5;
         transition: all 0.3s ease-in-out;
         border: 1px solid var(--sl-color-gray-3);
-        box-shadow: var(--sl-shadow-sm);
+        box-shadow: var(--sl-shadow-md);
     }
 
     .prod-view.orbit-node {
@@ -211,11 +211,13 @@ import { Code } from '@astrojs/starlight/components';
 
     .service-name {
         font-size: var(--sl-text-xl);
+        font-weight: 600;
         white-space: nowrap;
     }
 
     .service-type {
         font-size: var(--sl-text-sm);
+        font-weight: 550;
         margin-top: 0.25rem;
         white-space: nowrap;
     }
@@ -278,7 +280,7 @@ import { Code } from '@astrojs/starlight/components';
 
     .toggle-container {
         display: inline-flex;
-        background: var(--sl-color-gray-5);
+        background: var(--sl-color-gray-6);
         padding: 0.5rem;
         border: 1px solid var(--sl-color-gray-4);
         border-radius: 2rem;
@@ -290,7 +292,7 @@ import { Code } from '@astrojs/starlight/components';
     .toggle-btn { 
         padding: 0.5rem 1.5rem;
         border-radius: 1.5rem;
-        border: 1px solid var(--sl-color-gray-5);
+        border: 1px solid var(--sl-color-gray-6);
         background: transparent;
         font-weight: 600;
         cursor: pointer;
@@ -302,7 +304,7 @@ import { Code } from '@astrojs/starlight/components';
     }
 
     .toggle-btn:hover:not(.active) {
-        background: var(--sl-color-gray-6);
+        background: var(--sl-color-gray-5);
     }
 
     .toggle-btn.active {

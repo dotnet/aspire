@@ -1,0 +1,81 @@
+---
+import go from '../assets/icons/go.svg';
+import python from '../assets/icons/python.svg';
+import javascript from '../assets/icons/javascript.svg';
+import typescript from '../assets/icons/typescript.svg';
+import java from '../assets/icons/java.svg';
+import csharp from '../assets/icons/csharp.svg';
+import ruby from '../assets/icons/ruby.svg';
+import php from '../assets/icons/php.svg';
+
+const languages = [
+    { name: "Go", icon: go, },
+    { name: "Python", icon: python },
+    { name: "JavaScript", icon: javascript },
+    { name: "TypeScript", icon: typescript },
+    { name: "Java", icon: java },
+    { name: "C#", icon: csharp },
+    { name: "Ruby", icon: ruby },
+    { name: "PHP", icon: php },
+];
+
+function shuffle<T>(array: T[]): T[] {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+const shuffledLanguages = shuffle(languages);
+---
+
+<section class="languages-supported">
+        <ul class="languages-list">
+                {shuffledLanguages.map(lang => (
+                        <li>
+                                <img src={lang.icon.src} alt={lang.name} />
+                                <span>{lang.name}</span>
+                        </li>
+                ))}
+        </ul>
+        <style>
+                .languages-supported {
+                        text-align: center;
+                        margin: 2rem 0;
+                }
+                .languages-list {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                        gap: 2rem;
+                        list-style: none;
+                        padding: 0;
+                        margin: 2rem 0 0 0;
+                }
+                .languages-list li {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        transition: transform 0.2s;
+                        border-radius: .5rem;
+                        padding: 1rem 1.5rem;
+                        border: 1px solid var(--sl-color-gray-4);
+                        background: var(--sl-color-gray-6);
+                }
+                .languages-list li:hover {
+                        transform: scale(1.1);
+                }
+                .languages-list img {
+                        width: 6rem;
+                        height: 6rem;
+                        margin-bottom: 0.5rem;
+
+                }
+                .languages-list span {
+                        font-size: 1rem;
+                        font-weight: 500;
+                }
+        </style>
+</section>
