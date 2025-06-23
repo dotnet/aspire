@@ -40,7 +40,7 @@ public class SelectViewModel<T> : IEquatable<SelectViewModel<T>>
 
     public override int GetHashCode()
     {
-        return Name.GetHashCode() ^ (Id?.GetHashCode() ?? 0);
+        return HashCode.Combine(Name, Id);
     }
 
     public override string ToString()

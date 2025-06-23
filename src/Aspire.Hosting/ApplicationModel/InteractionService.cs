@@ -313,7 +313,7 @@ public class InteractionService
     {
         if (!IsAvailable)
         {
-            throw new InvalidOperationException($"InteractionService is not available because the dashboard is not enabled. Use the {IsAvailable} property to determine whether the service is available.");
+            throw new InvalidOperationException($"InteractionService is not available because the dashboard is not enabled. Use the {nameof(IsAvailable)} property to determine whether the service is available.");
         }
     }
 }
