@@ -854,10 +854,10 @@ public static class ProjectResourceBuilderExtensions
             // If the host is localhost, we set it to null so that it uses the default host
             return "localhost";
         }
-        else if (IPAddress.TryParse(host, out var ipAddress))
+        else if (IPAddress.TryParse(host, out var _))
         {
             // If the host is an IP address, we use it as is
-            return ipAddress.ToString();
+            return host;
         }
 
         // This is a simplified version of the Asp.NET logic for parsing host URLs

@@ -804,12 +804,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
-                svc.Spec.Address = endpoint.TargetHost switch
+                svc.Spec.Address = endpoint.TargetHost;
+                if (!endpoint.IsProxied)
                 {
-                    "*" or "+" => "0.0.0.0",
-                    _ => endpoint.TargetHost
-                };
-                svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
+                    svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+                }
 
                 // So we can associate the service with the resource that produced it and the endpoint it represents.
                 svc.Annotate(CustomResource.ResourceNameAnnotation, sp.ModelResource.Name);
