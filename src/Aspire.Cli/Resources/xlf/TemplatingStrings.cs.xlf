@@ -4,157 +4,157 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>Aspire App Host</source>
-        <target state="new">Aspire App Host</target>
+        <target state="translated">Hostitel aplikací Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>Aspire Empty App</source>
-        <target state="new">Aspire Empty App</target>
+        <target state="translated">Prázdná aplikace Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>Aspire Test Project (MSTest)</source>
-        <target state="new">Aspire Test Project (MSTest)</target>
+        <target state="translated">Testovací projekt Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>Aspire Test Project (NUnit)</source>
-        <target state="new">Aspire Test Project (NUnit)</target>
+        <target state="translated">Testovací projekt Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Aspire Service Defaults</source>
-        <target state="new">Aspire Service Defaults</target>
+        <target state="translated">Výchozí nastavení služby Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Aspire Starter App</source>
-        <target state="new">Aspire Starter App</target>
+        <target state="translated">Úvodní aplikace Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>Aspire Test Project (xUnit)</source>
-        <target state="new">Aspire Test Project (xUnit)</target>
+        <target state="translated">Testovací projekt Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
         <source>At least one template factory must be provided.</source>
-        <target state="new">At least one template factory must be provided.</target>
+        <target state="translated">Musí se zadat aspoň jeden objekt pro vytváření šablon.</target>
         <note />
       </trans-unit>
       <trans-unit id="CertificateTrustError">
         <source>An error occurred while trusting the certificates: {0}</source>
-        <target state="new">An error occurred while trusting the certificates: {0}</target>
+        <target state="translated">Při vytváření vztahu důvěryhodnosti k certifikátům došlo k chybě: {0}</target>
         <note>{0} is an exception message</note>
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
-        <target state="new">Creating new Aspire project...</target>
+        <target state="translated">Vytváří se nový projekt Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterXUnitVersion_Description">
         <source>The version of xUnit.net to use for the test project.</source>
-        <target state="new">The version of xUnit.net to use for the test project.</target>
+        <target state="translated">Verze xUnit.net, která se má použít pro testovací projekt</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterXUnitVersion_Prompt">
         <source>Enter the xUnit.net version to use</source>
-        <target state="new">Enter the xUnit.net version to use</target>
+        <target state="translated">Zadat verzi xUnit.net, která se má použít</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLatestTemplates">
         <source>Getting latest templates...</source>
-        <target state="new">Getting latest templates...</target>
+        <target state="translated">Získávají se nejnovější šablony...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
         <source>No</source>
-        <target state="new">No</target>
+        <target state="translated">Ne</target>
         <note />
       </trans-unit>
       <trans-unit id="NoTemplateVersionsFound">
         <source>No template versions were found. Please check your internet connection or NuGet source configuration.</source>
-        <target state="new">No template versions were found. Please check your internet connection or NuGet source configuration.</target>
+        <target state="translated">Nenašly se žádné verze šablon. Zkontrolujte prosím připojení k internetu nebo zdrojovou konfiguraci NuGet.</target>
         <note />
       </trans-unit>
       <trans-unit id="None">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">Žádné</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
         <source>Project created successfully in {0}.</source>
-        <target state="new">Project created successfully in {0}.</target>
+        <target state="translated">Projekt se úspěšně vytvořil v cestě {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
         <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Project creation failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Vytvoření projektu se nezdařilo s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
-        <target state="new">Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</target>
+        <target state="translated">Konfiguruje, jestli se má vytvořit projekt pro testy integrace pomocí MSTest, NUnit nebo xUnit.net.</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Prompt">
         <source>Do you want to create a test project?</source>
-        <target state="new">Do you want to create a test project?</target>
+        <target state="translated">Chcete vytvořit testovací projekt?</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFM_Prompt">
         <source>Select a test framework</source>
-        <target state="new">Select a test framework</target>
+        <target state="translated">Vybrat testovací architekturu</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForTFM_UsingForTesting">
         <source>Using {0} for testing.</source>
-        <target state="new">Using {0} for testing.</target>
+        <target state="translated">Používá se {0} k testování.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAvailableTemplateVersions">
         <source>Searching for available project template versions...</source>
-        <target state="new">Searching for available project template versions...</target>
+        <target state="translated">Hledají se dostupné verze šablon projektu...</target>
         <note />
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
         <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">The template installation failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Instalace balíčku se nezdařila s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
       <trans-unit id="Unknown">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">Neznámý</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">
         <source>Configures whether to setup the application to use Redis for caching.</source>
-        <target state="new">Configures whether to setup the application to use Redis for caching.</target>
+        <target state="translated">Nakonfiguruje, jestli se má aplikace nastavit tak, aby pro ukládání do mezipaměti používala Redis.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Prompt">
         <source>Use Redis Cache</source>
-        <target state="new">Use Redis Cache</target>
+        <target state="translated">Použít Redis Cache</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_UnexpectedChoice">
         <source>Unexpected choice for Redis Cache option</source>
-        <target state="new">Unexpected choice for Redis Cache option</target>
+        <target state="translated">Neočekávaná volba pro možnost Redis Cache</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_UsingRedisCache">
         <source>Using Redis Cache for caching.</source>
-        <target state="new">Using Redis Cache for caching.</target>
+        <target state="translated">Používá se Redis Cache pro ukládání do mezipaměti.</target>
         <note />
       </trans-unit>
       <trans-unit id="UsingProjectTemplatesVersion">
         <source>Using project templates version: {0}</source>
-        <target state="new">Using project templates version: {0}</target>
+        <target state="translated">Použití verze šablon projektů: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Yes">
         <source>Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">Ano</target>
         <note />
       </trans-unit>
     </body>

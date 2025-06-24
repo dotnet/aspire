@@ -11,7 +11,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
@@ -65,7 +65,7 @@ internal sealed class DashboardClient : IDashboardClient
     private int _state = StateNone;
 
     private readonly GrpcChannel? _channel;
-    private readonly DashboardService.DashboardServiceClient? _client;
+    private readonly Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient? _client;
     private readonly Metadata _headers = [];
 
     private Task? _connection;
@@ -108,7 +108,7 @@ internal sealed class DashboardClient : IDashboardClient
             _headers.Add(ApiKeyHeaderName, _dashboardOptions.ResourceServiceClient.ApiKey!);
         }
 
-        _client = new DashboardService.DashboardServiceClient(_channel);
+        _client = new Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient(_channel);
 
         GrpcChannel CreateChannel()
         {
@@ -215,6 +215,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     // For testing purposes
     internal int OutgoingResourceSubscriberCount => _outgoingResourceChannels.Count;
+    internal int OutgoingInteractionSubscriberCount => _outgoingInteractionChannels.Count;
 
     public bool IsEnabled => _state is not StateDisabled;
 
@@ -703,9 +704,9 @@ internal sealed class DashboardClient : IDashboardClient
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)
         {
             _outgoingResourceChannels = [];
+            _outgoingInteractionChannels = [];
 
-            await _cts.CancelAsync().ConfigureAwait(false);
-
+            _cts.Cancel();
             _cts.Dispose();
 
             _channel?.Dispose();

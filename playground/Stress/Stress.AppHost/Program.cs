@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -21,9 +22,9 @@ for (var i = 0; i < 5; i++)
     var rb = builder.AddTestResource(name);
     IResource parent = rb.Resource;
 
-    for (int j = 0; j < 3; j++)
+    for (var j = 0; j < 3; j++)
     {
-        name = name + $"-n{j}";
+        name += $"-n{j}";
         var nestedRb = builder.AddNestedResource(name, parent);
         parent = nestedRb.Resource;
     }
@@ -119,9 +120,9 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled })
        .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
-           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning }, cancellationToken: commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptMessageBoxAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning, ShowSecondaryButton = true }, cancellationToken: commandContext.CancellationToken);
 
            await Task.WhenAll(resultTask1, resultTask2);
 
@@ -137,22 +138,22 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            await Task.Yield();
 
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
-           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information });
-           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning });
-           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Error });
-           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Confirmation });
-           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information });
+           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Warning });
+           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Error, LinkText = "Click here for more information", LinkUrl = "https://www.microsoft.com" });
+           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Confirmation });
+           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
 
            return CommandResults.Success();
        })
        .WithCommand("html-interaction", "HTML interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
 
            _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
            _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
@@ -164,12 +165,24 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        })
        .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var result = await interactionService.PromptInputAsync(
                title: "Text request",
                message: "Provide your name",
                inputLabel: "Name",
                placeHolder: "Enter your name",
+               options: new InputsDialogInteractionOptions
+               {
+                   ValidationCallback = context =>
+                   {
+                       var input = context.Inputs[0];
+                       if (!string.IsNullOrEmpty(input.Value) && input.Value.Length < 3)
+                       {
+                           context.AddValidationError(input, "Name must be at least 3 characters long.");
+                       }
+                       return Task.CompletedTask;
+                   }
+               },
                cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)
@@ -187,12 +200,14 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        })
        .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
-           var inputs = new List<InteractionInput>
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+           var dinnerInput = new InteractionInput
            {
-               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
-               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
-               new InteractionInput { InputType = InputType.Select, Label = "Dinner", Placeholder = "Select dinner", Required = true, Options =
+               InputType = InputType.Select,
+               Label = "Dinner",
+               Placeholder = "Select dinner",
+               Required = true,
+               Options =
                [
                    KeyValuePair.Create("pizza", "Pizza"),
                    KeyValuePair.Create("fried-chicken", "Fried chicken"),
@@ -210,11 +225,33 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
                    KeyValuePair.Create("fish-pie", "Fish pie"),
                    KeyValuePair.Create("soup", "Soup"),
                    KeyValuePair.Create("beef-stew", "Beef stew"),
-               ] },
-               new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true },
+               ]
+           };
+           var numberOfPeopleInput = new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
+           var inputs = new List<InteractionInput>
+           {
+               new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
+               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
+               dinnerInput,
+               numberOfPeopleInput,
                new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };
-           var result = await interactionService.PromptInputsAsync("Input request", "Provide your name", inputs, cancellationToken: commandContext.CancellationToken);
+           var result = await interactionService.PromptInputsAsync(
+               "Input request",
+               "Provide your name",
+               inputs,
+               options: new InputsDialogInteractionOptions
+               {
+                   ValidationCallback = context =>
+                   {
+                       if (dinnerInput.Value == "steak" && int.TryParse(numberOfPeopleInput.Value, CultureInfo.InvariantCulture, out var i) && i > 4)
+                       {
+                           context.AddValidationError(numberOfPeopleInput, "Number of people can't be greater than 4 when eating steak.");
+                       }
+                       return Task.CompletedTask;
+                   }
+               },
+               cancellationToken: commandContext.CancellationToken);
 
            if (result.Canceled)
            {

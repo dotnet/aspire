@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="new">Wait for a debugger to attach before executing the command.</target>
+        <target state="translated">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
-        <target state="new">Enable debug logging to the console.</target>
+        <target state="translated">Включает журналирование отладки в консоли.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
-        <target state="new">The Aspire CLI can be used to create, run, and publish Aspire-based applications.</target>
+        <target state="translated">CLI Aspire можно использовать для создания, запуска и публикации приложений на основе Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="new">Wait for a debugger to attach before executing the command.</target>
+        <target state="translated">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">
         <source>Waiting for debugger to attach to CLI process ID: {0}</source>
-        <target state="new">Waiting for debugger to attach to CLI process ID: {0}</target>
+        <target state="translated">Ожидание подключения отладчика к процессу CLI с идентификатором: {0}</target>
         <note />
       </trans-unit>
     </body>

@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsConnectionStringProperty">
         <source>Connection string</source>
-        <target state="new">Connection string</target>
+        <target state="translated">Строка подключения</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">

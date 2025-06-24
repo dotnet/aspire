@@ -8,9 +8,8 @@ using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant
 using Aspire.Dashboard.Resources;
 using Aspire.Hosting;
 using Google.Protobuf.Collections;
-using System.Globalization;
 
-namespace Aspire.ResourceService.Proto.V1;
+namespace Aspire.DashboardService.Proto.V1;
 
 partial class Resource
 {
@@ -180,22 +179,5 @@ partial class ResourceCommandResponse
             ErrorMessage = ErrorMessage,
             Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
         };
-    }
-}
-
-partial class InteractionInput
-{
-    // Used when binding to FluentCheckbox in the dashboard.
-    public bool IsChecked
-    {
-        get => bool.TryParse(Value, out var result) && result;
-        set => Value = value ? "true" : "false";
-    }
-
-    // Used when binding to FluentNumberField in the dashboard.
-    public int? NumberValue
-    {
-        get => int.TryParse(Value, CultureInfo.InvariantCulture, out var result) ? result : null;
-        set => Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }
