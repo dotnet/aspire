@@ -7,7 +7,7 @@
 @using Aspire.Dashboard.Extensions
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.ResourceService.Proto.V1
+@using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
 
@@ -29,27 +29,27 @@
 
     <EditForm EditContext="@_editContext">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            @foreach (var ss in Content.Inputs)
+            @foreach (var vm in _inputDialogInputViewModels)
             {
-                var localItem = ss;
+                var localItem = vm;
                 <div class="interaction-input">
-                    @switch (ss.InputType)
+                    @switch (vm.Input.InputType)
                     {
                         case InputType.Text:
-                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" />
+                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Password:
-                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" TextFieldType="TextFieldType.Password" />
+                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" TextFieldType="TextFieldType.Password" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Select:
                             <FluentSelect TOption="SelectViewModel<string>"
                                           @bind-Value="localItem.Value"
-                                          Label="@localItem.Label"
-                                          Placeholder="@localItem.Placeholder"
-                                          Required="localItem.Required"
-                                          Items="localItem.Options.Select(o => new SelectViewModel<string> { Id = o.Key, Name = o.Value })"
+                                          Label="@localItem.Input.Label"
+                                          Placeholder="@localItem.Input.Placeholder"
+                                          Required="localItem.Input.Required"
+                                          Items="localItem.SelectOptions"
                                           OptionValue="@(vm => vm.Id)"
                                           OptionText="@(vm => vm.Name)"
                                           Height="250px"
@@ -57,10 +57,10 @@
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Checkbox:
-                            <FluentCheckbox @bind-Value="localItem.IsChecked" Label="@localItem.Label" Placeholder="@localItem.Placeholder" />
+                            <FluentCheckbox @bind-Value="localItem.IsChecked" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" />
                             break;
                         case InputType.Number:
-                            <FluentNumberField @bind-Value="localItem.NumberValue" Label="@localItem.Label" Placeholder="@localItem.Placeholder" Required="localItem.Required" />
+                            <FluentNumberField @bind-Value="localItem.NumberValue" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" />
                             <ValidationMessage For="@(() => localItem.NumberValue)" />
                             break;
                         default:

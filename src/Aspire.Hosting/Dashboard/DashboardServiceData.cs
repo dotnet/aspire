@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -150,40 +150,59 @@ internal sealed class DashboardServiceData : IDisposable
         }
     }
 
-    internal Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request)
+    internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        _interactionService.CompleteInteraction(request.InteractionId, interaction =>
-        {
-            switch (request.KindCase)
+        await _interactionService.CompleteInteractionAsync(
+            request.InteractionId,
+            async (interaction, serviceProvider, cancellationToken) =>
             {
-                case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
-                    return new InteractionCompletionState { State = request.MessageBox.Result };
-                case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
-                    return new InteractionCompletionState { State = request.MessageBar.Result };
-                case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
-                    var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
-                    for (var i = 0; i < inputsInfo.Inputs.Count; i++)
-                    {
-                        var modelInput = inputsInfo.Inputs[i];
-                        var requestInput = request.InputsDialog.InputItems[i];
+                switch (request.KindCase)
+                {
+                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
+                        return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
+                        return new InteractionCompletionState { Complete = true, State = request.MessageBar.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
+                        var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+                        var options = (InputsDialogInteractionOptions)interaction.Options;
 
-                        var incomingValue = requestInput.Value;
-
-                        // Ensure checkbox value is either true or false.
-                        if (requestInput.InputType == ResourceService.Proto.V1.InputType.Checkbox)
+                        for (var i = 0; i < inputsInfo.Inputs.Count; i++)
                         {
-                            incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+                            var modelInput = inputsInfo.Inputs[i];
+                            var requestInput = request.InputsDialog.InputItems[i];
+
+                            var incomingValue = requestInput.Value;
+
+                            // Ensure checkbox value is either true or false.
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Checkbox)
+                            {
+                                incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+                            }
+
+                            modelInput.SetValue(incomingValue);
+                            modelInput.ValidationErrors.Clear();
                         }
 
-                        modelInput.SetValue(incomingValue);
-                    }
-                    return new InteractionCompletionState { State = inputsInfo.Inputs };
-                default:
-                    return new InteractionCompletionState { Canceled = true };
-            }
-        });
+                        var hasErrors = false;
+                        if (options.ValidationCallback is { } validationCallback)
+                        {
+                            var context = new InputsDialogValidationContext
+                            {
+                                CancellationToken = cancellationToken,
+                                ServiceProvider = serviceProvider,
+                                Inputs = inputsInfo.Inputs
+                            };
+                            await validationCallback(context).ConfigureAwait(false);
 
-        return Task.CompletedTask;
+                            hasErrors = context.HasErrors;
+                        }
+
+                        return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                    default:
+                        return new InteractionCompletionState { Complete = true };
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 }
 

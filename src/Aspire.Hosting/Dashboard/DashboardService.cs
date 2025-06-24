@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
@@ -20,7 +20,7 @@ namespace Aspire.Hosting.Dashboard;
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
-    : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
+    : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
     // Protobuf sends strings as UTF8. Be conservative and assume the average character byte size is 2.
@@ -101,6 +101,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.MessageBar = new InteractionMessageBar();
                             change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
+                            if (messageBar.LinkText != null)
+                            {
+                                change.MessageBar.LinkText = messageBar.LinkText;
+                            }
+                            if (messageBar.LinkUrl != null)
+                            {
+                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                            }
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {
@@ -129,6 +137,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
+                                dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;
                             }).ToList();
                             change.InputsDialog.InputItems.AddRange(inputInstances);
@@ -152,7 +161,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             {
                 await foreach (var request in requestStream.ReadAllAsync(cts.Token).ConfigureAwait(false))
                 {
-                    await serviceData.SendInteractionRequestAsync(request).ConfigureAwait(false);
+                    await serviceData.SendInteractionRequestAsync(request, cts.Token).ConfigureAwait(false);
                 }
             }
             finally
@@ -171,40 +180,28 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             return MessageIntent.None;
         }
 
-        switch (intent.Value)
+        return intent.Value switch
         {
-            case ApplicationModel.MessageIntent.Success:
-                return MessageIntent.Success;
-            case ApplicationModel.MessageIntent.Warning:
-                return MessageIntent.Warning;
-            case ApplicationModel.MessageIntent.Error:
-                return MessageIntent.Error;
-            case ApplicationModel.MessageIntent.Information:
-                return MessageIntent.Information;
-            case ApplicationModel.MessageIntent.Confirmation:
-                return MessageIntent.Confirmation;
-            default:
-                return MessageIntent.None;
-        }
+            ApplicationModel.MessageIntent.Success => MessageIntent.Success,
+            ApplicationModel.MessageIntent.Warning => MessageIntent.Warning,
+            ApplicationModel.MessageIntent.Error => MessageIntent.Error,
+            ApplicationModel.MessageIntent.Information => MessageIntent.Information,
+            ApplicationModel.MessageIntent.Confirmation => MessageIntent.Confirmation,
+            _ => MessageIntent.None,
+        };
     }
 
     private static InputType MapInputType(ApplicationModel.InputType inputType)
     {
-        switch (inputType)
+        return inputType switch
         {
-            case ApplicationModel.InputType.Text:
-                return InputType.Text;
-            case ApplicationModel.InputType.Password:
-                return InputType.Password;
-            case ApplicationModel.InputType.Select:
-                return InputType.Select;
-            case ApplicationModel.InputType.Checkbox:
-                return InputType.Checkbox;
-            case ApplicationModel.InputType.Number:
-                return InputType.Number;
-            default:
-                throw new InvalidOperationException($"Unexpected input type: {inputType}");
-        }
+            ApplicationModel.InputType.Text => InputType.Text,
+            ApplicationModel.InputType.Password => InputType.Password,
+            ApplicationModel.InputType.Select => InputType.Select,
+            ApplicationModel.InputType.Checkbox => InputType.Checkbox,
+            ApplicationModel.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
