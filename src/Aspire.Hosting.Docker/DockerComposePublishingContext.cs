@@ -130,8 +130,7 @@ internal sealed class DockerComposePublishingContext(
             "Writing Docker Compose file.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var task = await progressReporter.CreateTaskAsync(
-            step,
+        var task = await step.CreateTaskAsync(
             "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -159,16 +158,12 @@ internal sealed class DockerComposePublishingContext(
             envFile.Save(envFilePath);
         }
 
-        await progressReporter.CompleteTaskAsync(
-            task,
-            TaskCompletionState.Completed,
+        await task.SucceedAsync(
             $"Docker Compose file written successfully to {outputFile}.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        await progressReporter.CompleteStepAsync(
-            step,
+        await step.SucceedAsync(
             "Docker Compose file generation completed.",
-            isError: false,
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 

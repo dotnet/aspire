@@ -40,24 +40,24 @@ public enum TaskCompletionState
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="PublishingStep"/> class.
-/// </remarks>
-/// <param name="id">The unique identifier for the publishing step.</param>
-/// <param name="title">The title of the publishing step.</param>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingStep(string id, string title)
+public sealed class PublishingStep
 {
+    internal PublishingStep(string id, string title)
+    {
+        Id = id;
+        Title = title;
+    }
 
     /// <summary>
     /// Unique Id of the step.
     /// </summary>
-    public string Id { get; private set; } = id;
+    public string Id { get; private set; }
 
     /// <summary>
     /// The title of the publishing step.
     /// </summary>
-    public string Title { get; private set; } = title;
+    public string Title { get; private set; }
 
     /// <summary>
     /// Indicates whether the step is complete.
@@ -68,34 +68,39 @@ public sealed class PublishingStep(string id, string title)
     /// The completion text for the step.
     /// </summary>
     public string CompletionText { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// The progress reporter that created this step.
+    /// </summary>
+    internal IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="PublishingTask"/> class.
-/// </remarks>
-/// <param name="id">The unique identifier for the publishing task.</param>
-/// <param name="stepId">The identifier of the step this task belongs to.</param>
-/// <param name="statusText">The initial status text for the task.</param>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingTask(string id, string stepId, string statusText)
+public sealed class PublishingTask
 {
+    internal PublishingTask(string id, string stepId, string statusText)
+    {
+        Id = id;
+        StepId = stepId;
+        StatusText = statusText;
+    }
     /// <summary>
     /// Unique Id of the task.
     /// </summary>
-    public string Id { get; private set; } = id;
+    public string Id { get; private set; }
 
     /// <summary>
     /// The identifier of the step this task belongs to.
     /// </summary>
-    public string StepId { get; private set; } = stepId;
+    public string StepId { get; private set; }
 
     /// <summary>
     /// The current status text of the task.
     /// </summary>
-    public string StatusText { get; internal set; } = statusText;
+    public string StatusText { get; internal set; }
 
     /// <summary>
     /// The completion state of the task.
@@ -106,6 +111,11 @@ public sealed class PublishingTask(string id, string stepId, string statusText)
     /// Optional completion message for the task.
     /// </summary>
     public string CompletionMessage { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// The progress reporter that created this task.
+    /// </summary>
+    internal IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
@@ -180,6 +190,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        step.Reporter = this;
         _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
@@ -188,7 +199,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             Data = new PublishingActivityData
             {
                 Id = step.Id,
-                StatusText = title,
+                StatusText = step.Title,
                 IsComplete = false,
                 IsError = false,
                 IsWarning = false,
@@ -216,6 +227,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         }
 
         var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        task.Reporter = this;
 
         var state = new PublishingActivity
         {

@@ -104,11 +104,11 @@ public sealed class AzurePublishingContext(
         }
 
         await ProgressReporter.CompleteStepAsync(
-                step,
-                stepInfo.Message,
-                stepInfo.IsError,
-                cancellationToken
-            ).ConfigureAwait(false);
+            step,
+            stepInfo.Message,
+            stepInfo.IsError,
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 
     private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
@@ -218,8 +218,7 @@ public sealed class AzurePublishingContext(
 
         var computeEnvironments = new List<IAzureComputeEnvironmentResource>();
 
-        var computeEnvironmentTask = await ProgressReporter.CreateTaskAsync(
-            step,
+        var computeEnvironmentTask = await step.CreateTaskAsync(
             "Analyzing model for compute environments.",
             cancellationToken: default
             ).ConfigureAwait(false);
@@ -231,8 +230,7 @@ public sealed class AzurePublishingContext(
                 computeEnvironments.Add(computeEnvironment);
             }
 
-            var task = await ProgressReporter.CreateTaskAsync(
-                step,
+            var task = await step.CreateTaskAsync(
                 $"Processing Azure resource {resource.Name}",
                 cancellationToken: default
             )
@@ -262,9 +260,7 @@ public sealed class AzurePublishingContext(
                 module.Parameters.Add(parameter.Key, value);
             }
 
-            await ProgressReporter.CompleteTaskAsync(
-                task,
-                TaskCompletionState.Completed,
+            await task.SucceedAsync(
                 $"Wrote bicep module for resource {resource.Name} to {module.Path}",
                 cancellationToken: default
             ).ConfigureAwait(false);
@@ -334,9 +330,7 @@ public sealed class AzurePublishingContext(
 
                 CaptureBicepOutputsFromParameters(br);
 
-                await ProgressReporter.CompleteTaskAsync(
-                    task,
-                    TaskCompletionState.Completed,
+                await task.SucceedAsync(
                     $"Wrote bicep module for deployment target {resource.Name} to {modulePath}",
                     cancellationToken: default
                 ).ConfigureAwait(false);

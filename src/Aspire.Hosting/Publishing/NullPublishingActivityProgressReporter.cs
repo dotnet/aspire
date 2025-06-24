@@ -24,6 +24,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        step.Reporter = this;
         return Task.FromResult(step);
     }
 
@@ -31,6 +32,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
         var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        task.Reporter = this;
         return Task.FromResult(task);
     }
 
