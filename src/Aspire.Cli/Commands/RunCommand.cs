@@ -11,6 +11,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 using StreamJsonRpc;
 
@@ -24,8 +25,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IConfiguration _configuration;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry, IConfiguration configuration)
         : base("run", RunCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -34,6 +36,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -41,6 +44,7 @@ internal sealed class RunCommand : BaseCommand
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
+        _configuration = configuration;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -148,22 +152,38 @@ internal sealed class RunCommand : BaseCommand
             }, cancellationToken);
 
             var logFile = await logFileNameCompletionSource.Task;
-            _ansiConsole.MarkupLine($"[bold]App Host Log:[/] {logFile.FullName}");
 
             var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
             {
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
 
-            _interactionService.DisplayDashboardUrls(dashboardUrls);
+            _ansiConsole.WriteLine();
 
-            // The reason we choose to display the codespaces URL on status if Codespaces is available
-            // is that the redirect mechanics for forward ports strips the token off the localhost
-            // variant of the URL.
-            var dashboardUrlToDisplayOnStatus = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
+            var grid = new Grid();
+            grid.AddColumn();
+            grid.AddColumn();
 
-            await _interactionService.ShowStatusAsync($"Dashboard: {dashboardUrlToDisplayOnStatus}", async () =>
+            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
+            grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+
+            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
+                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+            }
+
+            _ansiConsole.Write(grid);
+
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
+            var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+
+            if (isCodespaces || isRemoteContainers)
+            {
+                _ansiConsole.WriteLine();
+                _ansiConsole.MarkupLine("[bold green]Endpoints:[/]");
+
                 try
                 {
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
@@ -176,9 +196,30 @@ internal sealed class RunCommand : BaseCommand
                 {
                     // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
+            }
 
-                return Task.CompletedTask;
-            });
+            // The reason we choose to display the codespaces URL on status if Codespaces is available
+            // is that the redirect mechanics for forward ports strips the token off the localhost
+            // // variant of the URL.
+            // var dashboardUrlToDisplayOnStatus = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
+
+            // await _interactionService.ShowStatusAsync($"Dashboard: {dashboardUrlToDisplayOnStatus}", async () =>
+            // {
+            //     try
+            //     {
+            //         var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+            //         await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+            //         {
+            //             ProcessResourceState(resourceState);
+            //         }
+            //     }
+            //     catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+            //     {
+            //         // Just swallow this exception because this is an orderly shutdown of the backchannel.
+            //     }
+
+            //     return Task.CompletedTask;
+            // });
 
             await pendingLogCapture;
             return await pendingRun;
@@ -272,11 +313,6 @@ internal sealed class RunCommand : BaseCommand
     {
         if (_resourceStates.TryGetValue(resourceState.Resource, out var existingResourceState))
         {
-            if (resourceState.State != existingResourceState.State || resourceState.Health != existingResourceState.Health)
-            {
-                DisplayResourceState(resourceState.Resource, resourceState.State, resourceState.Health);
-            }
-
             if (resourceState.Endpoints.Except(existingResourceState.Endpoints) is { } endpoints && endpoints.Any())
             {
                 foreach (var endpoint in endpoints)
@@ -289,9 +325,7 @@ internal sealed class RunCommand : BaseCommand
         }
         else
         {
-            DisplayResourceState(resourceState.Resource, resourceState.State, resourceState.Health);
-
-            if (resourceState.Endpoints is { } endpoints)
+            if (resourceState.Endpoints is { } endpoints && endpoints.Any())
             {
                 foreach (var endpoint in endpoints)
                 {
@@ -305,32 +339,6 @@ internal sealed class RunCommand : BaseCommand
         void DisplayEndpoint(string resourceName, string endpoint)
         {
             _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]");
-        }
-
-        void DisplayResourceState(string resourceName, string state, string? health)
-        {
-            Action action = (state, health) switch
-            {
-                { state: "Waiting" or "Finished" or "NotStarted", health: _ } =>
-                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold]{state}[/]"),
-
-                {state: "Stopping" or "Exited" or "FailedToStart", health: _ } => () =>
-                    _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold red]{state}[/]"),
-
-                { state: "Starting", health: _ } =>
-                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold green]{state}[/]"),
-
-                { state: "Running", health: "Unhealthy" or "Degraded" } =>
-                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold yellow]{health}[/]"),
-                    
-                { state: "Running", health: "Healthy" } =>
-                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold green]{state}[/]"),
-                    
-                { state: { Length: > 0 } } => () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold hotpink]{state}[/]"),
-                _ => () => { // No op if state is null or empty }
-                }
-            };
-            action?.Invoke();
         }
     }
 }
