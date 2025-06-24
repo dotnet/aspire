@@ -72,7 +72,7 @@ const icons = [
 const randomizedIcons = icons.sort(() => Math.random() - 0.5);
 ---
 
-<div class="hex-grid">
+<div class="layout-grid">
   {
     randomizedIcons.map(
       (icon: { meta: ImageMetadata; alt: string; search: string }, i: number) => (
@@ -85,7 +85,7 @@ const randomizedIcons = icons.sort(() => Math.random() - 0.5);
 </div>
 
 <style>
-  .hex-grid {
+  .layout-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
