@@ -1,6 +1,6 @@
 ---
+import activeMqIcon from "../assets/icons/activemq-icon.png";
 import awsIcon from "../assets/icons/aws-icon.png";
-import azureIcon from "../assets/icons/azure-icon.png";
 import azureAppconfigIcon from "../assets/icons/azure-appconfig-icon.png";
 import azureAppinsightsIcon from "../assets/icons/azure-appinsights-icon.png";
 import azureBlobpagestorageIcon from "../assets/icons/azure-blobpagestorage-icon.png";
@@ -8,6 +8,7 @@ import azureCacheredisIcon from "../assets/icons/azure-cacheredis-icon.png";
 import azureCosmosdbIcon from "../assets/icons/azure-cosmosdb-icon.png";
 import azureEventhubsIcon from "../assets/icons/azure-eventhubs-icon.png";
 import azureFunctionappsIcon from "../assets/icons/azure-functionapps-icon.png";
+import azureIcon from "../assets/icons/azure-icon.png";
 import azureKeyvaultIcon from "../assets/icons/azure-keyvault-icon.png";
 import azureLoganalyticsIcon from "../assets/icons/azure-loganalytics-icon.png";
 import azureOpenaiIcon from "../assets/icons/azure-openai-icon.png";
@@ -20,22 +21,40 @@ import azureStoragecontainerIcon from "../assets/icons/azure-storagecontainer-ic
 import azureStoragequeueIcon from "../assets/icons/azure-storagequeue-icon.png";
 import azureTableIcon from "../assets/icons/azure-table-icon.png";
 import azureWebpubsubIcon from "../assets/icons/azure-webpubsub-icon.png";
+import bunIcon from "../assets/icons/bun-icon.png";
+import daprIcon from "../assets/icons/dapr-icon.png";
+import dbGateIcon from "../assets/icons/dbgate-icon.jpeg";
+import denoIcon from "../assets/icons/deno-icon.png";
 import elasticIcon from "../assets/icons/elastic-icon.png";
+import eventStoreIcon from "../assets/icons/eventstore-icon.png";
 import garnetIcon from "../assets/icons/garnet-icon.png";
+import k6Icon from "../assets/icons/k6-icon.png";
+import lavinMqIcon from "../assets/icons/lavinmq-icon.png";
+import mailpitIcon from "../assets/icons/mailpit-icon.png";
+import meilisearchIcon from "../assets/icons/meilisearch-icon.png";
 import milvusIcon from "../assets/icons/milvus-icon.png";
+import minioIcon from "../assets/icons/minio-icon.png";
 import mongodbIcon from "../assets/icons/mongodb-icon.png";
 import mysqlconnectorIcon from "../assets/icons/mysqlconnector-icon.png";
 import natsIcon from "../assets/icons/nats-icon.png";
+import ngrokIcon from "../assets/icons/ngrok-icon.png";
+import nodeJsIcon from "../assets/icons/nodejs-icon.png";
+import ollamaIcon from "../assets/icons/ollama-icon.png";
+import papercutIcon from "../assets/icons/papercut-icon.png";
 import postgresqlIcon from "../assets/icons/postgresql-icon.png";
+import powershellIcon from "../assets/icons/powershell-icon.png";
 import qdrantIcon from "../assets/icons/qdrant-icon.png";
+import ravenDbIcon from "../assets/icons/ravendb-icon.png";
 import redisIcon from "../assets/icons/redis-icon.png";
+import rustIcon from "../assets/icons/rust-icon.png";
 import seqIcon from "../assets/icons/seq-icon.png";
 import sqlIcon from "../assets/icons/sql-icon.png";
+import sqliteIcon from "../assets/icons/sqlite-icon.png";
 import valkeyIcon from "../assets/icons/valkey-icon.png";
 
 const icons = [
+  { meta: activeMqIcon, alt: "ActiveMQ", search: "activemq" },
   { meta: awsIcon, alt: "AWS", search: "aws" },
-  { meta: azureIcon, alt: "Microsoft Azure", search: "azure" },
   { meta: azureAppconfigIcon, alt: "Azure App Configuration", search: "appconfig" },
   { meta: azureAppinsightsIcon, alt: "Azure Application Insights", search: "applicationinsights" },
   { meta: azureBlobpagestorageIcon, alt: "Azure Blob/Page Storage", search: "blob" },
@@ -43,6 +62,7 @@ const icons = [
   { meta: azureCosmosdbIcon, alt: "Azure Cosmos DB", search: "cosmos" },
   { meta: azureEventhubsIcon, alt: "Azure Event Hubs", search: "eventhubs" },
   { meta: azureFunctionappsIcon, alt: "Azure Function Apps", search: "functions" },
+  { meta: azureIcon, alt: "Microsoft Azure", search: "azure" },
   { meta: azureKeyvaultIcon, alt: "Azure Key Vault", search: "keyvault" },
   { meta: azureLoganalyticsIcon, alt: "Azure Log Analytics", search: "operationalinsights" },
   { meta: azureOpenaiIcon, alt: "Azure OpenAI", search: "openai" },
@@ -55,17 +75,35 @@ const icons = [
   { meta: azureStoragequeueIcon, alt: "Azure Storage Queue", search: "queue" },
   { meta: azureTableIcon, alt: "Azure Table Storage", search: "table" },
   { meta: azureWebpubsubIcon, alt: "Azure Web PubSub", search: "pubsub" },
+  { meta: bunIcon, alt: "Bun", search: "bun" },
+  { meta: daprIcon, alt: "Dapr", search: "dapr" },
+  { meta: dbGateIcon, alt: "DbGate", search: "dbgate" },
+  { meta: denoIcon, alt: "Deno", search: "deno" },
   { meta: elasticIcon, alt: "Elasticsearch", search: "elasticsearch" },
+  { meta: eventStoreIcon, alt: "EventStore", search: "eventstore" },
   { meta: garnetIcon, alt: "Garnet", search: "garnet" },
+  { meta: k6Icon, alt: "k6", search: "k6" },
+  { meta: lavinMqIcon, alt: "LavinMQ", search: "lavinmq" },
+  { meta: mailpitIcon, alt: "Mailpit", search: "mailpit" },
+  { meta: meilisearchIcon, alt: "Meilisearch", search: "meilisearch" },
   { meta: milvusIcon, alt: "Milvus Vector Database", search: "milvus" },
+  { meta: minioIcon, alt: "MinIO", search: "minio" },
   { meta: mongodbIcon, alt: "MongoDB", search: "mongodb" },
   { meta: mysqlconnectorIcon, alt: "MySQL Connector", search: "mysql" },
   { meta: natsIcon, alt: "NATS Messaging", search: "nats" },
+  { meta: ngrokIcon, alt: "ngrok", search: "ngrok" },
+  { meta: nodeJsIcon, alt: "Node.js", search: "nodejs" },
+  { meta: ollamaIcon, alt: "Ollama", search: "ollama" },
+  { meta: papercutIcon, alt: "Papercut", search: "papercut" },
   { meta: postgresqlIcon, alt: "PostgreSQL", search: "postgresql" },
+  { meta: powershellIcon, alt: "PowerShell", search: "powershell" },
   { meta: qdrantIcon, alt: "Qdrant Vector Database", search: "qdrant" },
+  { meta: ravenDbIcon, alt: "RavenDB", search: "ravendb" },
   { meta: redisIcon, alt: "Redis", search: "redis" },
+  { meta: rustIcon, alt: "Rust", search: "rust" },
   { meta: seqIcon, alt: "Seq Log Server", search: "seq" },
   { meta: sqlIcon, alt: "SQL Database", search: "sql" },
+  { meta: sqliteIcon, alt: "SQLite", search: "sqlite" },
   { meta: valkeyIcon, alt: "Valkey", search: "valkey" },
 ];
 
@@ -77,7 +115,7 @@ const randomizedIcons = icons.sort(() => Math.random() - 0.5);
     randomizedIcons.map(
       (icon: { meta: ImageMetadata; alt: string; search: string }, i: number) => (
         <a href={`/aspire/integrations/gallery?search=${encodeURIComponent(icon.search)}`} class="img" title={icon.alt}>
-          <img src={icon.meta.src} alt={icon.alt} />
+          <img src={icon.meta.src} alt={icon.alt} title={icon.alt} />
         </a>
       ),
     )
@@ -94,19 +132,20 @@ const randomizedIcons = icons.sort(() => Math.random() - 0.5);
   }
 
   .img {
-    width: 8rem;
-    height: 8rem; /* Add this line */
+    width: 7rem;
+    height: 7rem; /* Add this line */
     display: flex; /* Add these lines to center the image */
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
-    background: var(--sl-color-bg-nav);
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.5rem;
     transition:
       transform 0.3s ease,
       filter 0.3s ease;
     overflow: hidden;
-    margin-top: 0 !important;
+    margin-top: initial;
   }
 
   .img img {
