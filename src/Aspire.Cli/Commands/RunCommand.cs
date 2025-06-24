@@ -164,18 +164,12 @@ internal sealed class RunCommand : BaseCommand
 
             await _interactionService.ShowStatusAsync($"Dashboard: {dashboardUrlToDisplayOnStatus}", async () =>
             {
-                // var logEntires = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
-                // await foreach (var entry in logEntires.WithCancellation(cancellationToken))
-                // {
-                //     _ansiConsole.MarkupLine($"[[{entry.Timestamp:HH:mm:ss}]] [[{entry.LogLevel}]] {entry.CategoryName}: {entry.Message}");
-                // }
                 try
                 {
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
                     await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                     {
                         ProcessResourceState(resourceState);
-                        //_ansiConsole.MarkupLine($"{resourceState.Resource} is {resourceState.State} ({resourceState.Health})");
                     }
                 }
                 catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
