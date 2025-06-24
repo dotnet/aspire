@@ -148,6 +148,93 @@ public sealed class DashboardClientTests
         Assert.Single(initialData);
     }
 
+    [Fact]
+    public async Task SubscribeInteractions_OnCancel_ChannelRemoved()
+    {
+        await using var instance = CreateResourceServiceClient();
+        instance.SetInitialDataReceived();
+
+        IDashboardClient client = instance;
+
+        var cts = new CancellationTokenSource();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        var subscription = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var item in subscription.WithCancellation(cts.Token))
+            {
+            }
+        });
+
+        cts.Cancel();
+
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+    }
+
+    [Fact]
+    public async Task SubscribeInteractions_OnDispose_ChannelRemoved()
+    {
+        await using var instance = CreateResourceServiceClient();
+        instance.SetInitialDataReceived();
+
+        IDashboardClient client = instance;
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        var subscription = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var item in subscription)
+            {
+            }
+        });
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task SubscribeInteractions_ThrowsIfDisposed()
+    {
+        await using IDashboardClient client = CreateResourceServiceClient();
+
+        await client.DisposeAsync().DefaultTimeout();
+
+        Assert.Throws<ObjectDisposedException>(() => client.SubscribeInteractionsAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SubscribeInteractions_IncreasesSubscriberCount()
+    {
+        await using var instance = CreateResourceServiceClient();
+        instance.SetInitialDataReceived();
+
+        IDashboardClient client = instance;
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        _ = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+    }
+
     private DashboardClient CreateResourceServiceClient()
     {
         return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, new MockKnownPropertyLookup());

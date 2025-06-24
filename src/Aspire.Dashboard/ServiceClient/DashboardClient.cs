@@ -215,6 +215,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     // For testing purposes
     internal int OutgoingResourceSubscriberCount => _outgoingResourceChannels.Count;
+    internal int OutgoingInteractionSubscriberCount => _outgoingInteractionChannels.Count;
 
     public bool IsEnabled => _state is not StateDisabled;
 
@@ -703,9 +704,9 @@ internal sealed class DashboardClient : IDashboardClient
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)
         {
             _outgoingResourceChannels = [];
+            _outgoingInteractionChannels = [];
 
-            await _cts.CancelAsync().ConfigureAwait(false);
-
+            _cts.Cancel();
             _cts.Dispose();
 
             _channel?.Dispose();
