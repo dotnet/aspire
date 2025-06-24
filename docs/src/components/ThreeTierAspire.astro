@@ -70,28 +70,30 @@ builder.Build().Run();
 
 <div class="code-comparison-container">
   <div class="comparison-header">
-    <p>Adjust the slider to compare Docker Compose and C# AppHost definitions</p>
+    <p>
+      Adjust the slider to compare Docker Compose and C# AppHost definitions
+    </p>
   </div>
-  
+
   <div class="slider-container">
     <div class="slider-label">
       <div class="label-docker clickable" data-value="0">
         <Icon name="seti:docker" size="1.5rem" />
         <span>Docker Compose</span>
       </div>
-      
+
       <div class="slider-control">
-        <input 
-          type="range" 
-          min="0" 
-          max="100" 
-          value="50" 
-          class="code-slider" 
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value="50"
+          class="code-slider"
           id="codeSlider"
           aria-label="Slide to compare Docker Compose and C# AppHost"
         />
       </div>
-      
+
       <div class="label-csharp clickable" data-value="100">
         <Icon name="seti:c-sharp" size="1.5rem" />
         <span>AppHost</span>
@@ -103,17 +105,24 @@ builder.Build().Run();
         <div class="code-panel yaml-code">
           <div class="code-description">
             <p>
-                Many developers are familiar with defining stacks in YAML using Docker Compose—but with Aspire, you don't need to!
+              Many developers are familiar with defining stacks in YAML using
+              Docker Compose—but with Aspire, you don't need to!
             </p>
           </div>
           <div class="code-block">
-            <Code code={compose} lang="yaml" frame="terminal" title="docker-compose.yml" />
+            <Code
+              code={compose}
+              lang="yaml"
+              frame="terminal"
+              title="docker-compose.yml"
+            />
           </div>
         </div>
         <div class="code-panel csharp-code">
           <div class="code-description">
             <p>
-                Define your stack in C#: concise, type-safe, and IDE-friendly. Aspire gives you more control than static YAML files.
+              Define your stack in C#: concise, type-safe, and IDE-friendly.
+              Aspire gives you more control than static YAML files.
             </p>
           </div>
           <div class="code-block">
@@ -125,7 +134,9 @@ builder.Build().Run();
   </div>
 
   <p class="comparison-caption">
-    Both define the same three-tier application topology, but Aspire's C# approach offers type safety, IDE integration, extensibility, and a more concise syntax.
+    Both define the same three-tier application topology, but Aspire's C#
+    approach offers type safety, IDE integration, extensibility, and a more
+    concise syntax.
   </p>
 </div>
 
@@ -169,14 +180,17 @@ builder.Build().Run();
     border-bottom: 1px solid var(--sl-color-border);
   }
 
-  .label-docker, .label-csharp {
+  .label-docker,
+  .label-csharp {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     font-weight: 600;
     padding: 0.5rem 0.75rem;
     border-radius: 0.25rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
   }
 
   .clickable {
@@ -194,24 +208,30 @@ builder.Build().Run();
 
   .label-docker {
     background: rgba(25, 118, 210, 0.15);
-    color: #1976D2;
+    color: #1976d2;
     margin-top: initial;
   }
 
   .label-csharp {
     background: rgba(104, 33, 122, 0.15);
-    color: #68217A;
+    color: #68217a;
     margin-top: initial;
   }
-  
-  :root[data-theme='dark'] .label-csharp {
-    color: #8A3FB5;
-  }
 
+  :root[data-theme="dark"] .label-csharp {
+    color: #8a3fb5;
+  }
+  
   .slider-control {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    margin-top: initial;
+    transform: translateX(-50%);
     width: 40%;
     max-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .code-slider {
@@ -219,15 +239,27 @@ builder.Build().Run();
     height: 12px;
     -webkit-appearance: none;
     appearance: none;
-    background: linear-gradient(to right, #1976D2 0%, #1976D2 50%, #68217A 50%, #68217A 100%);
+    background: linear-gradient(
+      to right,
+      #1976d2 0%,
+      #1976d2 50%,
+      #68217a 50%,
+      #68217a 100%
+    );
     border-radius: 6px;
     outline: none;
     margin: 0;
     cursor: pointer;
   }
-  
-  :root[data-theme='dark'] .code-slider {
-    background: linear-gradient(to right, #1976D2 0%, #1976D2 50%, #8A3FB5 50%, #8A3FB5 100%);
+
+  :root[data-theme="dark"] .code-slider {
+    background: linear-gradient(
+      to right,
+      #1976d2 0%,
+      #1976d2 50%,
+      #8a3fb5 50%,
+      #8a3fb5 100%
+    );
   }
 
   .code-slider::-webkit-slider-thumb {
@@ -286,22 +318,25 @@ builder.Build().Run();
     margin-top: 1rem;
     text-align: center;
     font-style: italic;
-  }
-
-  /* Make sure we handle mobile devices properly */
+  } /* Make sure we handle mobile devices properly */
   @media (max-width: 768px) {
     .slider-label {
       flex-direction: column;
       gap: 0.75rem;
-    }
-    
-    .slider-control {
-      width: 100%;
-      max-width: none;
-      order: 3;
+      position: relative;
     }
 
-    .label-docker, .label-csharp {
+    .slider-control {
+      position: relative;
+      left: auto;
+      transform: none;
+      order: 3;
+      max-width: none;
+      width: 100%;
+    }
+
+    .label-docker,
+    .label-csharp {
       width: 100%;
       justify-content: center;
     }
@@ -309,12 +344,12 @@ builder.Build().Run();
 </style>
 
 <script type="module" is:inline>
-  document.addEventListener('DOMContentLoaded', () => {
-    const slider = document.getElementById('codeSlider');
-    const splitView = document.querySelector('.split-view');
-    const dockerLabel = document.querySelector('.label-docker');
-    const csharpLabel = document.querySelector('.label-csharp');
-    
+  document.addEventListener("DOMContentLoaded", () => {
+    const slider = document.getElementById("codeSlider");
+    const splitView = document.querySelector(".split-view");
+    const dockerLabel = document.querySelector(".label-docker");
+    const csharpLabel = document.querySelector(".label-csharp");
+
     if (slider && splitView) {
       const updateSplitView = (value) => {
         // Update slider value if provided as parameter
@@ -323,54 +358,55 @@ builder.Build().Run();
         } else {
           value = parseInt(slider.value);
         }
-        
+
         // Calculate translation percentage - we're moving a double-width container
         const translatePercent = -1 * (value / 2);
-        
+
         splitView.style.transform = `translateX(${translatePercent}%)`;
-        
+
         // Update gradient background - use different colors for dark/light mode
-        const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-        const csharpColor = isDarkTheme ? '#8A3FB5' : '#68217A';
+        const isDarkTheme =
+          document.documentElement.getAttribute("data-theme") === "dark";
+        const csharpColor = isDarkTheme ? "#8A3FB5" : "#68217A";
         slider.style.background = `linear-gradient(to right, #1976D2 0%, #1976D2 ${value}%, ${csharpColor} ${value}%, ${csharpColor} 100%)`;
       };
 
       // Handle slider input events
-      slider.addEventListener('input', () => updateSplitView());
-      
+      slider.addEventListener("input", () => updateSplitView());
+
       // Handle label click events
       if (dockerLabel) {
-        dockerLabel.addEventListener('click', () => {
+        dockerLabel.addEventListener("click", () => {
           updateSplitView(0); // Show Docker Compose view (0%)
         });
       }
-      
+
       if (csharpLabel) {
-        csharpLabel.addEventListener('click', () => {
+        csharpLabel.addEventListener("click", () => {
           updateSplitView(100); // Show C# AppHost view (100%)
         });
       }
-      
+
       // Also update when theme changes
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-          if (mutation.attributeName === 'data-theme') {
+          if (mutation.attributeName === "data-theme") {
             updateSplitView();
           }
         });
       });
       observer.observe(document.documentElement, { attributes: true });
-      
+
       // Initialize position
       updateSplitView();
-      
+
       // Add touch support for mobile
-      slider.addEventListener('touchstart', () => {
-        document.body.style.overflow = 'hidden'; // Prevent page scrolling
+      slider.addEventListener("touchstart", () => {
+        document.body.style.overflow = "hidden"; // Prevent page scrolling
       });
-      
-      slider.addEventListener('touchend', () => {
-        document.body.style.overflow = ''; // Re-enable page scrolling
+
+      slider.addEventListener("touchend", () => {
+        document.body.style.overflow = ""; // Re-enable page scrolling
       });
     }
   });
