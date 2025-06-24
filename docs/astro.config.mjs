@@ -100,7 +100,7 @@ export default defineConfig({
 				catppuccin(),
 				starlightSidebarTopics([
 					{
-						label: 'Start',
+						label: 'Get Started',
 						link: 'get',
 						icon: 'rocket',
 						items: [
