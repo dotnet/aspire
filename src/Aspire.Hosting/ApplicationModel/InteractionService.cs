@@ -315,7 +315,7 @@ internal sealed class InteractionCompletionState
 [DebuggerDisplay("InteractionId = {InteractionId}, State = {State}, Title = {Title}")]
 internal class Interaction
 {
-    private static int s_nextInteractionId = 1;
+    private static int s_nextInteractionId;
 
     public int InteractionId { get; }
     public InteractionState State { get; set; }
