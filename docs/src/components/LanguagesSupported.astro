@@ -1,15 +1,15 @@
 ---
-import go from '../assets/icons/go.svg';
-import python from '../assets/icons/python.svg';
-import javascript from '../assets/icons/javascript.svg';
-import typescript from '../assets/icons/typescript.svg';
-import java from '../assets/icons/java.svg';
-import csharp from '../assets/icons/csharp.svg';
-import ruby from '../assets/icons/ruby.svg';
-import php from '../assets/icons/php.svg';
+import go from "../assets/icons/go.svg";
+import python from "../assets/icons/python.svg";
+import javascript from "../assets/icons/javascript.svg";
+import typescript from "../assets/icons/typescript.svg";
+import java from "../assets/icons/java.svg";
+import csharp from "../assets/icons/csharp.svg";
+import ruby from "../assets/icons/ruby.svg";
+import php from "../assets/icons/php.svg";
 
 const languages = [
-    { name: "Go", icon: go, },
+    { name: "Go", icon: go },
     { name: "Python", icon: python },
     { name: "JavaScript", icon: javascript },
     { name: "TypeScript", icon: typescript },
@@ -32,50 +32,97 @@ const shuffledLanguages = shuffle(languages);
 ---
 
 <section class="languages-supported">
-        <ul class="languages-list">
-                {shuffledLanguages.map(lang => (
-                        <li>
-                                <img src={lang.icon.src} alt={lang.name} />
-                                <span>{lang.name}</span>
-                        </li>
-                ))}
-        </ul>
-        <style>
-                .languages-supported {
-                        text-align: center;
-                        margin: 2rem 0;
-                }
-                .languages-list {
-                        display: flex;
-                        flex-wrap: wrap;
-                        justify-content: center;
-                        gap: 2rem;
-                        list-style: none;
-                        padding: 0;
-                        margin: 2rem 0 0 0;
-                }
-                .languages-list li {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        transition: transform 0.2s;
-                        border-radius: .5rem;
-                        padding: 1rem 1.5rem;
-                        border: 1px solid var(--sl-color-gray-4);
-                        background: var(--sl-color-gray-6);
-                }
-                .languages-list li:hover {
-                        transform: scale(1.1);
-                }
-                .languages-list img {
-                        width: 6rem;
-                        height: 6rem;
-                        margin-bottom: 0.5rem;
+    <div class="languages-grid">
+        {
+            shuffledLanguages.map((lang) => (
+                <div class="language-card">
+                    <img src={lang.icon.src} alt={lang.name} />
+                    <span>{lang.name}</span>
+                </div>
+            ))
+        }
+    </div>
+    <style>
+        .languages-supported {
+            text-align: center;
+        }
 
-                }
-                .languages-list span {
-                        font-size: 1rem;
-                        font-weight: 500;
-                }
-        </style>
+        .languages-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.25rem;
+            max-width: 100%;
+        }
+
+        .language-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            border: 1px solid var(--sl-color-gray-4);
+            background: var(--sl-color-gray-6);
+            flex: 0 0 auto;
+            min-width: 7rem;
+            margin-top: initial;
+        }
+
+        .language-card:hover {
+            transform: scale(1.1);
+        }
+
+        .language-card img {
+            width: 4rem;
+            height: 4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .language-card span {
+            font-size: 1rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .languages-grid {
+                gap: 0.75rem;
+            }
+
+            .language-card {
+                padding: 0.75rem 1rem;
+                min-width: 6rem;
+            }
+
+            .language-card img {
+                width: 3.5rem;
+                height: 3.5rem;
+            }
+
+            .language-card span {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .languages-grid {
+                gap: 0.5rem;
+            }
+
+            .language-card {
+                padding: 0.5rem 0.75rem;
+                min-width: 5rem;
+            }
+
+            .language-card img {
+                width: 3rem;
+                height: 3rem;
+            }
+
+            .language-card span {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </section>
