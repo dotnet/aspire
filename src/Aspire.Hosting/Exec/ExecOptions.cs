@@ -26,5 +26,5 @@ public class ExecOptions
     /// <summary>
     /// 
     /// </summary>
-    public required string Command { get; set; }
+    public required string Command { get; set; }    
 }

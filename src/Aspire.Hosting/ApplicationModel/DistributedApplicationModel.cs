@@ -8,10 +8,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a distributed application.
 /// </summary>
-/// <param name="resources">The resource collection used to initiate the model.</param>
 [DebuggerDisplay("Resources = {Resources.Count}")]
-public class DistributedApplicationModel(IResourceCollection resources)
+public class DistributedApplicationModel
 {
+    /// <param name="resources">The resource collection used to initiate the model.</param>
+    public DistributedApplicationModel(IResourceCollection resources)
+    {
+        Resources = resources ?? throw new ArgumentNullException(nameof(resources));
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationModel"/> class with the specified resource collection.
     /// </summary>
@@ -23,5 +28,5 @@ public class DistributedApplicationModel(IResourceCollection resources)
     /// <summary>
     /// Gets the collection of resources associated with the distributed application.
     /// </summary>
-    public IResourceCollection Resources { get; } = resources ?? throw new ArgumentNullException(nameof(resources));
+    public IResourceCollection Resources { get; }
 }

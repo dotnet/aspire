@@ -86,9 +86,4 @@ public class DistributedApplicationExecutionContext
     /// </summary>
     public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
 
-    /// <summary>
-    /// Returns true if the current operation is exec.
-    /// </summary>
-    public bool IsExecMode => Operation == DistributedApplicationOperation.Exec;
-
 }

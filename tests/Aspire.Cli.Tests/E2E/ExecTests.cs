@@ -23,6 +23,31 @@ public class ExecTests(ITestOutputHelper output)
         var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
         // DeleteMigrations(myWebAppProjectMetadata);
 
+        // RUN apphost
+        //string[] args = [
+        //    "--operation", "run", // RUN type
+        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+        //    "--add-postgres", // arbitraty flags for apphost
+        //];
+
+        // DOTNET LIST-SDKS COMMAND
+        //string[] args = [
+        //    "--operation", "exec", // EXEC type
+        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+        //    "--resource", "mywebapp1", // target resource
+        //    "--command", "\"dotnet --list-sdks\"", // command packed into string
+        //    "--add-postgres", // arbitraty flags for apphost
+        //];
+
+        // PING GOOGLE.COM COMMAND
+        string[] args = [
+            "--operation", "exec", // EXEC type
+            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+            "--resource", "mywebapp1", // target resource
+            "--command", "\"ping google.com\"", // command packed into string
+            "--add-postgres", // arbitraty flags for apphost
+        ];
+
         // ADD MIGRATION
         //string[] args = [
         //    "--operation", "exec", // EXEC type
@@ -33,13 +58,13 @@ public class ExecTests(ITestOutputHelper output)
         //];
 
         // APPLY MIGRATION UPDATE ON DB
-        string[] args = [
-            "--operation", "exec", // EXEC type
-            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--resource", "mywebapp1", // target resource
-            "--command", "\"dotnet ef database update\"", // command packed into string
-            "--add-postgres", // arbitraty flags for apphost
-        ];
+        //string[] args = [
+        //    "--operation", "exec", // EXEC type
+        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+        //    "--resource", "mywebapp1", // target resource
+        //    "--command", "\"dotnet ef database update\"", // command packed into string
+        //    "--add-postgres", // arbitraty flags for apphost
+        //];
 
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {
@@ -66,21 +91,35 @@ public class ExecTests(ITestOutputHelper output)
         // the target resource
         var project = builder
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
-            .WithReference(pgsqlDb);
-            //.WaitFor(pgsqlDb);
+            .WithReference(pgsqlDb)
+            .WaitFor(pgsqlDb);
+
+        //builder.AddExecutable("apphostexec", "ping", workingDirectory: @"D:\code\", args: "google.com")
+        //    .WaitFor(pgsqlDb);
 
         await using var app = await builder.BuildAsync();
 
         // try get logs for the future command execution
-        var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
-        var outputStream = appHostRpcTarget.ExecAsync(CancellationToken.None);
-
-        var startTask = app.StartAsync();
-        await foreach (var message in outputStream)
+        try
         {
-            output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
+
+            var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
+            var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
+
+            var startTask = app.StartAsync(cts.Token);
+            await foreach (var message in outputStream)
+            {
+                output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
+            }
+
+            await startTask;
         }
-        await startTask;
+        catch (Exception ex)
+        {
+            output.WriteLine($"Error during execution: {ex.Message}");
+            throw;
+        }
 
         AssertMigrationsCreated(myWebAppProjectMetadata);
         DeleteMigrations(myWebAppProjectMetadata);

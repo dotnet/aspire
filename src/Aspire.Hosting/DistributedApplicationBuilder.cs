@@ -123,15 +123,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "run" => DistributedApplicationOperation.Run,
-            "exec" => DistributedApplicationOperation.Exec,
+            "run" or "exec" => DistributedApplicationOperation.Run,
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
-            DistributedApplicationOperation.Run  => new DistributedApplicationExecutionContextOptions(operation),
-            DistributedApplicationOperation.Exec => new DistributedApplicationExecutionContextOptions(operation),
+            DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
@@ -228,6 +226,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             ["AppHost:Sha256"] = appHostSha
         });
+
+        // exec
+        _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+        _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ExecResourceManager>());
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -355,7 +357,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
-        if (ExecutionContext.IsRunMode || ExecutionContext.IsExecMode)
+        if (ExecutionContext.IsRunMode)
         {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
@@ -372,17 +374,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
         }
-
-        _innerBuilder.Services.AddSingleton<ExecResourceManager>();
-
-        //if (ExecutionContext.IsExecMode)
-        //{
-        //    _innerBuilder.Services.AddSingleton<IExecutionService, ExecutionService>();
-        //}
-        //else
-        //{
-        //    _innerBuilder.Services.AddSingleton<IExecutionService, NoopExecutionService>();
-        //}
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
@@ -512,7 +503,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
-            { "--operation", "AppHost:Operation" },
+            { "--operation", "Exec:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--command", "Exec:Command" }
         };

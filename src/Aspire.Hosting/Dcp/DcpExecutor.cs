@@ -16,7 +16,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Exec;
 using Aspire.Hosting.Utils;
 using Json.Patch;
 using k8s;
@@ -53,7 +52,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly List<AppResource> _appResources = [];
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
-    private readonly ExecResourceManager _execResourceManager; 
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
@@ -83,8 +81,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                        ResourceLoggerService loggerService,
                        IDcpDependencyCheckService dcpDependencyCheckService,
                        DcpNameGenerator nameGenerator,
-                       DcpExecutorEvents executorEvents,
-                       ExecResourceManager execResourceManager)
+                       DcpExecutorEvents executorEvents)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -100,7 +97,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
-        _execResourceManager = execResourceManager;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
@@ -119,7 +115,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
         try
         {
-            PrepareExec();
+            // PrepareExec();
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -721,10 +717,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
-        await containersTask.ConfigureAwait(false);
-
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
-        await executablesTask.ConfigureAwait(false);
 
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
     }
@@ -758,17 +751,6 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
         }
-    }
-
-    private void PrepareExec()
-    {
-        if (!_execResourceManager.TryBuildExecResource(_model.Resources, out var execResource))
-        {
-            return;
-        }
-
-        Console.WriteLine(execResource);
-        // _model.Resources.Add(execResource!);
     }
 
     private void PrepareServices()
@@ -1563,7 +1545,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     {
         var matchingResource = _appResources
             .Where(r => r.DcpResource is not Service)
-            .SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
+            //.SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
+            .SingleOrDefault(r => string.Equals(r.DcpResource.AppModelResourceName, resourceName, StringComparisons.ResourceName));
         if (matchingResource == null)
         {
             throw new InvalidOperationException($"Resource '{resourceName}' not found.");
