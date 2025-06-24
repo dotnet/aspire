@@ -153,7 +153,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             {
                 await foreach (var request in requestStream.ReadAllAsync(cts.Token).ConfigureAwait(false))
                 {
-                    await serviceData.SendInteractionRequestAsync(request).ConfigureAwait(false);
+                    await serviceData.SendInteractionRequestAsync(request, cts.Token).ConfigureAwait(false);
                 }
             }
             finally

@@ -253,7 +253,7 @@ public class InteractionService
         }
     }
 
-    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, Task<InteractionCompletionState>> createResult)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, Task<InteractionCompletionState>> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 
@@ -266,7 +266,7 @@ public class InteractionService
             }
         }
 
-        var result = await createResult(interactionState, _serviceProvider, CancellationToken.None).ConfigureAwait(false);
+        var result = await createResult(interactionState, _serviceProvider, cancellationToken).ConfigureAwait(false);
 
         lock (_onInteractionUpdatedLock)
         {
@@ -458,38 +458,39 @@ public class InputsDialogInteractionOptions : InteractionOptions
     internal static new InputsDialogInteractionOptions Default { get; } = new();
 
     /// <summary>
-    /// 
+    /// Gets or sets the validation callback for the inputs dialog. This callback is invoked when the user submits the dialog.
+    /// If validation errors are added to the <see cref="InputsDialogValidationContext"/>, the dialog will not close and the user will be prompted to correct the errors.
     /// </summary>
     public Func<InputsDialogValidationContext, Task>? ValidationCallback { get; set; }
 }
 
 /// <summary>
-/// 
+/// Represents the context for validating inputs in an inputs dialog interaction.
 /// </summary>
 public sealed class InputsDialogValidationContext
 {
     internal bool HasErrors { get; private set; }
 
     /// <summary>
-    /// 
+    /// Gets the inputs that are being validated.
     /// </summary>
     public required IReadOnlyList<InteractionInput> Inputs { get; init; }
 
     /// <summary>
-    /// 
+    /// Gets the cancellation token for the validation operation.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
 
     /// <summary>
-    /// 
+    /// Gets the service provider for resolving services during validation.
     /// </summary>
     public required IServiceProvider ServiceProvider { get; init; }
 
     /// <summary>
-    /// 
+    /// Adds a validation error for the specified input.
     /// </summary>
-    /// <param name="input"></param>
-    /// <param name="errorMessage"></param>
+    /// <param name="input">The input to add a validation error for.</param>
+    /// <param name="errorMessage">The error message to add.</param>
     public void AddValidationError(InteractionInput input, string errorMessage)
     {
         ArgumentNullException.ThrowIfNull(input, nameof(input));
