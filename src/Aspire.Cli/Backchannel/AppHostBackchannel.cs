@@ -20,6 +20,7 @@ internal interface IAppHostBackchannel
     Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task RequestStopAsync(CancellationToken cancellationToken);
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
@@ -79,6 +80,27 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             cancellationToken);
 
         return (url.BaseUrlWithLoginToken, url.CodespacesUrlWithLoginToken);
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting AppHost log entries");
+
+        var logEntries = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<BackchannelLogEntry>>(
+            "GetAppHostLogEntriesAsync",
+            [],
+            cancellationToken);
+
+        logger.LogDebug("Received AppHost log entries async enumerable");
+
+        await foreach (var entry in logEntries.WithCancellation(cancellationToken))
+        {
+            yield return entry;
+        }
     }
 
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -195,11 +217,23 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     }
 }
 
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public Exception? Exception { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
+}
+
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(DashboardUrlsState))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(IAsyncEnumerable<RpcResourceState>))]
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<RpcResourceState>))]
+[JsonSerializable(typeof(IAsyncEnumerable<BackchannelLogEntry>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<BackchannelLogEntry>))]
 [JsonSerializable(typeof(IAsyncEnumerable<PublishingActivity>))]
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
 [JsonSerializable(typeof(RequestId))]
