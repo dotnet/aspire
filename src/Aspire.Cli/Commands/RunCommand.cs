@@ -156,8 +156,8 @@ internal sealed class RunCommand : BaseCommand
             grid.AddColumn();
             grid.AddColumn();
 
-            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
             grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
@@ -222,18 +222,18 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
