@@ -120,7 +120,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled })
        .WithCommand("confirmation-interaction", "Confirmation interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
            var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning }, cancellationToken: commandContext.CancellationToken);
 
@@ -138,7 +138,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            await Task.Yield();
 
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
            _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information });
            _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning });
@@ -150,7 +150,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        })
        .WithCommand("html-interaction", "HTML interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
            _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
            _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
@@ -165,7 +165,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        })
        .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var result = await interactionService.PromptInputAsync(
                title: "Text request",
                message: "Provide your name",
@@ -200,7 +200,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        })
        .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
        {
-           var interactionService = commandContext.ServiceProvider.GetRequiredService<InteractionService>();
+           var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var dinnerInput = new InteractionInput
            {
                InputType = InputType.Select,
