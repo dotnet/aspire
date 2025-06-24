@@ -61,6 +61,6 @@ public sealed class AzureEnvironmentResource : Resource
             context.Logger,
             context.ProgressReporter);
 
-        return azureCtx.WriteModelAsync(context.Model, this);
+        return azureCtx.WriteModelAsync(context.Model, this, context.CancellationToken);
     }
 }

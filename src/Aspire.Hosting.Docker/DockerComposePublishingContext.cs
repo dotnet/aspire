@@ -56,9 +56,21 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
+        var step = await progressReporter.CreateStepAsync("Generating Docker Compose configuration", cancellationToken).ConfigureAwait(false);
 
-        logger.FinishGeneratingDockerCompose(OutputPath);
+        try
+        {
+            await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
+
+            await step.SucceedAsync("Docker Compose configuration generated successfully", cancellationToken).ConfigureAwait(false);
+
+            logger.FinishGeneratingDockerCompose(OutputPath);
+        }
+        catch (Exception)
+        {
+            await step.FailAsync("Failed to generate Docker Compose configuration", cancellationToken).ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
@@ -130,8 +142,7 @@ internal sealed class DockerComposePublishingContext(
             "Writing Docker Compose file.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var task = await progressReporter.CreateTaskAsync(
-            step,
+        var task = await step.CreateTaskAsync(
             "Writing the Docker Compose file to the output path.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -159,16 +170,12 @@ internal sealed class DockerComposePublishingContext(
             envFile.Save(envFilePath);
         }
 
-        await progressReporter.CompleteTaskAsync(
-            task,
-            TaskCompletionState.Completed,
+        await task.SucceedAsync(
             $"Docker Compose file written successfully to {outputFile}.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        await progressReporter.CompleteStepAsync(
-            step,
+        await step.SucceedAsync(
             "Docker Compose file generation completed.",
-            isError: false,
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
