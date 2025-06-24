@@ -7,7 +7,10 @@
     <Description>Azure AI Foundry resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <SignAssembly>false</SignAssembly>
+    <!--
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
