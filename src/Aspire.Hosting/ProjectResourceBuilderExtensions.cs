@@ -25,14 +25,7 @@ public static class ProjectResourceBuilderExtensions
     {
         try
         {
-            string hostname = "localhost";
-            try
-            {
-                hostname = Dns.GetHostName();
-            }
-            catch { }
-
-            return Dns.GetHostAddresses(hostname).Any(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+            return Dns.GetHostAddresses(Environment.MachineName).Any(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
         catch
         {
