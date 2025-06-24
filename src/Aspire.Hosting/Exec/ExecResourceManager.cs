@@ -3,107 +3,65 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Exec;
 
 internal class ExecResourceManager : BackgroundService
 {
+    private readonly ILogger _logger;
     private readonly ExecOptions _execOptions;
     private readonly DistributedApplicationModel _model;
 
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly ResourceNotificationService _resourceNotificationService;
-    private readonly IDcpExecutor _dcpExecutor;
 
+    private string? _execResourceName;
     private IResource? _execResource;
 
-    //private bool RunningInExecMode => _execOptions.Operation is "exec";
-    private static bool RunningInExecMode => true;
+    private static bool RunningInExecMode => true; // todo
 
     public ExecResourceManager(
+        ILogger<ExecResourceManager> logger,
         IOptions<ExecOptions> execOptions,
-        IDcpExecutor dcpExecutor,
         DistributedApplicationModel model,
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _execOptions = execOptions.Value;
-        _dcpExecutor = dcpExecutor;
         _model = model;
 
         _resourceLoggerService = resourceLoggerService;
         _resourceNotificationService = resourceNotificationService;
     }
 
-#pragma warning disable CA1822 // Mark members as static
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#pragma warning disable IDE0060 // Remove unused parameter
     public async IAsyncEnumerable<IReadOnlyList<LogLine>> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
-#pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-#pragma warning restore CA1822 // Mark members as static
     {
         if (!RunningInExecMode)
         {
             yield break;
         }
+        if (string.IsNullOrEmpty(_execResourceName) || _execResource is null)
+        {
+            _logger.LogInformation("Exec resource can't be determined.");
+            yield break;
+        }
 
-        var name = "exec";
-        await _resourceNotificationService.WaitForResourceAsync(name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
-        var resourceReference = _dcpExecutor.GetResource(name);
+        await _resourceNotificationService.WaitForResourceAsync(_execResourceName, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
 
+        // waiting for the resource to reach terminal state and completing the log stream then
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(name, targetState: KnownResourceStates.Finished, cancellationToken).ConfigureAwait(false);
-            _resourceLoggerService.Complete(resourceReference.ModelResource);
+            await _resourceNotificationService.WaitForResourceAsync(_execResourceName, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+            _resourceLoggerService.Complete(_execResource);
         }, cancellationToken);
         
-        await foreach (var logs in _resourceLoggerService.WatchAsync(resourceReference.DcpResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
+        await foreach (var logs in _resourceLoggerService.WatchAsync(_execResource).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return logs;
-        }
-    }
-
-    IResource BuildResource(IResourceSupportsExec targetExecResource)
-    {
-        return targetExecResource switch
-        {
-           ProjectResource prj => BuildAgainstProjectResource(prj),
-            _ => throw new NotImplementedException(nameof(targetExecResource))
-        };
-    }
-
-    private IResource BuildAgainstProjectResource(ProjectResource project)
-    {
-        var projectMetadata = project.GetProjectMetadata();
-        var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? throw new InvalidOperationException("Project path is invalid.");
-        var (exe, args) = ParseCommand();
-
-        var executable = new ExecutableResource("exec", exe, projectDir);
-        executable.Annotations.Add(new CommandLineArgsCallbackAnnotation((c) =>
-        {
-            c.Args.Add(args);
-            return Task.CompletedTask;
-        }));
-
-        //// take all annotations from the project resource and apply to the executable
-        //foreach (var annotation in project.Annotations)
-        //{
-        //    // todo understand if a deep-copy is required
-        //    executable.Annotations.Add(annotation);
-        //}
-
-        // executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
-
-        return executable;
-
-        (string exe, string args) ParseCommand()
-        {
-            var split = _execOptions.Command.Split(' ', count: 2);
-            return (split[0].Trim('"'), split[1].Trim('"'));
         }
     }
 
@@ -114,16 +72,65 @@ internal class ExecResourceManager : BackgroundService
             return Task.CompletedTask;
         }
 
-        var targetResource = _model.Resources.FirstOrDefault(x => x.Name == _execOptions.ResourceName);
+        var targetResource = _model.Resources.FirstOrDefault(x => x.Name.Equals(_execOptions.ResourceName, StringComparisons.ResourceName));
         if (targetResource is not IResourceSupportsExec targetExecResource)
         {
+            _logger.LogWarning("Target resource '{ResourceName}' does not support exec.", _execOptions.ResourceName);
             return Task.CompletedTask;
         }
 
         var execResource = BuildResource(targetExecResource);
         _execResource = execResource;
         _model.Resources.Add(execResource);
+        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", _execResourceName);
 
         return Task.CompletedTask;
+    }
+
+    IResource BuildResource(IResourceSupportsExec targetExecResource)
+    {
+        return targetExecResource switch
+        {
+            ProjectResource prj => BuildAgainstProjectResource(prj),
+            _ => throw new NotImplementedException(nameof(targetExecResource))
+        };
+    }
+
+    private IResource BuildAgainstProjectResource(ProjectResource project)
+    {
+        var projectMetadata = project.GetProjectMetadata();
+        var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? throw new InvalidOperationException("Project path is invalid.");
+        var (exe, args) = ParseCommand();
+
+        var shortId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        _execResourceName = "exec" + shortId;
+
+        var executable = new ExecutableResource(_execResourceName, exe, projectDir);
+
+        if (!string.IsNullOrEmpty(args))
+        {
+            executable.Annotations.Add(new CommandLineArgsCallbackAnnotation((c) =>
+            {
+                c.Args.Add(args);
+                return Task.CompletedTask;
+            }));
+        }
+
+        //// take all annotations from the project resource and apply to the executable
+        //foreach (var annotation in project.Annotations)
+        //{
+        //    // todo understand if a deep-copy is required
+        //    executable.Annotations.Add(annotation);
+        //}
+
+        //executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
+
+        return executable;
+
+        (string exe, string args) ParseCommand()
+        {
+            var split = _execOptions.Command.Split(' ', count: 2);
+            return (split[0].Trim('"'), split[1].Trim('"'));
+        }
     }
 }

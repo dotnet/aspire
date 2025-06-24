@@ -1557,8 +1557,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     {
         var matchingResource = _appResources
             .Where(r => r.DcpResource is not Service)
-            //.SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
-            .SingleOrDefault(r => string.Equals(r.DcpResource.AppModelResourceName, resourceName, StringComparisons.ResourceName));
+            .SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
         if (matchingResource == null)
         {
             throw new InvalidOperationException($"Resource '{resourceName}' not found.");
