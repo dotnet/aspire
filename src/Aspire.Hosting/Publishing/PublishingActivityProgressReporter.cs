@@ -41,7 +41,7 @@ public enum TaskCompletionState
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingStep
+public sealed class PublishingStep : IAsyncDisposable
 {
     internal PublishingStep(string id, string title)
     {
@@ -73,13 +73,31 @@ public sealed class PublishingStep
     /// The progress reporter that created this step.
     /// </summary>
     internal IPublishingActivityProgressReporter? Reporter { get; set; }
+
+    /// <summary>
+    /// Completes the step automatically when disposed if not already completed.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (Reporter is not null && !IsComplete)
+        {
+            try
+            {
+                await Reporter.CompleteStepAsync(this, Title, isError: false, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore exceptions if step is already complete or removed
+            }
+        }
+    }
 }
 
 /// <summary>
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingTask
+public sealed class PublishingTask : IDisposable
 {
     internal PublishingTask(string id, string stepId, string statusText)
     {
@@ -116,6 +134,29 @@ public sealed class PublishingTask
     /// The progress reporter that created this task.
     /// </summary>
     internal IPublishingActivityProgressReporter? Reporter { get; set; }
+
+    /// <summary>
+    /// Completes the task automatically when disposed if not already completed.
+    /// </summary>
+    public void Dispose()
+    {
+        if (Reporter is not null && CompletionState == TaskCompletionState.InProgress)
+        {
+            try
+            {
+                // Use synchronous completion since IDisposable doesn't support async
+                Reporter.CompleteTaskAsync(this, TaskCompletionState.Completed, null, CancellationToken.None).Wait();
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore exceptions if task is already complete or parent step is complete
+            }
+            catch (AggregateException ex) when (ex.InnerException is InvalidOperationException)
+            {
+                // Ignore InvalidOperationException wrapped in AggregateException from .Wait()
+            }
+        }
+    }
 }
 
 /// <summary>

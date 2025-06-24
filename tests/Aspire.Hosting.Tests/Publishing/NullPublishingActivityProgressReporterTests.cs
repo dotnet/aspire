@@ -34,4 +34,32 @@ public class NullPublishingActivityProgressReporterTests
         Assert.NotEmpty(task.Id);
         Assert.Equal(step.Id, task.StepId);
     }
+
+    [Fact]
+    public async Task NullReporter_SupportsDisposal_ForStep()
+    {
+        // Arrange
+        var reporter = NullPublishingActivityProgressReporter.Instance;
+
+        // Act - Use disposal pattern with null reporter
+        await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Assert - Step should be completed after disposal
+        Assert.True(step.IsComplete);
+        Assert.Equal("Test Step", step.CompletionText);
+    }
+
+    [Fact]
+    public async Task NullReporter_SupportsDisposal_ForTask()
+    {
+        // Arrange
+        var reporter = NullPublishingActivityProgressReporter.Instance;
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Act - Use disposal pattern with null reporter
+        using var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Assert - Task should be completed after disposal
+        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+    }
 }

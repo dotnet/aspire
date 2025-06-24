@@ -404,4 +404,156 @@ public class PublishingActivityProgressReporterTests
             () => reporter.CreateTaskAsync(step, "New Task", CancellationToken.None));
         Assert.Contains($"Step with ID '{step.Id}' does not exist.", createException.Message);
     }
+
+    [Fact]
+    public async Task PublishingStep_DisposeAsync_CompletesStepAutomatically()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Clear step creation activity
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the step without explicit completion
+        await step.DisposeAsync();
+
+        // Assert - Verify step is completed
+        Assert.True(step.IsComplete);
+        Assert.Equal("Test Step", step.CompletionText);
+
+        // Verify completion activity was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(step.Id, activity.Data.Id);
+        Assert.Equal("Test Step", activity.Data.StatusText);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+    }
+
+    [Fact]
+    public async Task PublishingStep_DisposeAsync_DoesNothingWhenAlreadyCompleted()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step explicitly first
+        await reporter.CompleteStepAsync(step, "Explicit completion", isError: false, CancellationToken.None);
+
+        // Clear activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the step after explicit completion
+        await step.DisposeAsync();
+
+        // Assert - No additional activity should be emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.False(activityReader.TryRead(out _));
+
+        // Step should retain its explicit completion text
+        Assert.True(step.IsComplete);
+        Assert.Equal("Explicit completion", step.CompletionText);
+    }
+
+    [Fact]
+    public async Task PublishingTask_Dispose_CompletesTaskAutomatically()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the task without explicit completion
+        task.Dispose();
+
+        // Assert - Verify task is completed
+        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(string.Empty, task.CompletionMessage);
+
+        // Verify completion activity was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal(task.Id, activity.Data.Id);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+        Assert.False(activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task PublishingTask_Dispose_DoesNothingWhenAlreadyCompleted()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Complete the task explicitly first
+        await reporter.CompleteTaskAsync(task, TaskCompletionState.CompletedWithWarning, "Explicit completion", CancellationToken.None);
+
+        // Clear activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the task after explicit completion
+        task.Dispose();
+
+        // Assert - No additional activity should be emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.False(activityReader.TryRead(out _));
+
+        // Task should retain its explicit completion state
+        Assert.Equal(TaskCompletionState.CompletedWithWarning, task.CompletionState);
+        Assert.Equal("Explicit completion", task.CompletionMessage);
+    }
+
+    [Fact]
+    public async Task PublishingTask_Dispose_HandlesParentStepRemoved()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Complete the step first, which removes it from the dictionary
+        await reporter.CompleteStepAsync(step, "Step completed", isError: false, CancellationToken.None);
+
+        // Act - Dispose the task after parent step is removed - should not throw
+        task.Dispose();
+
+        // Assert - Task should still be in progress since parent step was removed
+        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+    }
+
+    [Fact]
+    public async Task DisposalPattern_UsageExample()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+
+        // Act - Use the disposal pattern as shown in the issue example
+        await using var step = await reporter.CreateStepAsync("Publish Artifacts", CancellationToken.None);
+
+        using var pkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
+        using var pushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
+
+        // Simulate some work
+        await reporter.UpdateTaskAsync(pkgTask, "50% complete", CancellationToken.None);
+        await reporter.UpdateTaskAsync(pushTask, "Uploading...", CancellationToken.None);
+
+        // Tasks and step will be automatically completed when disposed
+
+        // Assert - All should be completed after using blocks
+        Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
+        Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
+        Assert.True(step.IsComplete);
+    }
 }
