@@ -47,6 +47,14 @@ public static class YarpServiceExtensions
         // Map the configuration file
         yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
+            foreach (var route in yarpBuilder.Resource.Routes)
+            {
+                yarpBuilder.Resource.ConfigurationBuilder.AddRoute(route.RouteConfig);
+            }
+            foreach (var destination in yarpBuilder.Resource.Destinations)
+            {
+                yarpBuilder.Resource.ConfigurationBuilder.AddCluster(destination.ClusterConfig);
+            }
             var contents = await yarpBuilder.Resource.ConfigurationBuilder.Build(ct).ConfigureAwait(false);
 
             var configFile = new ContainerFile
@@ -82,6 +90,18 @@ public static class YarpServiceExtensions
     internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigurationBuilder> configurationBuilder)
     {
         configurationBuilder(builder.Resource.ConfigurationBuilder);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configure the YARP resource.
+    /// </summary>
+    /// <param name="builder">The YARP resource to configure.</param>
+    /// <param name="configurationBuilder">The delegate to configure YARP.</param>
+    public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
+    {
+        var configBuilder = new YarpConfigurationBuilder(builder);
+        configurationBuilder(configBuilder);
         return builder;
     }
 }

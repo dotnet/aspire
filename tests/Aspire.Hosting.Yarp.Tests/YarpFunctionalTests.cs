@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Yarp.Transforms;
 using Aspire.TestUtilities;
 using Yarp.ReverseProxy.Configuration;
 
@@ -14,7 +15,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResourceConfigFile()
     {
-        await VerifyYarpResource(false);
+        await VerifyYarpResource((yarp, endpoint) => yarp.WithReference(endpoint).WithConfigFile("yarp.json"));
     }
 
     [Fact]
@@ -22,10 +23,56 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResourceProgrammaticConfig()
     {
-        await VerifyYarpResource(true);
+        await VerifyYarpResource((yarp, endpoint) =>
+        {
+            yarp.WithReference(endpoint)
+                .WithConfiguration(configuration =>
+                {
+                    configuration
+                        .AddRoute(new RouteConfig()
+                        {
+                            RouteId = "route1",
+                            ClusterId = "cluster1",
+                            Match = new RouteMatch()
+                            {
+                                Path = "/aspnetapp/{**catch-all}"
+                            },
+                            Transforms = new[]
+                            {
+                                new Dictionary<string, string>
+                                {
+                                    { "PathRemovePrefix", "/aspnetapp" },
+                                }
+                            }
+                        })
+                        .AddCluster(new ClusterConfig()
+                        {
+                            ClusterId = "cluster1",
+                            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                { "destination1", new DestinationConfig { Address = $"{endpoint.Scheme}://{endpoint.Resource.Name}" } },
+                            }
+                        });
+                });
+        });
     }
 
-    private async Task VerifyYarpResource(bool useProgrammaticConfig)
+    [Fact]
+    [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
+    public async Task VerifyYarpResourceExtensionsConfig()
+    {
+        await VerifyYarpResource((yarp, endpoint) =>
+        {
+            yarp.WithConfiguration(builder =>
+            {
+                builder.AddRoute("/aspnetapp/{**catch-all}", endpoint)
+                       .WithTransformPathRemovePrefix("/aspnetapp");
+            });
+        });
+    }
+
+    private async Task VerifyYarpResource(Action<IResourceBuilder<YarpResource>, EndpointReference> configurator)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -37,44 +84,10 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
             .WithExternalHttpEndpoints();
 
         var yarp = builder.AddYarp("yarp");
-        if (useProgrammaticConfig)
-        {
-            yarp.WithConfiguration(configuration =>
-            {
-                configuration
-                    .AddRoute(new RouteConfig()
-                    {
-                        RouteId = "route1",
-                        ClusterId = "cluster1",
-                        Match = new RouteMatch()
-                        {
-                            Path = "/aspnetapp/{**catch-all}"
-                        },
-                        Transforms = new[]
-                        {
-                            new Dictionary<string, string>
-                            {
-                                { "PathRemovePrefix", "/aspnetapp" },
-                            }
-                        }
-                    })
-                    .AddCluster(new ClusterConfig()
-                    {
-                        ClusterId = "cluster1",
-                        Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
-                        {
-                            { "destination1", new DestinationConfig { Address = "http://backend" } },
-                        }
-                    });
-            });
-        }
-        else
-        {
-            yarp.WithConfigFile("yarp.json");
-        }
 
-        yarp.WithReference(backend.GetEndpoint("http"))
-            .WithHttpHealthCheck("/heath", 404); // TODO we don't have real health check path yet
+        configurator(yarp, backend.GetEndpoint("http"));
+
+        yarp.WithHttpHealthCheck("/heath", 404); // TODO we don't have real health check path yet
 
         var app = builder.Build();
 
