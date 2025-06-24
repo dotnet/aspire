@@ -76,15 +76,6 @@ public class DistributedApplicationExecutionContext
         }
     }
 
-    internal IServiceProvider? UnsafeServiceProvider
-    {
-        get
-        {
-            // This is used in scenarios where the service provider is not yet built, such as in tests.
-            return _options?.ServiceProvider;
-        }
-    }
-
     /// <summary>
     /// Returns true if the current operation is publishing.
     /// </summary>
