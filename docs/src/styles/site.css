@@ -24,13 +24,11 @@
 	--aspire-color-light: #DCD5F6;
 
 	--color-dotnet-purple: #2c256b;
-	--background-gradient: linear-gradient(
-		to bottom,
-		var(--sl-color-bg) 0%,
-		var(--color-dotnet-purple) 85%,
-		var(--sl-color-bg-nav) 95%,
-		var(--sl-color-bg) 100%
-	);
+	--background-gradient: linear-gradient(to bottom,
+			var(--sl-color-bg) 0%,
+			var(--color-dotnet-purple) 85%,
+			var(--sl-color-bg-nav) 95%,
+			var(--sl-color-bg) 100%);
 	--color-purple: #9B5DE5;
 	--color-magenta: #D600AA;
 	--color-flamingo: #F65163;
@@ -44,8 +42,8 @@
 	--gradient-purple-blue: linear-gradient(90deg, var(--color-purple), var(--color-blue));
 	--gradient-blue-purple: linear-gradient(90deg, var(--color-blue), var(--color-purple));
 
-	pre[data-language="bash"] > code,
-	pre[data-language="console"] > code {
+	pre[data-language="bash"]>code,
+	pre[data-language="console"]>code {
 		line-height: initial;
 	}
 }
@@ -64,12 +62,10 @@
 	--sl-color-gray-7: #FDF0DA;
 	--sl-color-black: #FFFFFF;
 
-	--background-gradient: linear-gradient(
-		to bottom,
-		var(--sl-color-bg) 0%,
-		var(--sl-color-bg-nav) 95%,
-		var(--sl-color-bg) 100%
-	);
+	--background-gradient: linear-gradient(to bottom,
+			var(--sl-color-bg) 0%,
+			var(--sl-color-bg-nav) 95%,
+			var(--sl-color-bg) 100%);
 
 	--gradient-purple-magenta: linear-gradient(90deg, var(--color-purple), var(--color-magenta));
 	--gradient-magenta-flamingo: linear-gradient(90deg, var(--color-magenta), var(--color-flamingo));
@@ -80,6 +76,7 @@
 
 /* Dark mode by default */
 :root {
+
 	a:not(:disabled),
 	select:not(:disabled) option:not(:disabled) {
 		cursor: pointer;
@@ -106,9 +103,9 @@
 
 	.hero #_top {
 		font-size: calc(var(--sl-text-6xl) * 1.8);
-		background: var(--aspire-color);		
-		background: radial-gradient(ellipse 100% 80% at 50% 20%, 
-				var(--aspire-color-light) 0%, 
+		background: var(--aspire-color);
+		background: radial-gradient(ellipse 100% 80% at 50% 20%,
+				var(--aspire-color-light) 0%,
 				var(--aspire-color) 100%);
 		background-clip: text;
 		-webkit-background-clip: text;
@@ -128,11 +125,102 @@
 		transform: translateY(-10%);
 	}
 
-	.hero > img {
-        max-width: 100%;
-        max-height: 17rem;
-        height: auto;
-    }
+	.hero>img {
+		max-width: 100%;
+		max-height: 17rem;
+		height: auto;
+	}
+
+	.starlight-sidebar-topics {
+		list-style: none;
+		margin: 0 0 1rem 0;
+		padding: 0.25rem;
+		border: 1px solid var(--sl-color-hairline-light);
+		border-radius: 0.75rem;
+		background: var(--sl-color-bg);
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.starlight-sidebar-topics li {
+		margin: 0;
+		padding: 0;
+	}
+
+	.starlight-sidebar-topics::after {
+		content: none;
+		border: none;
+	}
+
+	.starlight-sidebar-topics a {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem 0.5rem;
+		border-radius: 0.5rem;
+		text-decoration: none;
+		color: var(--sl-color-gray-3);
+		font-weight: 600;
+		transition: all 0.15s;
+	}
+
+	.starlight-sidebar-topics a:hover,
+	.starlight-sidebar-topics a:focus-visible {
+		background: var(--sl-color-gray-4);
+		color: var(--sl-color-white);
+	}
+
+	.starlight-sidebar-topics-current,
+	.starlight-sidebar-topics a.starlight-sidebar-topics-current {
+		background: var(--sl-color-bg-nav);
+		border: 1px solid var(--sl-color-gray-5);
+		color: var(--sl-color-accent-high);
+	}
+
+	.starlight-sidebar-topics-icon {
+		width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 0.25rem;
+		border: none;
+	}
+
+	.starlight-sidebar-topics a:hover .starlight-sidebar-topics-icon,
+	.starlight-sidebar-topics a:focus-visible .starlight-sidebar-topics-icon {
+		color: var(--sl-color-white);
+		background: initial;
+	}
+
+	.starlight-sidebar-topics a.starlight-sidebar-topics-current .starlight-sidebar-topics-icon {
+		color: var(--sl-color-accent-high);
+		background: initial;
+	}
+}
+
+:root[data-theme='light'] {
+	.starlight-sidebar-topics {
+		background: var(--sl-color-bg-nav);
+		border: 1px solid var(--sl-color-gray-6);
+	}
+
+	.starlight-sidebar-topics a {
+		color: var(--sl-color-white);
+	}
+
+	.starlight-sidebar-topics a:hover,
+	.starlight-sidebar-topics a:focus-visible {
+		background: var(--sl-color-gray-4);
+	}
+
+	.starlight-sidebar-topics-current,
+	.starlight-sidebar-topics a.starlight-sidebar-topics-current {
+		background: var(--sl-color-black);
+		border: 1px solid var(--sl-color-gray-4);
+		color: var(--sl-color-accent);
+	}
 }
 
 :root[data-has-hero] {
@@ -161,17 +249,24 @@
 }
 
 /* Header font family declarations */
-h1, h2, h3, h4, h5, h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .hero #_top,
 .tagline,
 .site-title {
 	font-family: var(--font-heading);
-	font-weight: 600; /* Semibold */
+	font-weight: 600;
+	/* Semibold */
 }
 
 .sl-link-button {
 	font-family: var(--font-heading);
-	font-weight: 600; /* Bold */
+	font-weight: 600;
+	/* Bold */
 }
 
 @media (min-width: 72rem) {

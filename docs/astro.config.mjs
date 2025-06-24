@@ -82,11 +82,11 @@ export default defineConfig({
 				'@fontsource-variable/outfit'
 			],
 			components: {
-				ContentPanel: './src/components/ContentPanel.astro',
-				SocialIcons: './src/components/SocialIcons.astro',
-				Search: './src/components/Search.astro',
-				Footer: './src/components/Footer.astro',
-				MarkdownContent: './src/components/MarkdownContent.astro',
+				ContentPanel: './src/components/starlight/ContentPanel.astro',
+				SocialIcons: './src/components/starlight/SocialIcons.astro',
+				Search: './src/components/starlight/Search.astro',
+				Footer: './src/components/starlight/Footer.astro',
+				MarkdownContent: './src/components/starlight/MarkdownContent.astro',
 			},
 			expressiveCode: {
 				/* TODO: decide which themes we want
@@ -101,7 +101,7 @@ export default defineConfig({
 				starlightSidebarTopics([
 					{
 						label: 'Start',
-						link: '/get-started/overview',
+						link: 'get',
 						icon: 'rocket',
 						items: [
 							{ label: 'Get Aspire', slug: 'get' },
