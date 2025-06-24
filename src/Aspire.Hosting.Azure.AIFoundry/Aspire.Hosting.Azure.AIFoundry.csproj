@@ -7,6 +7,7 @@
     <Description>Azure AI Foundry resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>
