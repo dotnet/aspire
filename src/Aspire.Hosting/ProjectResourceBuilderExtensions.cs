@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Net;
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -20,18 +19,6 @@ namespace Aspire.Hosting;
 public static class ProjectResourceBuilderExtensions
 {
     private const string AspNetCoreForwardedHeadersEnabledVariableName = "ASPNETCORE_FORWARDEDHEADERS_ENABLED";
-
-    private static readonly Lazy<bool> s_supportsIpV4 = new(() =>
-    {
-        try
-        {
-            return Dns.GetHostAddresses(Environment.MachineName).Any(ip => ip.AddressFamily == AddressFamily.InterNetwork);
-        }
-        catch
-        {
-            return true; // If we fail to resolve a hostname, assume IPv4 is supported.
-        }
-    });
 
     /// <summary>
     /// Adds a .NET project to the application model.
@@ -873,20 +860,9 @@ public static class ProjectResourceBuilderExtensions
             return host;
         }
 
-        // This is a simplified version of the Asp.NET logic for parsing host URLs
-        // If the host is not localhost or an IP address, it's treated as binding to all
-        // interfaces. In this case, if the user has network interfaces with IPv4 support,
-        // we bind to 0.0.0.0.
-        if (s_supportsIpV4.Value)
-        {
-            return "0.0.0.0";
-        }
-        else
-        {
-            // The user's machine doesn't support IPv4, so we bind to all interfaces using IPv6.
-            // This is an unusual case, but it can happen on some systems.
-            return "[::]";
-        }
+        // Kestrel treats any other value than localhost or an IP address as the equivalent of [::] (or 0.0.0.0 for IPv4)
+        // We return the machine name here as DCP will will resolve it to all interfaces as well.
+        return Environment.MachineName;
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource

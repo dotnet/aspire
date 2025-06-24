@@ -44,7 +44,7 @@ public class KestrelConfigTests
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
 
         // Instead, we should be setting the Kestrel override
-        Assert.Equal("http://0.0.0.0:port_http", config["Kestrel__Endpoints__http__Url"]);
+        Assert.Equal($"http://{Environment.MachineName}:port_http", config["Kestrel__Endpoints__http__Url"]);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class KestrelConfigTests
             envVar =>
             {
                 Assert.Equal("Kestrel__Endpoints__FirstHttpEndpoint__Url", envVar.Key);
-                Assert.Equal("http://0.0.0.0:port_FirstHttpEndpoint", envVar.Value);
+                Assert.Equal($"http://{Environment.MachineName}:port_FirstHttpEndpoint", envVar.Value);
             },
             envVar =>
             {

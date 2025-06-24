@@ -600,22 +600,22 @@ public class ProjectResourceTests
     }
 
     [Theory]
-    [InlineData(true, "0.0.0.0")]
-    [InlineData(false, "0.0.0.0")]
-    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied)
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
             .WithEndpoint("http", e =>
             {
-                Assert.Equal("0.0.0.0", e.TargetHost);
+                Assert.Equal(Environment.MachineName, e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
                 e.IsProxied = isProxied;
             })
             .WithEndpoint("https", e =>
             {
-                Assert.Equal("0.0.0.0", e.TargetHost);
+                Assert.Equal(Environment.MachineName, e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
                 e.IsProxied = isProxied;
             });
@@ -635,11 +635,11 @@ public class ProjectResourceTests
         if (isProxied)
         {
             // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
-            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+            Assert.Equal($"http://{Environment.MachineName}:p0;https://{Environment.MachineName}:p1", config["ASPNETCORE_URLS"]);
         }
         else
         {
-            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+            Assert.Equal($"http://{Environment.MachineName}:{http.TargetPort};https://{Environment.MachineName}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
         }
 
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
