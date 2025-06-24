@@ -72,7 +72,7 @@ public sealed class PublishingStep(string id, string title)
     /// <summary>
     /// The progress reporter that created this step.
     /// </summary>
-    internal IPublishingActivityProgressReporter? Reporter { get; set; }
+    public IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
@@ -115,7 +115,7 @@ public sealed class PublishingTask(string id, string stepId, string statusText)
     /// <summary>
     /// The progress reporter that created this task.
     /// </summary>
-    internal IPublishingActivityProgressReporter? Reporter { get; set; }
+    public IPublishingActivityProgressReporter? Reporter { get; set; }
 }
 
 /// <summary>
