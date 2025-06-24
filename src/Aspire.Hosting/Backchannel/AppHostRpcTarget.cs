@@ -36,11 +36,8 @@ internal class AppHostRpcTarget(
     {
         var channel = await _logChannelTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        while (!cancellationToken.IsCancellationRequested)
+        await foreach (var logEntry in channel.ReadAllAsync(cancellationToken))
         {
-            // Read log entries from the channel
-            var logEntry = await channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-
             // If the log entry is null, terminate the stream
             if (logEntry == null)
             {
