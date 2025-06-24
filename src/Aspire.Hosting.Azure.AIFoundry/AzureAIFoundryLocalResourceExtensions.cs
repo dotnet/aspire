@@ -49,12 +49,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
         resourceBuilder
             .WithHttpEndpoint(env: "PORT", isProxied: false, port: 6914, name: AzureAIFoundryResource.PrimaryEndpointName)
-            .WithExternalHttpEndpoints()
-            //.WithAIFoundryLocalDefaults()
-            .WithInitializer()
-
-            // Ensure that when the DCP exits the Foundry Local service is stopped.
-            .EnsureResourceStops();
+            .WithInitializer();
 
         foreach (var deployment in resource.Deployments)
         {
@@ -138,31 +133,6 @@ public static partial class AzureAIFoundryLocalResourceExtensions
     }
 
     /// <summary>
-    /// Ensures that the resource stops when the application is shutting down.
-    /// </summary>
-    /// <param name="resource">The resource builder for the Foundry Local resource.</param>
-    /// <returns>The updated resource builder.</returns>
-    private static IResourceBuilder<AzureAIFoundryResource> EnsureResourceStops(this IResourceBuilder<AzureAIFoundryResource> resource)
-    {
-        resource.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, static (@event, ct) =>
-        {
-            _ = Task.Run(async () =>
-            {
-                var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
-                var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
-
-                await rns.WaitForResourceAsync(@event.Resource.Name, KnownResourceStates.Finished, ct).ConfigureAwait(false);
-
-                await manager.StopServiceAsync(ct).ConfigureAwait(false);
-            }, ct);
-
-            return Task.CompletedTask;
-        });
-
-        return resource;
-    }
-
-    /// <summary>
     /// Configure a deployment for use with Foundry Local
     /// </summary>
     internal static IResourceBuilder<AzureAIFoundryDeploymentResource> AsLocalDeployment(this IResourceBuilder<AzureAIFoundryDeploymentResource> builder, AzureAIFoundryDeploymentResource deployment)
@@ -216,7 +186,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
 
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
+                            State = KnownResourceStates.Running
                         }).ConfigureAwait(false);
                     }
                     else if (progress.IsCompleted && !string.IsNullOrEmpty(progress.ErrorMessage))
@@ -224,7 +194,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                         logger.LogInformation("Failed to start {Model}. Error: {Error}", model, progress.ErrorMessage);
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                            State = KnownResourceStates.FailedToStart
                         }).ConfigureAwait(false);
                     }
                     else

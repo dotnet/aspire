@@ -1563,4 +1563,31 @@ public class AzureContainerAppsTests
 
         await VerifyFile(Path.Combine(tempDir.Path, "aspire-manifest.json"));
     }
+
+    [Fact]
+    public async Task CanReferenceContainerAppEnvironment()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        var azResource = builder.AddAzureInfrastructure("infra", infra =>
+        {
+            var managedEnvironment = (ContainerAppManagedEnvironment)env.Resource.AddAsExistingResource(infra);
+
+            infra.Add(new ProvisioningOutput("id", typeof(string))
+            {
+                Value = managedEnvironment.Id
+            });
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (manifest, bicep) = await GetManifestWithBicep(azResource.Resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }

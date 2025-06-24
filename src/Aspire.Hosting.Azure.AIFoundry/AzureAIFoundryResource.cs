@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.CognitiveServices;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -51,6 +53,20 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// Gets the primary endpoint reference for the resource.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpointReference ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var csa = CognitiveServicesAccount.FromExisting(this.GetBicepIdentifier());
+        csa.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(csa);
+        return csa;
+    }
 
     internal void AddDeployment(AzureAIFoundryDeploymentResource deployment)
     {
