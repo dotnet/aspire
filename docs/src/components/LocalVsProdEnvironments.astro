@@ -92,6 +92,7 @@ import { Code } from '@astrojs/starlight/components';
         const animationIntervals = new Map();
         function startProviderAnimation() {
             if (prefersReducedMotion) return;
+            if (isMobileDevice()) return;
 
             const prodNodes = document.querySelectorAll('.orbit-node.prod-view[data-providers]');
             
@@ -131,6 +132,16 @@ import { Code } from '@astrojs/starlight/components';
                 clearInterval(interval);
             });
             animationIntervals.clear();
+        }
+
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+            const isMobileUA = /Mobi|Android|iPhone/i.test(userAgent);
+            const isSmallScreen = window.innerWidth <= 768;
+            const hasTouch = 'maxTouchPoints' in navigator && navigator.maxTouchPoints > 1;
+
+            return isMobileUA || (isSmallScreen && hasTouch);
         }
 
         localBtn.addEventListener('click', () => {

@@ -50,7 +50,7 @@ import ThreeTierAspire from '../../components/ThreeTierAspire.astro';
 
 ## Same model—different environments
 
-Model your stack in code—no YAML, fully type-safe—for seamless local and production deployments.
+Model your stack in code—no YAML, fully type-safe—for seamless development, staging, and production deployments.
 
 <CardGrid>
   <Card title="Local Development" icon="laptop">
@@ -90,6 +90,23 @@ import LocalVsProdEnvironments from '../../components/LocalVsProdEnvironments.as
 
 <LocalVsProdEnvironments />
 
+## Works with your existing CI/CD
+
+**Aspire enhances your pipeline** — it doesn't replace your security scans, linting, or testing. Integrate Aspire deployment into GitHub Actions, Azure DevOps, Jenkins, or any CI/CD system.
+
+<CardGrid>
+  <Card title="What Aspire Adds" icon="approve-check">
+    - **Orchestration**: Manages service connections and configuration
+    - **Local Development**: Consistent dev environment for your team
+    - **Deployment**: Publishes to your target infrastructure
+  </Card>
+  <Card title="What You Keep" icon="seti:lock">
+    - **Security Scanning**: SAST, dependency checks, vulnerability scans
+    - **Quality Gates**: Unit tests, integration tests, code coverage
+    - **Approval Processes**: Manual approvals, staging validations
+  </Card>
+</CardGrid>
+
 ## OpenTelemetry developer dashboard
 
 Monitor logs, metrics, and traces in real time with the built-in OpenTelemetry dashboard—insightful, visual, and ready out of the box.
@@ -108,9 +125,26 @@ Monitor logs, metrics, and traces in real time with the built-in OpenTelemetry d
 
 import IntegrationGrid from '../../components/IntegrationGrid.astro';
 
-Integrate Aspire with top platforms, databases, messaging, caching, and more—including polyglot support for your favorite languages.
+**Multi-cloud ready** — Integrate with Azure, AWS, Google Cloud, and on-premises infrastructure. Choose the cloud services that work best for your organization, or mix and match across providers.
 
 <IntegrationGrid />
+
+Integrate with your favorite cloud services and platforms, or deploy to your own infrastructure. Aspire supports a wide range of integrations, allowing you to build applications that fit your needs.
+
+<CardGrid>
+  <Card title="Azure Integration" icon="external">
+    Azure App Service, Azure SQL, Cosmos DB, Service Bus, Key Vault, and 20+ other services.
+  </Card>
+  <Card title="AWS Integration" icon="external">
+    Amazon ECS, RDS, DynamoDB, SQS, Lambda, and other AWS services through container deployment.
+  </Card>
+  <Card title="Google Cloud & Others" icon="external">
+    Deploy to Google Cloud Run, use managed databases, or connect to any cloud provider.
+  </Card>
+  <Card title="On-Premises & Hybrid" icon="setting">
+    Deploy to your own Kubernetes clusters, Docker Swarm, or hybrid cloud setups.
+  </Card>
+</CardGrid>
 
 ## User testimonials
 
@@ -122,11 +156,19 @@ From indie hackers to enterprises, developers are building faster and shipping w
 
 ## Polyglot, multi-language support
 
-Aspire is polyglot—use your favorite programming languages, C#, Java, Python, JavaScript, TypeScript, Go, and more. Aspire unifies orchestration and developer experience across languages.
+**Works with your existing stack** — Aspire orchestrates applications written in C#, Java, Python, JavaScript, TypeScript, Go, PHP, Ruby, and more. Your team can keep using the languages and frameworks you know.
 
 import LanguagesSupported from '../../components/LanguagesSupported.astro';
 
 <LanguagesSupported />
+
+Aspire supports a wide range of languages and frameworks, allowing you to build applications in the languages you love while benefiting from Aspire's orchestration capabilities.
+
+<Card title="Language Flexibility" icon="seti:json">
+  **Frontend**: React, Vue, Angular, Blazor, Next.js, and more  
+  **Backend**: C#, Node.js, Python (FastAPI/Django), Go, PHP (Laravel/Symfony), Ruby on Rails, Java (Spring Boot)  
+  **Any Container**: Docker containers work seamlessly with Aspire orchestration
+</Card>
 
 ## Strength in Community
 
@@ -135,12 +177,12 @@ Aspire thrives on community contributions and feedback. Join our community forum
 import { ContributorList } from "starlight-contributor-list";
 
 export const ignore = [
-    "github-actions[bot]",
-    "dependabot[bot]",
-    "dependabot",
-    "dotnet-maestro[bot]",
-    "copilot-swe-agent",
-    "microsoftopensource"
+  "github-actions[bot]",
+  "dependabot[bot]",
+  "dependabot",
+  "dotnet-maestro[bot]",
+  "copilot-swe-agent",
+  "microsoftopensource"
 ];
 
 import stats from '../../data/github-stats.json';
@@ -148,6 +190,8 @@ import stats from '../../data/github-stats.json';
 <ContributorList githubRepo="dotnet/aspire" ignore={ignore} />
 
 ## Unbeatable pricing
+
+**Aspire is completely free** — no per-developer fees, no usage limits, no hidden costs. It's open source and always will be.
 
 import PricingCardGrid from '../../components/PricingCardGrid.astro';
 
