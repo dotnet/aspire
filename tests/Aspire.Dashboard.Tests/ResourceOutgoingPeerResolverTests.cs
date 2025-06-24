@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;

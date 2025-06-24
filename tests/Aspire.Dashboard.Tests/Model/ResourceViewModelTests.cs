@@ -3,7 +3,7 @@
 
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

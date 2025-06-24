@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model;
 

@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -174,7 +174,7 @@ internal sealed class DashboardServiceData : IDisposable
                             var incomingValue = requestInput.Value;
 
                             // Ensure checkbox value is either true or false.
-                            if (requestInput.InputType == ResourceService.Proto.V1.InputType.Checkbox)
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Checkbox)
                             {
                                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
                             }

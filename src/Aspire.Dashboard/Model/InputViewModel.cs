@@ -3,7 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model;
 

@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package aspire.v1;
 
-option csharp_namespace = "Aspire.ResourceService.Proto.V1";
+option csharp_namespace = "Aspire.DashboardService.Proto.V1";
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
@@ -54,8 +54,8 @@ message ResourceCommand {
 }
 
 enum IconVariant {
-    REGULAR = 0;
-    FILLED = 1;
+    ICON_VARIANT_REGULAR = 0;
+    ICON_VARIANT_FILLED = 1;
 }
 
 // Represents a request to execute a command.
@@ -77,16 +77,16 @@ message ResourceCommandRequest {
 }
 
 enum ResourceCommandState {
-    ENABLED = 0;
-    DISABLED = 1;
-    HIDDEN = 2;
+    RESOURCE_COMMAND_STATE_ENABLED = 0;
+    RESOURCE_COMMAND_STATE_DISABLED = 1;
+    RESOURCE_COMMAND_STATE_HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
-    UNDEFINED = 0;
-    SUCCEEDED = 1;
-    FAILED = 2;
-    CANCELLED = 3;
+    RESOURCE_COMMAND_RESPONSE_KIND_UNDEFINED = 0;
+    RESOURCE_COMMAND_RESPONSE_KIND_SUCCEEDED = 1;
+    RESOURCE_COMMAND_RESPONSE_KIND_FAILED = 2;
+    RESOURCE_COMMAND_RESPONSE_KIND_CANCELLED = 3;
 }
 
 message ResourceCommandResponse {
@@ -169,9 +169,9 @@ message HealthReport {
 }
 
 enum HealthStatus {
-    HEALTHY = 0;
-    UNHEALTHY = 1;
-    DEGRADED = 2;
+    HEALTH_STATUS_HEALTHY = 0;
+    HEALTH_STATUS_UNHEALTHY = 1;
+    HEALTH_STATUS_DEGRADED = 2;
 }
 
 message ResourceRelationship {
@@ -314,7 +314,9 @@ message WatchResourceConsoleLogsUpdate {
     repeated ConsoleLogLine log_lines = 1;
 }
 
+// A message sent to the server to update interaction state. Has multiple types of payload.
 message WatchInteractionsRequestUpdate {
+    // The interaction id.
     int32 interaction_id = 1;
 
     oneof kind {
@@ -324,7 +326,9 @@ message WatchInteractionsRequestUpdate {
         InteractionMessageBar message_bar = 5;
     }
 }
+// A message received from the server when watching interactions. Has multiple types of payload.
 message WatchInteractionsResponseUpdate {
+    // The interaction id.
     int32 interaction_id = 1;
 
     string title = 2;
@@ -341,21 +345,26 @@ message WatchInteractionsResponseUpdate {
         InteractionMessageBar message_bar = 19;
     }
 }
+// Represents the completion of an interaction.
 message InteractionComplete {
 }
+// Represents a message box interaction, which is a modal dialog with a message and buttons.
 message InteractionMessageBox {
     MessageIntent intent = 1;
     optional bool result = 2;
 }
+// Represents a message bar interaction, which is a non-modal message with an optional link.
 message InteractionMessageBar {
     MessageIntent intent = 1;
     optional bool result = 2;
     string linkText = 3;
     string linkUrl = 4;
 }
+// Represents a dialog that collects inputs from the user.
 message InteractionInputsDialog {
     repeated InteractionInput input_items = 1;
 }
+// Represents an input item in an interaction dialog.
 message InteractionInput {
     string label = 1;
     string placeholder = 2;

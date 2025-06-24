@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Bunit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
@@ -20,7 +20,7 @@ namespace Aspire.Hosting.Dashboard;
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
-    : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
+    : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
     // Protobuf sends strings as UTF8. Be conservative and assume the average character byte size is 2.

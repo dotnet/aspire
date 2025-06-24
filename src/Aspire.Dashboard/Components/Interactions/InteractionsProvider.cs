@@ -7,12 +7,12 @@ using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Color = Microsoft.FluentUI.AspNetCore.Components.Color;
-using MessageIntentDto = Aspire.ResourceService.Proto.V1.MessageIntent;
+using MessageIntentDto = Aspire.DashboardService.Proto.V1.MessageIntent;
 using MessageIntentUI = Microsoft.FluentUI.AspNetCore.Components.MessageIntent;
 
 namespace Aspire.Dashboard.Components.Interactions;
