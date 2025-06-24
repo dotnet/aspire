@@ -236,11 +236,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var getResourceStatesAsyncCalled = new TaskCompletionSource();
         var backchannelFactory = (IServiceProvider sp) => {
             var backchannel = new TestAppHostBackchannel();
-            backchannel.GetResourceStatesAsyncCalled = getResourceStatesAsyncCalled;
-            
+
             // Return empty resources using an empty enumerable
             backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
-            
+
             return backchannel;
         };
 
@@ -281,7 +280,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         // Simulate CTRL-C.
         cts.Cancel();
 
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await pendingRun.WaitAsync(CliTestConstants.LongTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }

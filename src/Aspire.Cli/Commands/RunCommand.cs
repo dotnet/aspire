@@ -135,23 +135,18 @@ internal sealed class RunCommand : BaseCommand
                 runOptions,
                 cancellationToken);
 
-            var logFileNameCompletionSource = new TaskCompletionSource<FileInfo>();
-
             // Wait for the backchannel to be established.
             var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
 
+            var logFile = GetAppHostLogFile();
+
             var pendingLogCapture = Task.Run(async () =>
             {
-                var logFile = GetAppHostLogFile();
-                logFileNameCompletionSource.SetResult(logFile);
-
                 await CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
             }, cancellationToken);
-
-            var logFile = await logFileNameCompletionSource.Task;
 
             var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
             {
@@ -197,29 +192,6 @@ internal sealed class RunCommand : BaseCommand
                     // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
             }
-
-            // The reason we choose to display the codespaces URL on status if Codespaces is available
-            // is that the redirect mechanics for forward ports strips the token off the localhost
-            // // variant of the URL.
-            // var dashboardUrlToDisplayOnStatus = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
-
-            // await _interactionService.ShowStatusAsync($"Dashboard: {dashboardUrlToDisplayOnStatus}", async () =>
-            // {
-            //     try
-            //     {
-            //         var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-            //         await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
-            //         {
-            //             ProcessResourceState(resourceState);
-            //         }
-            //     }
-            //     catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
-            //     {
-            //         // Just swallow this exception because this is an orderly shutdown of the backchannel.
-            //     }
-
-            //     return Task.CompletedTask;
-            // });
 
             await pendingLogCapture;
             return await pendingRun;
