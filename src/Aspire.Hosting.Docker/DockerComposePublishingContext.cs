@@ -56,21 +56,9 @@ internal sealed class DockerComposePublishingContext(
             return;
         }
 
-        var step = await progressReporter.CreateStepAsync("Generating Docker Compose configuration", cancellationToken).ConfigureAwait(false);
+        await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
 
-        try
-        {
-            await WriteDockerComposeOutputAsync(model, environment).ConfigureAwait(false);
-
-            await step.SucceedAsync("Docker Compose configuration generated successfully", cancellationToken).ConfigureAwait(false);
-
-            logger.FinishGeneratingDockerCompose(OutputPath);
-        }
-        catch (Exception)
-        {
-            await step.FailAsync("Failed to generate Docker Compose configuration", cancellationToken).ConfigureAwait(false);
-            throw;
-        }
+        logger.FinishGeneratingDockerCompose(OutputPath);
     }
 
     private async Task WriteDockerComposeOutputAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
