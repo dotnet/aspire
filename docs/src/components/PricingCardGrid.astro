@@ -1,56 +1,24 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
-
-const tiers = [
-    {
-        name: "🎓 Student Plan",
-        price: "$0.00",
-        perks: [
-            "Everything included.",
-            "No hidden fees.", 
-            "No credit card required."
-        ],
-        color: "var(--sl-color-green)"
-    },
-    {
-        name: "🏁 Startup Special",
-        price: "$0.00",
-        perks: [
-            "Worried you can't afford free?",
-            "Relax—this one's on us.",
-            "No limits, no catches."
-        ],
-        color: "var(--sl-color-blue)"
-    },
-    {
-        name: "🏢 Enterprise Ultimate+",
-        price: "$0.00",
-        perks: [
-            "Free forever.", 
-            "No strings attached, seriously.",
-            "Built with love for the community."
-        ],
-        color: "var(--sl-color-purple)"
-    },
-];
+import { Icon } from "@astrojs/starlight/components";
 ---
 
-<section class="pricing-container">    
-        <p class="cta">
-            <span class="cta-content">
-                <span class="icons heart-icon">
-                    <Icon name="heart" size="1.2rem" />
-                </span>
-                <span>Aspire is entirely free and open source. We believe in transparency and accessibility for all developers.</span>
+<section class="pricing-container">
+    <p class="cta">
+        <span class="cta-content">
+            <span class="icons heart-icon">
+                <Icon name="heart" size="1.2rem" />
             </span>
-        </p>
-    </div>
+            <span>
+                Aspire is free — no hidden fees, no paywalls, no per-developer fees, and no usage limits.
+            </span>
+        </span>
+    </p>
 </section>
 
 <style>
     .pricing-container {
         width: 100%;
-        text-align: center;;
+        text-align: center;
     }
 
     .icons {
@@ -68,11 +36,12 @@ const tiers = [
 
     .cta {
         margin-top: 1.5rem;
-        color: var(--sl-color-gray-1);
+        color: var(--sl-color-white);
         font-size: var(--sl-text-xl);
         padding: 1rem 2rem;
-        background: rgba(155, 93, 229, 0.2);
-        border-radius: .5rem;
+        background: var(--sl-color-purple-low);
+        border-radius: 0.5rem;
+        border: 1px solid var(--sl-color-gray-4);
         display: inline-block;
         text-align: center;
     }
@@ -85,6 +54,9 @@ const tiers = [
 
     .heart-icon {
         margin-right: 0.5rem;
+        height: 2rem;
+        width: 2rem;
+        flex-grow: 1;
     }
 
     @media (max-width: 768px) {
