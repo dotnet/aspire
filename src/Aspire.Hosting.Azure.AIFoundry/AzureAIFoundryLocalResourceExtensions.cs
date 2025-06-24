@@ -4,8 +4,8 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
-using Aspire.Hosting.Azure.Internal;
 using Aspire.Hosting.Eventing;
+using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -251,7 +251,7 @@ public static partial class AzureAIFoundryLocalResourceExtensions
                     tags: default,
                     timeout: default
                     ));
-
+       
         builder.WithHealthCheck(healthCheckKey);
 
         return builder;
