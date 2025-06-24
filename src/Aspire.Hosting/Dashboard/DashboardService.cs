@@ -101,6 +101,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.MessageBar = new InteractionMessageBar();
                             change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
+                            if (messageBar.LinkText != null)
+                            {
+                                change.MessageBar.LinkText = messageBar.LinkText;
+                            }
+                            if (messageBar.LinkUrl != null)
+                            {
+                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                            }
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
                         {

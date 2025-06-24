@@ -269,6 +269,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                     options.Intent = MapMessageIntent(messageBar.Intent);
                                     options.Section = DashboardUIHelpers.MessageBarSection;
                                     options.AllowDismiss = item.ShowDismiss;
+                                    if (!string.IsNullOrEmpty(messageBar.LinkText))
+                                    {
+                                        options.Link = new()
+                                        {
+                                            Text = messageBar.LinkText,
+                                            Href = messageBar.LinkUrl
+                                        };
+                                    }
 
                                     var primaryButtonText = item.PrimaryButtonText;
                                     var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;

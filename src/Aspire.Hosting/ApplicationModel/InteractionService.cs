@@ -109,15 +109,15 @@ internal class InteractionService : IInteractionService
             : InteractionResultFactory.Ok(inputState);
     }
 
-    public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        options ??= MessageBoxInteractionOptions.CreateDefault();
+        options ??= MessageBarInteractionOptions.CreateDefault();
 
-        var newState = new Interaction(title, message, options, new Interaction.MessageBarInteractionInfo(intent: options.Intent ?? MessageIntent.None), cancellationToken);
+        var newState = new Interaction(title, message, options, new Interaction.MessageBarInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -359,12 +359,16 @@ internal class Interaction
 
     internal sealed class MessageBarInteractionInfo : InteractionInfoBase
     {
-        public MessageBarInteractionInfo(MessageIntent intent)
+        public MessageBarInteractionInfo(MessageIntent intent, string? linkText, string? linkUrl)
         {
             Intent = intent;
+            LinkText = linkText;
+            LinkUrl = linkUrl;
         }
 
         public MessageIntent Intent { get; }
+        public string? LinkText { get; }
+        public string? LinkUrl { get; }
     }
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase

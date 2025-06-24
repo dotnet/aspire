@@ -94,7 +94,7 @@ public interface IInteractionService
     /// <returns>
     /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -250,6 +250,16 @@ public class MessageBarInteractionOptions : InteractionOptions
     /// Gets or sets the intent of the message bar.
     /// </summary>
     public MessageIntent? Intent { get; set; }
+
+    /// <summary>
+    /// Gets or sets the text for a link in the message bar.
+    /// </summary>
+    public string? LinkText { get; set; }
+
+    /// <summary>
+    /// Gets or sets the URL for the link in the message bar.
+    /// </summary>
+    public string? LinkUrl { get; set; }
 }
 
 /// <summary>

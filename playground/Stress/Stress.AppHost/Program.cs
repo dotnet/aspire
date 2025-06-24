@@ -139,12 +139,12 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            await Task.Yield();
 
            var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
-           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information });
-           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning });
-           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Error });
-           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Confirmation });
-           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
+           _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information });
+           _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Warning });
+           _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Error, LinkText = "Click here for more information", LinkUrl = "https://www.microsoft.com" });
+           _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Confirmation });
+           _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
 
            return CommandResults.Success();
        })
@@ -152,8 +152,8 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
+           _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
 
            _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
            _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });

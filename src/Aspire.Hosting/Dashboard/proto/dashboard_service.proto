@@ -350,6 +350,8 @@ message InteractionMessageBox {
 message InteractionMessageBar {
     MessageIntent intent = 1;
     optional bool result = 2;
+    string linkText = 3;
+    string linkUrl = 4;
 }
 message InteractionInputsDialog {
     repeated InteractionInput input_items = 1;
