@@ -53,8 +53,14 @@ internal class ExecResourceManager : BackgroundService
 
         var name = "exec";
         await _resourceNotificationService.WaitForResourceAsync(name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
-
         var resourceReference = _dcpExecutor.GetResource(name);
+
+        _ = Task.Run(async () =>
+        {
+            await _resourceNotificationService.WaitForResourceAsync(name, targetState: KnownResourceStates.Finished, cancellationToken).ConfigureAwait(false);
+            _resourceLoggerService.Complete(resourceReference.ModelResource);
+        }, cancellationToken);
+        
         await foreach (var logs in _resourceLoggerService.WatchAsync(resourceReference.DcpResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return logs;
