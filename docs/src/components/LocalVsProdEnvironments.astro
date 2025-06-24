@@ -32,25 +32,28 @@ import { Code } from '@astrojs/starlight/components';
             </div>
         </div>
 
-        <div class="orbit-node orbit-service orbit-redis prod-view">
+        <div class="orbit-node orbit-service orbit-redis prod-view" 
+             data-providers='["AWS ElastiCache", "Azure Cache for Redis", "Google Cloud Memorystore"]'>
             <div class="service-name">Redis</div>
             <div class="service-type">AWS ElastiCache</div>
         </div>
         <div class="orbit-node orbit-service orbit-redis local-view">
             <div class="service-name">Redis</div>
-            <div class="service-type">Container</div>
+            <div class="service-type">Local Container</div>
         </div>
 
-        <div class="orbit-node orbit-service orbit-postgres prod-view">
+        <div class="orbit-node orbit-service orbit-postgres prod-view"
+             data-providers='["Google Cloud SQL", "Azure Database for PostgreSQL", "AWS RDS"]'>
             <div class="service-name">Postgres</div>
             <div class="service-type">Google Cloud SQL</div>
         </div>
         <div class="orbit-node orbit-service orbit-postgres local-view">
             <div class="service-name">Postgres</div>
-            <div class="service-type">Container</div>
+            <div class="service-type">Local Container</div>
         </div>
 
-        <div class="orbit-node orbit-service orbit-frontend prod-view">
+        <div class="orbit-node orbit-service orbit-frontend prod-view"
+             data-providers='["Vercel", "Netlify", "Azure Static Web Apps", "AWS Amplify", "Google Firebase Hosting"]'>
             <div class="service-name">Frontend</div>
             <div class="service-type">Vercel</div>
         </div>
@@ -59,9 +62,10 @@ import { Code } from '@astrojs/starlight/components';
             <div class="service-type">Local Process</div>
         </div>
 
-        <div class="orbit-node orbit-service orbit-api prod-view">
+        <div class="orbit-node orbit-service orbit-api prod-view"
+             data-providers='["Azure Container Apps", "AWS App Runner", "Google Cloud Run"]'>
             <div class="service-name">API</div>
-            <div class="service-type">Azure Container App</div>
+            <div class="service-type">Azure Container Apps</div>
         </div>
         <div class="orbit-node orbit-service orbit-api local-view">
             <div class="service-name">API</div>
@@ -85,6 +89,50 @@ import { Code } from '@astrojs/starlight/components';
 
         container.classList.add('local-active');
 
+        const animationIntervals = new Map();
+        function startProviderAnimation() {
+            if (prefersReducedMotion) return;
+
+            const prodNodes = document.querySelectorAll('.orbit-node.prod-view[data-providers]');
+            
+            prodNodes.forEach((node, index) => {
+                const providers = JSON.parse(node.dataset.providers);
+                const serviceTypeElement = node.querySelector('.service-type');
+                let currentIndex = 0;
+
+                if (animationIntervals.has(node)) {
+                    clearInterval(animationIntervals.get(node));
+                }
+
+                // Create staggered timing - each service starts at a different offset
+                const baseInterval = 3000;
+                const staggerOffset = index * 750; // 750ms stagger between services
+
+                setTimeout(() => {
+                    const interval = setInterval(() => {
+                        if (container.classList.contains('prod-active')) {
+                            currentIndex = (currentIndex + 1) % providers.length;
+                            serviceTypeElement.style.opacity = '0';
+                            
+                            setTimeout(() => {
+                                serviceTypeElement.textContent = providers[currentIndex];
+                                serviceTypeElement.style.opacity = '1';
+                            }, 150);
+                        }
+                    }, baseInterval);
+
+                    animationIntervals.set(node, interval);
+                }, staggerOffset);
+            });
+        }
+
+        function stopProviderAnimation() {
+            animationIntervals.forEach((interval) => {
+                clearInterval(interval);
+            });
+            animationIntervals.clear();
+        }
+
         localBtn.addEventListener('click', () => {
             localBtn.classList.add('active');
             prodBtn.classList.remove('active');
@@ -92,6 +140,7 @@ import { Code } from '@astrojs/starlight/components';
             container.classList.add('local-active');
             localSubtitle.classList.add('local-active');
             prodSubtitle.classList.remove('prod-active');
+            stopProviderAnimation();
         });
 
         prodBtn.addEventListener('click', () => {
@@ -101,7 +150,11 @@ import { Code } from '@astrojs/starlight/components';
             container.classList.add('prod-active');
             prodSubtitle.classList.add('prod-active');
             localSubtitle.classList.remove('local-active');
+            startProviderAnimation();
         });
+
+        // Clean up intervals when page is unloaded
+        window.addEventListener('beforeunload', stopProviderAnimation);
     });
 </script>
 
@@ -189,7 +242,7 @@ import { Code } from '@astrojs/starlight/components';
     .orbit-node {
         padding: 1rem;
         border-radius: 1.25rem;
-        min-width: 12rem;
+        min-width: 16rem;
         background: var(--sl-color-accent);
         color: var(--sl-color-white);
         position: absolute;
@@ -220,29 +273,30 @@ import { Code } from '@astrojs/starlight/components';
         font-weight: 550;
         margin-top: 0.25rem;
         white-space: nowrap;
+        transition: opacity 0.15s ease-in-out;
     }
 
     .orbit-redis {
-        top: 18%;
-        left: 18%;
+        top: 15%;
+        left: 15%;
         transform: translate(-50%, -50%);
     }
 
     .orbit-postgres {
-        top: 18%;
-        right: 18%;
+        top: 15%;
+        right: 15%;
         transform: translate(50%, -50%);
     }
 
     .orbit-frontend {
-        bottom: 18%;
-        right: 18%;
+        bottom: 15%;
+        right: 15%;
         transform: translate(50%, 50%);
     }
 
     .orbit-api {
-        bottom: 18%;
-        left: 18%;
+        bottom: 15%;
+        left: 15%;
         transform: translate(-50%, 50%);
     }
 
