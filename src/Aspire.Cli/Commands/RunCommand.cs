@@ -12,6 +12,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -130,11 +131,24 @@ internal sealed class RunCommand : BaseCommand
                 runOptions,
                 cancellationToken);
 
+            var logFileNameCompletionSource = new TaskCompletionSource<FileInfo>();
+
             // Wait for the backchannel to be established.
             var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
+
+            var pendingLogCapture = Task.Run(async () =>
+            {
+                var logFile = GetAppHostLogFile();
+                logFileNameCompletionSource.SetResult(logFile);
+
+                await CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
+            }, cancellationToken);
+
+            var logFile = await logFileNameCompletionSource.Task;
+            _ansiConsole.MarkupLine($"[bold]App Host Log:[/] {logFile.FullName}");
 
             var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
             {
@@ -142,13 +156,37 @@ internal sealed class RunCommand : BaseCommand
             });
 
             _interactionService.DisplayDashboardUrls(dashboardUrls);
-            
-            var logEntires = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
-            await foreach (var entry in logEntires.WithCancellation(cancellationToken))
-            {
-                _ansiConsole.MarkupLine($"[[{entry.Timestamp:HH:mm:ss}]] [[{entry.LogLevel}]] {entry.CategoryName}: {entry.Message}");
-            }
 
+            // The reason we choose to display the codespaces URL on status if Codespaces is available
+            // is that the redirect mechanics for forward ports strips the token off the localhost
+            // variant of the URL.
+            var dashboardUrlToDisplayOnStatus = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
+
+            await _interactionService.ShowStatusAsync($"Dashboard: {dashboardUrlToDisplayOnStatus}", async () =>
+            {
+                // var logEntires = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
+                // await foreach (var entry in logEntires.WithCancellation(cancellationToken))
+                // {
+                //     _ansiConsole.MarkupLine($"[[{entry.Timestamp:HH:mm:ss}]] [[{entry.LogLevel}]] {entry.CategoryName}: {entry.Message}");
+                // }
+                try
+                {
+                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                    {
+                        ProcessResourceState(resourceState);
+                        //_ansiConsole.MarkupLine($"{resourceState.Resource} is {resourceState.State} ({resourceState.Health})");
+                    }
+                }
+                catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Just swallow this exception because this is an orderly shutdown of the backchannel.
+                }
+
+                return Task.CompletedTask;
+            });
+
+            await pendingLogCapture;
             return await pendingRun;
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
@@ -194,6 +232,111 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+    }
+
+    private static FileInfo GetAppHostLogFile()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.log");
+        var logFile = new FileInfo(logFilePath);
+        return logFile;
+    }
+
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!logFile.Directory!.Exists)
+            {
+                logFile.Directory.Create();
+            }
+
+            using var streamWriter = new StreamWriter(logFile.FullName, append: true)
+            {
+                AutoFlush = true
+            };
+
+            var logEntries = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
+
+            await foreach (var entry in logEntries.WithCancellation(cancellationToken))
+            {
+                await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
+            }
+        }
+        catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Just swallow this exception because this is an orderly shutdown of the backchannel.
+            return;
+        }
+    }
+
+    private readonly Dictionary<string, RpcResourceState> _resourceStates = new();
+
+    public void ProcessResourceState(RpcResourceState resourceState)
+    {
+        if (_resourceStates.TryGetValue(resourceState.Resource, out var existingResourceState))
+        {
+            if (resourceState.State != existingResourceState.State || resourceState.Health != existingResourceState.Health)
+            {
+                DisplayResourceState(resourceState.Resource, resourceState.State, resourceState.Health);
+            }
+
+            if (resourceState.Endpoints.Except(existingResourceState.Endpoints) is { } endpoints && endpoints.Any())
+            {
+                foreach (var endpoint in endpoints)
+                {
+                    DisplayEndpoint(resourceState.Resource, endpoint);
+                }
+            }
+
+            _resourceStates[resourceState.Resource] = resourceState;
+        }
+        else
+        {
+            DisplayResourceState(resourceState.Resource, resourceState.State, resourceState.Health);
+
+            if (resourceState.Endpoints is { } endpoints)
+            {
+                foreach (var endpoint in endpoints)
+                {
+                    DisplayEndpoint(resourceState.Resource, endpoint);
+                }
+            }
+
+            _resourceStates[resourceState.Resource] = resourceState;
+        }
+
+        void DisplayEndpoint(string resourceName, string endpoint)
+        {
+            _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]");
+        }
+
+        void DisplayResourceState(string resourceName, string state, string? health)
+        {
+            Action action = (state, health) switch
+            {
+                { state: "Waiting" or "Finished" or "NotStarted", health: _ } =>
+                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold]{state}[/]"),
+
+                {state: "Stopping" or "Exited" or "FailedToStart", health: _ } => () =>
+                    _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold red]{state}[/]"),
+
+                { state: "Starting", health: _ } =>
+                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold green]{state}[/]"),
+
+                { state: "Running", health: "Unhealthy" or "Degraded" } =>
+                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold yellow]{health}[/]"),
+                    
+                { state: "Running", health: "Healthy" } =>
+                    () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold green]{state}[/]"),
+                    
+                { state: { Length: > 0 } } => () => _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]is[/] [bold hotpink]{state}[/]"),
+                _ => () => { // No op if state is null or empty }
+                }
+            };
+            action?.Invoke();
         }
     }
 }
