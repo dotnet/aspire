@@ -122,7 +122,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        {
            var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var resultTask1 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you sure?", cancellationToken: commandContext.CancellationToken);
-           var resultTask2 = interactionService.PromptConfirmationAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning }, cancellationToken: commandContext.CancellationToken);
+           var resultTask2 = interactionService.PromptMessageBoxAsync("Command confirmation", "Are you really sure?", new MessageBoxInteractionOptions { Intent = MessageIntent.Warning, ShowSecondaryButton = true }, cancellationToken: commandContext.CancellationToken);
 
            await Task.WhenAll(resultTask1, resultTask2);
 

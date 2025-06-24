@@ -122,6 +122,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         };
                         switch (messageBox.Intent)
                         {
+                            case MessageIntentDto.None:
+                                content.Icon = null;
+                                break;
                             case MessageIntentDto.Success:
                                 content.IconColor = Color.Success;
                                 content.Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle();
