@@ -9,14 +9,10 @@ The format of the manifest file itself does not pre-suppose a particular target 
 The .NET Aspire distributed application model is comprised components which are typically deployed together as a unit. For example there may be a front-end ASP.NET Core application which calls into one or more backend services which in turn may depend on relational databases or caches. Consider the following sample (taken from the eShop light example):
 
 ```csharp
-using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Redis;
-using Projects = eShopLite.App.Projects;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
-var redis = builder.AddRedisContainer("redis");
+var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
+var redis = builder.AddRedis("redis");
 
 var catalog = builder.AddProject<Projects.eShopLite_CatalogService>("catalogservice")
     .WithReference(catalogDb);
@@ -25,17 +21,17 @@ var basket = builder.AddProject<Projects.eShopLite_BasketService>("basketservice
     .WithReference(redis);
 
 builder.AddProject<Projects.eShopLite_Frontend>("frontend")
-    .WithServiceReference(basket)
-    .WithServiceReference(catalog)
-    .IsExternal();
+    .WithReference(basket)
+    .WithReference(catalog)
+    .WithExternalHttpEndpoints();
 
 builder.AddContainer("prometheus", "prom/prometheus")
-       .WithServiceBinding(9090);
+       .WithEndpoint(9090);
 
 builder.Build().Run();
 ```
 
-When ```dotnet publish``` is called on the AppHost project containing the code above the application model and dependency projects will be built and the AppHost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the AppHost project. The manifest file for the above project would look like the following:
+When ```dotnet run --publisher manifest``` is called on the AppHost project containing the code above the application model and dependency projects will be built and the AppHost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the AppHost project. The manifest file for the above project would look like the following:
 
 ```jsonc
 {
