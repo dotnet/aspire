@@ -143,10 +143,7 @@ internal sealed class RunCommand : BaseCommand
 
             var logFile = GetAppHostLogFile();
 
-            var pendingLogCapture = Task.Run(async () =>
-            {
-                await CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
-            }, cancellationToken);
+            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
             var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
             {
@@ -255,6 +252,8 @@ internal sealed class RunCommand : BaseCommand
     {
         try
         {
+            await Task.Yield();
+
             if (!logFile.Directory!.Exists)
             {
                 logFile.Directory.Create();
@@ -271,6 +270,11 @@ internal sealed class RunCommand : BaseCommand
             {
                 await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow the exception if the operation was cancelled.
+            return;
         }
         catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
         {
