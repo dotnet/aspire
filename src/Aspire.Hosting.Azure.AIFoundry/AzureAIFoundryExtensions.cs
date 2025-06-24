@@ -18,7 +18,7 @@ using static Azure.Provisioning.Expressions.BicepFunction;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure AI Services resources to the application model.
+/// Provides extension methods for adding the Azure AI Foundry resources to the application model.
 /// </summary>
 public static class AzureAIFoundryExtensions
 {
@@ -115,10 +115,10 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
-    /// Adds and returns an Azure AI Services Deployment resource to the application model.
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model.
     /// </summary>
-    /// <param name="builder">The Azure AI Services resource builder.</param>
-    /// <param name="name">The name of the Azure AI Services Deployment resource.</param>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
     /// <param name="modelName">The name of the model to deploy.</param>
     /// <param name="modelVersion">The version of the model to deploy.</param>
     /// <param name="format">The format of the model to deploy.</param>
@@ -149,9 +149,9 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
-    /// Allows setting the properties of an Azure AI Services Deployment resource.
+    /// Allows setting the properties of an Azure AI Foundry Deployment resource.
     /// </summary>
-    /// <param name="builder">The Azure AI Services Deployment resource builder.</param>
+    /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureAIFoundryDeploymentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> WithProperties(this IResourceBuilder<AzureAIFoundryDeploymentResource> builder, Action<AzureAIFoundryDeploymentResource> configure)

@@ -24,7 +24,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
 
     /// <summary>
-    /// Gets the "connectionString" output reference from the Azure AI Services resource.
+    /// Gets the "connectionString" output reference from the Azure AI Foundry resource.
     /// </summary>
     public BicepOutputReference AIFoundryApiEndpoint => new("aiFoundryApiEndpoint", this);
 

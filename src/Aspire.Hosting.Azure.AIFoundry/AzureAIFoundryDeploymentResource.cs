@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure AI Services Deployment.
+/// Represents an Azure AI Foundry Deployment.
 /// </summary>
 public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<AzureAIFoundryResource>, IResourceWithConnectionString
 {
@@ -23,7 +23,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <param name="modelName">The name of the model.</param>
     /// <param name="modelVersion">The version of the model.</param>
     /// <param name="format">The format of the model.</param>
-    /// <param name="parent">The parent Azure AI Services resource.</param>
+    /// <param name="parent">The parent Azure AI Foundry resource.</param>
     public AzureAIFoundryDeploymentResource(string name, string modelName, string modelVersion, string format, AzureAIFoundryResource parent)
         : base(name)
     {
@@ -78,7 +78,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public int SkuCapacity { get; set; } = DefaultSkuCapacity;
 
     /// <summary>
-    /// Gets the parent Azure AI Services resource.
+    /// Gets the parent Azure AI Foundry resource.
     /// </summary>
     public AzureAIFoundryResource Parent { get; set; }
 
