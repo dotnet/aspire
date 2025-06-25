@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
-import { aspireTerminalName } from '../constants/strings';
+import { aspireTerminalName } from '../loc/strings';
 
 export function getAspireTerminal(): vscode.Terminal {
     if (!rpcServerInfo) {
@@ -13,7 +13,7 @@ export function getAspireTerminal(): vscode.Terminal {
     if (existingTerminal) {
         existingTerminal.dispose();
     }
-    
+
     const env = {
         ...process.env,
         ASPIRE_EXTENSION_ENDPOINT: rpcServerInfo.address,

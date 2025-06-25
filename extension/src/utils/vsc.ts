@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { errorMessage, noWorkspaceOpen, aspireOutputChannelName } from '../constants/strings';
+import { errorMessage, noWorkspaceOpen, aspireOutputChannelName } from '../loc/strings';
 
 const outputChannel = vscode.window.createOutputChannel(aspireOutputChannelName);
 
