@@ -97,6 +97,7 @@ public class Program
         builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton<IFeatureFlags, FeatureFlags>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();

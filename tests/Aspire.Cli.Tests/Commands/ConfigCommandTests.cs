@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
@@ -275,5 +276,108 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var listResult = command.Parse("config list");
         var listExitCode = await listResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, listExitCode);
+    }
+
+    [Fact]
+    public void FeatureFlags_WhenNotSet_DefaultsToFalse()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var featureFlags = provider.GetRequiredService<IFeatureFlags>();
+        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+        Assert.False(featureFlags.IsFeatureEnabled("nonExistentFlag"));
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToTrue_ReturnsTrue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to true
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse("config set featureFlags.deployCommandEnabled true");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatureFlags>();
+        Assert.True(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToFalse_ReturnsFalse()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to false
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse("config set featureFlags.deployCommandEnabled false");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatureFlags>();
+        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToInvalidValue_ReturnsFalse()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to an invalid value
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse("config set featureFlags.deployCommandEnabled invalid");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatureFlags>();
+        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+    }
+
+    [Fact]
+    public void DeployCommand_WhenFeatureFlagDisabled_IsNotAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        
+        // Check that deploy command is not available
+        var hasDeployCommand = rootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
+        Assert.False(hasDeployCommand);
+    }
+
+    [Fact]
+    public async Task DeployCommand_WhenFeatureFlagEnabled_IsAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to true
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse("config set featureFlags.deployCommandEnabled true");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Create a new service provider to get the updated configuration
+        var newServices = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var newProvider = newServices.BuildServiceProvider();
+        var newRootCommand = newProvider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        
+        // Check that deploy command is available
+        var hasDeployCommand = newRootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
+        Assert.True(hasDeployCommand);
     }
 }
