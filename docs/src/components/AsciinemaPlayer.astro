@@ -1,0 +1,59 @@
+---
+const { src, poster = 'npt:0:4' } = Astro.props;
+---
+
+<div class="asciinema-player-container" data-src={src} data-poster={poster}>
+</div>
+
+<style>
+    .asciinema-player-container {
+        border: 1px solid var(--sl-color-gray-4);
+        border-radius: .3rem;
+    }
+
+    .asciinema-player-container pre {
+        font-size: 15px !important;
+        line-height: 1em;
+    }
+</style>
+
+<script>
+    import "asciinema-player/dist/bundle/asciinema-player.css";
+
+    async function initAsciinemaPlayer() {
+        try {
+            const { create } = await import("asciinema-player");
+
+            const containers = document.querySelectorAll(
+                ".asciinema-player-container",
+            );
+
+            containers.forEach((container) => {
+                const src = container.getAttribute("data-src");
+                const poster = container.getAttribute("data-poster");
+
+                if (src && container instanceof HTMLElement) {
+                    create(src, container, {
+                        autoplay: false,
+                        loop: true,
+                        poster: poster || undefined,
+                        fit: "none",
+                        preload: true,
+                        theme: 'nord',
+                        terminalFontSize: '1.2rem',
+                        rows: 15,
+                        terminalFontFamily: 'var(--__sl-font-mono)'
+                    });
+                }
+            });
+        } catch (error) {
+            console.error("Failed to load asciinema player:", error);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAsciinemaPlayer);
+    } else {
+        initAsciinemaPlayer();
+    }
+</script>

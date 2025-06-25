@@ -21,6 +21,7 @@
     "@catppuccin/starlight": "^1.0.1",
     "@fontsource-variable/outfit": "^5.2.5",
     "@fontsource-variable/rubik": "^5.2.5",
+    "asciinema-player": "^3.10.0",
     "astro": "^5.7.10",
     "sharp": "^0.34.1",
     "starlight-contributor-list": "^0.3.0",
