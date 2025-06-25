@@ -544,21 +544,68 @@ public class PublishingActivityProgressReporterTests
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
 
-        // Act - Use the disposal pattern as shown in the issue example
-        await using var step = await reporter.CreateStepAsync("Publish Artifacts", CancellationToken.None);
-
-        await using var pkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
-        await using var pushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
+        // Create step and tasks
+        var step = await reporter.CreateStepAsync("Publish Artifacts", CancellationToken.None);
+        var pkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
+        var pushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
 
         // Simulate some work
         await reporter.UpdateTaskAsync(pkgTask, "50% complete", CancellationToken.None);
         await reporter.UpdateTaskAsync(pushTask, "Uploading...", CancellationToken.None);
 
-        // Tasks and step will be automatically completed when disposed
+        // Verify state before disposal
+        Assert.Equal(TaskCompletionState.InProgress, pkgTask.CompletionState);
+        Assert.Equal(TaskCompletionState.InProgress, pushTask.CompletionState);
+        Assert.False(step.IsComplete);
 
-        // Assert - All should be completed after using blocks
+        // Act - Manually dispose to test automatic completion
+        await pushTask.DisposeAsync();
+        await pkgTask.DisposeAsync();
+        await step.DisposeAsync();
+
+        // Assert - All should be completed after disposal
         Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
         Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
+        Assert.True(step.IsComplete);
+    }
+
+    [Fact]
+    public async Task DisposalPattern_AwaitUsing_WorksCorrectly()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        PublishingStep step;
+        PublishingTask pkgTask;
+        PublishingTask pushTask;
+
+        // Act - Use the actual await using pattern as intended
+        {
+            await using var disposableStep = await reporter.CreateStepAsync("Publish Artifacts", CancellationToken.None);
+            step = disposableStep;
+
+            {
+                await using var disposablePkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
+                pkgTask = disposablePkgTask;
+                
+                await using var disposablePushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
+                pushTask = disposablePushTask;
+
+                // Simulate some work
+                await reporter.UpdateTaskAsync(pkgTask, "50% complete", CancellationToken.None);
+                await reporter.UpdateTaskAsync(pushTask, "Uploading...", CancellationToken.None);
+
+                // Verify state before disposal
+                Assert.Equal(TaskCompletionState.InProgress, pkgTask.CompletionState);
+                Assert.Equal(TaskCompletionState.InProgress, pushTask.CompletionState);
+            }
+            
+            // Tasks should be completed after their await using scope ends
+            Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
+            Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
+            Assert.False(step.IsComplete); // Step should still be in progress
+        }
+
+        // Step should be completed after its await using scope ends
         Assert.True(step.IsComplete);
     }
 

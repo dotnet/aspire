@@ -40,10 +40,16 @@ public class NullPublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = NullPublishingActivityProgressReporter.Instance;
-
-        // Act - Use disposal pattern with null reporter
-        await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-
+        
+        // Create step and assign to variable outside the scope
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        
+        // Verify initial state
+        Assert.False(step.IsComplete);
+        
+        // Manually dispose to test the disposal behavior
+        await step.DisposeAsync();
+        
         // Assert - Step should be completed after disposal
         Assert.True(step.IsComplete);
         Assert.Equal("Test Step", step.CompletionText);
@@ -55,9 +61,13 @@ public class NullPublishingActivityProgressReporterTests
         // Arrange
         var reporter = NullPublishingActivityProgressReporter.Instance;
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-
-        // Act - Use disposal pattern with null reporter
-        await using var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+        
+        // Create task and verify initial state
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        
+        // Manually dispose to test the disposal behavior
+        await task.DisposeAsync();
 
         // Assert - Task should be completed after disposal
         Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
