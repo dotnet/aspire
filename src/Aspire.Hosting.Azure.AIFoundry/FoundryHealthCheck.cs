@@ -6,7 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.AIFoundry;
 
-internal sealed class FoundryHealthCheck(FoundryLocalManager manager) : IHealthCheck
+internal sealed class FoundryLocalHealthCheck(FoundryLocalManager manager) : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
