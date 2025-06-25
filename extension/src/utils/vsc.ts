@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { errorMessage, noWorkspaceOpen } from '../constants/strings';
+import { errorMessage, noWorkspaceOpen, aspireOutputChannelName } from '../constants/strings';
 
-const outputChannel = vscode.window.createOutputChannel('Aspire Extension');
+const outputChannel = vscode.window.createOutputChannel(aspireOutputChannelName);
 
 export async function tryExecuteCommand(command: () => Promise<void>): Promise<void> {
     try {
