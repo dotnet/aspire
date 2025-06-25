@@ -27,6 +27,7 @@ public class PublishingActivityProgressReporterTests
         Assert.NotEmpty(step.Id);
         Assert.Equal(title, step.Title);
         Assert.False(step.IsComplete);
+        Assert.False(step.IsError);
         Assert.Equal(string.Empty, step.CompletionText);
 
         // Verify activity was emitted
@@ -127,6 +128,7 @@ public class PublishingActivityProgressReporterTests
 
         // Assert
         Assert.True(step.IsComplete);
+        Assert.Equal(expectedIsError, step.IsError);
         Assert.Equal(completionText, step.CompletionText);
 
         // Verify activity was emitted
@@ -171,7 +173,7 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
-    public async Task UpdateTaskAsync_ThrowsWhenParentStepDoesNotExist()
+    public async Task UpdateTaskAsync_IsIdempotentWhenParentStepDoesNotExist()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -182,15 +184,15 @@ public class PublishingActivityProgressReporterTests
         // Simulate step removal by creating a task with invalid step ID
         task = new PublishingTask(task.Id, "non-existent-step", "Initial status");
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.UpdateTaskAsync(task, "New status", CancellationToken.None));
+        // Act - UpdateTaskAsync should be a no-op when parent step doesn't exist
+        await reporter.UpdateTaskAsync(task, "New status", CancellationToken.None);
 
-        Assert.Contains("Parent step with ID 'non-existent-step' does not exist.", exception.Message);
+        // Assert - Task status should not have changed since update was a no-op
+        Assert.Equal("Initial status", task.StatusText);
     }
 
     [Fact]
-    public async Task UpdateTaskAsync_ThrowsWhenParentStepIsComplete()
+    public async Task UpdateTaskAsync_IsIdempotentWhenParentStepIsComplete()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -199,11 +201,11 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
         await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
-        // Act & Assert - Step is now removed from dictionary when completed
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.UpdateTaskAsync(task, "New status", CancellationToken.None));
+        // Act - UpdateTaskAsync should be a no-op when parent step is complete
+        await reporter.UpdateTaskAsync(task, "New status", CancellationToken.None);
 
-        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", exception.Message);
+        // Assert - Task status should not have changed since update was a no-op
+        Assert.Equal("Initial status", task.StatusText);
     }
 
     [Theory]
@@ -244,7 +246,7 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
-    public async Task CompleteTaskAsync_ThrowsWhenParentStepIsComplete()
+    public async Task CompleteTaskAsync_IsIdempotentWhenParentStepIsComplete()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -253,11 +255,11 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
         await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
-        // Act & Assert - Step is now removed from dictionary when completed
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
+        // Act - CompleteTaskAsync should be a no-op when parent step is complete
+        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
 
-        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", exception.Message);
+        // Assert - Task should still be in progress since complete was a no-op
+        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
     }
 
     [Theory]
@@ -359,7 +361,7 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
-    public async Task CompleteTaskAsync_ThrowsWhenTaskAlreadyCompleted()
+    public async Task CompleteTaskAsync_IsIdempotentWhenTaskAlreadyCompleted()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -370,11 +372,11 @@ public class PublishingActivityProgressReporterTests
         // Complete the task first time
         await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
 
-        // Act & Assert - Try to complete the same task again
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
+        // Act - Try to complete the same task again - should be a no-op
+        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
 
-        Assert.Contains($"Cannot complete task '{task.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
+        // Assert - Task should still be completed
+        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
     }
 
     [Fact]
@@ -389,17 +391,20 @@ public class PublishingActivityProgressReporterTests
         // Act - Complete the step
         await reporter.CompleteStepAsync(step, "Step completed", cancellationToken: CancellationToken.None);
 
-        // Assert - Verify that operations on tasks belonging to the completed step now fail
+        // Assert - Verify that operations on tasks belonging to the completed step are now no-ops
         // because the step has been removed from the dictionary
-        var updateException = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.UpdateTaskAsync(task, "New status", CancellationToken.None));
-        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", updateException.Message);
 
-        var completeException = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None));
-        Assert.Contains($"Parent step with ID '{step.Id}' does not exist.", completeException.Message);
+        // UpdateTaskAsync should be a no-op
+        await reporter.UpdateTaskAsync(task, "New status", CancellationToken.None);
+        // Task status should not have changed since update was a no-op
+        Assert.NotEqual("New status", task.StatusText);
 
-        // Also verify that creating new tasks for the completed step fails
+        // CompleteTaskAsync should be a no-op  
+        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        // Task should still be InProgress since complete was a no-op
+        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+
+        // Creating new tasks for the completed step still fails (this is expected behavior)
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.CreateTaskAsync(step, "New Task", CancellationToken.None));
         Assert.Contains($"Step with ID '{step.Id}' does not exist.", createException.Message);
@@ -555,5 +560,32 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
         Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
         Assert.True(step.IsComplete);
+    }
+
+    [Fact]
+    public async Task PublishingStep_DisposeAsync_RespectsIsErrorProperty()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step with error state first, then dispose should respect that
+        await reporter.CompleteStepAsync(step, "Completed with error", isError: true, CancellationToken.None);
+
+        // Clear activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the step, which should be a no-op since already completed
+        await step.DisposeAsync();
+
+        // Assert - Step should retain its error state
+        Assert.True(step.IsComplete);
+        Assert.True(step.IsError);
+        Assert.Equal("Completed with error", step.CompletionText);
+
+        // No additional activity should be emitted since already completed
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.False(activityReader.TryRead(out _));
     }
 }

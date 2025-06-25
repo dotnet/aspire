@@ -40,6 +40,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     public Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
     {
         step.IsComplete = true;
+        step.IsError = isError;
         step.CompletionText = completionText;
         return Task.CompletedTask;
     }

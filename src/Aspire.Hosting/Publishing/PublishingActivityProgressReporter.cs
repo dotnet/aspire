@@ -65,6 +65,11 @@ public sealed class PublishingStep : IAsyncDisposable
     public bool IsComplete { get; internal set; }
 
     /// <summary>
+    /// Indicates whether the step completed with an error.
+    /// </summary>
+    public bool IsError { get; internal set; }
+
+    /// <summary>
     /// The completion text for the step.
     /// </summary>
     public string CompletionText { get; internal set; } = string.Empty;
@@ -81,14 +86,7 @@ public sealed class PublishingStep : IAsyncDisposable
     {
         if (Reporter is not null && !IsComplete)
         {
-            try
-            {
-                await Reporter.CompleteStepAsync(this, Title, isError: false, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (InvalidOperationException)
-            {
-                // Ignore exceptions if step is already complete or removed
-            }
+            await Reporter.CompleteStepAsync(this, Title, isError: IsError, CancellationToken.None).ConfigureAwait(false);
         }
     }
 }
@@ -142,19 +140,8 @@ public sealed class PublishingTask : IDisposable
     {
         if (Reporter is not null && CompletionState == TaskCompletionState.InProgress)
         {
-            try
-            {
-                // Use synchronous completion since IDisposable doesn't support async
-                Reporter.CompleteTaskAsync(this, TaskCompletionState.Completed, null, CancellationToken.None).Wait();
-            }
-            catch (InvalidOperationException)
-            {
-                // Ignore exceptions if task is already complete or parent step is complete
-            }
-            catch (AggregateException ex) when (ex.InnerException is InvalidOperationException)
-            {
-                // Ignore InvalidOperationException wrapped in AggregateException from .Wait()
-            }
+            // Use synchronous completion since IDisposable doesn't support async
+            Reporter.CompleteTaskAsync(this, TaskCompletionState.Completed, null, CancellationToken.None).Wait();
         }
     }
 }
@@ -290,105 +277,132 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
     public async Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
     {
+        bool shouldSendUpdate;
         lock (step)
         {
+            // If already complete, this is a no-op (idempotent)
+            if (step.IsComplete)
+            {
+                return;
+            }
+
             step.IsComplete = true;
+            step.IsError = isError;
             step.CompletionText = completionText;
+            shouldSendUpdate = true;
         }
 
-        var state = new PublishingActivity
+        if (shouldSendUpdate)
         {
-            Type = PublishingActivityTypes.Step,
-            Data = new PublishingActivityData
+            var state = new PublishingActivity
             {
-                Id = step.Id,
-                StatusText = completionText,
-                IsComplete = true,
-                IsError = isError,
-                IsWarning = false,
-                StepId = null
-            }
-        };
+                Type = PublishingActivityTypes.Step,
+                Data = new PublishingActivityData
+                {
+                    Id = step.Id,
+                    StatusText = completionText,
+                    IsComplete = true,
+                    IsError = isError,
+                    IsWarning = false,
+                    StepId = null
+                }
+            };
 
-        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+            await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
 
-        // Remove the completed step to prevent further updates.
-        _steps.TryRemove(step.Id, out _);
+            // Remove the completed step to prevent further updates.
+            _steps.TryRemove(step.Id, out _);
+        }
     }
 
     public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
-            throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
+            // Parent step doesn't exist, this is a no-op (idempotent)
+            return;
         }
 
+        bool shouldSendUpdate;
         lock (parentStep)
         {
+            // If parent step is complete, this is a no-op (idempotent)
             if (parentStep.IsComplete)
             {
-                throw new InvalidOperationException($"Cannot update task '{task.Id}' because its parent step '{task.StepId}' is already complete.");
+                return;
             }
 
             task.StatusText = statusText;
+            shouldSendUpdate = true;
         }
 
-        var state = new PublishingActivity
+        if (shouldSendUpdate)
         {
-            Type = PublishingActivityTypes.Task,
-            Data = new PublishingActivityData
+            var state = new PublishingActivity
             {
-                Id = task.Id,
-                StatusText = statusText,
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
-                StepId = task.StepId
-            }
-        };
+                Type = PublishingActivityTypes.Task,
+                Data = new PublishingActivityData
+                {
+                    Id = task.Id,
+                    StatusText = statusText,
+                    IsComplete = false,
+                    IsError = false,
+                    IsWarning = false,
+                    StepId = task.StepId
+                }
+            };
 
-        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+            await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
-            throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
+            // Parent step doesn't exist, this is a no-op (idempotent)
+            return;
         }
 
+        // If task is already completed, this is a no-op (idempotent)
         if (task.CompletionState != TaskCompletionState.InProgress)
         {
-            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{task.CompletionState}'. Only 'InProgress' tasks can be completed.");
+            return;
         }
 
+        bool shouldSendUpdate;
         lock (parentStep)
         {
+            // If parent step is complete, this is a no-op (idempotent)
             if (parentStep.IsComplete)
             {
-                throw new InvalidOperationException($"Cannot complete task '{task.Id}' because its parent step '{task.StepId}' is already complete.");
+                return;
             }
 
             task.CompletionState = completionState;
             task.CompletionMessage = completionMessage ?? string.Empty;
+            shouldSendUpdate = true;
         }
 
-        var state = new PublishingActivity
+        if (shouldSendUpdate)
         {
-            Type = PublishingActivityTypes.Task,
-            Data = new PublishingActivityData
+            var state = new PublishingActivity
             {
-                Id = task.Id,
-                StatusText = task.StatusText,
-                IsComplete = true,
-                IsError = completionState == TaskCompletionState.CompletedWithError,
-                IsWarning = completionState == TaskCompletionState.CompletedWithWarning,
-                StepId = task.StepId,
-                CompletionMessage = completionMessage
-            }
-        };
+                Type = PublishingActivityTypes.Task,
+                Data = new PublishingActivityData
+                {
+                    Id = task.Id,
+                    StatusText = task.StatusText,
+                    IsComplete = true,
+                    IsError = completionState == TaskCompletionState.CompletedWithError,
+                    IsWarning = completionState == TaskCompletionState.CompletedWithWarning,
+                    StepId = task.StepId,
+                    CompletionMessage = completionMessage
+                }
+            };
 
-        await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+            await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
