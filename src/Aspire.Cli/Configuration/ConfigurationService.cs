@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Configuration;
 
@@ -223,20 +224,6 @@ internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileI
         return true;
     }
 
-    public async Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
-    {
-        // Check local settings first
-        var nearestSettingFilePath = FindNearestSettingsFile();
-        var value = await GetConfigurationFromFileAsync(nearestSettingFilePath, key, cancellationToken);
-        if (value is not null)
-        {
-            return value;
-        }
-
-        // Check global settings if not found locally
-        return await GetConfigurationFromFileAsync(globalSettingsFile.FullName, key, cancellationToken);
-    }
-
     /// <summary>
     /// Recursively flattens a JsonObject into a dictionary with dot notation keys.
     /// </summary>
@@ -257,50 +244,15 @@ internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileI
         }
     }
 
-    private static async Task<string?> GetConfigurationFromFileAsync(string filePath, string key, CancellationToken cancellationToken)
+    public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            if (!File.Exists(filePath))
-            {
-                return null;
-            }
+        // Build fresh configuration using the same directories that this service uses
+        var configBuilder = new ConfigurationBuilder();
+        ConfigurationHelper.RegisterSettingsFiles(configBuilder, currentDirectory, globalSettingsFile);
+        var configuration = configBuilder.Build();
 
-            var content = await File.ReadAllTextAsync(filePath, cancellationToken);
-            var settings = JsonNode.Parse(content)?.AsObject();
-            
-            if (settings is null)
-            {
-                return null;
-            }
-
-            return GetNestedValue(settings, key);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Gets a nested value from a JsonObject using dot notation.
-    /// </summary>
-    private static string? GetNestedValue(JsonObject settings, string key)
-    {
-        var keyParts = key.Split('.');
-        JsonNode? currentNode = settings;
-
-        // Navigate through the nested structure
-        foreach (var part in keyParts)
-        {
-            if (currentNode is not JsonObject currentObject || !currentObject.ContainsKey(part))
-            {
-                return null; // Path doesn't exist
-            }
-            
-            currentNode = currentObject[part];
-        }
-
-        return currentNode?.ToString();
+        // Convert dot notation to colon notation for IConfiguration access
+        var configKey = key.Replace('.', ':');
+        return Task.FromResult(configuration[configKey]);
     }
 }
