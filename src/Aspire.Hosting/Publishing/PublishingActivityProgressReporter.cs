@@ -62,16 +62,16 @@ public sealed class PublishingStep : IAsyncDisposable
     public string Title { get; private set; }
 
     /// <summary>
-    /// The completion state of the step. When null, the state is automatically aggregated from child tasks.
-    /// When explicitly set, the specified state overrides the aggregated state.
+    /// The completion state of the step. Defaults to InProgress.
+    /// The state is only aggregated from child tasks during disposal.
     /// </summary>
     public CompletionState CompletionState
     {
-        get => _completionState ?? CalculateAggregatedState();
+        get => _completionState;
         internal set => _completionState = value;
     }
-    
-    private CompletionState? _completionState;
+
+    private CompletionState _completionState = CompletionState.InProgress;
 
     /// <summary>
     /// The completion text for the step.
@@ -143,11 +143,13 @@ public sealed class PublishingStep : IAsyncDisposable
             return;
         }
 
-        // Use the current completion state (which handles aggregation if not explicitly set)
-        var finalState = CompletionState;
-        
+        // Use the current completion state or calculate it from child tasks if still in progress
+        var finalState = CompletionState == CompletionState.InProgress
+            ? CalculateAggregatedState()
+            : CompletionState;
+
         // Only set completion text if it has not been explicitly set
-        var completionText = string.IsNullOrEmpty(CompletionText) 
+        var completionText = string.IsNullOrEmpty(CompletionText)
             ? finalState switch
             {
                 CompletionState.Completed => $"{Title} completed successfully",
@@ -402,7 +404,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
         var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
         task.Reporter = this;
-        
+
         // Add task to parent step
         parentStep.AddTask(task);
 
@@ -520,7 +522,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
-        
+
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,

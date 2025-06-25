@@ -105,7 +105,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
+    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -214,7 +214,7 @@ public sealed class AzurePublishingContext(
 
         var computeEnvironmentTask = await step.CreateTaskAsync(
             "Analyzing model for compute environments.",
-            cancellationToken: default
+            cancellationToken: cancellationToken
             ).ConfigureAwait(false);
 
         foreach (var resource in bicepResourcesToPublish)
@@ -226,7 +226,7 @@ public sealed class AzurePublishingContext(
 
             var task = await step.CreateTaskAsync(
                 $"Processing Azure resource {resource.Name}",
-                cancellationToken: default
+                cancellationToken: cancellationToken
             )
             .ConfigureAwait(false);
 
@@ -256,7 +256,7 @@ public sealed class AzurePublishingContext(
 
             await task.SucceedAsync(
                 $"Wrote bicep module for resource {resource.Name} to {module.Path}",
-                cancellationToken: default
+                cancellationToken: cancellationToken
             ).ConfigureAwait(false);
         }
 
@@ -271,7 +271,7 @@ public sealed class AzurePublishingContext(
             computeEnvironmentTask,
             state,
             message,
-            cancellationToken: default
+            cancellationToken: cancellationToken
         ).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();
