@@ -18,7 +18,7 @@ internal class ExecResourceManager : BackgroundService
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly ResourceNotificationService _resourceNotificationService;
 
-    private string? _execResourceName;
+    private string? _dcpExecResourceName;
     private IResource? _execResource;
 
     private static bool RunningInExecMode => true; // todo
@@ -44,22 +44,21 @@ internal class ExecResourceManager : BackgroundService
         {
             yield break;
         }
-        if (string.IsNullOrEmpty(_execResourceName) || _execResource is null)
+        if (_execResource is null || string.IsNullOrEmpty(_dcpExecResourceName))
         {
             _logger.LogInformation("Exec resource can't be determined.");
             yield break;
         }
 
-        await _resourceNotificationService.WaitForResourceAsync(_execResourceName, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
-
         // waiting for the resource to reach terminal state and completing the log stream then
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(_execResourceName, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
-            _resourceLoggerService.Complete(_execResource);
+            await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+            _resourceLoggerService.Complete(_execResource.Name);
+            _resourceLoggerService.Complete(_dcpExecResourceName);
         }, cancellationToken);
         
-        await foreach (var logs in _resourceLoggerService.WatchAsync(_execResource).WithCancellation(cancellationToken).ConfigureAwait(false))
+        await foreach (var logs in _resourceLoggerService.WatchAsync(_dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return logs;
         }
@@ -80,9 +79,10 @@ internal class ExecResourceManager : BackgroundService
         }
 
         var execResource = BuildResource(targetExecResource);
-        _execResource = execResource;
         _model.Resources.Add(execResource);
-        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", _execResourceName);
+
+        _execResource = execResource;
+        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", _execResource.Name);
 
         return Task.CompletedTask;
     }
@@ -103,10 +103,9 @@ internal class ExecResourceManager : BackgroundService
         var (exe, args) = ParseCommand();
 
         var shortId = Guid.NewGuid().ToString("N").Substring(0, 8);
-        _execResourceName = "exec" + shortId;
+        var execResourceName = "exec" + shortId;
 
-        var executable = new ExecutableResource(_execResourceName, exe, projectDir);
-
+        var executable = new ExecutableResource(execResourceName, exe, projectDir);
         if (!string.IsNullOrEmpty(args))
         {
             executable.Annotations.Add(new CommandLineArgsCallbackAnnotation((c) =>
@@ -117,18 +116,26 @@ internal class ExecResourceManager : BackgroundService
         }
 
         // take all annotations from the project resource and apply to the executable
-        foreach (var annotation in project.Annotations
-            // .Where(x => x is EnvironmentAnnotation or ResourceRelationshipAnnotation)
-            .Where(x => x is not DcpInstancesAnnotation) // cant take dcp instances because it breaks DCP startup
-        )
+        //foreach (var annotation in project.Annotations
+        //    // .Where(x => x is EnvironmentAnnotation or ResourceRelationshipAnnotation)
+        //    .Where(x => x is not DcpInstancesAnnotation) // cant take dcp instances because it breaks DCP startup
+        //)
+        //{
+        //    // todo understand if a deep-copy is required
+        //    executable.Annotations.Add(annotation);
+        //}
+
+        var targetDcpInstanceAnnotation = project.Annotations.OfType<DcpInstancesAnnotation>().FirstOrDefault();
+        if (targetDcpInstanceAnnotation?.Instances.FirstOrDefault() is not null)
         {
-            // todo understand if a deep-copy is required
-            executable.Annotations.Add(annotation);
+            var execDcpInstanceAnnotation = targetDcpInstanceAnnotation.WithDifferentResourceName(execResourceName);
+            _dcpExecResourceName = execDcpInstanceAnnotation.Instances.First().Name;
+            executable.Annotations.Add(execDcpInstanceAnnotation);
         }
 
         if (_execOptions.StartResource)
         {
-            _logger.LogInformation("Exec resource '{ResourceName}' will wait until project '{Project}' starts up.", _execResourceName, project.Name);
+            _logger.LogInformation("Exec resource '{ResourceName}' will wait until project '{Project}' starts up.", execResourceName, project.Name);
             executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
         }
 

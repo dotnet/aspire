@@ -40,22 +40,22 @@ public class ExecTests(ITestOutputHelper output)
         //];
 
         // PING GOOGLE.COM COMMAND
-        string[] args = [
-            "--operation", "exec", // EXEC type
-            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--resource", "mywebapp1", // target resource
-            "--command", "\"ping google.com\"", // command packed into string
-            "--add-postgres", // arbitraty flags for apphost
-        ];
-
-        // ADD MIGRATION
         //string[] args = [
         //    "--operation", "exec", // EXEC type
         //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
         //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
+        //    "--command", "\"ping google.com\"", // command packed into string
         //    "--add-postgres", // arbitraty flags for apphost
         //];
+
+        // ADD MIGRATION
+        string[] args = [
+            "--operation", "exec", // EXEC type
+            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+            "--resource", "mywebapp1", // target resource
+            "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
+            "--add-postgres", // arbitraty flags for apphost
+        ];
 
         // APPLY MIGRATION UPDATE ON DB
         //string[] args = [
@@ -99,27 +99,16 @@ public class ExecTests(ITestOutputHelper output)
 
         await using var app = await builder.BuildAsync();
 
-        // try get logs for the future command execution
-        try
+        var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
+        var outputStream = appHostRpcTarget.ExecAsync(CancellationToken.None);
+
+        var startTask = app.StartAsync(CancellationToken.None);
+        await foreach (var message in outputStream)
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
-
-            var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
-            var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
-
-            var startTask = app.StartAsync(cts.Token);
-            await foreach (var message in outputStream)
-            {
-                output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
-            }
-
-            await startTask;
+            output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
         }
-        catch (Exception ex)
-        {
-            output.WriteLine($"Error during execution: {ex.Message}");
-            throw;
-        }
+
+        await startTask;
 
         AssertMigrationsCreated(myWebAppProjectMetadata);
         DeleteMigrations(myWebAppProjectMetadata);
