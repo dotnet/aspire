@@ -1,0 +1,1 @@
+using Aspire.Hosting.Publishing; var reporter = new PublishingActivityProgressReporter(); var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None); Console.WriteLine($"CompletionState: {step.CompletionState}");

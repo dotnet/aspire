@@ -62,9 +62,16 @@ public sealed class PublishingStep : IAsyncDisposable
     public string Title { get; private set; }
 
     /// <summary>
-    /// The completion state of the step. This is automatically aggregated from child tasks.
+    /// The completion state of the step. When null, the state is automatically aggregated from child tasks.
+    /// When explicitly set, the specified state overrides the aggregated state.
     /// </summary>
-    public CompletionState CompletionState { get; internal set; } = CompletionState.InProgress;
+    public CompletionState CompletionState
+    {
+        get => _completionState ?? CalculateAggregatedState();
+        internal set => _completionState = value;
+    }
+    
+    private CompletionState? _completionState;
 
     /// <summary>
     /// The completion text for the step.
@@ -96,7 +103,7 @@ public sealed class PublishingStep : IAsyncDisposable
     {
         if (_tasks.IsEmpty)
         {
-            return CompletionState;
+            return CompletionState.InProgress;
         }
 
         var maxState = CompletionState.InProgress;
@@ -136,11 +143,11 @@ public sealed class PublishingStep : IAsyncDisposable
             return;
         }
 
-        // Aggregate state from all child tasks
-        var aggregatedState = CalculateAggregatedState();
+        // Use the current completion state (which handles aggregation if not explicitly set)
+        var finalState = CompletionState;
         
-        // Complete this step with aggregated state
-        var completionText = aggregatedState switch
+        // Complete this step with the final state
+        var completionText = finalState switch
         {
             CompletionState.Completed => $"{Title} completed successfully",
             CompletionState.CompletedWithWarning => $"{Title} completed with warnings",
@@ -148,7 +155,7 @@ public sealed class PublishingStep : IAsyncDisposable
             _ => $"{Title} completed"
         };
 
-        await Reporter.CompleteStepAsync(this, completionText, aggregatedState, CancellationToken.None).ConfigureAwait(false);
+        await Reporter.CompleteStepAsync(this, completionText, finalState, CancellationToken.None).ConfigureAwait(false);
     }
 }
 
