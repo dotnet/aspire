@@ -12,7 +12,6 @@
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <IsAotCompatible>true</IsAotCompatible>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
@@ -20,10 +19,7 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
-    <!-- TODO: https://github.com/dotnet/aspire/issues/8677 - enable PublishAot when the build infrastructure supports all platforms. -->
-    <!--<PublishAot>true</PublishAot>--> 
-    <!--JsonSerializerIsReflectionEnabledByDefault can be removed when PublishAot is enabled. -->
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <PublishAot>true</PublishAot> 
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
