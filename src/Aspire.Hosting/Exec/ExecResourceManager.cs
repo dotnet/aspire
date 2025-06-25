@@ -116,14 +116,21 @@ internal class ExecResourceManager : BackgroundService
             }));
         }
 
-        //// take all annotations from the project resource and apply to the executable
-        //foreach (var annotation in project.Annotations)
-        //{
-        //    // todo understand if a deep-copy is required
-        //    executable.Annotations.Add(annotation);
-        //}
+        // take all annotations from the project resource and apply to the executable
+        foreach (var annotation in project.Annotations
+            // .Where(x => x is EnvironmentAnnotation or ResourceRelationshipAnnotation)
+            .Where(x => x is not DcpInstancesAnnotation) // cant take dcp instances because it breaks DCP startup
+        )
+        {
+            // todo understand if a deep-copy is required
+            executable.Annotations.Add(annotation);
+        }
 
-        //executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
+        if (_execOptions.StartResource)
+        {
+            _logger.LogInformation("Exec resource '{ResourceName}' will wait until project '{Project}' starts up.", _execResourceName, project.Name);
+            executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
+        }
 
         return executable;
 

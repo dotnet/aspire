@@ -26,5 +26,11 @@ public class ExecOptions
     /// <summary>
     /// 
     /// </summary>
-    public required string Command { get; set; }    
+    public required string Command { get; set; }
+
+    /// <summary>
+    ///
+    /// By default is false.
+    /// </summary>
+    public bool StartResource { get; set; }
 }
