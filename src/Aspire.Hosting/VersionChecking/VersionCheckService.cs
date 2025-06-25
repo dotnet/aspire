@@ -44,6 +44,12 @@ internal sealed class VersionCheckService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_interactionService.IsAvailable)
+        {
+            // Don't check version if there is no way to prompt that information to the user.
+            return;
+        }
+
         var checkForLatestVersion = true;
         if (_configuration[CheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
