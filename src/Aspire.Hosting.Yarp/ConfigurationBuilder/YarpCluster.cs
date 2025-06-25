@@ -14,7 +14,7 @@ public class YarpCluster(EndpointReference endpoint)
 {
     internal ClusterConfig ClusterConfig { get; private set; } = new()
     {
-        ClusterId = $"cluster_{Guid.NewGuid().ToString("N")}",
+        ClusterId = $"cluster_{endpoint.Resource.Name}_{Guid.NewGuid().ToString("N")}",
         Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
         {
             { "destination1", new DestinationConfig { Address = $"{endpoint.Scheme}://{endpoint.Resource.Name}" } },

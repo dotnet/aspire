@@ -24,7 +24,7 @@ public interface IYarpConfigurationBuilder
     /// </summary>
     /// <param name="endpoint">The endpoint used by this cluster.</param>
     /// <returns></returns>
-    public YarpCluster AddDestination(EndpointReference endpoint);
+    public YarpCluster AddCluster(EndpointReference endpoint);
 }
 
 /// <summary>
@@ -54,7 +54,7 @@ public static class YarpConfigurationBuilderExtensions
     /// <returns></returns>
     public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, EndpointReference endpoint)
     {
-        var cluster = builder.AddDestination(endpoint);
+        var cluster = builder.AddCluster(endpoint);
         return builder.AddRoute(path, cluster);
     }
 

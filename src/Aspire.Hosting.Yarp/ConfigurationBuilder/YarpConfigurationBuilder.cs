@@ -23,7 +23,7 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     }
 
     /// <inheritdoc/>
-    public YarpCluster AddDestination(EndpointReference endpoint)
+    public YarpCluster AddCluster(EndpointReference endpoint)
     {
         var destination = new YarpCluster(endpoint);
         _parent.Resource.Destinations.Add(destination);
