@@ -58,6 +58,19 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     {
         task.CompletionState = completionState;
         task.CompletionMessage = completionMessage ?? string.Empty;
+
+        // If task completed with error and has a parent step, mark parent step for warning completion
+        if (completionState == CompletionState.CompletedWithError && task.ParentStep is not null)
+        {
+            var parentStep = task.ParentStep;
+            // Only update if parent step is still in progress
+            if (parentStep.CompletionState == CompletionState.InProgress)
+            {
+                // Mark the parent step for warning completion when disposed
+                parentStep.MarkForWarningCompletion();
+            }
+        }
+
         return Task.CompletedTask;
     }
 

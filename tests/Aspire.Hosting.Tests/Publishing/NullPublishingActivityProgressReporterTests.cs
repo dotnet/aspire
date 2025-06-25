@@ -72,4 +72,47 @@ public class NullPublishingActivityProgressReporterTests
         // Assert - Task should be completed after disposal
         Assert.Equal(CompletionState.Completed, task.CompletionState);
     }
+
+    [Fact]
+    public async Task NullReporter_StepCompletesChildTasksOnDisposal()
+    {
+        // Arrange
+        var reporter = NullPublishingActivityProgressReporter.Instance;
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
+
+        // Verify initial state
+        Assert.Equal(CompletionState.InProgress, task1.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task2.CompletionState);
+        Assert.Equal(CompletionState.InProgress, step.CompletionState);
+
+        // Act - Dispose the step
+        await step.DisposeAsync();
+
+        // Assert - All tasks and the step should be completed
+        Assert.Equal(CompletionState.Completed, task1.CompletionState);
+        Assert.Equal(CompletionState.Completed, task2.CompletionState);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
+    }
+
+    [Fact]
+    public async Task NullReporter_TaskErrorSetsParentStepToWarning()
+    {
+        // Arrange
+        var reporter = NullPublishingActivityProgressReporter.Instance;
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Act - Complete the task with error
+        await reporter.CompleteTaskAsync(task, CompletionState.CompletedWithError, "Error message", CancellationToken.None);
+
+        // Assert - Task should be completed with error
+        Assert.Equal(CompletionState.CompletedWithError, task.CompletionState);
+        Assert.Equal("Error message", task.CompletionMessage);
+
+        // Dispose the step to see the warning state
+        await step.DisposeAsync();
+        Assert.Equal(CompletionState.CompletedWithWarning, step.CompletionState);
+    }
 }

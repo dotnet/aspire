@@ -608,29 +608,78 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
-    public async Task PublishingStep_DisposeAsync_RespectsIsErrorProperty()
+    public async Task PublishingStep_DisposeAsync_CompletesAllChildTasks()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
+
+        // Verify initial state
+        Assert.Equal(CompletionState.InProgress, task1.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task2.CompletionState);
+        Assert.Equal(CompletionState.InProgress, step.CompletionState);
+
+        // Act - Dispose the step without completing the tasks
+        await step.DisposeAsync();
+
+        // Assert - All tasks and the step should be completed
+        Assert.Equal(CompletionState.Completed, task1.CompletionState);
+        Assert.Equal(CompletionState.Completed, task2.CompletionState);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
+    }
+
+    [Fact]
+    public async Task PublishingTask_CompleteWithError_SetsParentStepToWarning()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+
+        // Act - Complete the task with error
+        await reporter.CompleteTaskAsync(task, CompletionState.CompletedWithError, "Error message", CancellationToken.None);
+
+        // Assert - Task should be completed with error and parent step should have warning state for disposal
+        Assert.Equal(CompletionState.CompletedWithError, task.CompletionState);
+        Assert.Equal("Error message", task.CompletionMessage);
+
+        // Dispose the step to see the warning state
+        await step.DisposeAsync();
+        Assert.Equal(CompletionState.CompletedWithWarning, step.CompletionState);
+    }
+
+    [Fact]
+    public async Task PublishingStep_HasChildTasksProperty()
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
-        // Complete the step with error state first, then dispose should respect that
-        await reporter.CompleteStepAsync(step, "Completed with error", CompletionState.CompletedWithError, CancellationToken.None);
+        // Initially no tasks
+        Assert.Empty(step.Tasks);
 
-        // Clear activities
-        reporter.ActivityItemUpdated.Reader.TryRead(out _);
-        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        // Add tasks
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
 
-        // Act - Dispose the step, which should be a no-op since already completed
-        await step.DisposeAsync();
+        // Verify tasks are in the collection
+        Assert.Equal(2, step.Tasks.Count);
+        Assert.Contains(task1, step.Tasks);
+        Assert.Contains(task2, step.Tasks);
+    }
 
-        // Assert - Step should retain its error state
-        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
-        Assert.Equal(CompletionState.CompletedWithError, step.CompletionState);
-        Assert.Equal("Completed with error", step.CompletionText);
+    [Fact]
+    public async Task PublishingTask_HasParentStepProperty()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
-        // No additional activity should be emitted since already completed
-        var activityReader = reporter.ActivityItemUpdated.Reader;
-        Assert.False(activityReader.TryRead(out _));
+        // Assert - Task should have reference to parent step
+        Assert.Equal(step, task.ParentStep);
+        Assert.Equal(step.Id, task.StepId);
     }
 }

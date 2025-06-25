@@ -86,6 +86,17 @@ public sealed class PublishingStep : IAsyncDisposable
     internal IPublishingActivityProgressReporter? Reporter { get; set; }
 
     /// <summary>
+    /// Marks the step for warning completion if a child task has an error.
+    /// </summary>
+    internal void MarkForWarningCompletion()
+    {
+        if (CompletionState == CompletionState.InProgress)
+        {
+            CompletionState = CompletionState.CompletedWithWarning;
+        }
+    }
+
+    /// <summary>
     /// Completes the step automatically when disposed if not already completed.
     /// Also completes all child tasks.
     /// </summary>
@@ -440,7 +451,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                     if (parentStep.CompletionState == CompletionState.InProgress)
                     {
                         // Mark the parent step for warning completion when disposed
-                        parentStep.CompletionState = CompletionState.CompletedWithWarning;
+                        parentStep.MarkForWarningCompletion();
                     }
                 }
             }
