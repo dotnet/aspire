@@ -82,6 +82,11 @@ internal sealed class PublishingActivityData
     public required string StatusText { get; init; }
 
     /// <summary>
+    /// Gets the completion state of the publishing activity.
+    /// </summary>
+    public string CompletionState { get; init; } = "InProgress";
+
+    /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
     public bool IsComplete { get; init; }

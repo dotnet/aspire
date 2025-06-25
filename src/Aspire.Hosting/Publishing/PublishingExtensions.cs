@@ -53,7 +53,7 @@ public static class PublishingExtensions
         }
 
         var completionText = message ?? "Completed successfully";
-        await step.Reporter.CompleteStepAsync(step, completionText, isError: false, cancellationToken).ConfigureAwait(false);
+        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -76,7 +76,7 @@ public static class PublishingExtensions
         }
 
         var completionText = message ?? "Completed with warnings";
-        await step.Reporter.CompleteStepAsync(step, completionText, isError: false, cancellationToken).ConfigureAwait(false);
+        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -99,7 +99,7 @@ public static class PublishingExtensions
         }
 
         var completionText = errorMessage ?? "Failed";
-        await step.Reporter.CompleteStepAsync(step, completionText, isError: true, cancellationToken).ConfigureAwait(false);
+        await step.Reporter.CompleteStepAsync(step, completionText, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
         return step;
     }
 
@@ -143,7 +143,7 @@ public static class PublishingExtensions
             throw new InvalidOperationException("No progress reporter is available for this task.");
         }
 
-        await task.Reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, message, cancellationToken).ConfigureAwait(false);
+        await task.Reporter.CompleteTaskAsync(task, CompletionState.Completed, message, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -165,7 +165,7 @@ public static class PublishingExtensions
             throw new InvalidOperationException("No progress reporter is available for this task.");
         }
 
-        await task.Reporter.CompleteTaskAsync(task, TaskCompletionState.CompletedWithWarning, message, cancellationToken).ConfigureAwait(false);
+        await task.Reporter.CompleteTaskAsync(task, CompletionState.CompletedWithWarning, message, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -187,7 +187,7 @@ public static class PublishingExtensions
             throw new InvalidOperationException("No progress reporter is available for this task.");
         }
 
-        await task.Reporter.CompleteTaskAsync(task, TaskCompletionState.CompletedWithError, errorMessage, cancellationToken).ConfigureAwait(false);
+        await task.Reporter.CompleteTaskAsync(task, CompletionState.CompletedWithError, errorMessage, cancellationToken).ConfigureAwait(false);
         return task;
     }
 }
