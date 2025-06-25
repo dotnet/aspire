@@ -215,7 +215,7 @@ public class YarpConfigGeneratorTests()
     [Fact]
     public async Task GenerateConfiguration()
     {
-        var config = new YarpConfigurationBuilder();
+        var config = new YarpJsonConfigurationBuilder();
         foreach (var cluster in _validClusters)
         {
             config.AddCluster(cluster);

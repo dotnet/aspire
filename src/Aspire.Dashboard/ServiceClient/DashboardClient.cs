@@ -89,7 +89,7 @@ internal sealed class DashboardClient : IDashboardClient
         if (dashboardOptions.Value.ResourceServiceClient.GetUri() is null)
         {
             _state = StateDisabled;
-            _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug("{ConfigKey} is not specified. Dashboard client services are unavailable.", DashboardConfigNames.ResourceServiceUrlName.ConfigKey);
             _cts.Cancel();
             _whenConnectedTcs.TrySetCanceled();
             return;
