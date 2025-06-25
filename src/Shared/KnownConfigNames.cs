@@ -31,10 +31,6 @@ internal static class KnownConfigNames
 
     public const string CliLocaleOverride = "ASPIRE_CLI_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
-    public const string ExtensionEndpoint = "ASPIRE_EXTENSION_ENDPOINT";
-    public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
-    public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
-    public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
 
     public static class Legacy
     {

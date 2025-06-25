@@ -35,9 +35,9 @@ class VSCOutputChannelWriter implements IOutputChannelWriter {
 
 export const vscOutputChannelWriter: IOutputChannelWriter = new VSCOutputChannelWriter();
 
-export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
+export function isWorkspaceOpen(): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
-    if (!isOpen && showErrorMessage) {
+    if (!isOpen) {
         vscode.window.showErrorMessage(noWorkspaceOpen);
     }
 
