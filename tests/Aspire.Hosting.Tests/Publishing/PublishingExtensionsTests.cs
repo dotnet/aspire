@@ -36,7 +36,7 @@ public class PublishingExtensionsTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => step.CreateTaskAsync("Initial status", CancellationToken.None));
-        Assert.Equal("No progress reporter is available for this step.", exception.Message);
+        Assert.Equal("Cannot create task: Reporter is not set.", exception.Message);
     }
 
     [Fact]
