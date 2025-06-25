@@ -163,7 +163,6 @@ internal sealed class RunCommand : BaseCommand
             }
             grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
-
             _ansiConsole.Write(grid);
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
