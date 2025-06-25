@@ -23,23 +23,52 @@ const { src, poster = 'npt:0:4' } = Astro.props;
                 ".asciinema-player-container",
             );
 
-            containers.forEach((container) => {
-                const src = container.getAttribute("data-src");
-                const poster = container.getAttribute("data-poster");
+            function createPlayers() {
+                containers.forEach((container) => {
+                    const src = container.getAttribute("data-src");
+                    const poster = container.getAttribute("data-poster");
 
-                if (src && container instanceof HTMLElement) {
-                    create(src, container, {
-                        autoplay: false,
-                        loop: true,
-                        poster: poster || undefined,
-                        fit: "none",
-                        preload: true,
-                        terminalFontSize: '1.2rem',
-                        rows: 15,
-                        terminalFontFamily: 'var(--__sl-font-mono)'
-                    });
-                }
+                    if (src && container instanceof HTMLElement) {
+                        // Clear existing player if any
+                        container.innerHTML = '';
+                        
+                        // Get the current theme from the html data-theme attribute
+                        const htmlElement = document.documentElement;
+                        const currentTheme = htmlElement.getAttribute('data-theme');
+                        const theme = currentTheme === 'light' ? 'nord' : 'asciinema';
+
+                        create(src, container, {
+                            autoplay: false,
+                            loop: true,
+                            poster: poster || undefined,
+                            fit: "none",
+                            preload: true,
+                            terminalFontSize: '1.2rem',
+                            rows: 15,
+                            terminalFontFamily: 'var(--__sl-font-mono)',
+                            theme: theme
+                        });
+                    }
+                });
+            }
+
+            createPlayers();
+
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && 
+                        mutation.attributeName === 'data-theme' && 
+                        mutation.target === document.documentElement) {
+                        createPlayers();
+                    }
+                });
             });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+
         } catch (error) {
             console.error("Failed to load asciinema player:", error);
         }
