@@ -142,6 +142,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
+        
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -167,6 +169,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
+        
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
                .WithProperties(e => e.BuildContainerImages = shouldBuildImages);
@@ -253,6 +257,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp()
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
             builder.AddDockerComposeEnvironment("docker-compose");
             var param = builder.AddParameter("param1");
             builder.AddContainer("app", "busybox").WithEnvironment("param1", param);
@@ -282,6 +288,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         void PublishApp(params string[] paramNames)
         {
             var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+            builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
             builder.AddDockerComposeEnvironment("docker-compose");
 
             var parmeters = paramNames.Select(name => builder.AddParameter(name).Resource).ToArray();
@@ -476,6 +484,12 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         public bool BuildImageCalled { get; private set; }
 
         public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        {
+            BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;

@@ -216,12 +216,12 @@ class TestCliRpcClient implements ICliRpcClient {
 		return Promise.resolve('1.0.0');
 	}
 
-	validatePromptInputString(promptText: string, input: string, language: string): Promise<ValidationResult | null> {
+	validatePromptInputString(input: string): Promise<ValidationResult | null> {
 		if (input === "valid") {
-			return Promise.resolve({ message: `Valid input: ${input} (${language})`, successful: true });
+			return Promise.resolve({ message: `Valid input: ${input}`, successful: true });
 		}
 		else if (input === "invalid") {
-			return Promise.resolve({ message: `Invalid input: ${input} (${language})`, successful: false });
+			return Promise.resolve({ message: `Invalid input: ${input}`, successful: false });
 		}
 		else {
 			return Promise.resolve(null);
