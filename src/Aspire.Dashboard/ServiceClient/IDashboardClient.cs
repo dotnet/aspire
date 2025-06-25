@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model;
 
@@ -38,6 +39,10 @@ public interface IDashboardClient : IAsyncDisposable
     /// using cancellation during enumeration.
     /// </remarks>
     Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
+
+    IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken);
+
+    Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a stream of console log messages for the specified resource.

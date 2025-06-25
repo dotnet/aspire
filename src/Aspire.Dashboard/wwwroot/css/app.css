@@ -64,6 +64,10 @@ fluent-toolbar::part(end) {
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
+    --messagebar-success-background-color: #f1faf1;
+    --messagebar-success-border-color: #9fd89f;
+    --messagebar-error-background-color: #FDF3F4;
+    --messagebar-error-border-color: #f1bbbc;
     --messagebar-warning-background-color: #FDF6F3;
     --messagebar-warning-border-color: #f4bfab;
     --messagebar-info-background-color: #f5f5f5;
@@ -99,6 +103,10 @@ fluent-toolbar::part(end) {
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
     --kbd-background-color: var(--fill-color);
+    --messagebar-success-background-color: #052505;
+    --messagebar-success-border-color: #107C10;
+    --messagebar-error-background-color: #3F1011;
+    --messagebar-error-border-color: #D13438;
     --messagebar-warning-background-color: #411200;
     --messagebar-warning-border-color: #DA3B01;
     --messagebar-info-background-color: #141414;
@@ -223,6 +231,16 @@ h1 {
     padding: calc(var(--design-unit) * 4px);
     padding-top: calc(var(--design-unit) * 2px);
     padding-bottom: 0 !important;
+}
+
+.fluent-messagebar.intent-success {
+    background-color: var(--messagebar-success-background-color) !important;
+    border: 1px solid var(--messagebar-success-border-color) !important;
+}
+
+.fluent-messagebar.intent-error {
+    background-color: var(--messagebar-error-background-color) !important;
+    border: 1px solid var(--messagebar-error-border-color) !important;
 }
 
 .fluent-messagebar.intent-warning {

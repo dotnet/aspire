@@ -7,7 +7,7 @@ param principalType string
 
 param principalId string
 
-resource postgres2_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource postgres2_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: postgres2_kv_outputs_name
 }
 

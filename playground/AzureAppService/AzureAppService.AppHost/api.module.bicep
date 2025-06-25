@@ -26,7 +26,7 @@ param api_identity_outputs_id string
 
 param api_identity_outputs_clientid string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
@@ -37,7 +37,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
   parent: webapp
 }
 
-resource webapp 'Microsoft.Web/sites@2024-04-01' = {
+resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {

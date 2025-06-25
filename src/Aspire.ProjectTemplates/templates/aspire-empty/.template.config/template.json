@@ -90,12 +90,28 @@
       "description": "The version of .NET Aspire to use.",
       "displayName": ".NET Aspire version",
       "datatype": "choice",
+      "isEnabled": "Framework != net10.0",
       "choices": [
+        {
+          "choice": "9.4",
+          "displayName": "9.4",
+          "description": "Chooses .NET Aspire 9.4"
+        },
         {
           "choice": "9.3",
           "displayName": "9.3",
           "description": "Chooses .NET Aspire 9.3"
-        },
+        }
+      ],
+      "defaultValue": "9.4"
+    },
+    "AspireVersionNet10": {
+      "type": "parameter",
+      "description": "The version of .NET Aspire to use.",
+      "displayName": ".NET Aspire version",
+      "datatype": "choice",
+      "isEnabled": "Framework == net10.0",
+      "choices": [
         {
           "choice": "9.4",
           "displayName": "9.4",

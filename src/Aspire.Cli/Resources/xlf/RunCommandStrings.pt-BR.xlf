@@ -4,67 +4,67 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
-        <target state="new">Run an Aspire app host in development mode.</target>
+        <target state="translated">Execute um host de aplicativo Aspire no modo de desenvolvimento.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Pontos de Extremidade</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
-        <target state="new">The health of the resource, eg Healthy</target>
+        <target state="translated">A integridade do recurso, por exemplo, Íntegro</target>
         <note />
       </trans-unit>
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
-        <target state="new">IsCompatibleAppHost is null</target>
+        <target state="translated">IsCompatibleAppHost is null</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="new">Press [bold]Ctrl+C[/] to stop the app host and exit.</target>
+        <target state="translated">Pressione [bold]Ctrl+C[/] para interromper o host de aplicativo e sair.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">O caminho para o arquivo de projeto do host de aplicativo Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="new">The project could not be run. For more information run with --debug switch.</target>
+        <target state="translated">Não foi possível executar o projeto. Para obter mais informações, execute com a opção --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
-        <target state="new">Starting Aspire app host...</target>
+        <target state="translated">Iniciando o host de aplicativo Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting Aspire dashboard...</source>
-        <target state="new">Starting Aspire dashboard...</target>
+        <target state="translated">Iniciando o painel do Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Estado</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Tipo</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
-        <target state="new">Start project resources in watch mode.</target>
+        <target state="translated">Inicie os recursos do projeto no modo de inspeção.</target>
         <note />
       </trans-unit>
     </body>
