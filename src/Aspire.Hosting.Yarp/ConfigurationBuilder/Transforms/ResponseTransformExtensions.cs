@@ -15,7 +15,7 @@ public static class ResponseTransformExtensions
     /// </summary>
     public static YarpRoute WithTransformCopyResponseHeaders(this YarpRoute route, bool copy = true)
     {
-        route.Configure(r => r.WithTransformCopyResponseHeaders(true));
+        route.Configure(r => r.WithTransformCopyResponseHeaders(copy));
         return route;
     }
 
@@ -24,7 +24,7 @@ public static class ResponseTransformExtensions
     /// </summary>
     public static YarpRoute WithTransformCopyResponseTrailers(this YarpRoute route, bool copy = true)
     {
-        route.Configure(r => r.WithTransformCopyResponseTrailers(true));
+        route.Configure(r => r.WithTransformCopyResponseTrailers(copy));
         return route;
     }
 

@@ -59,7 +59,7 @@ public static class YarpConfigurationBuilderExtensions
     }
 
     /// <summary>
-    /// Add a new new catch all route to YARP that will target the cluster in parameter.
+    /// Add a new catch all route to YARP that will target the cluster in parameter.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="endpoint">The target endpoint for this route.</param>
