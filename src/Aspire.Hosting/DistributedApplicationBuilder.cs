@@ -20,6 +20,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -230,7 +231,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
-        _innerBuilder.Services.AddHostedService<VersionChecker>();
+        _innerBuilder.Services.AddHostedService<VersionCheckService>();
+        _innerBuilder.Services.AddSingleton<IVersionFetcher, VersionFetcher>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
