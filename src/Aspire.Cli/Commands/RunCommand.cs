@@ -157,12 +157,11 @@ internal sealed class RunCommand : BaseCommand
             grid.AddColumn();
 
             grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
-
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
                 grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
+            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
             _ansiConsole.Write(grid);
 
