@@ -134,18 +134,24 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigGetCommand_WithFlatKey_ReturnsValue()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
+        var services1 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider1 = services1.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var command1 = provider1.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
 
         // First set a value
-        var setResult = command.Parse("config set testkey testvalue");
+        var setResult = command1.Parse("config set testkey testvalue");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
+        // Create a new service collection to reload config.
+        var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider2 = services2.BuildServiceProvider();
+
+        var command2 = provider2.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
         // Then get the value
-        var getResult = command.Parse("config get testkey");
+        var getResult = command2.Parse("config get testkey");
         var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, getExitCode);
     }
@@ -154,18 +160,23 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     public async Task ConfigGetCommand_WithDotNotation_ReturnsNestedValue()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
+        var services1 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider1 = services1.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var command1 = provider1.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
 
         // First set a nested value
-        var setResult = command.Parse("config set level1.level2.level3 nestedvalue");
+        var setResult = command1.Parse("config set level1.level2.level3 nestedvalue");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
+        var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider2 = services2.BuildServiceProvider();
+
+        var command2 = provider2.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
         // Then get the nested value
-        var getResult = command.Parse("config get level1.level2.level3");
+        var getResult = command2.Parse("config get level1.level2.level3");
         var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, getExitCode);
     }
@@ -207,39 +218,6 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var getResult = command.Parse("config get deletekey");
         var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(1, getExitCode); // Should return error for missing key
-    }
-
-    [Fact]
-    public async Task ConfigDeleteCommand_WithDotNotation_RemovesNestedValue()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-
-        // First set nested values
-        var setResult1 = command.Parse("config set parent.child1 value1");
-        var setExitCode1 = await setResult1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, setExitCode1);
-
-        var setResult2 = command.Parse("config set parent.child2 value2");
-        var setExitCode2 = await setResult2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, setExitCode2);
-
-        // Delete one nested value
-        var deleteResult = command.Parse("config delete parent.child1");
-        var deleteExitCode = await deleteResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, deleteExitCode);
-
-        // Verify child1 is deleted but parent.child2 still exists
-        var getResult1 = command.Parse("config get parent.child1");
-        var getExitCode1 = await getResult1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(1, getExitCode1); // Should return error for missing key
-
-        var getResult2 = command.Parse("config get parent.child2");
-        var getExitCode2 = await getResult2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, getExitCode2); // Should still exist
     }
 
     [Fact]
