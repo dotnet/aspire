@@ -193,7 +193,7 @@ internal sealed class RunCommand : BaseCommand
             await pendingLogCapture;
             return await pendingRun;
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex.CancellationToken == CancellationToken.None)
         {
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
