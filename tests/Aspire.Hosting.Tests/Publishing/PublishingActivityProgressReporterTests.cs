@@ -180,7 +180,8 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
         // Simulate step removal by creating a task with invalid step ID
-        task = new PublishingTask(task.Id, "non-existent-step", "Initial status");
+        var dummyStep = await reporter.CreateStepAsync("Dummy Step", CancellationToken.None);
+        task = new PublishingTask(task.Id, "non-existent-step", "Initial status", dummyStep);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(

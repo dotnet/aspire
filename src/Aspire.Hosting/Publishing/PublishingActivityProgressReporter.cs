@@ -146,14 +146,16 @@ public sealed class PublishingStep : IAsyncDisposable
         // Use the current completion state (which handles aggregation if not explicitly set)
         var finalState = CompletionState;
         
-        // Complete this step with the final state
-        var completionText = finalState switch
-        {
-            CompletionState.Completed => $"{Title} completed successfully",
-            CompletionState.CompletedWithWarning => $"{Title} completed with warnings",
-            CompletionState.CompletedWithError => $"{Title} completed with errors",
-            _ => $"{Title} completed"
-        };
+        // Only set completion text if it has not been explicitly set
+        var completionText = string.IsNullOrEmpty(CompletionText) 
+            ? finalState switch
+            {
+                CompletionState.Completed => $"{Title} completed successfully",
+                CompletionState.CompletedWithWarning => $"{Title} completed with warnings",
+                CompletionState.CompletedWithError => $"{Title} completed with errors",
+                _ => $"{Title} completed"
+            }
+            : CompletionText;
 
         await Reporter.CompleteStepAsync(this, completionText, finalState, CancellationToken.None).ConfigureAwait(false);
     }
@@ -165,11 +167,12 @@ public sealed class PublishingStep : IAsyncDisposable
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class PublishingTask : IAsyncDisposable
 {
-    internal PublishingTask(string id, string stepId, string statusText)
+    internal PublishingTask(string id, string stepId, string statusText, PublishingStep parentStep)
     {
         Id = id;
         StepId = stepId;
         StatusText = statusText;
+        ParentStep = parentStep;
     }
     /// <summary>
     /// Unique Id of the task.
@@ -184,7 +187,7 @@ public sealed class PublishingTask : IAsyncDisposable
     /// <summary>
     /// Reference to the parent step this task belongs to.
     /// </summary>
-    public PublishingStep? ParentStep { get; internal set; }
+    public PublishingStep ParentStep { get; internal set; }
 
     /// <summary>
     /// The current status text of the task.
@@ -374,9 +377,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = step.Id,
                 StatusText = step.Title,
                 CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
                 StepId = null
             }
         };
@@ -400,9 +400,8 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             }
         }
 
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
         task.Reporter = this;
-        task.ParentStep = parentStep;
         
         // Add task to parent step
         parentStep.AddTask(task);
@@ -415,9 +414,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = task.Id,
                 StatusText = statusText,
                 CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
                 StepId = step.Id
             }
         };
@@ -442,9 +438,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = step.Id,
                 StatusText = completionText,
                 CompletionState = ToBackchannelCompletionState(completionState),
-                IsComplete = true,
-                IsError = completionState == CompletionState.CompletedWithError,
-                IsWarning = completionState == CompletionState.CompletedWithWarning,
                 StepId = null
             }
         };
@@ -480,9 +473,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = task.Id,
                 StatusText = statusText,
                 CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
                 StepId = task.StepId
             }
         };
@@ -521,9 +511,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Id = task.Id,
                 StatusText = task.StatusText,
                 CompletionState = ToBackchannelCompletionState(completionState),
-                IsComplete = true,
-                IsError = completionState == CompletionState.CompletedWithError,
-                IsWarning = completionState == CompletionState.CompletedWithWarning,
                 StepId = task.StepId,
                 CompletionMessage = completionMessage
             }
@@ -541,10 +528,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             {
                 Id = PublishingActivityTypes.PublishComplete,
                 StatusText = success ? "Publishing completed successfully" : "Publishing completed with errors",
-                CompletionState = ToBackchannelCompletionState(success ? CompletionState.Completed : CompletionState.CompletedWithError),
-                IsComplete = true,
-                IsError = !success,
-                IsWarning = false
+                CompletionState = ToBackchannelCompletionState(success ? CompletionState.Completed : CompletionState.CompletedWithError)
             }
         };
 

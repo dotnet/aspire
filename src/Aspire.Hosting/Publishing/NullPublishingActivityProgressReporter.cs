@@ -31,9 +31,8 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     /// <inheritdoc/>
     public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step);
         task.Reporter = this;
-        task.ParentStep = step;
         step.AddTask(task);
         return Task.FromResult(task);
     }
