@@ -212,7 +212,7 @@ public static class AzureAIFoundryExtensions
         resourceBuilder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new FoundryHealthCheck(sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new FoundryLocalHealthCheck(sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default
@@ -363,7 +363,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new ModelHealthCheck(modelAlias: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelAlias: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default

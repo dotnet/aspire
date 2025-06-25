@@ -10,9 +10,6 @@ builder.AddServiceDefaults();
 builder.AddAzureChatCompletionsClient("chat")
        .AddChatClient();
 
-//builder.AddOpenAIClient("chat")
-//       .AddChatClient();
-
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
