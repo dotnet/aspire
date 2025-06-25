@@ -329,5 +329,11 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         {
             return Task.FromResult(new Dictionary<string, string>());
         }
+
+        public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
+        {
+            // For test purposes, just return null (not found)
+            return Task.FromResult<string?>(null);
+        }
     }
 }

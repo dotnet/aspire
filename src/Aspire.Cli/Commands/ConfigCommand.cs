@@ -28,7 +28,7 @@ internal sealed class ConfigCommand : BaseCommand
         _configurationService = configurationService;
         _interactionService = interactionService;
 
-        var getCommand = new GetCommand(_configuration, _interactionService);
+        var getCommand = new GetCommand(configurationService, _interactionService);
         var setCommand = new SetCommand(configurationService, _interactionService);
         var listCommand = new ListCommand(configurationService, _interactionService);
         var deleteCommand = new DeleteCommand(configurationService, _interactionService);
@@ -47,13 +47,13 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class GetCommand : BaseCommand
     {
-        private readonly IConfiguration _configuration;
+        private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public GetCommand(IConfiguration configuration, IInteractionService interactionService)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService)
             : base("get", ConfigCommandStrings.GetCommand_Description)
         {
-            _configuration = configuration;
+            _configurationService = configurationService;
             _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
@@ -63,26 +63,26 @@ internal sealed class ConfigCommand : BaseCommand
             Arguments.Add(keyArgument);
         }
 
-        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var key = parseResult.GetValue<string>("key");
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return Task.FromResult(1);
+                return 1;
             }
 
-            var value = _configuration[key];
+            var value = await _configurationService.GetConfigurationAsync(key, cancellationToken);
 
             if (value is not null)
             {
                 Console.WriteLine(value);
-                return Task.FromResult(0);
+                return 0;
             }
             else
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                return Task.FromResult(1);
+                return 1;
             }
         }
     }
