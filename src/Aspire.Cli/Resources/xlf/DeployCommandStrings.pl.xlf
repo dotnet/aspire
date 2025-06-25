@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Wdrożenie nie powiodło się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">

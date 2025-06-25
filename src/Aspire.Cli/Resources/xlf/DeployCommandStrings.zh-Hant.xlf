@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">部署失敗，結束代碼為 {0}。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
