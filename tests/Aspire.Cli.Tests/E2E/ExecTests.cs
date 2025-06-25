@@ -49,22 +49,31 @@ public class ExecTests(ITestOutputHelper output)
         //];
 
         // ADD MIGRATION
-        string[] args = [
-            "--operation", "exec", // EXEC type
-            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--resource", "mywebapp1", // target resource
-            "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
-            "--add-postgres", // arbitraty flags for apphost
-        ];
-
-        // APPLY MIGRATION UPDATE ON DB
         //string[] args = [
         //    "--operation", "exec", // EXEC type
         //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
         //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"dotnet ef database update\"", // command packed into string
+        //    "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
         //    "--add-postgres", // arbitraty flags for apphost
         //];
+
+        // PRINT ENV
+        //string[] args = [
+        //    "--operation", "exec", // EXEC type
+        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+        //    "--resource", "mywebapp1", // target resource
+        //    "--command", "\"Get-ChildItem Env:\"", // command packed into string
+        //    "--add-postgres", // arbitraty flags for apphost
+        //];
+
+        // APPLY MIGRATION UPDATE ON DB
+        string[] args = [
+            "--operation", "exec", // EXEC type
+            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
+            "--resource", "mywebapp1", // target resource
+            "--command", "\"dotnet ef database update\"", // command packed into string
+            "--add-postgres", // arbitraty flags for apphost
+        ];
 
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
         {
@@ -75,7 +84,7 @@ public class ExecTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        //// dependant of the target resource
+        // dependant of the target resource
         var pgsql = builder
             .AddPostgres(
                 name: "postgres1",
@@ -94,8 +103,7 @@ public class ExecTests(ITestOutputHelper output)
             .WithReference(pgsqlDb)
             .WaitFor(pgsqlDb);
 
-        //builder.AddExecutable("apphostexec", "ping", workingDirectory: @"D:\code\", args: "google.com")
-        //    .WaitFor(pgsqlDb);
+        builder.AddExecutable("dotnetef", "dotnet", workingDirectory: @"D:\code\aspire\tests\TestingAppHost1\TestingAppHost1.MyWebApp", args: "ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp");
 
         await using var app = await builder.BuildAsync();
 
@@ -111,10 +119,12 @@ public class ExecTests(ITestOutputHelper output)
         await startTask;
 
         AssertMigrationsCreated(myWebAppProjectMetadata);
-        DeleteMigrations(myWebAppProjectMetadata);
+        // DeleteMigrations(myWebAppProjectMetadata);
     }
 
+#pragma warning disable IDE0051 // Remove unused private members
     private static void DeleteMigrations(IProjectMetadata projectMetadata)
+#pragma warning restore IDE0051 // Remove unused private members
     {
         var projectDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
         if (!Directory.Exists(projectDirectory))

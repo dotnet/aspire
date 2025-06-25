@@ -12,7 +12,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddDbContextPool<MyAppDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("mainDb");
+    var connectionString = builder.Configuration.GetConnectionString("postgresDb");
     options.UseNpgsql(connectionString);
 });
 

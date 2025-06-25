@@ -54,7 +54,7 @@ internal class ExecResourceManager : BackgroundService
         _ = Task.Run(async () =>
         {
             await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
-            _resourceLoggerService.Complete(_execResource.Name);
+            await Task.Delay(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
             _resourceLoggerService.Complete(_dcpExecResourceName);
         }, cancellationToken);
         
@@ -106,24 +106,24 @@ internal class ExecResourceManager : BackgroundService
         var execResourceName = "exec" + shortId;
 
         var executable = new ExecutableResource(execResourceName, exe, projectDir);
-        if (!string.IsNullOrEmpty(args))
+        if (args is not null && args.Length > 0)
         {
             executable.Annotations.Add(new CommandLineArgsCallbackAnnotation((c) =>
             {
-                c.Args.Add(args);
+                c.Args.AddRange(args);
                 return Task.CompletedTask;
             }));
         }
 
-        // take all annotations from the project resource and apply to the executable
-        //foreach (var annotation in project.Annotations
-        //    // .Where(x => x is EnvironmentAnnotation or ResourceRelationshipAnnotation)
-        //    .Where(x => x is not DcpInstancesAnnotation) // cant take dcp instances because it breaks DCP startup
-        //)
-        //{
-        //    // todo understand if a deep-copy is required
-        //    executable.Annotations.Add(annotation);
-        //}
+        // take all applicable annotations from target resource to replicate the environment
+        foreach (var annotation in project.Annotations
+            .Where(x => x is EnvironmentAnnotation
+                or EnvironmentCallbackAnnotation
+                or ResourceRelationshipAnnotation)
+        )
+        {
+            executable.Annotations.Add(annotation);
+        }
 
         var targetDcpInstanceAnnotation = project.Annotations.OfType<DcpInstancesAnnotation>().FirstOrDefault();
         if (targetDcpInstanceAnnotation?.Instances.FirstOrDefault() is not null)
@@ -141,10 +141,13 @@ internal class ExecResourceManager : BackgroundService
 
         return executable;
 
-        (string exe, string args) ParseCommand()
+        (string exe, string[] args) ParseCommand()
         {
             var split = _execOptions.Command.Split(' ', count: 2);
-            return (split[0].Trim('"'), split[1].Trim('"'));
+            var (exe, argsString) = (split[0].Trim('"'), split[1].Trim('"'));
+            var args = argsString.Split(" ");
+
+            return (exe, args);
         }
     }
 }
