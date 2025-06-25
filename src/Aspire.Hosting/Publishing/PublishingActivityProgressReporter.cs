@@ -95,7 +95,7 @@ public sealed class PublishingStep : IAsyncDisposable
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingTask : IDisposable
+public sealed class PublishingTask : IAsyncDisposable
 {
     internal PublishingTask(string id, string stepId, string statusText)
     {
@@ -136,12 +136,11 @@ public sealed class PublishingTask : IDisposable
     /// <summary>
     /// Completes the task automatically when disposed if not already completed.
     /// </summary>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (Reporter is not null && CompletionState == TaskCompletionState.InProgress)
         {
-            // Use synchronous completion since IDisposable doesn't support async
-            Reporter.CompleteTaskAsync(this, TaskCompletionState.Completed, null, CancellationToken.None).Wait();
+            await Reporter.CompleteTaskAsync(this, TaskCompletionState.Completed, null, CancellationToken.None).ConfigureAwait(false);
         }
     }
 }

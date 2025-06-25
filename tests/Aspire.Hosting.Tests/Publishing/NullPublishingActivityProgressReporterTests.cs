@@ -57,7 +57,7 @@ public class NullPublishingActivityProgressReporterTests
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act - Use disposal pattern with null reporter
-        using var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
+        await using var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Assert - Task should be completed after disposal
         Assert.Equal(TaskCompletionState.Completed, task.CompletionState);

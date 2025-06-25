@@ -476,7 +476,7 @@ public class PublishingActivityProgressReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act - Dispose the task without explicit completion
-        task.Dispose();
+        await task.DisposeAsync();
 
         // Assert - Verify task is completed
         Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
@@ -509,7 +509,7 @@ public class PublishingActivityProgressReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act - Dispose the task after explicit completion
-        task.Dispose();
+        await task.DisposeAsync();
 
         // Assert - No additional activity should be emitted
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -532,7 +532,7 @@ public class PublishingActivityProgressReporterTests
         await reporter.CompleteStepAsync(step, "Step completed", isError: false, CancellationToken.None);
 
         // Act - Dispose the task after parent step is removed - should not throw
-        task.Dispose();
+        await task.DisposeAsync();
 
         // Assert - Task should still be in progress since parent step was removed
         Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
@@ -547,8 +547,8 @@ public class PublishingActivityProgressReporterTests
         // Act - Use the disposal pattern as shown in the issue example
         await using var step = await reporter.CreateStepAsync("Publish Artifacts", CancellationToken.None);
 
-        using var pkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
-        using var pushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
+        await using var pkgTask = await reporter.CreateTaskAsync(step, "Zipping assets", CancellationToken.None);
+        await using var pushTask = await reporter.CreateTaskAsync(step, "Pushing to registry", CancellationToken.None);
 
         // Simulate some work
         await reporter.UpdateTaskAsync(pkgTask, "50% complete", CancellationToken.None);
