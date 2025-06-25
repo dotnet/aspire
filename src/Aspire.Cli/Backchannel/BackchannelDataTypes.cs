@@ -107,19 +107,16 @@ internal sealed class PublishingActivityData
     /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    [Obsolete("Use CompletionState instead. This property will be removed in a future version.")]
     public bool IsComplete { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    [Obsolete("Use CompletionState instead. This property will be removed in a future version.")]
     public bool IsError { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity completed with warnings.
     /// </summary>
-    [Obsolete("Use CompletionState instead. This property will be removed in a future version.")]
     public bool IsWarning { get; init; }
 
     /// <summary>
