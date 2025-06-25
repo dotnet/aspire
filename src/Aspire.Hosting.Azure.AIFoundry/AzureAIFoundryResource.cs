@@ -32,7 +32,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint={AIFoundryApiEndpoint}");
+        ReferenceExpression.Create($"Endpoint={AIFoundryApiEndpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
 
     /// <summary>
     /// Gets the list of deployment resources associated with the Azure AI Foundry.

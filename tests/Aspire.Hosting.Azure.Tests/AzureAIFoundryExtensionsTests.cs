@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.AI.Foundry.Local;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -57,14 +59,16 @@ public class AzureAIFoundryExtensionsTests
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         // The connection string should reference the aiFoundryApiEndpoint output
-        var expected = "Endpoint=" + resource.AIFoundryApiEndpoint.ValueExpression;
+        var expected = $"Endpoint={resource.AIFoundryApiEndpoint.ValueExpression};EndpointAIInference={resource.AIFoundryApiEndpoint.ValueExpression}models";
         var connectionString = resource.ConnectionStringExpression.ValueExpression;
         Assert.Equal(expected, connectionString);
     }
 
     [Fact]
-    public void RunAsFoundryLocal_SetsIsLocal()
+    public async Task RunAsFoundryLocal_SetsIsLocal()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
         using var builder = TestDistributedApplicationBuilder.Create();
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
@@ -72,8 +76,17 @@ public class AzureAIFoundryExtensionsTests
         Assert.Null(resource.ApiKey);
 
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
+
         var localResource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.True(localResource.IsLocal);
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var foundryManger = app.Services.GetRequiredService<FoundryLocalManager>();
+
+        Assert.Equal(foundryManger.ApiKey, localResource.ApiKey);
     }
 
     [Fact]

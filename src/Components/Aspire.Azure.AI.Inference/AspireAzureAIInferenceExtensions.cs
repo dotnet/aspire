@@ -22,11 +22,6 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureAIInferenceExtensions
 {
-    // Defines the scopes used for authorization when connecting to Azure AI Inference services.
-    // Use the default one (ml.azure.com) and add the ones required for Azure Foundry AI.
-    // If users want to use a different scope, they can specify it with a custom.
-    private static readonly string[] s_authorizationScopes = ["ml.azure.com/.default", "https://cognitiveservices.azure.com/.default", "https://cognitiveservices.azure.us/.default"];
-
     private const string DefaultConfigSectionName = "Aspire:Azure:AI:Inference";
 
     /// <summary>
@@ -121,13 +116,6 @@ public static class AspireAzureAIInferenceExtensions
                 {
                     var endpoint = settings.Endpoint;
 
-                    if (endpoint.Host.EndsWith(".ai.azure.com", StringComparison.OrdinalIgnoreCase) &&
-                        !endpoint.AbsolutePath.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Azure AI Foundry endpoints require the path to end with "/models" when used with the Azure AI Inference SDK.
-                        endpoint = new Uri(endpoint, "/models");
-                    }
-
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
@@ -138,11 +126,14 @@ public static class AspireAzureAIInferenceExtensions
                     {
                         var credential = settings.TokenCredential ?? new DefaultAzureCredential();
 
-                        // Define additional scopes for Azure AI Foundry.
+                        // Defines the scopes used for authorization when connecting to Azure AI Inference services.
+                        // Use the default one (ml.azure.com) and add the public one required for Azure Foundry AI.
+                        // If users want to use a different scope they can configure the option using the client builder.
                         // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50872
 
-                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, s_authorizationScopes);
+                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, ["https://cognitiveservices.azure.com/.default"]);
                         options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry);
+
                         return new ChatCompletionsClient(endpoint, credential, options);
                     }
                 }
