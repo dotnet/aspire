@@ -196,7 +196,7 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => (Stream: line.Stream.RemoveSpectreFormatting(), Line: line.Line.RemoveSpectreFormatting())), _cancellationToken)));
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => new DisplayLineState(line.Stream.RemoveSpectreFormatting(), line.Line.RemoveSpectreFormatting())), _cancellationToken)));
         _consoleInteractionService.DisplayLines(lines);
     }
 

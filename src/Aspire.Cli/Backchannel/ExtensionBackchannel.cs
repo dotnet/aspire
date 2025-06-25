@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -27,7 +28,7 @@ internal interface IExtensionBackchannel
     Task DisplayEmptyLineAsync(CancellationToken cancellationToken);
     Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken);
     Task DisplayCancellationMessageAsync(CancellationToken cancellationToken);
-    Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken);
+    Task DisplayLinesAsync(IEnumerable<DisplayLineState> lines, CancellationToken cancellationToken);
     Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
     Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
@@ -184,7 +185,18 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     ClientCertificates = [GetCertificate()],
                 }, cancellationToken);
 
-                var rpc = JsonRpc.Attach(stream, target);
+                [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
+                    Justification = "AddLocalRpcTarget closes on generic types if there are events on the target, which is explicitly disabled.")]
+                static void AddLocalRpcTarget(JsonRpc rpc, ExtensionRpcTarget target)
+                {
+                    // We don't want to notify the client of events because we are not using the
+                    // event system in the extension.
+                    rpc.AddLocalRpcTarget(target, new JsonRpcTargetOptions() { NotifyClientOfEvents = false });
+                }
+
+                var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
+                AddLocalRpcTarget(rpc, target);
+                rpc.StartListening();
 
                 var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
                     "getCapabilities",
@@ -200,8 +212,6 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     );
                 }
 
-                // start listening for incoming rpc calls in the background
-                _ = Task.Run(rpc.StartListening, cancellationToken);
                 _rpcTaskCompletionSource.SetResult(rpc);
             }
             catch (RemoteMethodNotFoundException ex)
@@ -333,7 +343,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
     }
 
-    public async Task DisplayLinesAsync(IEnumerable<(string Stream, string Line)> lines, CancellationToken cancellationToken)
+    public async Task DisplayLinesAsync(IEnumerable<DisplayLineState> lines, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -359,9 +369,15 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         logger.LogDebug("Sent dashboard URLs for display");
 
+        var dashboardUrlsState = new DashboardUrlsState()
+        {
+            BaseUrlWithLoginToken = dashboardUrls.BaseUrlWithLoginToken,
+            CodespacesUrlWithLoginToken = dashboardUrls.CodespacesUrlWithLoginToken
+        };
+
         await rpc.InvokeWithCancellationAsync(
             "displayDashboardUrls",
-            [_token, dashboardUrls],
+            [_token, dashboardUrlsState],
             cancellationToken);
     }
 
@@ -396,9 +412,10 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         logger.LogDebug("Prompting for selection with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
 
+        var choicesArray = choicesByFormattedValue.Keys.ToArray();
         var result = await rpc.InvokeWithCancellationAsync<string?>(
             "promptForSelection",
-            [_token, promptText, choicesByFormattedValue.Keys],
+            [_token, promptText, choicesArray],
             cancellationToken);
 
         return result is null
