@@ -2,20 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREINTERACTION001
 
+using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
 public class PublishingActivityProgressReporterTests
 {
+    private readonly InteractionService _interactionService = CreateInteractionService();
+
     [Fact]
     public async Task CreateStepAsync_CreatesStepAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var title = "Test Step";
 
         // Act
@@ -45,7 +51,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CreateTaskAsync_CreatesTaskAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var statusText = "Test Task";
 
         // Create parent step first
@@ -82,7 +88,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CreateTaskAsync_ThrowsWhenStepDoesNotExist()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var nonExistentStep = new PublishingStep("non-existent-step", "Non-existent Step");
 
         // Act & Assert
@@ -96,7 +102,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CreateTaskAsync_ThrowsWhenStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         // Create and complete step
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -115,7 +121,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompleteStepAsync_CompletesStepWithCorrectErrorStateAndEmitsActivity(bool isError, string completionText, bool expectedIsError)
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
@@ -144,7 +150,7 @@ public class PublishingActivityProgressReporterTests
     public async Task UpdateTaskAsync_UpdatesTaskAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var newStatusText = "Updated status";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -174,7 +180,7 @@ public class PublishingActivityProgressReporterTests
     public async Task UpdateTaskAsync_ThrowsWhenParentStepDoesNotExist()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
@@ -194,7 +200,7 @@ public class PublishingActivityProgressReporterTests
     public async Task UpdateTaskAsync_ThrowsWhenParentStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
@@ -215,7 +221,7 @@ public class PublishingActivityProgressReporterTests
         CompletionState completionState, bool expectedIsError, bool expectedIsWarning)
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var completionMessage = "Task completed";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -248,7 +254,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompleteTaskAsync_ThrowsWhenParentStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
@@ -268,7 +274,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompletePublishAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         // Act
         await reporter.CompletePublishAsync(completionState, CancellationToken.None);
@@ -288,8 +294,8 @@ public class PublishingActivityProgressReporterTests
     public async Task CompletePublishAsync_AggregatesStateFromSteps()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
-        
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+
         // Create multiple steps with different completion states
         var step1 = await reporter.CreateStepAsync("Step 1", CancellationToken.None);
         var step2 = await reporter.CreateStepAsync("Step 2", CancellationToken.None);
@@ -326,7 +332,7 @@ public class PublishingActivityProgressReporterTests
     public async Task ConcurrentOperations_AreThreadSafe()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         const int stepCount = 10;
         const int tasksPerStep = 5;
 
@@ -349,7 +355,7 @@ public class PublishingActivityProgressReporterTests
                         }
                         catch (InvalidOperationException ex) when (ex.Message.Contains("because the step is already complete"))
                         {
-                            // This is expected in concurrent scenarios where the step might be completed 
+                            // This is expected in concurrent scenarios where the step might be completed
                             // while tasks are still being created/updated
                             return null;
                         }
@@ -397,7 +403,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompleteTaskAsync_WithNullCompletionMessage_SetsEmptyString()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
@@ -413,7 +419,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompleteTaskAsync_ThrowsWhenTaskAlreadyCompleted()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
@@ -432,7 +438,7 @@ public class PublishingActivityProgressReporterTests
     public async Task CompleteStepAsync_KeepsStepInDictionaryForAggregation()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
@@ -458,5 +464,80 @@ public class PublishingActivityProgressReporterTests
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => reporter.CreateTaskAsync(step, "New Task", CancellationToken.None));
         Assert.Contains($"Cannot create task for step '{step.Id}' because the step is already complete.", createException.Message);
+    }
+
+    [Fact]
+    public async Task HandleInteractionUpdateAsync_BlocksInteractionWhenStepsInProgress()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Clear previous activities
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        while (activityReader.TryRead(out _)) { }
+
+        // Assert that requesting an input while steps are in progress results in an error
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder"));
+        Assert.Equal("Cannot prompt interaction while steps are in progress.", exception.Message);
+
+        // Clean up
+        await reporter.CompleteStepAsync(step, "Completed", CompletionState.Completed, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task CompleteInteractionAsync_ProcessesUserResponsesCorrectly()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+
+        // Start a prompt interaction
+        var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
+
+        // Get the interaction ID from the activity that was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var activity = await WaitForActivityAsync(activityReader);
+        var promptId = activity.Data.Id;
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("text-label", input.Label);
+        Assert.Equal("Text", input.InputType);
+
+        var responses = new string[] { "user-response" };
+
+        // Act
+        await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None);
+
+        // The prompt task should complete with the user's response
+        var promptResult = await promptTask;
+        Assert.False(promptResult.Canceled);
+        Assert.Equal("user-response", promptResult.Data?.Value);
+    }
+
+    private static async Task<PublishingActivity> WaitForActivityAsync(ChannelReader<PublishingActivity> reader, TimeSpan? timeout = null)
+    {
+        timeout ??= TimeSpan.FromSeconds(5);
+        var startTime = DateTime.UtcNow;
+
+        while (DateTime.UtcNow - startTime < timeout)
+        {
+            if (reader.TryRead(out var activity))
+            {
+                return activity;
+            }
+            await Task.Delay(10);
+        }
+
+        throw new TimeoutException($"No activity was received within {timeout.Value.TotalSeconds} seconds");
+    }
+
+    internal static InteractionService CreateInteractionService()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<InteractionService>();
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<InteractionService>>();
+        return new InteractionService(logger, new DistributedApplicationOptions(), provider);
     }
 }

@@ -199,4 +199,9 @@ internal class AppHostRpcTarget(
             });
     }
 #pragma warning restore CA1822
+
+    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken = default)
+    {
+        await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+    }
 }
