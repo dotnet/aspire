@@ -67,6 +67,16 @@
         <target state="translated">구성 설정 오류: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionIncompatibleWithCli">
+        <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
+        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionTokenMustBeSet">
+        <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
+        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
+      </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
         <target state="translated">stdout에서 템플릿 버전을 구문 분석하지 못했습니다.</target>
@@ -87,6 +97,11 @@
         <target state="translated">제공한 로캘 {0}이(가) 잘못되어 사용되지 않습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidSocketPath">
+        <source>The provided extension socket path needs two valid parts.</source>
+        <target state="new">The provided extension socket path needs two valid parts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">여러 프로젝트 파일을 찾았습니다.</target>
@@ -95,6 +110,11 @@
       <trans-unit id="NoProjectFileFound">
         <source>No project file found.</source>
         <target state="translated">프로젝트 파일을 찾을 수 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSelectionMade">
+        <source>Input was required for prompt '{0}' but not provided.</source>
+        <target state="new">Input was required for prompt '{0}' but not provided.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
