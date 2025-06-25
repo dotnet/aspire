@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.AI.Inference" />
-    <AspireProjectOrPackageReference Include="Aspire.OpenAI" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
