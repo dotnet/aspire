@@ -24,7 +24,7 @@ public class PublishingExtensionsTests
         Assert.NotNull(task);
         Assert.Equal(step.Id, task.StepId);
         Assert.Equal("Initial status", task.StatusText);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class PublishingExtensionsTests
         Assert.NotNull(task);
         Assert.Equal(step.Id, task.StepId);
         Assert.Equal("Initial status", task.StatusText);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(step, result);
-        Assert.True(step.IsComplete);
+        Assert.True(step.CompletionState != CompletionState.InProgress);
         Assert.Equal("Success message", step.CompletionText);
     }
 
@@ -101,7 +101,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(CompletionState.Completed, task.CompletionState);
         Assert.Equal("Success message", task.CompletionMessage);
     }
 
@@ -118,7 +118,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.CompletedWithWarning, task.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithWarning, task.CompletionState);
         Assert.Equal("Warning message", task.CompletionMessage);
     }
 
@@ -131,11 +131,10 @@ public class PublishingExtensionsTests
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
         // Act
-        var result = await task.FailAsync("Error message", CancellationToken.None);
+        await task.FailAsync("Error message", CancellationToken.None);
 
         // Assert
-        Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.CompletedWithError, task.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithError, task.CompletionState);
         Assert.Equal("Error message", task.CompletionMessage);
     }
 }
