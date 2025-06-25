@@ -4,7 +4,7 @@ name: Outerloop Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */2 * * *' # Every 2 hours
+    - cron: '0 */6 * * *' # Every 2 hours
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -90,7 +90,7 @@ jobs:
             ${{ github.workspace }}/artifacts/TestResults/*/*.trx
           # Longer retention time to allow scanning runs for quarantined test results
           retention-days: 30
-          
+
       - name: Generate test results summary
         if: always()
         env:
@@ -114,21 +114,21 @@ jobs:
         with:
           pattern: '*-logs'
           path: ${{ github.workspace }}/artifacts/all-logs
-          
+
       # Organize the .trx files by OS
       - name: Organize test results by OS
         shell: pwsh
         run: |
           $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
-          
+
           # Create OS-specific directories
           New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/ubuntu-latest" -Force
           New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/windows-latest" -Force
           New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/macos-latest" -Force
-          
+
           # Find all .trx files
           $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
-          
+
           # Copy each .trx file to the appropriate OS folder
           foreach ($trxFile in $trxFiles) {
               if ($trxFile.FullName -match "ubuntu") {
