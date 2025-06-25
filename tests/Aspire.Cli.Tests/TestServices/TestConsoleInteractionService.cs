@@ -78,8 +78,4 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayEmptyLine()
     {
     }
-
-    public void OpenNewProject(string projectPath)
-    {
-    }
 }

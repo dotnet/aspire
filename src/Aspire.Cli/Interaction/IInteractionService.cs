@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
@@ -22,5 +23,4 @@ internal interface IInteractionService
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
-    void OpenNewProject(string projectPath);
 }

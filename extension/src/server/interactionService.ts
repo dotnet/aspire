@@ -20,6 +20,7 @@ export interface IInteractionService {
     displayLines: (lines: ConsoleLine[]) => void;
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
+    logMessage: (logLevel: string, message: string) => void;
 }
 
 type DashboardUrls = {
@@ -206,6 +207,11 @@ export class InteractionService implements IInteractionService {
         const uri = vscode.Uri.file(projectPath);
         vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
     }
+
+    logMessage(logLevel: string, message: string) {
+        // logLevel currently unused, but can be extended in the future
+        this._outputChannelWriter.appendLine(formatText(message));
+    }
 }
 
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
@@ -223,4 +229,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
+    connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
 }
