@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 namespace Aspire.Hosting.Backchannel;
 
 /// <summary>
@@ -82,19 +84,9 @@ internal sealed class PublishingActivityData
     public required string StatusText { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the publishing activity is complete.
+    /// Gets the completion state of the publishing activity.
     /// </summary>
-    public bool IsComplete { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the publishing activity encountered an error.
-    /// </summary>
-    public bool IsError { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the publishing activity completed with warnings.
-    /// </summary>
-    public bool IsWarning { get; init; }
+    public required Publishing.CompletionState CompletionState { get; init; }
 
     /// <summary>
     /// Gets the identifier of the step this task belongs to (only applicable for tasks).

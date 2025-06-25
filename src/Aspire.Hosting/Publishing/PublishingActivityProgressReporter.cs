@@ -38,6 +38,30 @@ public enum CompletionState
 }
 
 /// <summary>
+/// Extension methods for CompletionState.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public static class CompletionStateExtensions
+{
+    /// <summary>
+    /// Gets the worst (highest priority) completion state from a collection of states.
+    /// Priority: InProgress &lt; Completed &lt; CompletedWithWarning &lt; CompletedWithError
+    /// </summary>
+    public static CompletionState GetWorstState(IEnumerable<CompletionState> states)
+    {
+        return states.Max();
+    }
+
+    /// <summary>
+    /// Gets the worst (highest priority) completion state from two states.
+    /// </summary>
+    public static CompletionState GetWorstState(CompletionState state1, CompletionState state2)
+    {
+        return (CompletionState)Math.Max((int)state1, (int)state2);
+    }
+}
+
+/// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -86,6 +110,23 @@ public sealed class PublishingStep : IAsyncDisposable
     internal IPublishingActivityProgressReporter? Reporter { get; set; }
 
     /// <summary>
+    /// Gets the aggregated completion state based on all child tasks.
+    /// </summary>
+    public CompletionState GetAggregatedCompletionState()
+    {
+        if (Tasks.Count == 0)
+        {
+            return CompletionState;
+        }
+
+        var taskStates = Tasks.Select(t => t.CompletionState);
+        var worstTaskState = CompletionStateExtensions.GetWorstState(taskStates);
+        
+        // Return the worst of the step's own state and the aggregated task states
+        return CompletionStateExtensions.GetWorstState(CompletionState, worstTaskState);
+    }
+
+    /// <summary>
     /// Marks the step for warning completion if a child task has an error.
     /// </summary>
     internal void MarkForWarningCompletion()
@@ -113,9 +154,16 @@ public sealed class PublishingStep : IAsyncDisposable
                 }
             }
 
-            // Complete the step with the current completion state or default to Completed
-            var completionState = CompletionState == CompletionState.InProgress ? CompletionState.Completed : CompletionState;
-            await Reporter.CompleteStepAsync(this, Title, completionState, CancellationToken.None).ConfigureAwait(false);
+            // Get the aggregated completion state for the step
+            var finalCompletionState = GetAggregatedCompletionState();
+            
+            // If still in progress after aggregation, default to Completed
+            if (finalCompletionState == CompletionState.InProgress)
+            {
+                finalCompletionState = CompletionState.Completed;
+            }
+
+            await Reporter.CompleteStepAsync(this, Title, finalCompletionState, CancellationToken.None).ConfigureAwait(false);
         }
     }
 }
@@ -238,15 +286,32 @@ public interface IPublishingActivityProgressReporter
     /// <summary>
     /// Signals that the entire publishing process has completed.
     /// </summary>
-    /// <param name="success">Whether the publishing process completed successfully.</param>
+    /// <param name="completionState">The completion state of the publishing process.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task CompletePublishAsync(bool success, CancellationToken cancellationToken);
+    Task CompletePublishAsync(CompletionState completionState, CancellationToken cancellationToken);
 }
 
 internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
+    private readonly ConcurrentDictionary<string, PublishingStep> _completedSteps = new();
+
+    /// <summary>
+    /// Gets the aggregated completion state from all steps (completed and in-progress).
+    /// </summary>
+    public CompletionState GetAggregatedCompletionState()
+    {
+        var allSteps = _steps.Values.Concat(_completedSteps.Values);
+        
+        if (!allSteps.Any())
+        {
+            return CompletionState.Completed;
+        }
+
+        var stepStates = allSteps.Select(s => s.GetAggregatedCompletionState());
+        return CompletionStateExtensions.GetWorstState(stepStates);
+    }
 
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
@@ -261,9 +326,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             {
                 Id = step.Id,
                 StatusText = step.Title,
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
+                CompletionState = CompletionState.InProgress,
                 StepId = null
             }
         };
@@ -304,9 +367,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             {
                 Id = task.Id,
                 StatusText = statusText,
-                IsComplete = false,
-                IsError = false,
-                IsWarning = false,
+                CompletionState = CompletionState.InProgress,
                 StepId = step.Id
             }
         };
@@ -333,6 +394,9 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
         if (shouldSendUpdate)
         {
+            // Use the aggregated completion state from tasks
+            var finalCompletionState = step.GetAggregatedCompletionState();
+            
             var state = new PublishingActivity
             {
                 Type = PublishingActivityTypes.Step,
@@ -340,17 +404,18 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 {
                     Id = step.Id,
                     StatusText = completionText,
-                    IsComplete = true,
-                    IsError = completionState == CompletionState.CompletedWithError,
-                    IsWarning = completionState == CompletionState.CompletedWithWarning,
+                    CompletionState = finalCompletionState,
                     StepId = null
                 }
             };
 
             await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
 
-            // Remove the completed step to prevent further updates.
-            _steps.TryRemove(step.Id, out _);
+            // Move the completed step to completed dictionary and remove from active
+            if (_steps.TryRemove(step.Id, out _))
+            {
+                _completedSteps.TryAdd(step.Id, step);
+            }
         }
     }
 
@@ -384,9 +449,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 {
                     Id = task.Id,
                     StatusText = statusText,
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionState.InProgress,
                     StepId = task.StepId
                 }
             };
@@ -432,9 +495,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 {
                     Id = task.Id,
                     StatusText = task.StatusText,
-                    IsComplete = true,
-                    IsError = completionState == CompletionState.CompletedWithError,
-                    IsWarning = completionState == CompletionState.CompletedWithWarning,
+                    CompletionState = completionState,
                     StepId = task.StepId,
                     CompletionMessage = completionMessage
                 }
@@ -458,18 +519,24 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         }
     }
 
-    public async Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    public async Task CompletePublishAsync(CompletionState completionState, CancellationToken cancellationToken)
     {
+        var statusText = completionState switch
+        {
+            CompletionState.Completed => "Publishing completed successfully",
+            CompletionState.CompletedWithWarning => "Publishing completed with warnings",
+            CompletionState.CompletedWithError => "Publishing completed with errors",
+            _ => "Publishing completed"
+        };
+
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
             Data = new PublishingActivityData
             {
                 Id = PublishingActivityTypes.PublishComplete,
-                StatusText = success ? "Publishing completed successfully" : "Publishing completed with errors",
-                IsComplete = true,
-                IsError = !success,
-                IsWarning = false
+                StatusText = statusText,
+                CompletionState = completionState
             }
         };
 

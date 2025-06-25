@@ -75,7 +75,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    public Task CompletePublishAsync(CompletionState completionState, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }

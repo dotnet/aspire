@@ -91,8 +91,12 @@ internal class Publisher(
 
         if (taskInfo.State == CompletionState.CompletedWithError)
         {
-            // TOOD: This should be automatically handled (if any steps fail)
-            await progressReporter.CompletePublishAsync(false, cancellationToken)
+            // Use the aggregated completion state from the progress reporter
+            var aggregatedState = progressReporter is PublishingActivityProgressReporter reporter 
+                ? reporter.GetAggregatedCompletionState() 
+                : CompletionState.CompletedWithError;
+            
+            await progressReporter.CompletePublishAsync(aggregatedState, cancellationToken)
                 .ConfigureAwait(false);
 
             // If there are no resources to publish or deploy, we can exit early

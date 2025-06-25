@@ -35,9 +35,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
         Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal(title, activity.Data.StatusText);
-        Assert.False(activity.Data.IsComplete);
-        Assert.False(activity.Data.IsError);
-        Assert.False(activity.Data.IsWarning);
+        Assert.Equal(CompletionState.InProgress, activity.Data.CompletionState);
         Assert.Null(activity.Data.StepId);
     }
 
@@ -73,9 +71,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(task.Id, activity.Data.Id);
         Assert.Equal(statusText, activity.Data.StatusText);
         Assert.Equal(step.Id, activity.Data.StepId);
-        Assert.False(activity.Data.IsComplete);
-        Assert.False(activity.Data.IsError);
-        Assert.False(activity.Data.IsWarning);
+        Assert.Equal(CompletionState.InProgress, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -135,9 +131,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
         Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal(completionText, activity.Data.StatusText);
-        Assert.True(activity.Data.IsComplete);
-        Assert.Equal(expectedIsError, activity.Data.IsError);
-        Assert.False(activity.Data.IsWarning);
+        Assert.Equal(expectedIsError ? CompletionState.CompletedWithError : CompletionState.Completed, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -167,7 +161,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(task.Id, activity.Data.Id);
         Assert.Equal(newStatusText, activity.Data.StatusText);
         Assert.Equal(step.Id, activity.Data.StepId);
-        Assert.False(activity.Data.IsComplete);
+        Assert.Equal(CompletionState.InProgress, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -207,11 +201,11 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Theory]
-    [InlineData(CompletionState.Completed, false, false)]
-    [InlineData(CompletionState.CompletedWithWarning, false, true)]
-    [InlineData(CompletionState.CompletedWithError, true, false)]
+    [InlineData(CompletionState.Completed)]
+    [InlineData(CompletionState.CompletedWithWarning)]
+    [InlineData(CompletionState.CompletedWithError)]
     public async Task CompleteTaskAsync_CompletesTaskWithCorrectStateAndEmitsActivity(
-        CompletionState completionState, bool expectedIsError, bool expectedIsWarning)
+        CompletionState completionState)
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -237,9 +231,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
         Assert.Equal(task.Id, activity.Data.Id);
         Assert.Equal(step.Id, activity.Data.StepId);
-        Assert.True(activity.Data.IsComplete);
-        Assert.Equal(expectedIsError, activity.Data.IsError);
-        Assert.Equal(expectedIsWarning, activity.Data.IsWarning);
+        Assert.Equal(completionState, activity.Data.CompletionState);
         Assert.Equal(completionMessage, activity.Data.CompletionMessage);
     }
 
@@ -261,15 +253,16 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Theory]
-    [InlineData(true, "Publishing completed successfully", false)]
-    [InlineData(false, "Publishing completed with errors", true)]
-    public async Task CompletePublishAsync_EmitsCorrectActivity(bool success, string expectedStatusText, bool expectedIsError)
+    [InlineData(CompletionState.Completed, "Publishing completed successfully")]
+    [InlineData(CompletionState.CompletedWithWarning, "Publishing completed with warnings")]
+    [InlineData(CompletionState.CompletedWithError, "Publishing completed with errors")]
+    public async Task CompletePublishAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText)
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
 
         // Act
-        await reporter.CompletePublishAsync(success, CancellationToken.None);
+        await reporter.CompletePublishAsync(completionState, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -277,9 +270,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
         Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Data.Id);
         Assert.Equal(expectedStatusText, activity.Data.StatusText);
-        Assert.True(activity.Data.IsComplete);
-        Assert.Equal(expectedIsError, activity.Data.IsError);
-        Assert.False(activity.Data.IsWarning);
+        Assert.Equal(completionState, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -431,8 +422,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
         Assert.Equal(step.Id, activity.Data.Id);
         Assert.Equal("Test Step", activity.Data.StatusText);
-        Assert.True(activity.Data.IsComplete);
-        Assert.False(activity.Data.IsError);
+        Assert.Equal(CompletionState.Completed, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -485,9 +475,7 @@ public class PublishingActivityProgressReporterTests
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Task, activity.Type);
         Assert.Equal(task.Id, activity.Data.Id);
-        Assert.True(activity.Data.IsComplete);
-        Assert.False(activity.Data.IsError);
-        Assert.False(activity.Data.IsWarning);
+        Assert.Equal(CompletionState.Completed, activity.Data.CompletionState);
     }
 
     [Fact]
@@ -681,5 +669,118 @@ public class PublishingActivityProgressReporterTests
         // Assert - Task should have reference to parent step
         Assert.Equal(step, task.ParentStep);
         Assert.Equal(step.Id, task.StepId);
+    }
+
+    [Fact]
+    public async Task GetAggregatedCompletionState_ReturnsWorstStateFromTasks()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
+        var task3 = await reporter.CreateTaskAsync(step, "Task 3", CancellationToken.None);
+
+        // Complete tasks with different states
+        await reporter.CompleteTaskAsync(task1, CompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task2, CompletionState.CompletedWithWarning, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task3, CompletionState.CompletedWithError, null, CancellationToken.None);
+
+        // Act
+        var aggregatedState = step.GetAggregatedCompletionState();
+
+        // Assert - Should return the worst state (CompletedWithError)
+        Assert.Equal(CompletionState.CompletedWithError, aggregatedState);
+    }
+
+    [Fact]
+    public async Task GetAggregatedCompletionState_WithNoTasks_ReturnsStepState()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Act
+        var aggregatedState = step.GetAggregatedCompletionState();
+
+        // Assert - Should return the step's own state since there are no tasks
+        Assert.Equal(CompletionState.InProgress, aggregatedState);
+    }
+
+    [Fact]
+    public async Task StepDisposal_UsesAggregatedStateFromTasks()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        _ = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None); // task2 will be completed during disposal
+
+        // Complete one task with warning
+        await reporter.CompleteTaskAsync(task1, CompletionState.CompletedWithWarning, null, CancellationToken.None);
+        // Leave task2 incomplete - it will be completed during disposal
+
+        // Clear activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act - Dispose the step
+        await step.DisposeAsync();
+
+        // Assert - Step should be completed with warning state (worst of warning + completed)
+        Assert.Equal(CompletionState.CompletedWithWarning, step.CompletionState);
+
+        // Verify the step completion activity reflects the aggregated state
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        // Skip task completion activity for task2
+        activityReader.TryRead(out _);
+        // Get step completion activity
+        Assert.True(activityReader.TryRead(out var stepActivity));
+        Assert.Equal(PublishingActivityTypes.Step, stepActivity.Type);
+        Assert.Equal(CompletionState.CompletedWithWarning, stepActivity.Data.CompletionState);
+    }
+
+    [Fact]
+    public async Task PublishingActivityProgressReporter_GetAggregatedCompletionState_ReturnsWorstStateFromAllSteps()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter();
+        var step1 = await reporter.CreateStepAsync("Step 1", CancellationToken.None);
+        var step2 = await reporter.CreateStepAsync("Step 2", CancellationToken.None);
+        var step3 = await reporter.CreateStepAsync("Step 3", CancellationToken.None);
+
+        var task1 = await reporter.CreateTaskAsync(step1, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step2, "Task 2", CancellationToken.None);
+        var task3 = await reporter.CreateTaskAsync(step3, "Task 3", CancellationToken.None);
+
+        // Complete tasks with different states
+        await reporter.CompleteTaskAsync(task1, CompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task2, CompletionState.CompletedWithWarning, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task3, CompletionState.CompletedWithError, null, CancellationToken.None);
+
+        // Complete steps
+        await reporter.CompleteStepAsync(step1, "Step 1 completed", CompletionState.Completed, CancellationToken.None);
+        await reporter.CompleteStepAsync(step2, "Step 2 completed", CompletionState.CompletedWithWarning, CancellationToken.None);
+        await reporter.CompleteStepAsync(step3, "Step 3 completed", CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Act
+        var aggregatedState = reporter.GetAggregatedCompletionState();
+
+        // Assert - Should return the worst state (CompletedWithError)
+        Assert.Equal(CompletionState.CompletedWithError, aggregatedState);
+    }
+
+    [Fact]
+    public void CompletionStateExtensions_GetWorstState_ReturnsMaxValue()
+    {
+        // Test that the extension methods work correctly
+        var states = new[] { CompletionState.InProgress, CompletionState.Completed, CompletionState.CompletedWithWarning, CompletionState.CompletedWithError };
+        var worstState = CompletionStateExtensions.GetWorstState(states);
+        Assert.Equal(CompletionState.CompletedWithError, worstState);
+
+        // Test two-parameter version
+        var worst = CompletionStateExtensions.GetWorstState(CompletionState.Completed, CompletionState.CompletedWithWarning);
+        Assert.Equal(CompletionState.CompletedWithWarning, worst);
     }
 }

@@ -43,7 +43,12 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                     new AfterPublishEvent(serviceProvider, model), stoppingToken
                     ).ConfigureAwait(false);
 
-                await activityReporter.CompletePublishAsync(true, stoppingToken).ConfigureAwait(false);
+                // Use the aggregated completion state from the progress reporter
+                var aggregatedState = activityReporter is PublishingActivityProgressReporter reporter 
+                    ? reporter.GetAggregatedCompletionState() 
+                    : CompletionState.Completed;
+                
+                await activityReporter.CompletePublishAsync(aggregatedState, stoppingToken).ConfigureAwait(false);
 
                 // If we are running in publish mode and a backchannel is being
                 // used then we don't want to stop the app host. Instead the
@@ -58,7 +63,13 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to publish the distributed application.");
-                await activityReporter.CompletePublishAsync(false, stoppingToken).ConfigureAwait(false);
+                
+                // Use the aggregated completion state from the progress reporter, defaulting to error
+                var aggregatedState = activityReporter is PublishingActivityProgressReporter reporter 
+                    ? CompletionStateExtensions.GetWorstState(reporter.GetAggregatedCompletionState(), CompletionState.CompletedWithError)
+                    : CompletionState.CompletedWithError;
+                    
+                await activityReporter.CompletePublishAsync(aggregatedState, stoppingToken).ConfigureAwait(false);
 
                 if (!backchannelService.IsBackchannelExpected)
                 {
