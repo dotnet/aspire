@@ -102,7 +102,7 @@ internal sealed class PublishingActivityData
     /// <summary>
     /// Gets the completion state of the publishing activity.
     /// </summary>
-    public string CompletionState { get; init; } = "InProgress";
+    public string CompletionState { get; init; } = CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
@@ -147,4 +147,15 @@ internal class BackchannelLogEntry
     public required string Message { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required string CategoryName { get; set; }
+}
+
+/// <summary>
+/// Constants for completion state values.
+/// </summary>
+internal static class CompletionStates
+{
+    public const string InProgress = "InProgress";
+    public const string Completed = "Completed";
+    public const string CompletedWithWarning = "CompletedWithWarning";
+    public const string CompletedWithError = "CompletedWithError";
 }

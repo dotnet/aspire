@@ -26,13 +26,13 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly AspireCliTelemetry _telemetry;
 
     private static bool IsCompletionStateComplete(string completionState) => 
-        completionState is "Completed" or "CompletedWithWarning" or "CompletedWithError";
+        completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
 
     private static bool IsCompletionStateError(string completionState) => 
-        completionState == "CompletedWithError";
+        completionState == CompletionStates.CompletedWithError;
 
     private static bool IsCompletionStateWarning(string completionState) => 
-        completionState == "CompletedWithWarning";
+        completionState == CompletionStates.CompletedWithWarning;
 
     protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
         : base(name, description)
@@ -291,14 +291,12 @@ internal abstract class PublishCommandBase : BaseCommand
                 // display the completion status associated with the the step.
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    stepInfo.IsComplete = true;
                     stepInfo.CompletionState = activity.Data.CompletionState;
-                    stepInfo.IsError = IsCompletionStateError(activity.Data.CompletionState);
                     stepInfo.CompletionText = activity.Data.StatusText;
 
                     await currentStepProgress.DisposeAsync();
 
-                    if (stepInfo.IsError)
+                    if (IsCompletionStateError(stepInfo.CompletionState))
                     {
                         AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
                     }
@@ -358,14 +356,11 @@ internal abstract class PublishCommandBase : BaseCommand
 
                 task.StatusText = activity.Data.StatusText;
                 task.CompletionState = activity.Data.CompletionState;
-                task.IsComplete = IsCompletionStateComplete(activity.Data.CompletionState);
-                task.IsError = IsCompletionStateError(activity.Data.CompletionState);
-                task.IsWarning = IsCompletionStateWarning(activity.Data.CompletionState);
 
-                if (task.IsError || task.IsWarning || task.IsComplete)
+                if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    var prefix = task.IsError ? "[red]✗ FAILED:[/]" :
-                        task.IsWarning ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
+                    var prefix = IsCompletionStateError(task.CompletionState) ? "[red]✗ FAILED:[/]" :
+                        IsCompletionStateWarning(task.CompletionState) ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
                     task.ProgressTask.Description = $"  {prefix} {task.StatusText.EscapeMarkup()}";
                     task.CompletionMessage = activity.Data.CompletionMessage;
 
@@ -447,9 +442,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public DateTime StartTime { get; set; }
-        public string CompletionState { get; set; } = "InProgress";
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string CompletionText { get; set; } = string.Empty;
         public Dictionary<string, TaskInfo> Tasks { get; } = [];
     }
@@ -459,10 +452,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Id { get; set; } = string.Empty;
         public string StatusText { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
-        public string CompletionState { get; set; } = "InProgress";
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
-        public bool IsWarning { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string? CompletionMessage { get; set; }
         public ProgressTask? ProgressTask { get; set; }
     }

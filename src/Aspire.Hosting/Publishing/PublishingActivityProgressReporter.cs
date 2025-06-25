@@ -356,11 +356,11 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 #pragma warning disable CS0618 // Type or member is obsolete - we're maintaining backward compatibility
     private static string ToBackchannelCompletionState(CompletionState state) => state switch
     {
-        CompletionState.InProgress => "InProgress",
-        CompletionState.Completed => "Completed",
-        CompletionState.CompletedWithWarning => "CompletedWithWarning",
-        CompletionState.CompletedWithError => "CompletedWithError",
-        _ => "InProgress"
+        CompletionState.InProgress => CompletionStates.InProgress,
+        CompletionState.Completed => CompletionStates.Completed,
+        CompletionState.CompletedWithWarning => CompletionStates.CompletedWithWarning,
+        CompletionState.CompletedWithError => CompletionStates.CompletedWithError,
+        _ => CompletionStates.InProgress
     };
 
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
