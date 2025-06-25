@@ -65,20 +65,20 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public async Task RunAsFoundryLocal_SetsIsLocal()
+    public async Task RunAsFoundryLocal_SetsIsEmulator()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
-        Assert.False(resource.IsLocal);
+        Assert.False(resource.IsEmulator);
         Assert.Null(resource.ApiKey);
 
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
 
         var localResource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
-        Assert.True(localResource.IsLocal);
+        Assert.True(localResource.IsEmulator);
 
         using var app = builder.Build();
 
@@ -97,11 +97,11 @@ public class AzureAIFoundryExtensionsTests
         resourceBuilder.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
         var localResource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
-        Assert.True(localResource.IsLocal);
+        Assert.True(localResource.IsEmulator);
 
         foreach (var deployment in localResource.Deployments)
         {
-            Assert.True(deployment.Parent.IsLocal);
+            Assert.True(deployment.Parent.IsEmulator);
         }
     }
 

@@ -40,9 +40,9 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public IReadOnlyList<AzureAIFoundryDeploymentResource> Deployments => _deployments;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the resource is local.
+    /// Gets or sets a value indicating whether the resource is running in the Foundry Local.
     /// </summary>
-    public bool IsLocal { get; set; }
+    public bool IsEmulator { get; set; }
 
     /// <summary>
     /// The API key to access Foundry Local
@@ -76,7 +76,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     }
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        IsLocal
+        IsEmulator
             ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
             : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }

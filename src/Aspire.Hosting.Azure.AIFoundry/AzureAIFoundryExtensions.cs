@@ -140,7 +140,7 @@ public static class AzureAIFoundryExtensions
         var deploymentBuilder = builder.ApplicationBuilder
             .CreateResourceBuilder(deployment);
 
-        if (builder.Resource.IsLocal)
+        if (builder.Resource.IsEmulator)
         {
             deploymentBuilder.AsLocalDeployment(deployment);
         }
@@ -181,7 +181,7 @@ public static class AzureAIFoundryExtensions
         var azureResource = builder.Resource;
         builder.ApplicationBuilder.Resources.Remove(azureResource);
 
-        var resource = new AzureAIFoundryResource(azureResource.Name, c => { }) { IsLocal = true };
+        var resource = new AzureAIFoundryResource(azureResource.Name, c => { }) { IsEmulator = true };
         builder.ApplicationBuilder.AddResource(resource);
 
         foreach (var deployment in azureResource.Deployments)
