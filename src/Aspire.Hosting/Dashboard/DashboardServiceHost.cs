@@ -27,16 +27,6 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DashboardServiceHost : IHostedService
 {
     /// <summary>
-    /// Name of the environment variable that optionally specifies the resource service URL,
-    /// which the dashboard will connect to over gRPC.
-    /// </summary>
-    /// <remarks>
-    /// This is primarily intended for cases outside of the local developer environment.
-    /// If no value exists for this variable, a port is assigned dynamically.
-    /// </remarks>
-    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
-
-    /// <summary>
     /// Provides access to the URI at which the resource service endpoint is hosted.
     /// </summary>
     private readonly TaskCompletionSource<string> _resourceServiceUri = new();
@@ -49,6 +39,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
     public DashboardServiceHost(
         DistributedApplicationOptions options,
+        IOptions<DashboardOptions> dashboardOptions,
         DistributedApplicationModel applicationModel,
         IConfiguration configuration,
         DistributedApplicationExecutionContext executionContext,
@@ -137,7 +128,7 @@ internal sealed class DashboardServiceHost : IHostedService
         void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             // Inspect environment for the address to listen on.
-            var uri = configuration.GetUri(ResourceServiceUrlVariableName);
+            var _ = Uri.TryCreate(dashboardOptions.Value.ResourceServiceUrl, UriKind.Absolute, out var uri);
 
             string? scheme;
 
@@ -158,7 +149,7 @@ internal sealed class DashboardServiceHost : IHostedService
             }
             else
             {
-                throw new ArgumentException($"{ResourceServiceUrlVariableName} must contain a local loopback address.");
+                throw new ArgumentException($"{KnownConfigNames.ResourceServiceEndpointUrl} must contain a local loopback address.");
             }
 
             void ConfigureListen(ListenOptions options)

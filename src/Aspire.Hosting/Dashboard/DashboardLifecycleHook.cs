@@ -199,11 +199,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         var options = dashboardOptions.Value;
 
-        // Options should have been validated these should not be null
-
-        //Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
-        //Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
-
         var environment = options.AspNetCoreEnvironment;
         var browserToken = options.DashboardToken;
         var otlpApiKey = options.OtlpApiKey;
@@ -309,7 +304,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         if (!StringUtils.TryGetUriFromDelimitedString(options.DashboardUrl, ";", out var firstDashboardUrl))
         {
-            return;
+            // Fallback to default dashboard URL if the configured one is not valid.
+            // NOTE: Detecting if the default HTTPS URL is available is not straightforward here, as it requires running the same logic
+            //       that Kestrel does to determine if a developer HTTPS certificate is available. The dashboard will redirect to HTTPS
+            //       if HTTPS is available though so we can just use HTTP here.
+            firstDashboardUrl = new Uri("http://localhost:5000");
         }
 
         var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());

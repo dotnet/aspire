@@ -1,15 +1,5 @@
 {
   "profiles": {
-    "noconfig": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "dotnetRunMessages": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
-        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
-      }
-    },
     "https": {
       "commandName": "Project",
       "launchBrowser": true,
@@ -46,6 +36,16 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "aspire-defaults": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }
     }
   },

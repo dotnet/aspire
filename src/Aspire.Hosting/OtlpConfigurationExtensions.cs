@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -15,8 +17,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OtlpConfigurationExtensions
 {
-    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-
     /// <summary>
     /// Configures OpenTelemetry in projects using environment variables.
     /// </summary>
@@ -43,8 +43,9 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            var dashboardOtlpGrpcUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
-            var dashboardOtlpHttpUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
+            var dashboardOptions = context.ExecutionContext.ServiceProvider.GetRequiredService<IOptions<DashboardOptions>>().Value;
+            var dashboardOtlpGrpcUrl = dashboardOptions.OtlpGrpcEndpointUrl;
+            var dashboardOtlpHttpUrl = dashboardOptions.OtlpHttpEndpointUrl;
 
             // The dashboard can support OTLP/gRPC and OTLP/HTTP endpoints at the same time, but it can
             // only tell resources about one of the endpoints via environment variables.
@@ -59,8 +60,8 @@ public static class OtlpConfigurationExtensions
             }
             else
             {
-                // No endpoints provided to host. Use default value for URL.
-                SetOtelEndpointAndProtocol(context.EnvironmentVariables, DashboardOtlpUrlDefaultValue, "grpc");
+                // No endpoints provided to host, despite a default coming from DashboardOptions, throw
+                throw new DistributedApplicationException("Failed to configure dashboard resource because no OTLP endpoint URL was provided.");
             }
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
