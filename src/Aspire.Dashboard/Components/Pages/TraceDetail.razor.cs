@@ -69,7 +69,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         TelemetryContextProvider.Initialize(TelemetryContext);
 
         _gridColumns = [
-            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "6fr", MobileWidth: "6fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
         ];
