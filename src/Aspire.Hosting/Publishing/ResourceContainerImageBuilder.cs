@@ -70,7 +70,7 @@ internal sealed class ResourceContainerImageBuilder(
 
             await activityReporter.CompleteTaskAsync(
                 task,
-                TaskCompletionState.CompletedWithError,
+                CompletionState.CompletedWithError,
                 $"{ContainerRuntime.Name} is not running or is unhealthy.",
                 cancellationToken).ConfigureAwait(false);
 
@@ -80,7 +80,7 @@ internal sealed class ResourceContainerImageBuilder(
 
         await activityReporter.CompleteTaskAsync(
             task,
-            containerRuntimeHealthy ? TaskCompletionState.Completed : TaskCompletionState.CompletedWithError,
+            containerRuntimeHealthy ? CompletionState.Completed : CompletionState.CompletedWithError,
             $"{ContainerRuntime.Name} is healthy.",
             cancellationToken).ConfigureAwait(false);
 

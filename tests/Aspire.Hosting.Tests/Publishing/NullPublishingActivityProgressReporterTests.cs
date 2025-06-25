@@ -18,7 +18,7 @@ public class NullPublishingActivityProgressReporterTests
         await reporter.CompleteStepAsync(step, "step completed", default);
 
         Assert.NotNull(step);
-        Assert.True(step.IsComplete);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class NullPublishingActivityProgressReporterTests
         var reporter = NullPublishingActivityProgressReporter.Instance;
         var step = new PublishingStep("step-1", "step initial");
         var task = await reporter.CreateTaskAsync(step, "task initial", default);
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, "task completed", default);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, "task completed", default);
 
         Assert.NotNull(task);
         Assert.NotNull(task.Id);
@@ -45,13 +45,13 @@ public class NullPublishingActivityProgressReporterTests
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         
         // Verify initial state
-        Assert.False(step.IsComplete);
+        Assert.Equal(CompletionState.InProgress, step.CompletionState);
         
         // Manually dispose to test the disposal behavior
         await step.DisposeAsync();
         
         // Assert - Step should be completed after disposal
-        Assert.True(step.IsComplete);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
         Assert.Equal("Test Step", step.CompletionText);
     }
 
@@ -64,12 +64,12 @@ public class NullPublishingActivityProgressReporterTests
         
         // Create task and verify initial state
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
         
         // Manually dispose to test the disposal behavior
         await task.DisposeAsync();
 
         // Assert - Task should be completed after disposal
-        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(CompletionState.Completed, task.CompletionState);
     }
 }

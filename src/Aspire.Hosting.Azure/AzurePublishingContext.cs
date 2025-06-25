@@ -106,7 +106,7 @@ public sealed class AzurePublishingContext(
         await ProgressReporter.CompleteStepAsync(
             step,
             stepInfo.Message,
-            stepInfo.IsError,
+            stepInfo.IsError ? CompletionState.CompletedWithError : CompletionState.Completed,
             cancellationToken
         ).ConfigureAwait(false);
     }
@@ -268,8 +268,8 @@ public sealed class AzurePublishingContext(
 
         var (message, state) = computeEnvironments.Count switch
         {
-            0 => ("No azure compute environments found in the model.", TaskCompletionState.CompletedWithWarning),
-            _ => ($"Found {computeEnvironments.Count} compute environment(s) in the model.", TaskCompletionState.Completed)
+            0 => ("No azure compute environments found in the model.", CompletionState.CompletedWithWarning),
+            _ => ($"Found {computeEnvironments.Count} compute environment(s) in the model.", CompletionState.Completed)
         };
 
         // Report the completion of the compute environment task.

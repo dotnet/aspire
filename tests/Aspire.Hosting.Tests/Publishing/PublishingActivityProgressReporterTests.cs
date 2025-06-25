@@ -26,8 +26,7 @@ public class PublishingActivityProgressReporterTests
         Assert.NotNull(step.Id);
         Assert.NotEmpty(step.Id);
         Assert.Equal(title, step.Title);
-        Assert.False(step.IsComplete);
-        Assert.False(step.IsError);
+        Assert.Equal(CompletionState.InProgress, step.CompletionState);
         Assert.Equal(string.Empty, step.CompletionText);
 
         // Verify activity was emitted
@@ -64,7 +63,7 @@ public class PublishingActivityProgressReporterTests
         Assert.NotEmpty(task.Id);
         Assert.Equal(step.Id, task.StepId);
         Assert.Equal(statusText, task.StatusText);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
         Assert.Equal(string.Empty, task.CompletionMessage);
 
         // Verify activity was emitted
@@ -124,11 +123,10 @@ public class PublishingActivityProgressReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        await reporter.CompleteStepAsync(step, completionText, isError, CancellationToken.None);
+        await reporter.CompleteStepAsync(step, completionText, isError ? CompletionState.CompletedWithError : CompletionState.Completed, CancellationToken.None);
 
         // Assert
-        Assert.True(step.IsComplete);
-        Assert.Equal(expectedIsError, step.IsError);
+        Assert.Equal(expectedIsError ? CompletionState.CompletedWithError : CompletionState.Completed, step.CompletionState);
         Assert.Equal(completionText, step.CompletionText);
 
         // Verify activity was emitted
@@ -209,11 +207,11 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Theory]
-    [InlineData(TaskCompletionState.Completed, false, false)]
-    [InlineData(TaskCompletionState.CompletedWithWarning, false, true)]
-    [InlineData(TaskCompletionState.CompletedWithError, true, false)]
+    [InlineData(CompletionState.Completed, false, false)]
+    [InlineData(CompletionState.CompletedWithWarning, false, true)]
+    [InlineData(CompletionState.CompletedWithError, true, false)]
     public async Task CompleteTaskAsync_CompletesTaskWithCorrectStateAndEmitsActivity(
-        TaskCompletionState completionState, bool expectedIsError, bool expectedIsWarning)
+        CompletionState completionState, bool expectedIsError, bool expectedIsWarning)
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter();
@@ -256,10 +254,10 @@ public class PublishingActivityProgressReporterTests
         await reporter.CompleteStepAsync(step, "Completed", cancellationToken: CancellationToken.None);
 
         // Act - CompleteTaskAsync should be a no-op when parent step is complete
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
 
         // Assert - Task should still be in progress since complete was a no-op
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Theory]
@@ -304,7 +302,7 @@ public class PublishingActivityProgressReporterTests
                     {
                         var task = await reporter.CreateTaskAsync(step, $"Task {i}-{j}", CancellationToken.None);
                         await reporter.UpdateTaskAsync(task, $"Updated Task {i}-{j}", CancellationToken.None);
-                        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+                        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
                         return task;
                     });
 
@@ -321,12 +319,12 @@ public class PublishingActivityProgressReporterTests
 
         foreach (var result in results)
         {
-            Assert.True(result.Step.IsComplete);
+            Assert.NotEqual(CompletionState.InProgress, result.Step.CompletionState);
             Assert.Equal(tasksPerStep, result.Tasks.Length);
 
             foreach (var task in result.Tasks)
             {
-                Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+                Assert.Equal(CompletionState.Completed, task.CompletionState);
             }
         }
 
@@ -354,7 +352,7 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Act
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
 
         // Assert
         Assert.Equal(string.Empty, task.CompletionMessage);
@@ -370,13 +368,13 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Complete the task first time
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
 
         // Act - Try to complete the same task again - should be a no-op
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
 
         // Assert - Task should still be completed
-        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(CompletionState.Completed, task.CompletionState);
     }
 
     [Fact]
@@ -400,9 +398,9 @@ public class PublishingActivityProgressReporterTests
         Assert.NotEqual("New status", task.StatusText);
 
         // CompleteTaskAsync should be a no-op  
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.Completed, null, CancellationToken.None);
         // Task should still be InProgress since complete was a no-op
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
 
         // Creating new tasks for the completed step still fails (this is expected behavior)
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -424,7 +422,7 @@ public class PublishingActivityProgressReporterTests
         await step.DisposeAsync();
 
         // Assert - Verify step is completed
-        Assert.True(step.IsComplete);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
         Assert.Equal("Test Step", step.CompletionText);
 
         // Verify completion activity was emitted
@@ -445,7 +443,7 @@ public class PublishingActivityProgressReporterTests
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Complete the step explicitly first
-        await reporter.CompleteStepAsync(step, "Explicit completion", isError: false, CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Explicit completion", CompletionState.Completed, CancellationToken.None);
 
         // Clear activities
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -459,7 +457,7 @@ public class PublishingActivityProgressReporterTests
         Assert.False(activityReader.TryRead(out _));
 
         // Step should retain its explicit completion text
-        Assert.True(step.IsComplete);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
         Assert.Equal("Explicit completion", step.CompletionText);
     }
 
@@ -479,7 +477,7 @@ public class PublishingActivityProgressReporterTests
         await task.DisposeAsync();
 
         // Assert - Verify task is completed
-        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(CompletionState.Completed, task.CompletionState);
         Assert.Equal(string.Empty, task.CompletionMessage);
 
         // Verify completion activity was emitted
@@ -501,7 +499,7 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Complete the task explicitly first
-        await reporter.CompleteTaskAsync(task, TaskCompletionState.CompletedWithWarning, "Explicit completion", CancellationToken.None);
+        await reporter.CompleteTaskAsync(task, CompletionState.CompletedWithWarning, "Explicit completion", CancellationToken.None);
 
         // Clear activities
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -516,7 +514,7 @@ public class PublishingActivityProgressReporterTests
         Assert.False(activityReader.TryRead(out _));
 
         // Task should retain its explicit completion state
-        Assert.Equal(TaskCompletionState.CompletedWithWarning, task.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithWarning, task.CompletionState);
         Assert.Equal("Explicit completion", task.CompletionMessage);
     }
 
@@ -529,13 +527,13 @@ public class PublishingActivityProgressReporterTests
         var task = await reporter.CreateTaskAsync(step, "Test Task", CancellationToken.None);
 
         // Complete the step first, which removes it from the dictionary
-        await reporter.CompleteStepAsync(step, "Step completed", isError: false, CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Step completed", CompletionState.Completed, CancellationToken.None);
 
         // Act - Dispose the task after parent step is removed - should not throw
         await task.DisposeAsync();
 
         // Assert - Task should still be in progress since parent step was removed
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Fact]
@@ -554,9 +552,9 @@ public class PublishingActivityProgressReporterTests
         await reporter.UpdateTaskAsync(pushTask, "Uploading...", CancellationToken.None);
 
         // Verify state before disposal
-        Assert.Equal(TaskCompletionState.InProgress, pkgTask.CompletionState);
-        Assert.Equal(TaskCompletionState.InProgress, pushTask.CompletionState);
-        Assert.False(step.IsComplete);
+        Assert.Equal(CompletionState.InProgress, pkgTask.CompletionState);
+        Assert.Equal(CompletionState.InProgress, pushTask.CompletionState);
+        Assert.Equal(CompletionState.InProgress, step.CompletionState);
 
         // Act - Manually dispose to test automatic completion
         await pushTask.DisposeAsync();
@@ -564,9 +562,9 @@ public class PublishingActivityProgressReporterTests
         await step.DisposeAsync();
 
         // Assert - All should be completed after disposal
-        Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
-        Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
-        Assert.True(step.IsComplete);
+        Assert.Equal(CompletionState.Completed, pkgTask.CompletionState);
+        Assert.Equal(CompletionState.Completed, pushTask.CompletionState);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
     }
 
     [Fact]
@@ -595,18 +593,18 @@ public class PublishingActivityProgressReporterTests
                 await reporter.UpdateTaskAsync(pushTask, "Uploading...", CancellationToken.None);
 
                 // Verify state before disposal
-                Assert.Equal(TaskCompletionState.InProgress, pkgTask.CompletionState);
-                Assert.Equal(TaskCompletionState.InProgress, pushTask.CompletionState);
+                Assert.Equal(CompletionState.InProgress, pkgTask.CompletionState);
+                Assert.Equal(CompletionState.InProgress, pushTask.CompletionState);
             }
             
             // Tasks should be completed after their await using scope ends
-            Assert.Equal(TaskCompletionState.Completed, pkgTask.CompletionState);
-            Assert.Equal(TaskCompletionState.Completed, pushTask.CompletionState);
-            Assert.False(step.IsComplete); // Step should still be in progress
+            Assert.Equal(CompletionState.Completed, pkgTask.CompletionState);
+            Assert.Equal(CompletionState.Completed, pushTask.CompletionState);
+            Assert.Equal(CompletionState.InProgress, step.CompletionState); // Step should still be in progress
         }
 
         // Step should be completed after its await using scope ends
-        Assert.True(step.IsComplete);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
     }
 
     [Fact]
@@ -617,7 +615,7 @@ public class PublishingActivityProgressReporterTests
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Complete the step with error state first, then dispose should respect that
-        await reporter.CompleteStepAsync(step, "Completed with error", isError: true, CancellationToken.None);
+        await reporter.CompleteStepAsync(step, "Completed with error", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Clear activities
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -627,8 +625,8 @@ public class PublishingActivityProgressReporterTests
         await step.DisposeAsync();
 
         // Assert - Step should retain its error state
-        Assert.True(step.IsComplete);
-        Assert.True(step.IsError);
+        Assert.NotEqual(CompletionState.InProgress, step.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithError, step.CompletionState);
         Assert.Equal("Completed with error", step.CompletionText);
 
         // No additional activity should be emitted since already completed
