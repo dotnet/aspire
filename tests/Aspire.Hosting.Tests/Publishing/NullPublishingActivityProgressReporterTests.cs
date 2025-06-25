@@ -15,7 +15,7 @@ public class NullPublishingActivityProgressReporterTests
     {
         var reporter = NullPublishingActivityProgressReporter.Instance;
         var step = await reporter.CreateStepAsync("step initial", default);
-        await reporter.CompleteStepAsync(step, "step completed", default);
+        await reporter.CompleteStepAsync(step, "step completed", CompletionState.Completed, default);
 
         Assert.NotNull(step);
         Assert.True(step.CompletionState != CompletionState.InProgress);

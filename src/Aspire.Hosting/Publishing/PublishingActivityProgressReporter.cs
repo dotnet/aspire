@@ -343,10 +343,10 @@ public interface IPublishingActivityProgressReporter
     /// <summary>
     /// Signals that the entire publishing process has completed.
     /// </summary>
-    /// <param name="success">Whether the publishing process completed successfully.</param>
+    /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task CompletePublishAsync(bool success, CancellationToken cancellationToken);
+    Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default);
 }
 
 internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter
@@ -443,9 +443,6 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         };
 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
-
-        // Remove the completed step to prevent further updates.
-        _steps.TryRemove(step.Id, out _);
     }
 
     public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
@@ -519,20 +516,51 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    public async Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
+        // Use provided state or aggregate from all steps
+        var finalState = completionState ?? CalculateOverallAggregatedState();
+        
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
             Data = new PublishingActivityData
             {
                 Id = PublishingActivityTypes.PublishComplete,
-                StatusText = success ? "Publishing completed successfully" : "Publishing completed with errors",
-                CompletionState = ToBackchannelCompletionState(success ? CompletionState.Completed : CompletionState.CompletedWithError)
+                StatusText = finalState switch
+                {
+                    CompletionState.Completed => "Publishing completed successfully",
+                    CompletionState.CompletedWithWarning => "Publishing completed with warnings",
+                    CompletionState.CompletedWithError => "Publishing completed with errors",
+                    _ => "Publishing completed"
+                },
+                CompletionState = ToBackchannelCompletionState(finalState)
             }
         };
 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Calculates the overall completion state by aggregating all steps.
+    /// </summary>
+    private CompletionState CalculateOverallAggregatedState()
+    {
+        if (_steps.IsEmpty)
+        {
+            return CompletionState.Completed;
+        }
+
+        var maxState = CompletionState.InProgress;
+        foreach (var step in _steps.Values)
+        {
+            var stepState = step.CompletionState;
+            if ((int)stepState > (int)maxState)
+            {
+                maxState = stepState;
+            }
+        }
+        return maxState;
     }
 
     internal Channel<PublishingActivity> ActivityItemUpdated { get; } = Channel.CreateUnbounded<PublishingActivity>();
