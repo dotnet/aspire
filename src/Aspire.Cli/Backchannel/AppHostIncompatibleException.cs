@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli.Backchannel;
 
-internal class AppHostIncompatibleException(string message, string requiredCapability) : Exception(message)
+internal sealed class AppHostIncompatibleException(string message, string requiredCapability) : Exception(message)
 {
     public string RequiredCapability { get; } = requiredCapability;
 }

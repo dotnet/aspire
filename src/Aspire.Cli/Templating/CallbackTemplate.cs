@@ -6,7 +6,7 @@ using Aspire.Cli.Commands;
 
 namespace Aspire.Cli.Templating;
 
-internal class CallbackTemplate(string name, string description, Func<string, string> pathDeriverCallback, Action<TemplateCommand> applyOptionsCallback, Func<CallbackTemplate, ParseResult, CancellationToken, Task<TemplateResult>> applyTemplateCallback) : ITemplate
+internal class CallbackTemplate(string name, string description, Func<string, string> pathDeriverCallback, Action<TemplateCommand> applyOptionsCallback, Func<CallbackTemplate, ParseResult, CancellationToken, Task<int>> applyTemplateCallback) : ITemplate
 {
     public string Name => name;
 
@@ -19,7 +19,7 @@ internal class CallbackTemplate(string name, string description, Func<string, st
         applyOptionsCallback?.Invoke(command);
     }
 
-    public Task<TemplateResult> ApplyTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    public Task<int> ApplyTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         return applyTemplateCallback(this, parseResult, cancellationToken);
     }

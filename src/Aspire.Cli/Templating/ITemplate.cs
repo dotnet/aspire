@@ -12,7 +12,5 @@ internal interface ITemplate
     string Description { get; }
     Func<string, string> PathDeriver { get; }
     void ApplyOptions(TemplateCommand command);
-    Task<TemplateResult> ApplyTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken);
+    Task<int> ApplyTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken);
 }
-
-internal sealed record TemplateResult(int ExitCode, string? OutputPath = null);

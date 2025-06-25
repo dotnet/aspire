@@ -22,5 +22,4 @@ internal interface IInteractionService
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
-    void OpenNewProject(string projectPath);
 }
