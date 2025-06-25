@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding YARP resources to the application model.
 /// </summary>
-public static class YarpServiceExtensions
+public static class YarpResourceExtensions
 {
     private const int Port = 5000;
 
