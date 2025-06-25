@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileInfo globalSettingsFile) : IConfigurationService
+internal sealed class ConfigurationService(IConfiguration configuration, DirectoryInfo currentDirectory, FileInfo globalSettingsFile) : IConfigurationService
 {
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -246,11 +246,6 @@ internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileI
 
     public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
     {
-        // Build fresh configuration using the same directories that this service uses
-        var configBuilder = new ConfigurationBuilder();
-        ConfigurationHelper.RegisterSettingsFiles(configBuilder, currentDirectory, globalSettingsFile);
-        var configuration = configBuilder.Build();
-
         // Convert dot notation to colon notation for IConfiguration access
         var configKey = key.Replace('.', ':');
         return Task.FromResult(configuration[configKey]);

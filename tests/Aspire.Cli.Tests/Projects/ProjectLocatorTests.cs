@@ -10,6 +10,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.TestUtilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -287,7 +288,9 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         // Simulated global settings path for test isolation.
         var globalSettingsFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.global.json");
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
-        var configurationService = new ConfigurationService(workspace.WorkspaceRoot, globalSettingsFile);
+
+        var config = new ConfigurationBuilder().Build();
+        var configurationService = new ConfigurationService(config, workspace.WorkspaceRoot, globalSettingsFile);
         
         var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 

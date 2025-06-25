@@ -22,6 +22,7 @@ using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
 
 #if DEBUG
 using OpenTelemetry;
@@ -122,8 +123,9 @@ public class Program
 
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)

@@ -118,7 +118,8 @@ internal sealed class CliServiceCollectionTestOptions
 
     public IConfigurationService CreateDefaultConfigurationServiceFactory(IServiceProvider serviceProvider)
     {
-        return new ConfigurationService(WorkingDirectory, GetGlobalSettingsFile(WorkingDirectory));
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new ConfigurationService(configuration, WorkingDirectory, GetGlobalSettingsFile(WorkingDirectory));
     }
 
     private static FileInfo GetGlobalSettingsFile(DirectoryInfo workingDirectory)
