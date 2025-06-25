@@ -165,10 +165,8 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(grid);
 
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
             if (isCodespaces || isRemoteContainers)
             {
