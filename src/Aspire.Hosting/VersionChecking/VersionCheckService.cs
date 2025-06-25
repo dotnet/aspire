@@ -50,6 +50,22 @@ internal sealed class VersionCheckService : BackgroundService
             return;
         }
 
+        try
+        {
+            await CheckForLatestAsync(stoppingToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during shutdown.
+            if (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogDebug(ex, "Error checking for latest version.");
+            }
+        }
+    }
+
+    private async Task CheckForLatestAsync(CancellationToken stoppingToken)
+    {
         var checkForLatestVersion = true;
         if (_configuration[CheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
@@ -113,6 +129,8 @@ internal sealed class VersionCheckService : BackgroundService
             // User chose to ignore. Set the latest version as the ignored version.
             SecretsStore.TrySetUserSecret(_options.Assembly, IgnoreVersionKey, latestVersion.ToString());
         }
+
+        return;
     }
 
     public static bool IsVersionGreaterOrEqual(SemVersion? version1, SemVersion? version2)
