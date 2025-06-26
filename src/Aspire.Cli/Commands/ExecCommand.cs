@@ -49,6 +49,14 @@ internal class ExecCommand : BaseCommand
         resourceOption.Description = "target resource"; // TODO localize
         Options.Add(resourceOption);
 
+        var startResourceOption = new Option<string>("--start-resource");
+        startResourceOption.Description = "target resource"; // TODO localize
+        Options.Add(startResourceOption);
+
+        var appHostKeepAliveOption = new Option<bool>("--apphost-keepalive", "-k");
+        appHostKeepAliveOption.Description = "keep the apphost alive"; // TODO localize
+        Options.Add(appHostKeepAliveOption);
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -91,15 +99,27 @@ internal class ExecCommand : BaseCommand
                 StandardErrorCallback = runOutputCollector.AppendError,
             };
 
+            var keepAliveAppHost = parseResult.GetValue<bool>("--apphost-keepalive");
+
+            var targetResourceMode = "--resource";
             var targetResource = parseResult.GetValue<string>("--resource");
+            if (string.IsNullOrEmpty(targetResource))
+            {
+                targetResourceMode = "--start-resource";
+                targetResource = parseResult.GetValue<string>("--start-resource");
+            }
 
             var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
 
             string[] args = [
                 "--operation", "exec",
-                "--resource", targetResource!,
-                "--command", $"\"{string.Join(" ", commandTokens)}\"", // command
-                ..arbitraryFlags, // flags for the apphost: THEY MUST BE LAST otherwise switchmapping to configuration does not work ?
+                targetResourceMode, targetResource!,
+
+                // a bit hacky, but in order to pass a full command with possible quotes and etc properly without losing the signature
+                // we can wrap it in a string and pass it as a single argument
+                "--command", $"\"{string.Join(" ", commandTokens)}\"",
+
+                ..arbitraryFlags,
             ];
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -147,13 +167,16 @@ internal class ExecCommand : BaseCommand
                     return ExitCodeConstants.Success;
                 });
 
-            _ = await _interactionService.ShowStatusAsync<int>(
-                ":linked_paperclips: Stopping app host...",
-                async () =>
-                {
-                    await backchannel.RequestStopAsync(cancellationToken);
-                    return ExitCodeConstants.Success;
-                });
+            if (!keepAliveAppHost)
+            {
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":linked_paperclips: Stopping app host...",
+                    async () =>
+                    {
+                        await backchannel.RequestStopAsync(cancellationToken);
+                        return ExitCodeConstants.Success;
+                    });
+            }
 
             var result = await pendingRun;
             if (result != 0)

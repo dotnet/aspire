@@ -146,8 +146,13 @@ internal class ExecResourceManager : BackgroundService
 
         (string exe, string[] args) ParseCommand()
         {
-            var split = _execOptions.Command.Split(' ', count: 2);
-            var (exe, argsString) = (split[0].Trim('"'), split[1].Trim('"'));
+            // cli wraps the command into the string with quotes
+            // to keep the command as a single argument
+            var command = _execOptions.Command;
+            var commandUnwrapped = command.AsSpan(1, command.Length - 2).ToString();
+
+            var split = commandUnwrapped.Split(' ', count: 2);
+            var (exe, argsString) = (split[0], split[1]);
 
             string[] args = [];
             if (!string.IsNullOrEmpty(argsString))

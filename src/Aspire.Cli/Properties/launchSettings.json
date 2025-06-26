@@ -43,6 +43,7 @@
       "dotnetRunMessages": true,
       "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 -- dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
       "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
     "exec-add-migration-pgsql": {
@@ -50,13 +51,15 @@
       "dotnetRunMessages": true,
       "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres -- dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
       "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
     "exec-database-update": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 -- dotnet ef database update",
+      "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres --apphost-keepalive -- dotnet ef database update",
       "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     }
   }
