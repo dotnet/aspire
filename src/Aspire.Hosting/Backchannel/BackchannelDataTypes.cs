@@ -1,7 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// These types are source shared between the CLI and the Aspire.Hosting projects.
+// The CLI sets the types in its own namespace.
+#if CLI
+namespace Aspire.Cli.Backchannel;
+#else
 namespace Aspire.Hosting.Backchannel;
+#endif
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -146,6 +152,33 @@ internal sealed class PublishingPromptInput
     /// Gets the default value for the input.
     /// </summary>
     public string? Value { get; init; }
+}
+
+/// <summary>
+/// Specifies the type of input for a publishing prompt input.
+/// </summary>
+internal enum InputType
+{
+    /// <summary>
+    /// A single-line text input.
+    /// </summary>
+    Text,
+    /// <summary>
+    /// A secure text input.
+    /// </summary>
+    SecretText,
+    /// <summary>
+    /// A choice input. Selects from a list of options.
+    /// </summary>
+    Choice,
+    /// <summary>
+    /// A boolean input.
+    /// </summary>
+    Boolean,
+    /// <summary>
+    /// A numeric input.
+    /// </summary>
+    Number
 }
 
 /// <summary>
