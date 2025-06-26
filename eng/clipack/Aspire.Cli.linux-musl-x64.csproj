@@ -6,4 +6,11 @@
 
   <Import Project="Common.projitems" />
 
+  <ItemGroup>
+    <!-- need to be on a linux-musl machine to native AOT for linux-musl-->
+    <AdditionalProperties Include="PublishAot=false" />
+    <AdditionalProperties Include="PublishSingleFile=true" />
+    <AdditionalProperties Include="SelfContained=true" />
+  </ItemGroup>
+
 </Project>

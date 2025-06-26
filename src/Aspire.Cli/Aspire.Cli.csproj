@@ -7,20 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnablePackageValidation>false</EnablePackageValidation>
-    <!-- This package needs to remain as preview. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <IsPackable>true</IsPackable>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>aspire</ToolCommandName>
-    <PackageId>Aspire.Cli</PackageId>
-    <RollForward>Major</RollForward>
-    <PackageTags>aspire cli</PackageTags>
-    <Description>Command line tool for Aspire developers.</Description>
-    <!-- AOT not supported on our Azdo builds yet -->
-    <PublishAot Condition="'$(SYSTEM_TEAMPROJECT)' =='' and '$(RuntimeIdentifier)' != ''">true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <PublishAot>true</PublishAot> 
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 

@@ -20,7 +20,12 @@
       <AdditionalProperties Include="Configuration=Release" />
     </ItemGroup>
 
-    <Exec Command="dotnet publish $(RepoRoot)src/Aspire.Cli/Aspire.Cli.csproj @(AdditionalProperties -> '-p:%(Identity)', ' ')" />
+    <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
+    <MSBuild
+        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
+        Targets="Publish"
+        Properties="@(AdditionalProperties)"
+        RemoveProperties="OutputPath;TargetFramework" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
