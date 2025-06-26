@@ -174,7 +174,7 @@ internal sealed class DashboardServiceData : IDisposable
                             var incomingValue = requestInput.Value;
 
                             // Ensure checkbox value is either true or false.
-                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Checkbox)
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
                             {
                                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
                             }
