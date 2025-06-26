@@ -357,7 +357,7 @@ public partial class TemplateTestsBase
             // Current SDK, Current TFM
             { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Current, null },
             // Current SDK, Next TFM
-            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Next, "The current .NET SDK does not support targeting .NET 10.0" },
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Next, null },
 
             // Next SDK, Previous TFM
             { templateName, extraArgs, TestSdk.Next, TestTargetFramework.Previous, null },
