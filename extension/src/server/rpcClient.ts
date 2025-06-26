@@ -1,7 +1,5 @@
 import { MessageConnection } from 'vscode-jsonrpc';
-import { vscOutputChannelWriter } from '../utils/vsc';
 import { logAsyncOperation } from '../utils/logging';
-import { version } from 'node:process';
 
 export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
