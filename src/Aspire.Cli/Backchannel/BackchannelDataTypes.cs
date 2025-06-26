@@ -107,17 +107,17 @@ internal sealed class PublishingActivityData
     /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    public bool IsComplete { get; init; }
+    public bool IsComplete => CompletionState is not CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    public bool IsError { get; init; }
+    public bool IsError => CompletionState is CompletionStates.CompletedWithError;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity completed with warnings.
     /// </summary>
-    public bool IsWarning { get; init; }
+    public bool IsWarning => CompletionState is CompletionStates.CompletedWithWarning;
 
     /// <summary>
     /// Gets the identifier of the step this task belongs to (only applicable for tasks).
