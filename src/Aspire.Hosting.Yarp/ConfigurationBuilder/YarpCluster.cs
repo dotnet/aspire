@@ -10,20 +10,61 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Represents a cluster for YARP routes
 /// </summary>
-public class YarpCluster(EndpointReference endpoint)
+public class YarpCluster
 {
-    internal ClusterConfig ClusterConfig { get; private set; } = new()
+    /// <summary>
+    /// Construct a new YarpCluster targeting the endpoint in parameter.
+    /// </summary>
+    /// <param name="endpoint">The endpoint to target.</param>
+    public YarpCluster(EndpointReference endpoint)
+        : this(endpoint.Resource.Name, $"{endpoint.Scheme}://_{endpoint.EndpointName}.{endpoint.Resource.Name}")
     {
-        ClusterId = $"cluster_{endpoint.Resource.Name}_{Guid.NewGuid().ToString("N")}",
-        Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+    }
+
+    /// <summary>
+    /// Construct a new YarpCluster targeting the resource in parameter.
+    /// </summary>
+    /// <param name="resource">The resource to target.</param>
+    public YarpCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
+        : this(resource.Resource.Name, BuildEndpointUri(resource.Resource))
+    {
+    }
+
+    private YarpCluster(string resourceName, string endpointUri)
+    {
+        ClusterConfig = new()
         {
-            { "destination1", new DestinationConfig { Address = $"{endpoint.Scheme}://_{endpoint.EndpointName}.{endpoint.Resource.Name}" } },
-        }
-    };
+            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid().ToString("N")}",
+            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "destination1", new DestinationConfig { Address = endpointUri } }
+            }
+        };
+    }
+
+    internal ClusterConfig ClusterConfig { get; private set; }
 
     internal void Configure(Func<ClusterConfig, ClusterConfig> configure)
     {
         ClusterConfig = configure(ClusterConfig);
+    }
+
+    private static string BuildEndpointUri(IResourceWithServiceDiscovery resource)
+    {
+        var resourceName = resource.Name;
+
+        var httpsEndpoint = resource.GetEndpoint("https");
+        var httpEndpoint = resource.GetEndpoint("http");
+
+        var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
+        {
+            (true, true)  => "https+http",
+            (true, false) => "https",
+            (false, true) => "http",
+            _ => throw new ArgumentException("Cannot find a http or https endpoint for this resource.", nameof(resource))
+        };
+
+        return $"{scheme}://{resourceName}";
     }
 }
 

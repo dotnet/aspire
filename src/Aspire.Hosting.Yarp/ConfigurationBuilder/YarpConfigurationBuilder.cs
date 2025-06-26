@@ -30,4 +30,13 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
         _parent.WithReference(endpoint);
         return destination;
     }
+
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
+    {
+        var destination = new YarpCluster(resource);
+        _parent.Resource.Clusters.Add(destination);
+        _parent.WithReference(resource);
+        return destination;
+    }
 }
