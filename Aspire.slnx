@@ -158,6 +158,11 @@
     <Project Path="playground/AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsConsumer/EventHubsConsumer.csproj" />
   </Folder>
+  <Folder Name="/playground/ExternalServices/">
+    <Project Path="playground/ExternalServices/ExternalServices.AppHost/ExternalServices.AppHost.csproj" Id="08c45463-de96-4731-bd29-8ae8e096f769" />
+    <Project Path="playground/ExternalServices/ExternalServices.ServiceDefaults/ExternalServices.ServiceDefaults.csproj" Id="ef207a63-e365-47b0-ba4e-1dc510b025cd" />
+    <Project Path="playground/ExternalServices/WebFrontEnd/WebFrontEnd.csproj" Id="048998b7-c783-4f96-b3c0-076199feff9a" />
+  </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
   </Folder>

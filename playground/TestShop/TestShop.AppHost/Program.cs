@@ -4,8 +4,6 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var weaatherService = builder.AddExternalService("weather", "https://api.weather.gov/");
-
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
                        .WithPgAdmin(resource =>

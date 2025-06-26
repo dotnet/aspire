@@ -155,11 +155,39 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds an environment variable to the resource with the URL from the <see cref="ExternalServiceResource"/>.
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">Name of environment variable.</param>
+    /// <param name="externalService">The external service.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithEnvironment<TDestination>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<ExternalServiceResource> externalService)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(externalService);
+
+        builder.WithReferenceRelationship(externalService.Resource);
+
+        if (externalService.Resource.Uri is not null)
+        {
+            builder.WithEnvironment(name, externalService.Resource.Uri.ToString());
+        }
+        else if (externalService.Resource.UrlParameter is not null)
+        {
+            builder.WithEnvironment(name, externalService.Resource.UrlParameter);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the value from <paramref name="parameter"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">Name of environment variable</param>
+    /// <param name="name">Name of environment variable.</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
@@ -466,6 +494,35 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+    }
+
+    /// <summary>
+    /// Injects service discovery information as environment variables from the <see cref="ExternalServiceResource"/> into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format "services__{name}__default__0={uri}."
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="externalService">The external service.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ExternalServiceResource> externalService)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(externalService);
+
+        var envVarName = $"services__{externalService.Resource.Name}__default__0";
+
+        if (externalService.Resource.Uri is not null)
+        {
+            builder.WithReferenceRelationship(externalService.Resource);
+            builder.WithEnvironment(envVarName, externalService.Resource.Uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.Unescaped));
+        }
+        else if (externalService.Resource.UrlParameter is not null)
+        {
+            builder.WithEnvironment(envVarName, $"{externalService.Resource.UrlParameter}");
+        }
+
+        return builder;
     }
 
     /// <summary>
