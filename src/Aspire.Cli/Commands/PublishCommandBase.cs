@@ -25,6 +25,15 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
 
+    private static bool IsCompletionStateComplete(string completionState) => 
+        completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
+
+    private static bool IsCompletionStateError(string completionState) => 
+        completionState == CompletionStates.CompletedWithError;
+
+    private static bool IsCompletionStateWarning(string completionState) => 
+        completionState == CompletionStates.CompletedWithWarning;
+
     protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
         : base(name, description)
     {
@@ -225,7 +234,7 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             if (publishingActivity.Type == PublishingActivityTypes.PublishComplete)
             {
-                return !publishingActivity.Data.IsError;
+                return !IsCompletionStateError(publishingActivity.Data.CompletionState);
             }
         }
 
@@ -267,7 +276,8 @@ internal abstract class PublishCommandBase : BaseCommand
                         Id = activity.Data.Id,
                         Title = activity.Data.StatusText,
                         Number = stepCounter++,
-                        StartTime = DateTime.UtcNow
+                        StartTime = DateTime.UtcNow,
+                        CompletionState = activity.Data.CompletionState
                     };
 
                     steps[activity.Data.Id] = stepInfo;
@@ -279,15 +289,14 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
                 // If the step is complete, update the step info, clear out any pending progress tasks, and
                 // display the completion status associated with the the step.
-                else if (activity.Data.IsComplete)
+                else if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    stepInfo.IsComplete = true;
-                    stepInfo.IsError = activity.Data.IsError;
+                    stepInfo.CompletionState = activity.Data.CompletionState;
                     stepInfo.CompletionText = activity.Data.StatusText;
 
                     await currentStepProgress.DisposeAsync();
 
-                    if (stepInfo.IsError)
+                    if (IsCompletionStateError(stepInfo.CompletionState))
                     {
                         AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
                     }
@@ -329,7 +338,8 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         Id = activity.Data.Id,
                         StatusText = activity.Data.StatusText,
-                        StartTime = DateTime.UtcNow
+                        StartTime = DateTime.UtcNow,
+                        CompletionState = activity.Data.CompletionState
                     };
 
                     tasks[activity.Data.Id] = task;
@@ -345,14 +355,12 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
 
                 task.StatusText = activity.Data.StatusText;
-                task.IsComplete = activity.Data.IsComplete;
-                task.IsError = activity.Data.IsError;
-                task.IsWarning = activity.Data.IsWarning;
+                task.CompletionState = activity.Data.CompletionState;
 
-                if (task.IsError || task.IsWarning || task.IsComplete)
+                if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    var prefix = task.IsError ? "[red]✗ FAILED:[/]" :
-                        task.IsWarning ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
+                    var prefix = IsCompletionStateError(task.CompletionState) ? "[red]✗ FAILED:[/]" :
+                        IsCompletionStateWarning(task.CompletionState) ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
                     task.ProgressTask.Description = $"  {prefix} {task.StatusText.EscapeMarkup()}";
                     task.CompletionMessage = activity.Data.CompletionMessage;
 
@@ -373,7 +381,7 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        var hasErrors = publishingActivity?.Data.IsError ?? false;
+        var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
 
         if (publishingActivity is not null)
         {
@@ -434,8 +442,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public DateTime StartTime { get; set; }
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string CompletionText { get; set; } = string.Empty;
         public Dictionary<string, TaskInfo> Tasks { get; } = [];
     }
@@ -445,9 +452,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Id { get; set; } = string.Empty;
         public string StatusText { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
-        public bool IsWarning { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string? CompletionMessage { get; set; }
         public ProgressTask? ProgressTask { get; set; }
     }

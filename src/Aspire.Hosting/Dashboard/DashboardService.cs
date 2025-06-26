@@ -196,9 +196,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         return inputType switch
         {
             ApplicationModel.InputType.Text => InputType.Text,
-            ApplicationModel.InputType.Password => InputType.Password,
-            ApplicationModel.InputType.Select => InputType.Select,
-            ApplicationModel.InputType.Checkbox => InputType.Checkbox,
+            ApplicationModel.InputType.SecretText => InputType.SecretText,
+            ApplicationModel.InputType.Choice => InputType.Choice,
+            ApplicationModel.InputType.Boolean => InputType.Boolean,
             ApplicationModel.InputType.Number => InputType.Number,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
