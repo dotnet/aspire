@@ -63,6 +63,6 @@ Continuing from the three-tier architecture example, you can deploy the same app
 |-|-|-|-|
 | Frontend | `npm run dev` | Container Apps | ECS or App Runner |
 | API Service | `dotnet run --project ../<API_PROJECT_NAME>.csproj` | Azure Container Apps | ECS or Lambda |
-| Database | `docker create & docker start` | Azure Database for Postgres | RDS or Aurora |
+| Database | `docker.io/library/postgres` | Azure Database for Postgres | RDS or Aurora |
 
 Aspire's deployment capabilities are flexible and extensible, allowing you to adapt to your preferred infrastructure. Aspire doesn't get in the way of your existing deployment workflows, so you can continue using your favorite tools and services.
