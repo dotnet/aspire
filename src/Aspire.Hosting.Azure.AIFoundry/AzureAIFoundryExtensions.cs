@@ -32,84 +32,7 @@ public static class AzureAIFoundryExtensions
     {
         builder.AddAzureProvisioning();
 
-        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
-        {
-            var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
-                (identifier, name) =>
-                {
-                    var resource = CognitiveServicesAccount.FromExisting(identifier);
-                    resource.Name = name;
-                    return resource;
-                },
-                (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
-                {
-                    Name = Take(Interpolate($"{infrastructure.AspireResource.GetBicepIdentifier()}{GetUniqueString(GetResourceGroup().Id)}"), 64),
-                    Kind = "AIServices",
-                    Sku = new CognitiveServicesSku()
-                    {
-                        Name = "S0"
-                    },
-                    Properties = new CognitiveServicesAccountProperties()
-                    {
-                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
-                        PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                        DisableLocalAuth = true
-                    },
-                    Identity = new ManagedServiceIdentity()
-                    {
-                        ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
-                    },
-                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
-                });
-
-            var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
-                (BicepExpression)cogServicesAccount.Properties.Endpoints!,
-                "AI Foundry API");
-            infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
-            {
-                Value = inferenceEndpoint
-            });
-
-            var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
-
-            CognitiveServicesAccountDeployment? dependency = null;
-            foreach (var deployment in resource.Deployments)
-            {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
-                {
-                    Name = deployment.DeploymentName,
-                    Parent = cogServicesAccount,
-                    Properties = new CognitiveServicesAccountDeploymentProperties()
-                    {
-                        Model = new CognitiveServicesAccountDeploymentModel()
-                        {
-                            Name = deployment.ModelName,
-                            Version = deployment.ModelVersion,
-                            Format = deployment.Format
-                        }
-                    },
-                    Sku = new CognitiveServicesSku()
-                    {
-                        Name = deployment.SkuName,
-                        Capacity = deployment.SkuCapacity
-                    }
-                };
-                infrastructure.Add(cdkDeployment);
-
-                // Subsequent deployments need an explicit dependency on the previous one
-                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
-                // which can't be defined with the CDK
-
-                if (dependency != null)
-                {
-                    cdkDeployment.DependsOn.Add(dependency);
-                }
-
-                dependency = cdkDeployment;
-            }
-        };
-
-        var resource = new AzureAIFoundryResource(name, configureInfrastructure);
+        var resource = new AzureAIFoundryResource(name, ConfigureInfrastructure);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
@@ -178,16 +101,8 @@ public static class AzureAIFoundryExtensions
             return builder;
         }
 
-        var azureResource = builder.Resource;
-        builder.ApplicationBuilder.Resources.Remove(azureResource);
-
-        var resource = new AzureAIFoundryResource(azureResource.Name, c => { }) { IsEmulator = true };
-        builder.ApplicationBuilder.AddResource(resource);
-
-        foreach (var deployment in azureResource.Deployments)
-        {
-            resource.AddDeployment(deployment);
-        }
+        var resource = builder.Resource;
+        resource.IsEmulator = true;
 
         var resourceBuilder = builder.ApplicationBuilder
             .CreateResourceBuilder(resource);
@@ -204,8 +119,6 @@ public static class AzureAIFoundryExtensions
                 .CreateResourceBuilder(deployment);
 
             deploymentBuilder.AsLocalDeployment(deployment);
-
-            deployment.Parent = resource; // Ensure the deployment has the correct parent reference
         }
 
         var healthCheckKey = $"{resource.Name}_check";
@@ -286,9 +199,9 @@ public static class AzureAIFoundryExtensions
     {
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
-        var azureFoundryResource = builder.Resource.Parent;
+        var foundryResource = builder.Resource.Parent;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(azureFoundryResource, (@event, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = @event.Services.GetRequiredService<ResourceLoggerService>();
@@ -368,9 +281,87 @@ public static class AzureAIFoundryExtensions
                     tags: default,
                     timeout: default
                     ));
-       
+
         builder.WithHealthCheck(healthCheckKey);
 
         return builder;
     }
+
+    private static void ConfigureInfrastructure(AzureResourceInfrastructure infrastructure)
+    {
+        var cogServicesAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
+                {
+                    var resource = CognitiveServicesAccount.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Name = Take(Interpolate($"{infrastructure.AspireResource.GetBicepIdentifier()}{GetUniqueString(GetResourceGroup().Id)}"), 64),
+                    Kind = "AIServices",
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = "S0"
+                    },
+                    Properties = new CognitiveServicesAccountProperties()
+                    {
+                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                        DisableLocalAuth = true
+                    },
+                    Identity = new ManagedServiceIdentity()
+                    {
+                        ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
+                    },
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
+
+        var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
+            (BicepExpression)cogServicesAccount.Properties.Endpoints!,
+            "AI Foundry API");
+        infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
+        {
+            Value = inferenceEndpoint
+        });
+
+        var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
+
+        CognitiveServicesAccountDeployment? dependency = null;
+        foreach (var deployment in resource.Deployments)
+        {
+            var cdkDeployment = new CognitiveServicesAccountDeployment(Infrastructure.NormalizeBicepIdentifier(deployment.Name))
+            {
+                Name = deployment.DeploymentName,
+                Parent = cogServicesAccount,
+                Properties = new CognitiveServicesAccountDeploymentProperties()
+                {
+                    Model = new CognitiveServicesAccountDeploymentModel()
+                    {
+                        Name = deployment.ModelName,
+                        Version = deployment.ModelVersion,
+                        Format = deployment.Format
+                    }
+                },
+                Sku = new CognitiveServicesSku()
+                {
+                    Name = deployment.SkuName,
+                    Capacity = deployment.SkuCapacity
+                }
+            };
+            infrastructure.Add(cdkDeployment);
+
+            // Subsequent deployments need an explicit dependency on the previous one
+            // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+            // which can't be defined with the CDK
+
+            if (dependency != null)
+            {
+                cdkDeployment.DependsOn.Add(dependency);
+            }
+
+            dependency = cdkDeployment;
+        }
+    }
+
 }
