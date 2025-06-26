@@ -110,7 +110,6 @@ public static class AzureAIFoundryExtensions
         resourceBuilder.ApplicationBuilder.Services.AddSingleton<FoundryLocalManager>();
 
         resourceBuilder
-            .WithHttpEndpoint(env: "PORT", isProxied: false, port: 6914, name: AzureAIFoundryResource.PrimaryEndpointName)
             .WithInitializer();
 
         foreach (var deployment in resource.Deployments)
@@ -164,21 +163,7 @@ public static class AzureAIFoundryExtensions
 
                 if (manager.IsServiceRunning)
                 {
-                    if (resource.TryGetLastAnnotation<EndpointAnnotation>(out var endpoint))
-                    {
-                        endpoint.AllocatedEndpoint = new AllocatedEndpoint(
-                            new EndpointAnnotation(
-                                System.Net.Sockets.ProtocolType.Tcp,
-                                manager.Endpoint.Scheme,
-                                "http",
-                                "http",
-                                manager.Endpoint.Port,
-                                manager.Endpoint.Port,
-                                false,
-                                false),
-                            manager.Endpoint.ToString(),
-                            manager.Endpoint.Port);
-                    }
+                    resource.EmulatorServiceUri = manager.Endpoint;
 
                     await rns.PublishUpdateAsync(resource, state => state with
                     {
@@ -227,7 +212,7 @@ public static class AzureAIFoundryExtensions
                     Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, model)]
                 }).ConfigureAwait(false);
 
-                var result = manager.DownloadModelWithProgressAsync(model, ct: ct) ?? throw new InvalidOperationException($"Failed to download model {model}.");
+                var result = manager.DownloadModelWithProgressAsync(model, ct: ct);
 
                 await foreach (var progress in result.ConfigureAwait(false))
                 {

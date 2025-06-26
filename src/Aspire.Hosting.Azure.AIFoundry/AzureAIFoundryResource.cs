@@ -14,12 +14,9 @@ namespace Aspire.Hosting.Azure;
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
 public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString,
-    IResourceWithEndpoints
+    IResourceWithConnectionString
 {
-    internal const string PrimaryEndpointName = "http";
-
-    private EndpointReference? _primaryEndpointReference;
+    internal Uri? EmulatorServiceUri { get; set; }
 
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
 
@@ -50,11 +47,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public string? ApiKey { get; internal set; }
 
     /// <summary>
-    /// Gets the primary endpoint reference for the resource.
-    /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpointReference ??= new(this, PrimaryEndpointName);
-
-    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -77,6 +69,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
         IsEmulator
-            ? ReferenceExpression.Create($"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Host)};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
+            ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
             : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }
