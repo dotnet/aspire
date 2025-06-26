@@ -79,6 +79,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to parse command.
+        /// </summary>
+        internal static string FailedToParseCommand {
+            get {
+                return ResourceManager.GetString("FailedToParseCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The path to the Aspire app host project file..
         /// </summary>
         internal static string ProjectArgumentDescription {
@@ -102,6 +111,15 @@ namespace Aspire.Cli.Resources {
         internal static string TargetResourceArgumentDescription {
             get {
                 return ResourceManager.GetString("TargetResourceArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Target resource is not specified..
+        /// </summary>
+        internal static string TargetResourceNotSpecified {
+            get {
+                return ResourceManager.GetString("TargetResourceNotSpecified", resourceCulture);
             }
         }
     }

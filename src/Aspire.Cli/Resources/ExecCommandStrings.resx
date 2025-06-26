@@ -132,4 +132,10 @@
   <data name="TargetResourceArgumentDescription" xml:space="preserve">
     <value>The name of the target resource to execute the command against.</value>
   </data>
+  <data name="TargetResourceNotSpecified" xml:space="preserve">
+    <value>Target resource is not specified.</value>
+  </data>
+  <data name="FailedToParseCommand" xml:space="preserve">
+    <value>Failed to parse command</value>
+  </data>
 </root>

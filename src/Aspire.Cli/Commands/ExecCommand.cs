@@ -109,7 +109,19 @@ internal class ExecCommand : BaseCommand
                 targetResource = parseResult.GetValue<string>("--start-resource");
             }
 
+            if (targetResource is null)
+            {
+                _interactionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
+                return ExitCodeConstants.InvalidCommand;
+            }
+
             var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
+
+            if (commandTokens is null || commandTokens.Count == 0)
+            {
+                _interactionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
+                return ExitCodeConstants.InvalidCommand;
+            }
 
             string[] args = [
                 "--operation", "exec",
