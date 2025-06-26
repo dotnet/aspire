@@ -22,6 +22,8 @@ internal class DashboardOptions
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
 {
+    // We default to HTTPS here because the dashboard is expected to be hosted in a secure environment and we require users to opt-in to unsecured transport
+    // via the `ASPIRE_ALLOW_UNSECURED_TRANSPORT` environment variable. If there is no dev
     private const string DashboardUrlsDefault = "https://localhost:18887;http://localhost:18888";
     private const string DashboardOtlpGrpcEndpointUrlDefault = "https://localhost:18890";
 
