@@ -9,7 +9,7 @@
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <AllTargetFrameworks>$(DefaultTargetFramework);net9.0</AllTargetFrameworks>
     <!-- dotnet versions for running tests -->
-    <DotNetRuntimePreviousVersionForTesting>8.0.13</DotNetRuntimePreviousVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.17</DotNetRuntimePreviousVersionForTesting>
     <DotNetRuntimeCurrentVersionForTesting>9.0.6</DotNetRuntimeCurrentVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for templates tests -->
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
@@ -37,9 +37,9 @@
     <MicrosoftDeveloperControlPlanewindowsamd64Version>0.15.12</MicrosoftDeveloperControlPlanewindowsamd64Version>
     <MicrosoftDeveloperControlPlanewindowsarm64Version>0.15.12</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>9.0.0-beta.25325.4</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25178.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
-    <MicrosoftDotNetBuildTasksArchivesVersion>9.0.0-beta.25325.4</MicrosoftDotNetBuildTasksArchivesVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>10.0.0-beta.25325.3</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25325.3</MicrosoftDotNetXUnitV3ExtensionsVersion>
+    <MicrosoftDotNetBuildTasksArchivesVersion>10.0.0-beta.25325.3</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
