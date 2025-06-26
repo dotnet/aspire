@@ -20,7 +20,7 @@
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
     <!-- AOT not supported on our Azdo builds yet -->
-    <PublishAot Condition="'$(SYSTEM_TEAMPROJECT)' ==''">true</PublishAot>
+    <PublishAot Condition="'$(SYSTEM_TEAMPROJECT)' =='' and '$(RuntimeIdentifier)' != ''">true</PublishAot>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
