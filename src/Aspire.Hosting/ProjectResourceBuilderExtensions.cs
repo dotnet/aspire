@@ -851,12 +851,12 @@ public static class ProjectResourceBuilderExtensions
     {
         if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
         {
-            // If the host is localhost, we set it to null so that it uses the default host
+            // Localhost is used as-is rather than being resolved to a specific loopback IP address.
             return "localhost";
         }
         else if (IPAddress.TryParse(host, out var _))
         {
-            // If the host is an IP address, we use it as is
+            // If the given host is an IP address, we use it as is
             return host;
         }
 
