@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -181,6 +182,41 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         public string ProjectPath => "another-path";
 
         public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    [Fact]
+    public void AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Add two Azure storage resources - one will be ignored, one will not
+        var includedStorage = builder.AddAzureStorage("included-storage");
+        var excludedStorage = builder.AddAzureStorage("excluded-storage")
+            .ExcludeFromManifest(); // This should be ignored during publishing
+
+        // Build the model
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act - Get the AzureBicepResources using the same logic from AzurePublishingContext
+        var allBicepResources = model.Resources.OfType<AzureBicepResource>().ToList();
+        var filteredBicepResources = model.Resources.OfType<AzureBicepResource>()
+            .Where(r => !r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) || lastAnnotation != ManifestPublishingCallbackAnnotation.Ignore)
+            .ToList();
+
+        // Assert
+        Assert.Equal(2, allBicepResources.Count);
+        Assert.Single(filteredBicepResources);
+        Assert.Equal("included-storage", filteredBicepResources.Single().Name);
+        
+        // Verify the excluded resource is not in the filtered list
+        Assert.DoesNotContain(filteredBicepResources, r => r.Name == "excluded-storage");
+        
+        // Verify that the excluded resource has the ignore annotation
+        var excludedBicepResource = allBicepResources.Single(r => r.Name == "excluded-storage");
+        Assert.True(excludedBicepResource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var annotation));
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
     }
 
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
