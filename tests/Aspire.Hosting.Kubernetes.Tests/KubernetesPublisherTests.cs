@@ -46,14 +46,14 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "Chart.yaml",
-            "values.yaml",
-            "templates/project1/deployment.yaml",
-            "templates/project1/config.yaml",
-            "templates/myapp/deployment.yaml",
-            "templates/myapp/service.yaml",
-            "templates/myapp/config.yaml",
-            "templates/myapp/secrets.yaml"
+            "env/Chart.yaml",
+            "env/values.yaml",
+            "env/templates/project1/deployment.yaml",
+            "env/templates/project1/config.yaml",
+            "env/templates/myapp/deployment.yaml",
+            "env/templates/myapp/service.yaml",
+            "env/templates/myapp/config.yaml",
+            "env/templates/myapp/secrets.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -99,7 +99,7 @@ public class KubernetesPublisherTests()
         app.Run();
 
         // Assert
-        var deploymentPath = Path.Combine(tempDir.Path, "templates/service/deployment.yaml");
+        var deploymentPath = Path.Combine(tempDir.Path, "env/templates/service/deployment.yaml");
         Assert.True(File.Exists(deploymentPath));
 
         var content = await File.ReadAllTextAsync(deploymentPath);
@@ -139,12 +139,12 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "Chart.yaml",
-            "values.yaml",
-            "templates/myapp/rollout.yaml",
-            "templates/myapp/service.yaml",
-            "templates/myapp/config.yaml",
-            "templates/myapp/scaler.yaml"
+            "env/Chart.yaml",
+            "env/values.yaml",
+            "env/templates/myapp/rollout.yaml",
+            "env/templates/myapp/service.yaml",
+            "env/templates/myapp/config.yaml",
+            "env/templates/myapp/scaler.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -186,11 +186,11 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "Chart.yaml",
-            "values.yaml",
-            "templates/SpeciaL-ApP/deployment.yaml",
-            "templates/SpeciaL-ApP/config.yaml",
-            "templates/SpeciaL-ApP/secrets.yaml"
+            "env/Chart.yaml",
+            "env/values.yaml",
+            "env/templates/SpeciaL-ApP/deployment.yaml",
+            "env/templates/SpeciaL-ApP/config.yaml",
+            "env/templates/SpeciaL-ApP/secrets.yaml"
         };
 
         SettingsTask settingsTask = default!;
