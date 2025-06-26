@@ -151,9 +151,9 @@ public static class AzureAIFoundryExtensions
                 {
                     await manager.StartServiceAsync(ct).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception e)
                 {
-                    logger.LogError("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started");
+                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started. Error: {Error}", e.Message);
                 }
 
                 if (manager.IsServiceRunning)
@@ -230,12 +230,25 @@ public static class AzureAIFoundryExtensions
                             State = new ResourceStateSnapshot("Loading model", KnownResourceStateStyles.Info)
                         }).ConfigureAwait(false);
 
-                        _ = await manager.LoadModelAsync(deployment.DeploymentName, ct: ct).ConfigureAwait(false);
-
-                        await rns.PublishUpdateAsync(deployment, state => state with
+                        try
                         {
-                            State = KnownResourceStates.Running
-                        }).ConfigureAwait(false);
+                            _ = await manager.LoadModelAsync(deployment.DeploymentName, ct: ct).ConfigureAwait(false);
+
+                            await rns.PublishUpdateAsync(deployment, state => state with
+                            {
+                                State = KnownResourceStates.Running
+                            }).ConfigureAwait(false);
+                        }
+                        catch (Exception e)
+                        {
+                            // LoadModelAsync throws IOE when the model is invalid.
+                            logger.LogInformation("Failed to start {Model}. Error: {Error}", model, e.Message);
+
+                            await rns.PublishUpdateAsync(deployment, state => state with
+                            {
+                                State = KnownResourceStates.FailedToStart
+                            }).ConfigureAwait(false);
+                        }
                     }
                     else if (progress.IsCompleted && !string.IsNullOrEmpty(progress.ErrorMessage))
                     {
