@@ -40,9 +40,9 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public IReadOnlyList<AzureAIFoundryDeploymentResource> Deployments => _deployments;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the resource is running in the Foundry Local.
+    /// Gets whether the resource is running in the Foundry Local.
     /// </summary>
-    public bool IsEmulator { get; set; }
+    public bool IsEmulator => this.IsEmulator();
 
     /// <summary>
     /// The API key to access Foundry Local

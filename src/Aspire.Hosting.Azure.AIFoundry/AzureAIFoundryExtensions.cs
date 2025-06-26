@@ -102,7 +102,7 @@ public static class AzureAIFoundryExtensions
         }
 
         var resource = builder.Resource;
-        resource.IsEmulator = true;
+        resource.Annotations.Add(new EmulatorResourceAnnotation());
 
         var resourceBuilder = builder.ApplicationBuilder
             .CreateResourceBuilder(resource);
@@ -144,15 +144,23 @@ public static class AzureAIFoundryExtensions
                 var resource = (AzureAIFoundryResource)@event.Resource;
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
+                var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
+
+                resource.ApiKey = manager.ApiKey;
 
                 await rns.PublishUpdateAsync(resource, state => state with
                 {
                     State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
                 }).ConfigureAwait(false);
 
-                await manager.StartServiceAsync(ct).ConfigureAwait(false);
-
-                resource.ApiKey = manager.ApiKey;
+                try
+                {
+                    await manager.StartServiceAsync(ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    logger.LogError("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started");
+                }
 
                 if (manager.IsServiceRunning)
                 {
