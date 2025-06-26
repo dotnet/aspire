@@ -1,0 +1,515 @@
+---
+import { Code, Icon } from "@astrojs/starlight/components";
+
+// Define all possible code combinations (frontend is always included)
+const codes = {
+  frontend: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000);
+
+builder.Build().Run();`,
+
+  frontendContainer: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000);
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080);
+
+builder.Build().Run();`,
+
+  databaseFrontend: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata");
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000);
+
+builder.Build().Run();`,
+
+  databaseFrontendContainer: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata");
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000);
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080);
+
+builder.Build().Run();`,
+
+  apiFrontend: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add API service
+var api = builder.AddProject("api", "../api/ApiService.csproj");
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api);
+
+builder.Build().Run();`,
+
+  apiFrontendContainer: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add API service
+var api = builder.AddProject("api", "../api/ApiService.csproj");
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api);
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080);
+
+builder.Build().Run();`,
+
+  databaseApiFrontend: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata");
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres);
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api);
+
+builder.Build().Run();`,
+
+  databaseApiFrontendContainer: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata");
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres);
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api);
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080);
+
+builder.Build().Run();`,
+
+  // Deployment variants
+  frontendDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+builder.Build().Run();`,
+
+  frontendContainerDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080)
+                             .PublishAsKubernetes();
+
+builder.Build().Run();`,
+
+  databaseFrontendDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume()
+                      .PublishAsAzurePostgresFlexibleServer();
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+builder.Build().Run();`,
+
+  databaseFrontendContainerDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume()
+                      .PublishAsAzurePostgresFlexibleServer();
+
+// Add frontend service
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080)
+                             .PublishAsKubernetes();
+
+builder.Build().Run();`,
+
+  apiFrontendDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add API service
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .PublishAsAzureContainerApp();
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+builder.Build().Run();`,
+
+  apiFrontendContainerDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add API service
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .PublishAsAzureContainerApp();
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080)
+                             .PublishAsKubernetes();
+
+builder.Build().Run();`,
+
+  databaseApiFrontendDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume()
+                      .PublishAsAzurePostgresFlexibleServer();
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres)
+                 .WaitFor(postgres)
+                 .PublishAsAzureContainerApp();
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+builder.Build().Run();`,
+
+  databaseApiFrontendContainerDeployment: `var builder = DistributedApplication.CreateBuilder(args);
+
+// Add database
+var postgres = builder.AddPostgres("db")
+                      .AddDatabase("appdata")
+                      .WithDataVolume()
+                      .PublishAsAzurePostgresFlexibleServer();
+
+// Add API service and reference the database
+var api = builder.AddProject("api", "../api/ApiService.csproj")
+                 .WithReference(postgres)
+                 .WaitFor(postgres)
+                 .PublishAsAzureContainerApp();
+
+// Add frontend service and reference the API
+var frontend = builder.AddNpmApp("frontend", "../frontend")
+                      .WithHttpEndpoint(env: "PORT", targetPort: 3000)
+                      .WithReference(api)
+                      .WithNpmPackageInstallation()
+                      .PublishAsDockerFile();
+
+// Add custom container
+var customContainer = builder.AddContainer("mycustomcontainer", "myregistry/myapp", "latest")
+                             .WithHttpEndpoint(targetPort: 8080)
+                             .PublishAsKubernetes();
+
+builder.Build().Run();`
+};
+---
+
+<div class="container">
+  <div class="header">
+    <h3>Build Your AppHost</h3>
+    <p>Toggle different features on/off to see how Aspire defines different parts of your stack.</p>
+    
+    <div class="toggles">
+      <button class="toggle frontend active" data-toggle="frontend">
+        <Icon name="laptop" size="1.2rem" />
+        <span>Frontend</span>
+      </button>
+      
+      <button class="toggle" data-toggle="database">
+        <Icon name="seti:db" size="1.2rem" />
+        <span>Database</span>
+      </button>
+      
+      <button class="toggle" data-toggle="api">
+        <Icon name="seti:html" size="1.2rem" />
+        <span>API Service</span>
+      </button>
+      
+      <button class="toggle" data-toggle="container">
+        <Icon name="seti:docker" size="1.2rem" />
+        <span>Custom Container</span>
+      </button>
+      
+      <button class="toggle" data-toggle="deployment">
+        <Icon name="rocket" size="1.2rem" />
+        <span>Deployment Options</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="code-display">
+    <div class="code-variant" data-variant="frontend">
+      <Code code={codes.frontend} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="frontendContainer" style="display: none;">
+      <Code code={codes.frontendContainer} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseFrontend" style="display: none;">
+      <Code code={codes.databaseFrontend} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseFrontendContainer" style="display: none;">
+      <Code code={codes.databaseFrontendContainer} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="apiFrontend" style="display: none;">
+      <Code code={codes.apiFrontend} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="apiFrontendContainer" style="display: none;">
+      <Code code={codes.apiFrontendContainer} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseApiFrontend" style="display: none;">
+      <Code code={codes.databaseApiFrontend} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseApiFrontendContainer" style="display: none;">
+      <Code code={codes.databaseApiFrontendContainer} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="frontendDeployment" style="display: none;">
+      <Code code={codes.frontendDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="frontendContainerDeployment" style="display: none;">
+      <Code code={codes.frontendContainerDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseFrontendDeployment" style="display: none;">
+      <Code code={codes.databaseFrontendDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseFrontendContainerDeployment" style="display: none;">
+      <Code code={codes.databaseFrontendContainerDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="apiFrontendDeployment" style="display: none;">
+      <Code code={codes.apiFrontendDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="apiFrontendContainerDeployment" style="display: none;">
+      <Code code={codes.apiFrontendContainerDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseApiFrontendDeployment" style="display: none;">
+      <Code code={codes.databaseApiFrontendDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+    <div class="code-variant" data-variant="databaseApiFrontendContainerDeployment" style="display: none;">
+      <Code code={codes.databaseApiFrontendContainerDeployment} lang="cs" title="AppHost.cs" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .container {
+    margin: 2rem 0;
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .header {
+    padding: 1.5rem;
+    background: var(--sl-color-bg-nav);
+    text-align: center;
+  }
+
+  .header h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--sl-color-text);
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .header p {
+    margin: 0 0 1.5rem 0;
+    color: var(--sl-color-text-accent);
+    font-size: 0.9rem;
+  }
+
+  .toggles {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+  }
+
+  .toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem;
+    margin: 0;
+    background: var(--sl-color-bg);
+    border: 2px solid var(--sl-color-gray-6);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--sl-color-text);
+    min-height: 4rem;
+    box-sizing: border-box;
+  }
+
+  .toggle:hover {
+    border-color: var(--sl-color-accent-low);
+    background: var(--sl-color-bg-nav);
+    transform: translateY(-1px);
+  }
+
+  .toggle.active {
+    background: var(--sl-color-accent);
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-white);
+  }
+
+  .toggle.frontend {
+    cursor: default;
+  }
+
+  .toggle.frontend:hover {
+    transform: none;
+    border-color: var(--sl-color-accent);
+    background: var(--sl-color-accent);
+  }
+
+  .code-display {
+    padding: 1.5rem;
+    border-top: 1px solid var(--sl-color-border);
+  }
+
+  @media (max-width: 768px) {
+    .toggles {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .toggle {
+      padding: 0.5rem 0.25rem;
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .toggles {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+  }
+</style>
+
+<script type="module" is:inline>
+  document.addEventListener("DOMContentLoaded", () => {
+    const toggleButtons = document.querySelectorAll('.toggle:not(.frontend)');
+    const codeVariants = document.querySelectorAll('.code-variant');
+
+    toggleButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        button.classList.toggle('active');
+        updateCodeDisplay();
+      });
+    });
+
+    function getVariantKey() {
+      const hasDatabase = document.querySelector('.toggle[data-toggle="database"]').classList.contains('active');
+      const hasApi = document.querySelector('.toggle[data-toggle="api"]').classList.contains('active');
+      const hasContainer = document.querySelector('.toggle[data-toggle="container"]').classList.contains('active');
+      const hasDeployment = document.querySelector('.toggle[data-toggle="deployment"]').classList.contains('active');
+
+      let variant = '';
+      
+      // Build variant key based on the actual variant names in the HTML
+      if (hasDatabase) variant += 'database';
+      if (hasApi) variant += 'Api';
+      
+      // Add Frontend (always present, but case matters)
+      if (hasDatabase || hasApi) {
+        variant += 'Frontend';
+      } else {
+        variant += 'frontend'; // lowercase when it's the first part
+      }
+      
+      if (hasContainer) variant += 'Container';
+      if (hasDeployment) variant += 'Deployment';
+
+      console.log('Generated variant:', variant); // Debug logging
+      return variant;
+    }
+
+    function updateCodeDisplay() {
+      const targetVariant = getVariantKey();
+      
+      console.log('Looking for variant:', targetVariant); // Debug logging
+      
+      codeVariants.forEach(variant => {
+        variant.style.display = 'none';
+      });
+      
+      const targetElement = document.querySelector(`[data-variant="${targetVariant}"]`);
+      if (targetElement) {
+        targetElement.style.display = 'block';
+        console.log('Found and displayed variant:', targetVariant); // Debug logging
+      } else {
+        console.warn('Variant not found:', targetVariant); // Debug logging
+        console.log('Available variants:', Array.from(codeVariants).map(v => v.dataset.variant)); // Debug logging
+      }
+    }
+  });
+</script>

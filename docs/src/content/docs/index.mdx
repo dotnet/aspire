@@ -29,10 +29,10 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
 
 <CardGrid stagger>
   <Card title="Code-centric Control" icon="laptop">
-    Define your stack in code—no YAML. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev and deploy, fully wired.
+    Define your stack in code — type-safe, readable, and debuggable. Aspire launches locally, then shifts to real cloud services without changing your architecture. Dev to deploy, fully wired.
   </Card>
   <Card title="Modular and Extensible" icon="puzzle">
-    Orchestrate your existing stack—frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
+    Orchestrate your existing stack — frontends, APIs, containers, databases, and more — without rewriting or replatforming. Extend Aspire for anything.
   </Card>
   <Card title="Observability from the Start" icon="magnifier">
     Logs, traces, health checks—all local, all wired up automatically. OpenTelemetry included with zero setup.
@@ -42,25 +42,25 @@ import { Code, Card, CardGrid, Tabs, TabItem, LinkButton, LinkCard } from '@astr
   </Card>
 </CardGrid>
 
-## Powerful CLI
-
-**Aspire's interactive CLI puts the power of orchestration at your fingertips**—run your entire stack locally with a single command, the dashboard launches on `run` and view resource health in real time, and publish to any environment with ease.
-
-import AsciinemaPlayer from '../../components/AsciinemaPlayer.astro'
-
-<AsciinemaPlayer src="/aspire/casts/aspire-new-run.cast" />
-
 ## Code-centric control
 
-Slide to reveal how defining your stack in C# with Aspire compares to traditional Docker Compose.
+Aspire is modular, composable, and extensible. Configure relationships, deployment options, and dev-time flags in one place.
 
-import ThreeTierAspire from '../../components/ThreeTierAspire.astro';
+import AppHostBuilder from '../../components/AppHostBuilder.astro';
 
-<ThreeTierAspire />
+<AppHostBuilder />
+
+## Local-first, Production-ready
+
+**Aspire is designed to be local-first**, meaning you develop and test your applications on your local machine and Aspire strives to closely mirror production. This approach reduces the "works on my machine" problem and ensures a smoother transition to production.
+
+import LocalVsProdEnvironments from '../../components/LocalVsProdEnvironments.astro';
+
+<LocalVsProdEnvironments />
 
 ## Same model—different environments
 
-**Model your stack in C#—not YAML**, fully type-safe—for seamless development, staging, and production deployments.
+Use Aspire's CLI to spin everything up locally or create deployment artifacts during your CI/CD.
 
 <CardGrid>
   <Card title="Local Development" icon="laptop">
@@ -83,37 +83,12 @@ import ThreeTierAspire from '../../components/ThreeTierAspire.astro';
 
   - Same app structure, deployed where you want
   - Use managed cloud services or your own infra
-  - Works with your pipeline, no code changes required
+  - Works as part of your pipeline, no code changes required
 
   <LinkCard href="/aspire/get-started/installation"
-            title='Aspire CLI — deploy'
+            title='Aspire CLI — publish'
             description='Model your app once—deploy anywhere, from cloud to on-prem.' />
 
-  </Card>
-</CardGrid>
-
-## Local-first, Production-ready
-
-**Aspire is designed to be local-first**, meaning you develop and test your applications on your local machine and Aspire strives to closely mirror production. This approach reduces the "works on my machine" problem and ensures a smoother transition to production.
-
-import LocalVsProdEnvironments from '../../components/LocalVsProdEnvironments.astro';
-
-<LocalVsProdEnvironments />
-
-## Works with your existing CI/CD
-
-**Aspire enhances your pipeline** — it doesn't replace your security scans, linting, or testing. Integrate Aspire deployment into GitHub Actions, Azure DevOps, Jenkins, or any CI/CD system.
-
-<CardGrid>
-  <Card title="What Aspire Adds" icon="approve-check">
-    - **Orchestration**: Manages service connections and configuration
-    - **Local Development**: Consistent dev environment for your team
-    - **Deployment**: Publishes to your target infrastructure
-  </Card>
-  <Card title="What You Keep" icon="seti:lock">
-    - **Security Scanning**: SAST, dependency checks, vulnerability scans
-    - **Quality Gates**: Unit tests, integration tests, code coverage
-    - **Approval Processes**: Manual approvals, staging validations
   </Card>
 </CardGrid>
 
@@ -141,21 +116,6 @@ import IntegrationGrid from '../../components/IntegrationGrid.astro';
 
 Integrate with your favorite cloud services and platforms, or deploy to your own infrastructure. Aspire supports a wide range of integrations, allowing you to build applications that fit your needs.
 
-<CardGrid>
-  <Card title="Azure Integration" icon="external">
-    Azure App Service, Azure SQL, Cosmos DB, Service Bus, Key Vault, and 20+ other services.
-  </Card>
-  <Card title="AWS Integration" icon="external">
-    Amazon ECS, RDS, DynamoDB, SQS, Lambda, and other AWS services through container deployment.
-  </Card>
-  <Card title="Google Cloud & Others" icon="external">
-    Deploy to Google Cloud Run, use managed databases, or connect to any cloud provider.
-  </Card>
-  <Card title="On-Premises & Hybrid" icon="setting">
-    Deploy to your own Kubernetes clusters, Docker Swarm, or hybrid cloud setups.
-  </Card>
-</CardGrid>
-
 ## User testimonials
 
 import TestimonialCarousel from '../../components/TestimonialCarousel.astro';
@@ -180,36 +140,13 @@ Aspire supports a wide range of languages and frameworks, allowing you to build 
   **Any Container**: Docker containers work seamlessly with Aspire orchestration
 </Card>
 
-## Strength in Community
+## Free, open source, and community-first
 
 Aspire thrives on community contributions and feedback. Join our community forums, contribute to the codebase, or simply share your experiences. Together, we can make Aspire even better.
 
-import { ContributorList } from "starlight-contributor-list";
-
-export const ignore = [
-  "github-actions[bot]",
-  "dependabot[bot]",
-  "dependabot",
-  "dotnet-maestro[bot]",
-  "copilot-swe-agent",
-  "microsoftopensource"
-];
-
-import stats from '../../data/github-stats.json';
-
-<ContributorList githubRepo="dotnet/aspire" ignore={ignore} />
-
-## Unbeatable pricing
-
-Aspire is fully open source—no hidden fees, no paywalls, no credit cards required, just powerful orchestration built by and for the community.
-
-import PricingCardGrid from '../../components/PricingCardGrid.astro';
-
-<PricingCardGrid />
-
 ## Ready for liftoff?
 
-Get started with Aspire by installing the CLI for hands-on experience, or dive into the Docs to learn how to model, run, and deploy your applications.
+Get started with Aspire by installing the CLI, then dive into the Docs to learn how to model, run, and deploy your applications.
 
 <CardGrid>
   <LinkCard
