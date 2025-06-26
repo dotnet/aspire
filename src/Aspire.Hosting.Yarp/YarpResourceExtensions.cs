@@ -47,20 +47,23 @@ public static class YarpResourceExtensions
         // Map the configuration file
         yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
+            // Call all th config delegate
             var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
             foreach (var configurator in yarpBuilder.Resource.ConfigurationBuilderDelegates)
             {
                 configurator(configBuilder);
             }
+            // Add all routes and cluster to the json config generator
             foreach (var route in configBuilder.Routes)
             {
-                yarpBuilder.Resource.ConfigurationBuilder.AddRoute(route.RouteConfig);
+                yarpBuilder.Resource.JsonConfigGenerator.AddRoute(route.RouteConfig);
             }
             foreach (var destination in configBuilder.Clusters)
             {
-                yarpBuilder.Resource.ConfigurationBuilder.AddCluster(destination.ClusterConfig);
+                yarpBuilder.Resource.JsonConfigGenerator.AddCluster(destination.ClusterConfig);
             }
-            var contents = await yarpBuilder.Resource.ConfigurationBuilder.Build(ct).ConfigureAwait(false);
+            // Generate the json content
+            var contents = await yarpBuilder.Resource.JsonConfigGenerator.Build(ct).ConfigureAwait(false);
 
             var configFile = new ContainerFile
             {
@@ -82,7 +85,7 @@ public static class YarpResourceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
     {
-        builder.Resource.ConfigurationBuilder.WithConfigFile(configFilePath);
+        builder.Resource.JsonConfigGenerator.WithConfigFile(configFilePath);
         return builder;
     }
 
@@ -92,9 +95,9 @@ public static class YarpResourceExtensions
     /// <param name="builder">The YARP resource to configure.</param>
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigurationBuilder> configurationBuilder)
+    internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigGeneratorBuilder> configurationBuilder)
     {
-        configurationBuilder(builder.Resource.ConfigurationBuilder);
+        configurationBuilder(builder.Resource.JsonConfigGenerator);
         return builder;
     }
 
