@@ -71,7 +71,15 @@
     </ItemGroup>
     <Copy SourceFiles="@(_SdkCurrentFile)" DestinationFolder="$(SdkDirForCurrentAndPreviousTFM)\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
-    <!-- 3. Install previous runtimes -->
+    <!-- 3. Install both current runtimes (.NET 9) and previous runtimes (.NET 8) -->
+    <Exec Condition="'%(CurrentRuntimeToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="$(_DotNetInstallScriptPath) -InstallDir $(SdkDirForCurrentAndPreviousTFM) -SkipNonVersionedFiles %(CurrentRuntimeToInstallArguments.Identity)" />
+
+    <Exec Condition="'%(CurrentRuntimeToInstallArguments.Identity)' != '' and $([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(SdkDirForCurrentAndPreviousTFM) -SkipNonVersionedFiles %(CurrentRuntimeToInstallArguments.Identity)"' />
+
     <Exec Condition="'%(PreviousRuntimeToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
           Command="$(_DotNetInstallScriptPath) -InstallDir $(SdkDirForCurrentAndPreviousTFM) -SkipNonVersionedFiles %(PreviousRuntimeToInstallArguments.Identity)" />
