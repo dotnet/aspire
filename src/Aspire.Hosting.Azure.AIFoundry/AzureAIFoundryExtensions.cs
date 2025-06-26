@@ -104,24 +104,20 @@ public static class AzureAIFoundryExtensions
         var resource = builder.Resource;
         resource.Annotations.Add(new EmulatorResourceAnnotation());
 
-        var resourceBuilder = builder.ApplicationBuilder
-            .CreateResourceBuilder(resource);
+        builder.ApplicationBuilder.Services.AddSingleton<FoundryLocalManager>();
 
-        resourceBuilder.ApplicationBuilder.Services.AddSingleton<FoundryLocalManager>();
-
-        resourceBuilder
-            .WithInitializer();
+        builder.WithInitializer();
 
         foreach (var deployment in resource.Deployments)
         {
-            var deploymentBuilder = resourceBuilder.ApplicationBuilder
+            var deploymentBuilder = builder.ApplicationBuilder
                 .CreateResourceBuilder(deployment);
 
             deploymentBuilder.AsLocalDeployment(deployment);
         }
 
         var healthCheckKey = $"{resource.Name}_check";
-        resourceBuilder.ApplicationBuilder.Services.AddHealthChecks()
+        builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
                     sp => new FoundryLocalHealthCheck(sp.GetRequiredService<FoundryLocalManager>()),
@@ -130,9 +126,9 @@ public static class AzureAIFoundryExtensions
                     timeout: default
                     ));
 
-        resourceBuilder.WithHealthCheck(healthCheckKey);
+        builder.WithHealthCheck(healthCheckKey);
 
-        return resourceBuilder;
+        return builder;
     }
 
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
