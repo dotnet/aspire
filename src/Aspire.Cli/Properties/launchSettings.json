@@ -53,6 +53,14 @@
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
+    },
+    "exec-database-from-terminal": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project D:\\code\\aspire\\tests\\TestingAppHost1\\TestingAppHost1.AppHost\\TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres -- dotnet ef database update",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
     }
   }
 }

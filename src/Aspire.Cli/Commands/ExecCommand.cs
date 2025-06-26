@@ -25,7 +25,7 @@ internal class ExecCommand : BaseCommand
     private readonly AspireCliTelemetry _telemetry;
 
     public ExecCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
-        : base("exec", "description") // TODO localize
+        : base("exec", ExecCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -42,19 +42,19 @@ internal class ExecCommand : BaseCommand
         _telemetry = telemetry;
 
         var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = "apphost project"; // TODO localize
+        projectOption.Description = ExecCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
 
         var resourceOption = new Option<string>("--resource", "-r");
-        resourceOption.Description = "target resource"; // TODO localize
+        resourceOption.Description = ExecCommandStrings.TargetResourceArgumentDescription;
         Options.Add(resourceOption);
 
-        var startResourceOption = new Option<string>("--start-resource");
-        startResourceOption.Description = "target resource"; // TODO localize
+        var startResourceOption = new Option<string>("--start-resource", "-s");
+        startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
         Options.Add(startResourceOption);
 
         var appHostKeepAliveOption = new Option<bool>("--apphost-keepalive", "-k");
-        appHostKeepAliveOption.Description = "keep the apphost alive"; // TODO localize
+        appHostKeepAliveOption.Description = ExecCommandStrings.AppHostKeepAliveArgumentDescription;
         Options.Add(appHostKeepAliveOption);
 
         TreatUnmatchedTokensAsErrors = false;
