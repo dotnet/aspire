@@ -7,7 +7,6 @@ using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
-using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
@@ -218,8 +217,8 @@ internal class ExtensionInteractionService : IInteractionService
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken)));
     }
 
-    public void WriteConsoleLog(string message, LogLevel logLevel = LogLevel.Information)
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
-        _consoleInteractionService.WriteConsoleLog(message, logLevel);
+        _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
     }
 }

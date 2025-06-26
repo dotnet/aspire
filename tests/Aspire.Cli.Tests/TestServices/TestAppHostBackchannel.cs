@@ -240,6 +240,6 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-        yield return new CommandOutput { Text = "test", LogLevel = Microsoft.Extensions.Logging.LogLevel.Information };
+        yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
     }
 }

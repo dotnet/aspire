@@ -177,18 +177,9 @@ internal class AppHostRpcTarget(
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
-        await foreach (var logLines in logsStream.ConfigureAwait(false))
+        await foreach (var commandOutput in logsStream.ConfigureAwait(false))
         {
-            foreach (var logLine in logLines)
-            {
-                yield return new CommandOutput
-                {
-                    LogLevel = logLine.IsErrorMessage ? LogLevel.Error : LogLevel.Information,
-                    Text = logLine.Content,
-                    LineNumber = logLine.LineNumber
-                };
-            }
-            ;
+            yield return commandOutput;
         }
     }
 

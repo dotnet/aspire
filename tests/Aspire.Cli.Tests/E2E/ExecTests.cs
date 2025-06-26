@@ -11,6 +11,7 @@ using Projects;
 using Xunit;
 using Aspire.Hosting.Backchannel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Tests.E2E;
 
@@ -61,7 +62,7 @@ public class ExecTests(ITestOutputHelper output)
         string[] args = [
             "--operation", "exec", // EXEC type
             "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--start-resource", "mywebapp1", // target resource
+            "--resource", "mywebapp1", // target resource
             "--command", "\"dotnet ef database update\"", // command packed into string
             "--add-postgres", // arbitraty flags for apphost
         ];
@@ -102,7 +103,8 @@ public class ExecTests(ITestOutputHelper output)
         var startTask = app.StartAsync(CancellationToken.None);
         await foreach (var message in outputStream)
         {
-            output.WriteLine($"Received output: #{message.LineNumber} [{message.LogLevel}] {message.Text}");
+            var logLevel = message.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
+            output.WriteLine($"Received output: #{message.LineNumber} [level={logLevel}] [type={message.Type}] {message.Text}");
         }
 
         await startTask;

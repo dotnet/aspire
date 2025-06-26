@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Logging;
-
 namespace Aspire.Hosting.Backchannel;
 
 /// <summary>
@@ -135,9 +133,14 @@ internal static class CompletionStates
     public const string CompletedWithError = "CompletedWithError";
 }
 
-internal sealed class CommandOutput
+internal struct CommandOutput
 {
     public required string Text { get; init; }
-    public required LogLevel LogLevel { get; init; }
-    public int LineNumber { get; init; }
+    public bool IsErrorMessage { get; init; }
+    public int? LineNumber { get; init; }
+    /// <summary>
+    /// Additional info about type of the message.
+    /// Should be used for controlling the display style.
+    /// </summary>
+    public string? Type { get; init; }
 }

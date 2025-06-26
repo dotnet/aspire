@@ -161,7 +161,7 @@ internal class ExecCommand : BaseCommand
                     var outputStream = backchannel.ExecAsync(cancellationToken);
                     await foreach (var output in outputStream)
                     {
-                        _interactionService.WriteConsoleLog(output.Text, output.LogLevel);
+                        _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
                     }
 
                     return ExitCodeConstants.Success;
@@ -192,9 +192,6 @@ internal class ExecCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
-            _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
-
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }

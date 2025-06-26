@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -41,7 +42,7 @@ internal class ExecResourceManager : BackgroundService
         _resourceNotificationService = resourceNotificationService ?? throw new ArgumentNullException(nameof(resourceNotificationService));
     }
 
-    public async IAsyncEnumerable<IReadOnlyList<LogLine>> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<CommandOutput> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (!_execOptions.Enabled)
         {
@@ -53,6 +54,16 @@ internal class ExecResourceManager : BackgroundService
             yield break;
         }
 
+        string type = "waiting";
+
+        // wait for the exec resource to be running
+        _ = Task.Run(async () =>
+        {
+            await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetState: KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
+            type = "running";
+        }, cancellationToken);
+
+        // wait for the exec resource to reach terminal state
         _ = Task.Run(async () =>
         {
             await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
@@ -61,7 +72,16 @@ internal class ExecResourceManager : BackgroundService
         
         await foreach (var logs in _resourceLoggerService.WatchAsync(_dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            yield return logs;
+            foreach (var log in logs)
+            {
+                yield return new CommandOutput
+                {
+                    Text = log.Content,
+                    IsErrorMessage = log.IsErrorMessage,
+                    LineNumber = log.LineNumber,
+                    Type = type
+                };
+            }
         }
     }
 
