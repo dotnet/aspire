@@ -47,7 +47,7 @@ public static class YarpResourceExtensions
         // Map the configuration file
         yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
-            // Call all th config delegate
+            // Call all the config delegates
             var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
             foreach (var configurator in yarpBuilder.Resource.ConfigurationBuilderDelegates)
             {
