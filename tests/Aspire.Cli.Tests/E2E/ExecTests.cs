@@ -61,7 +61,7 @@ public class ExecTests(ITestOutputHelper output)
         string[] args = [
             "--operation", "exec", // EXEC type
             "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--resource", "mywebapp1", // target resource
+            "--start-resource", "mywebapp1", // target resource
             "--command", "\"dotnet ef database update\"", // command packed into string
             "--add-postgres", // arbitraty flags for apphost
         ];

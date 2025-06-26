@@ -23,8 +23,6 @@ internal class ExecResourceManager : BackgroundService
     private string? _dcpExecResourceName;
     private IResource? _execResource;
 
-    private static bool RunningInExecMode => true; // todo
-
     public ExecResourceManager(
         ILogger<ExecResourceManager> logger,
         IOptions<ExecOptions> execOptions,
@@ -45,7 +43,7 @@ internal class ExecResourceManager : BackgroundService
 
     public async IAsyncEnumerable<IReadOnlyList<LogLine>> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (!RunningInExecMode)
+        if (!_execOptions.Enabled)
         {
             yield break;
         }
@@ -69,7 +67,7 @@ internal class ExecResourceManager : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!RunningInExecMode)
+        if (!_execOptions.Enabled)
         {
             return Task.CompletedTask;
         }
@@ -125,11 +123,8 @@ internal class ExecResourceManager : BackgroundService
         }
 
         // take all applicable annotations from target resource to replicate the environment
-        foreach (var annotation in project.Annotations
-            .Where(x => x is EnvironmentAnnotation
-                or EnvironmentCallbackAnnotation
-                or ResourceRelationshipAnnotation)
-        )
+        foreach (var annotation in project.Annotations.Where(annotation =>
+            annotation is EnvironmentAnnotation or EnvironmentCallbackAnnotation or ResourceRelationshipAnnotation))
         {
             executable.Annotations.Add(annotation);
         }
@@ -142,10 +137,12 @@ internal class ExecResourceManager : BackgroundService
 
         // in order to properly watch logs of the resource we need a dcp name, not the app-host model name,
         // so we need to prepare the DCP instances annotation as is done for any resource added to the DistributedApplicationBuilder
-        var (name, suffix) = _dcpNameGenerator.GetExecutableName(executable);
-        executable.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance(name, suffix, 0)]));
+        var (dcpResourceName, suffix) = _dcpNameGenerator.GetExecutableName(executable);
+        executable.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance(dcpResourceName, suffix, 0)]));
 
-        return (executable, name);
+        _logger.LogInformation("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", dcpResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
+
+        return (executable, dcpResourceName);
 
         (string exe, string[] args) ParseCommand()
         {

@@ -503,13 +503,32 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
-            { "--operation", "Exec:Operation" },
+            { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
+            { "--start-resource", "Exec:ResourceName" },
             { "--command", "Exec:Command" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        var execOptions = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
-        _innerBuilder.Services.Configure<ExecOptions>(execOptions);
+
+        var execOptionsSection = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
+        _innerBuilder.Services.Configure<ExecOptions>(execOptionsSection);
+        _innerBuilder.Services.PostConfigure<ExecOptions>(execOptions =>
+        {
+            if (options.Args is null || !options.Args.Any())
+            {
+                return;
+            }
+
+            if (_innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() == "exec")
+            {
+                execOptions.Enabled = true;
+            }
+
+            if (options.Args.Contains("--start-resource"))
+            {
+                execOptions.StartResource = true;
+            }
+        });
     }
 
     /// <inheritdoc />

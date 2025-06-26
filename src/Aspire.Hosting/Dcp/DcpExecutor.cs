@@ -754,6 +754,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         }
     }
 
+    /// <summary>
+    /// Makes sure all application model resources are represented in the resource state.
+    /// </summary>
     private void RefreshModelResources()
     {
         foreach (var res in _model.Resources)
