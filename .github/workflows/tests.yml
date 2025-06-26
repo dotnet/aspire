@@ -92,7 +92,7 @@ jobs:
         with:
           name: build_packages_logs
           path: artifacts/log
-        condition: failure()
+        if: failure()
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
