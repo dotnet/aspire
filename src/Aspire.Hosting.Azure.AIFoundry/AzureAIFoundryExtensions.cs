@@ -33,8 +33,7 @@ public static class AzureAIFoundryExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureAIFoundryResource(name, ConfigureInfrastructure);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.AddResource(resource);
     }
 
     /// <summary>
