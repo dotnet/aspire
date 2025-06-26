@@ -21,7 +21,7 @@ public partial class InteractionsInputDialog
     private EditContext _editContext = default!;
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
-    private Dictionary<InputViewModel, FluentComponentBase> _elementRefs = default!;
+    private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
 
     protected override void OnInitialized()
     {
@@ -40,6 +40,15 @@ public partial class InteractionsInputDialog
         {
             _content = Content;
             _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
+
+            // Initialize keys for @ref binding.
+            // Do this in case Blazor tries to get the element from the dictionary.
+            // If the input view model isn't in the dictionary then it will throw a KeyNotFoundException.
+            _elementRefs.Clear();
+            foreach (var inputVM in _inputDialogInputViewModels)
+            {
+                _elementRefs[inputVM] = null;
+            }
 
             AddValidationErrorsFromModel();
 
