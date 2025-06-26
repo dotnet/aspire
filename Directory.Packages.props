@@ -84,6 +84,7 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="17.0.4" />
     <PackageVersion Include="JsonPatch.Net" Version="3.3.0" />
+    <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="0.1.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.9" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.9" />
