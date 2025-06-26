@@ -25,8 +25,8 @@ public class YarpCluster
     /// Construct a new YarpCluster targeting the resource in parameter.
     /// </summary>
     /// <param name="resource">The resource to target.</param>
-    public YarpCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
-        : this(resource.Resource.Name, BuildEndpointUri(resource.Resource))
+    public YarpCluster(IResourceWithServiceDiscovery resource)
+        : this(resource.Name, BuildEndpointUri(resource))
     {
     }
 
