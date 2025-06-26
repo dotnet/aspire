@@ -1,7 +1,7 @@
 [
   {
     "name": "dotnet/aspire",
-    "stars": 4601,
+    "stars": 4605,
     "description": "Tools, templates, and packages to accelerate building observable, production-ready apps",
     "license": "https://github.com/dotnet/aspire/blob/main/LICENSE.TXT",
     "licenseName": "MIT License",
@@ -9,7 +9,7 @@
   },
   {
     "name": "dotnet/aspire-samples",
-    "stars": 956,
+    "stars": 958,
     "description": null,
     "license": "https://github.com/dotnet/aspire-samples/blob/main/LICENSE",
     "licenseName": "MIT License",

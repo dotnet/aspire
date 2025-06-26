@@ -39,14 +39,16 @@ const { src, poster = 'npt:0:4' } = Astro.props;
 
                         create(src, container, {
                             autoplay: false,
+                            fit: "none",
+                            idleTimeLimit: 1.5,
                             loop: true,
                             poster: poster || undefined,
-                            fit: "none",
                             preload: true,
-                            terminalFontSize: '1.2rem',
                             rows: 15,
+                            speed: 1.5,
                             terminalFontFamily: 'var(--__sl-font-mono)',
-                            theme: theme
+                            terminalFontSize: 'var(--ec-codeFontSize)',
+                            theme: theme,
                         });
                     }
                 });
