@@ -1,0 +1,119 @@
+﻿@page "/external-services"
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@attribute [StreamRendering]
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>External Services</PageTitle>
+
+<h1>External Services</h1>
+
+<p>This component demonstrates communicating with external services.</p>
+
+<p>
+    <strong>NuGet API version: </strong>
+    @if (nugetApiVersion == null)
+    {
+        <em>loading...</em>
+    }
+    else
+    {
+         @nugetApiVersion
+    }
+</p>
+
+<p><strong>Response from @externalServiceUrl: </strong> 
+@if (externalServiceStatus == null)
+{
+    <em>loading...</em>
+}
+else
+{
+    @externalServiceStatus
+}
+</p>
+
+@code {
+    private string? externalServiceUrl;
+    private string? nugetApiVersion;
+    private int? externalServiceStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var externalServiceClient = HttpClientFactory.CreateClient("external-service");
+        externalServiceUrl = externalServiceClient.BaseAddress?.ToString();
+        var externalServiceTask = GetExternalServiceStatus(externalServiceClient);
+
+        var nugetClient = HttpClientFactory.CreateClient("nuget");
+        var nugetTask = GetNuGetVersion(nugetClient);
+
+        await Task.WhenAll(nugetTask, externalServiceTask);
+    }
+
+    private async Task GetExternalServiceStatus(HttpClient client)
+    {
+        try
+        {
+            var response = await client.GetAsync("/");
+            externalServiceStatus = (int)response.StatusCode;
+        }
+        catch (Exception ex)
+        {
+            nugetApiVersion = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task GetNuGetVersion(HttpClient client)
+    {
+        try
+        {
+            var response = await client.GetAsync("/v3/index.json");
+            response.EnsureSuccessStatusCode();
+
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+
+            nugetApiVersion = await GetPropertyValueAsync(contentStream, "version");
+        }
+        catch (Exception ex)
+        {
+            nugetApiVersion = $"Error: {ex.Message}";
+        }
+    }
+
+    public static async Task<string?> GetPropertyValueAsync(Stream jsonStream, string propertyName)
+    {
+        // Parse the JSON asynchronously until we get the version property
+        var buffer = new byte[256];
+        int bytesRead;
+        var jsonReaderState = new JsonReaderState();
+
+        while ((bytesRead = await jsonStream.ReadAsync(buffer)) > 0)
+        {
+            var span = new ReadOnlySpan<byte>(buffer, 0, bytesRead);
+            var reader = new Utf8JsonReader(span, isFinalBlock: false, state: jsonReaderState);
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals(propertyName))
+                {
+                    // Read the next token to get the value
+                    if (!reader.Read())
+                    {
+                        throw new JsonException("Unexpected end after 'version' property.");
+                    }
+
+                    if (reader.TokenType != JsonTokenType.String && reader.TokenType != JsonTokenType.Number)
+                    {
+                        throw new JsonException($"Unexpected token type for 'version': {reader.TokenType}");
+                    }
+
+                    return reader.GetString();
+                }
+            }
+
+            jsonReaderState = reader.CurrentState;
+        }
+
+        return null; // "version" not found
+    }
+}
