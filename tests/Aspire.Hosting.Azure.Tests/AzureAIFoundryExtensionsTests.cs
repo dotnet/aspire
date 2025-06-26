@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,9 +85,14 @@ public class AzureAIFoundryExtensionsTests
 
         await app.StartAsync(cts.Token);
 
-        var foundryManger = app.Services.GetRequiredService<FoundryLocalManager>();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        Assert.Equal(foundryManger.ApiKey, localResource.ApiKey);
+        // Wait until it's not in Starting state anymore (started or failed wether the Foundry Local service is setup or not)
+        await rns.WaitForResourceAsync(resource.Name, [KnownResourceStates.FailedToStart, KnownResourceStates.Running], cts.Token);
+
+        var foundryManager = app.Services.GetRequiredService<FoundryLocalManager>();
+
+        Assert.Equal(foundryManager.ApiKey, localResource.ApiKey);
     }
 
     [Fact]
