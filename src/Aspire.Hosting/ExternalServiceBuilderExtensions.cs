@@ -25,12 +25,12 @@ public static class ExternalServiceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(url);
 
-        if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             throw new ArgumentException($"The URL '{url}' is not a valid absolute URI.", nameof(url));
         }
 
-        return AddExternalServiceCore(builder, name, url);
+        return AddExternalServiceCore(builder, name, uri);
     }
 
     /// <summary>
@@ -52,38 +52,38 @@ public static class ExternalServiceBuilderExtensions
             throw new ArgumentException("The URI for the external service must be absolute.", nameof(uri));
         }
 
-        return AddExternalServiceCore(builder, name, uri.ToString());
+        return AddExternalServiceCore(builder, name, uri);
     }
 
-    /// <summary>
-    /// Adds an external service resource to the distributed application with the specified URL expression.
-    /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="urlExpression">The URL expression for the external service.</param>
-    /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression urlExpression)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(urlExpression);
+    ///// <summary>
+    ///// Adds an external service resource to the distributed application with the specified URL expression.
+    ///// </summary>
+    ///// <param name="builder">The distributed application builder.</param>
+    ///// <param name="name">The name of the resource.</param>
+    ///// <param name="urlExpression">The URL expression for the external service.</param>
+    ///// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
+    //public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression urlExpression)
+    //{
+    //    ArgumentNullException.ThrowIfNull(builder);
+    //    ArgumentNullException.ThrowIfNull(name);
+    //    ArgumentNullException.ThrowIfNull(urlExpression);
 
-        // For expressions, we'll store the expression format as the URL
-        // The actual URL will be resolved at runtime through the expression
-        var url = urlExpression.ValueExpression;
-        var resource = new ExternalServiceResource(name, url);
+    //    // For expressions, we'll store the expression format as the URL
+    //    // The actual URL will be resolved at runtime through the expression
+    //    var url = urlExpression.ValueExpression;
+    //    var resource = new ExternalServiceResource(name, url);
         
-        return builder.AddResource(resource)
-                      .WithReferenceRelationship(urlExpression)
-                      .WithInitialState(new CustomResourceSnapshot
-                      {
-                          ResourceType = "ExternalService",
-                          Properties = [],
-                          State = "Starting"
-                      })
-                      .WithExternalServiceEndpoints(urlExpression)
-                      .WithHttpHealthCheck();
-    }
+    //    return builder.AddResource(resource)
+    //                  .WithReferenceRelationship(urlExpression)
+    //                  .WithInitialState(new CustomResourceSnapshot
+    //                  {
+    //                      ResourceType = "ExternalService",
+    //                      Properties = [],
+    //                      State = "Starting"
+    //                  })
+    //                  .WithExternalServiceEndpoints(urlExpression)
+    //                  .WithHttpHealthCheck();
+    //}
 
     /// <summary>
     /// Adds an external service resource to the distributed application with a parameterized URL.
@@ -102,19 +102,19 @@ public static class ExternalServiceBuilderExtensions
                 parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault)));
     }
 
-    private static IResourceBuilder<ExternalServiceResource> AddExternalServiceCore(IDistributedApplicationBuilder builder, string name, string url)
+    private static IResourceBuilder<ExternalServiceResource> AddExternalServiceCore(IDistributedApplicationBuilder builder, string name, Uri uri)
     {
-        var resource = new ExternalServiceResource(name, url);
+        var resource = new ExternalServiceResource(name, uri);
         
         return builder.AddResource(resource)
                       .WithInitialState(new CustomResourceSnapshot
                       {
                           ResourceType = "ExternalService",
-                          Properties = [],
-                          State = "Starting"
+                          Properties = []
                       })
                       .WithExternalServiceEndpoints()
-                      .WithHttpHealthCheck();
+                      .WithHttpHealthCheck()
+                      .ExcludeFromManifest();
     }
 
     private static string GetParameterValue(Microsoft.Extensions.Configuration.ConfigurationManager configuration, string name, ParameterDefault? parameterDefault)
@@ -128,65 +128,63 @@ public static class ExternalServiceBuilderExtensions
     /// <summary>
     /// Configures the external service to provide endpoints for service discovery and endpoint references.
     /// </summary>
-    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoints(this IResourceBuilder<ExternalServiceResource> builder, ReferenceExpression? urlExpression = null)
+    private static IResourceBuilder<ExternalServiceResource> WithExternalServiceEndpoints(this IResourceBuilder<ExternalServiceResource> builder)
     {
         var resource = builder.Resource;
-        var url = resource.Url;
-        
-        // Determine the scheme from the URL
-        var scheme = "http"; // default
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            scheme = uri.Scheme;
-        }
-        
+        var uri = resource.Uri;
+
         // Add a default endpoint annotation that represents the external service
-        // This allows GetEndpoint() to work and enables endpoint references
-        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, isProxied: false);
-        
+        // This allows GetEndpoint() to work and enables endpoint references & HTTP health checks
+        var endpointAnnotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: uri.Scheme, targetPort: uri.Port, isProxied: false)
+        {
+            TargetHost = uri.Host,
+        };
+
         // Create the allocated endpoint immediately from the URL
-        AllocatedEndpoint allocatedEndpoint;
-        
-        if (urlExpression != null)
-        {
-            // For parameterized URLs, use placeholder values that will be resolved at runtime
-            var placeholderHost = "external.service";
-            var defaultPort = scheme.ToLowerInvariant() switch
-            {
-                "https" => 443,
-                "http" => 80,
-                "ftp" => 21,
-                "ws" => 80,
-                "wss" => 443,
-                _ => 80
-            };
-            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, placeholderHost, defaultPort);
-        }
-        else if (Uri.TryCreate(url, UriKind.Absolute, out var serviceUri))
-        {
-            // For literal URLs, extract the actual host and port
-            var host = serviceUri.Host;
-            var port = serviceUri.Port;
-            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, host, port);
-        }
-        else
-        {
-            // Fallback for invalid URLs
-            allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
-        }
-        
+        //var allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, uri.Host, uri.Port);
+
+        //if (urlExpression != null)
+        //{
+        //    // For parameterized URLs, use placeholder values that will be resolved at runtime
+        //    var placeholderHost = "external.service";
+        //    var defaultPort = scheme.ToLowerInvariant() switch
+        //    {
+        //        "https" => 443,
+        //        "http" => 80,
+        //        "ftp" => 21,
+        //        "ws" => 80,
+        //        "wss" => 443,
+        //        _ => 80
+        //    };
+        //    allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, placeholderHost, defaultPort);
+        //}
+        //else if (Uri.TryCreate(url, UriKind.Absolute, out var serviceUri))
+        //{
+        //    // For literal URLs, extract the actual host and port
+        //    var host = serviceUri.Host;
+        //    var port = serviceUri.Port;
+        //    allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, host, port);
+        //}
+        //else
+        //{
+        //    // Fallback for invalid URLs
+        //    allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "external.service", 80);
+        //}
+
         // Assign the allocated endpoint immediately
-        endpointAnnotation.AllocatedEndpoint = allocatedEndpoint;
-        
+        //endpointAnnotation.AllocatedEndpoint = allocatedEndpoint;
+
         builder.WithAnnotation(endpointAnnotation);
 
         // Subscribe to the InitializeResourceEvent to publish the ResourceEndpointsAllocatedEvent when the resource is initialized
         builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(resource, async (e, ct) =>
         {
-            if (e.Resource == resource)
+            var resource = e.Resource as ExternalServiceResource;
+            if (resource is not null)
             {
-                // Publish the ResourceEndpointsAllocatedEvent to indicate endpoints have been allocated
-                await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(resource, e.Services), ct).ConfigureAwait(false);
+                var allocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, resource.Uri.Host, resource.Uri.Port);
+                endpointAnnotation.AllocatedEndpoint = allocatedEndpoint;
+                await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(e.Resource, e.Services), ct).ConfigureAwait(false);
             }
         });
 
