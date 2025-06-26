@@ -42,5 +42,11 @@
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
+
+    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
+    <ItemGroup>
+      <DirectoriesToRemove Include="$(XlfLanguages)" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
   </Target>
 </Project>
