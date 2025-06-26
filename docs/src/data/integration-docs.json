@@ -1,4 +1,4 @@
 [
-    { "match": "rabbitmq", "href": "../rabbitmq" },
-    { "match": "postgres", "href": "../postgres" }
+    { "match": "rabbitmq", "href": "/aspire/integrations/rabbitmq" },
+    { "match": "postgres", "href": "/aspire/integrations/postgres" }
 ]

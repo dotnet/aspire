@@ -56,3 +56,13 @@ Under-the-hood, every integration is either a **Container** or **Executable**, m
 ## Reusable App Topology
 
 When you compose your distributed app in Aspire's **AppHost**, you're not just defining services for local development and orchestration—you're also setting up the foundation for deployment. The same composition you use to run and debug locally is leveraged when you publish your app, ensuring consistency from development through to production. Likewise, Aspire doesn't get in the way of your existing deployment workflows.
+
+Continuing from the three-tier architecture example, you can deploy the same app topology to various environments, whether it's a local machine, a cloud provider, or your own servers. Consider the following table that illustrates how the same resources can be deployed across different platforms:
+
+| Resource | Local | Azure | AWS |
+|-|-|-|-|
+| Frontend | `npm run dev` | Container Apps | ECS or App Runner |
+| API Service | `dotnet run --project ../<API_PROJECT_NAME>.csproj` | Azure Container Apps | ECS or Lambda |
+| Database | `docker create & docker start` | Azure Database for Postgres | RDS or Aurora |
+
+Aspire's deployment capabilities are flexible and extensible, allowing you to adapt to your preferred infrastructure. Aspire doesn't get in the way of your existing deployment workflows, so you can continue using your favorite tools and services.
