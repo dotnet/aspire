@@ -51,7 +51,7 @@ public static class YarpResourceExtensions
             {
                 yarpBuilder.Resource.ConfigurationBuilder.AddRoute(route.RouteConfig);
             }
-            foreach (var destination in yarpBuilder.Resource.Destinations)
+            foreach (var destination in yarpBuilder.Resource.Clusters)
             {
                 yarpBuilder.Resource.ConfigurationBuilder.AddCluster(destination.ClusterConfig);
             }
