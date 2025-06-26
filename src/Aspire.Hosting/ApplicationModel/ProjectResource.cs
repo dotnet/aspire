@@ -3,10 +3,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Exec;
-using Microsoft.Extensions.Logging;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -40,49 +36,5 @@ public class ProjectResource(string name)
         return !Annotations.OfType<EndpointEnvironmentInjectionFilterAnnotation>()
             .Select(a => a.Filter)
             .Any(f => !f(endpoint));
-    }
-
-    /// <inheritdoc />
-    public async Task ExecuteAsync(ExecOptions options, ILogger logger, CancellationToken cancellationToken)
-    {
-        var projectMetadata = this.GetProjectMetadata();
-
-        var (exe, args) = ParseCommand();
-        // var env = await BuildEnvironmentAsync().ConfigureAwait(false);
-        var env = new Dictionary<string, string>();
-
-        var processSpec = new ProcessSpec(exe)
-        {
-            Arguments = args,
-            EnvironmentVariables = env,
-            WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath),
-            OnOutputData = data => logger.Log(LogLevel.Information, data),
-            OnErrorData = data => logger.Log(LogLevel.Error, data)
-        };
-
-        int exitCode = -1;
-        try
-        {
-            var (processResultTask, disposable) = ProcessUtil.Run(processSpec);
-            var result = await processResultTask.ConfigureAwait(false);
-            exitCode = result.ExitCode;
-            
-            await disposable.DisposeAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Command {command} failed", options.Command);
-        }
-        finally
-        {
-            logger.LogInformation("exec '{command}' finished with exitCode {exitCode}", options.Command, exitCode);
-        }
-        
-
-        (string exe, string args) ParseCommand()
-        {
-            var split = options.Command.Split(' ', count: 2);
-            return (split[0].Trim('"'), split[1].Trim('"'));
-        }
     }
 }

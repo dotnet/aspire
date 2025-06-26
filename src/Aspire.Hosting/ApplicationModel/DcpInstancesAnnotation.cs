@@ -8,20 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Keep track of instances from DCP.
 /// </summary>
-internal class DcpInstancesAnnotation : IResourceAnnotation
+internal class DcpInstancesAnnotation(ImmutableArray<DcpInstance> instances) : IResourceAnnotation
 {
-    public ImmutableArray<DcpInstance> Instances { get; }
-
-    public DcpInstancesAnnotation(ImmutableArray<DcpInstance> instances)
-    {
-        Instances = instances;
-    }
-
-    public DcpInstancesAnnotation WithDifferentResourceName(string resourceName)
-    {
-        var updatedInstances = Instances.Select(instance => new DcpInstance(resourceName + "-" + instance.Suffix, instance.Suffix, instance.Index)).ToImmutableArray();
-        return new DcpInstancesAnnotation(updatedInstances);
-    }
+    public ImmutableArray<DcpInstance> Instances => instances;
 }
 
 internal sealed record DcpInstance(string Name, string Suffix, int Index);

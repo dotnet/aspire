@@ -13,15 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(
-    ILogger<DistributedApplicationRunner> logger,
-    IHostApplicationLifetime lifetime,
-    DistributedApplicationExecutionContext executionContext,
-    DistributedApplicationModel model,
-    IServiceProvider serviceProvider,
-    IPublishingActivityProgressReporter activityReporter,
-    IDistributedApplicationEventing eventing,
-    BackchannelService backchannelService) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
