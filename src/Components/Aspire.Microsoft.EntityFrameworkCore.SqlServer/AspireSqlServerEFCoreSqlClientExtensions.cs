@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
