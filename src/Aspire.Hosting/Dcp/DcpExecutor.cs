@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -753,14 +754,15 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
-                var hostname = Environment.MachineName;
+                var (targetHost, bindingMode) = NormalizeTargetHost(sp.EndpointAnnotation.TargetHost);
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.TargetHost.Replace("0.0.0.0", hostname).Replace("[::]", hostname).Replace("::", hostname),
+                    targetHost,
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
-                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
+                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                    bindingMode: bindingMode);
             }
         }
     }
@@ -793,7 +795,15 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
-                svc.Spec.Address = endpoint.TargetHost;
+                if (string.Equals("localhost", endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
+                {
+                    svc.Spec.Address = "localhost";
+                }
+                else
+                {
+                    svc.Spec.Address = endpoint.TargetHost;
+                }
+
                 if (!endpoint.IsProxied)
                 {
                     svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
@@ -1442,7 +1452,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
-            spAnn.Address = ea.TargetHost;
+            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost, ea.IsProxied);
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1456,6 +1466,56 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
             return false;
         }
+    }
+
+    private static string NormalizeServiceProducerTargetHost(string targetHost, bool isProxied)
+    {
+        // When proxied, the individual services are always bound to localhost even if the proxy
+        // is bound to different addresses.
+        if (isProxied)
+        {
+            return "localhost";
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(targetHost) || string.Equals(targetHost, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                return "localhost";
+            }
+            else if (IPAddress.TryParse(targetHost, out _))
+            {
+                // Use an IP address as is
+                return targetHost;
+            }
+            else
+            {
+                // Use 0.0.0.0 if the target host is not a valid IP address or hostname
+                return IPAddress.Any.ToString();
+            }
+        }
+    }
+
+    private static (string, EndpointBindingMode) NormalizeTargetHost(string targetHost)
+    {
+        if (string.Equals("localhost", targetHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return ("localhost", EndpointBindingMode.SingleAddress);
+        }
+        else if (IPAddress.TryParse(targetHost, out var ipAddress))
+        {
+            if (IPAddress.Any.Equals(ipAddress))
+            {
+                return ("localhost", EndpointBindingMode.IPv4AnyAddresses);
+            }
+            else if (IPAddress.IPv6Any.Equals(ipAddress))
+            {
+                return ("localhost", EndpointBindingMode.IPv6AnyAddresses);
+            }
+
+            return (targetHost, EndpointBindingMode.SingleAddress);
+        }
+
+        return ("localhost", EndpointBindingMode.DualStackAnyAddresses);
     }
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource

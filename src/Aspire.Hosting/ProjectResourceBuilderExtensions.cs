@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -854,6 +853,8 @@ public static class ProjectResourceBuilderExtensions
             // Localhost is used as-is rather than being resolved to a specific loopback IP address.
             return "localhost";
         }
+        return host;
+        /*
         else if (IPAddress.TryParse(host, out var _))
         {
             // If the given host is an IP address, we use it as is
@@ -863,6 +864,7 @@ public static class ProjectResourceBuilderExtensions
         // Kestrel treats any other value than localhost or an IP address as the equivalent of [::] (or 0.0.0.0 for IPv4)
         // We return the machine name here as DCP will will resolve it to all interfaces as well.
         return Environment.MachineName;
+        */
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource
