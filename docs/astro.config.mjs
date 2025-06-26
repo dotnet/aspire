@@ -11,7 +11,7 @@ import starlightSidebarTopics from 'starlight-sidebar-topics'
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://aspire.dev',
+	site: 'https://ievangelist.github.io/',
 	base: `aspire`,
 	integrations: [
 		starlight({
