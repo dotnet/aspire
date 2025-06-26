@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../ExecCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostKeepAliveArgumentDescription">
+        <source>Keeps apphost running after the command execution finished.</source>
+        <target state="new">Keeps apphost running after the command execution finished.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run an Aspire app host in exec mode.</source>
+        <target state="new">Run an Aspire app host in exec mode.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="new">The path to the Aspire app host project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartTargetResourceArgumentDescription">
+        <source>The name of the target resource to start and execute the command against.</source>
+        <target state="new">The name of the target resource to start and execute the command against.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TargetResourceArgumentDescription">
+        <source>The name of the target resource to execute the command against.</source>
+        <target state="new">The name of the target resource to execute the command against.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
