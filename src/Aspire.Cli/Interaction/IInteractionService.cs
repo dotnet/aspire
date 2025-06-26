@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
-using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
