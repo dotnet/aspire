@@ -172,7 +172,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (allConfig.Count == 0)
             {
-                _interactionService.DisplayMessage("ℹ️", ConfigCommandStrings.NoConfigurationValuesFound);
+                _interactionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
