@@ -202,7 +202,7 @@ internal static class AsyncTestHelpers
 
     public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null, int retries = 10)
     {
-        logger?.LogInformation("Start: " + message);
+        logger?.LogInformation("Start: {Message}", message);
 
         for (var i = 0; i < retries; i++)
         {
@@ -213,7 +213,7 @@ internal static class AsyncTestHelpers
 
             if (await assert())
             {
-                logger?.LogInformation("End: " + message);
+                logger?.LogInformation("End: {Message}", message);
                 return;
             }
         }

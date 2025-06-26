@@ -20,6 +20,11 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
+    <!-- TODO: https://github.com/dotnet/aspire/issues/8677 - enable PublishAot when the build infrastructure supports all platforms. -->
+    <!--<PublishAot>true</PublishAot>--> 
+    <!--JsonSerializerIsReflectionEnabledByDefault can be removed when PublishAot is enabled. -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +32,7 @@
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="StreamJsonRpc" />
+    <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />

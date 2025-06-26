@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Cli.Backchannel;
 
 /// <summary>
@@ -51,9 +53,41 @@ internal sealed class DashboardUrlsState
 }
 
 /// <summary>
-/// Represents the activity and status of a publishing operation.
+/// Represents a single line of output to be displayed, along with its associated stream (such as "stdout" or "stderr").
 /// </summary>
-internal sealed class PublishingActivityState
+internal sealed class DisplayLineState(string stream, string line)
+{
+    /// <summary>
+    /// Gets the name of the stream the line belongs to (e.g., "stdout", "stderr").
+    /// </summary>
+    public string Stream { get; } = stream;
+
+    /// <summary>
+    /// Gets the content of the line to be displayed.
+    /// </summary>
+    public string Line { get; } = line;
+}
+
+/// <summary>
+/// Envelope for publishing activity items sent over the backchannel.
+/// </summary>
+internal sealed class PublishingActivity
+{
+    /// <summary>
+    /// Gets the type discriminator for the publishing activity item.
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the data containing all properties for the publishing activity item.
+    /// </summary>
+    public required PublishingActivityData Data { get; init; }
+}
+
+/// <summary>
+/// Common data for all publishing activity items.
+/// </summary>
+internal sealed class PublishingActivityData
 {
     /// <summary>
     /// Gets the unique identifier for the publishing activity.
@@ -74,4 +108,38 @@ internal sealed class PublishingActivityState
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
     public bool IsError { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the publishing activity completed with warnings.
+    /// </summary>
+    public bool IsWarning { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the step this task belongs to (only applicable for tasks).
+    /// </summary>
+    public string? StepId { get; init; }
+
+    /// <summary>
+    /// Gets the completion message for the publishing activity (optional).
+    /// </summary>
+    public string? CompletionMessage { get; init; }
+}
+
+/// <summary>
+/// Constants for publishing activity item types.
+/// </summary>
+internal static class PublishingActivityTypes
+{
+    public const string Step = "step";
+    public const string Task = "task";
+    public const string PublishComplete = "publish-complete";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
 }

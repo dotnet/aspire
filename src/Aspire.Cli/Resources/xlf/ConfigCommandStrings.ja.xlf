@@ -4,82 +4,82 @@
     <body>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
-        <target state="new">Configuration '{0}' deleted globally.</target>
+        <target state="translated">構成 '{0}' がグローバルに削除されました。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedLocally">
         <source>Configuration '{0}' deleted locally.</source>
-        <target state="new">Configuration '{0}' deleted locally.</target>
+        <target state="translated">構成 '{0}' がローカルで削除されました。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeySetGlobally">
         <source>Configuration '{0}' set to '{1}' globally.</source>
-        <target state="new">Configuration '{0}' set to '{1}' globally.</target>
+        <target state="translated">構成 '{0}' がグローバルに '{1}' に設定されました。</target>
         <note>{0} is the key, {1} is the value</note>
       </trans-unit>
       <trans-unit id="ConfigurationKeySetLocally">
         <source>Configuration '{0}' set to '{1}' locally.</source>
-        <target state="new">Configuration '{0}' set to '{1}' locally.</target>
+        <target state="translated">構成 '{0}' がローカルで '{1}' に設定されました。</target>
         <note>{0} is the key, {1} is the value</note>
       </trans-unit>
       <trans-unit id="DeleteCommand_Description">
         <source>Delete a configuration value.</source>
-        <target state="new">Delete a configuration value.</target>
+        <target state="translated">構成値を削除します。</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_GlobalArgumentDescription">
         <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</source>
-        <target state="new">Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</target>
+        <target state="translated">ローカル設定ファイルではなく、グローバルの $HOME/.aspire/settings.json から構成値を削除します。</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_KeyArgumentDescription">
         <source>The configuration key to delete.</source>
-        <target state="new">The configuration key to delete.</target>
+        <target state="translated">削除する構成キー。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage configuration settings.</source>
-        <target state="new">Manage configuration settings.</target>
+        <target state="translated">構成設定を管理します。</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_Description">
         <source>Get a configuration value.</source>
-        <target state="new">Get a configuration value.</target>
+        <target state="translated">構成値を取得します。</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_KeyArgumentDescription">
         <source>The configuration key to retrieve.</source>
-        <target state="new">The configuration key to retrieve.</target>
+        <target state="translated">取得する構成キー。</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
-        <target state="new">List all configuration values.</target>
+        <target state="translated">すべての構成値を一覧表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
-        <target state="new">No configuration values found.</target>
+        <target state="translated">構成値が見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">
         <source>Set a configuration value.</source>
-        <target state="new">Set a configuration value.</target>
+        <target state="translated">構成値を設定します。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_GlobalArgumentDescription">
         <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</source>
-        <target state="new">Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</target>
+        <target state="translated">ローカル設定ファイルではなく、$HOME/.aspire/settings.json で構成値をグローバルに設定します。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_KeyArgumentDescription">
         <source>The configuration key to set.</source>
-        <target state="new">The configuration key to set.</target>
+        <target state="translated">設定する構成キー。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
-        <target state="new">The configuration value to set.</target>
+        <target state="translated">設定する構成値。</target>
         <note />
       </trans-unit>
     </body>

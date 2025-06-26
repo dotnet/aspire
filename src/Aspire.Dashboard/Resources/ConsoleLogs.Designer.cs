@@ -59,7 +59,15 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error watching logs.
+        /// </summary>
+        public static string ConsoleLogsErrorWatchingLogs {
+            get {
+                return ResourceManager.GetString("ConsoleLogsErrorWatchingLogs", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Finished watching logs.
@@ -78,7 +86,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ConsoleLogsHeader", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to Loading resources ....

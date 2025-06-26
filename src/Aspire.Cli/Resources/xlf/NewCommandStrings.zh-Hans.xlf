@@ -4,52 +4,52 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire sample project.</source>
-        <target state="new">Create a new Aspire sample project.</target>
+        <target state="translated">创建新的 Aspire 示例项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path:</source>
-        <target state="new">Enter the output path:</target>
+        <target state="translated">输入输出路径:</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
         <source>Enter the project name:</source>
-        <target state="new">Enter the project name:</target>
+        <target state="translated">输入项目名称:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
         <source>Invalid project name.</source>
-        <target state="new">Invalid project name.</target>
+        <target state="translated">项目名称无效。</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
-        <target state="new">The name of the project to create.</target>
+        <target state="translated">要创建的项目的名称。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
-        <target state="new">The output path for the project.</target>
+        <target state="translated">项目的输出路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
-        <target state="new">Select a project template:</target>
+        <target state="translated">选择项目模板:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
         <source>Select a template version:</source>
-        <target state="new">Select a template version:</target>
+        <target state="translated">选择模板版本:</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
-        <target state="new">The NuGet source to use for the project templates.</target>
+        <target state="translated">要用于项目模板的 NuGet 源。</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
-        <target state="new">The version of the project templates to use.</target>
+        <target state="translated">要使用的项目模板的版本。</target>
         <note />
       </trans-unit>
     </body>
