@@ -18,5 +18,5 @@ public class YarpResource(string name) : ContainerResource(name)
 
     internal List<YarpRoute> Routes { get; } = new();
 
-    internal List<YarpCluster> Destinations { get; } = new();
+    internal List<YarpCluster> Clusters { get; } = new();
 }
