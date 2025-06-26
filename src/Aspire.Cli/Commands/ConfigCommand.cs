@@ -76,13 +76,13 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (value is not null)
             {
-                Console.WriteLine(value);
+                _interactionService.DisplayPlainText(value);
                 return ExitCodeConstants.Success;
             }
             else
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                return ExitCodeConstants.InvalidCommand;
+                return ExitCodeConstants.ConfigNotFound;
             }
         }
     }

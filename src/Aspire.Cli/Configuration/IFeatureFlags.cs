@@ -5,5 +5,5 @@ namespace Aspire.Cli.Configuration;
 
 internal interface IFeatureFlags
 {
-    bool IsFeatureEnabled(string featureFlag);
+    bool IsFeatureEnabled(string featureFlag, bool defaultValue);
 }

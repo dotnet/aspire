@@ -7,7 +7,7 @@ namespace Aspire.Cli.Configuration;
 
 internal sealed class FeatureFlags(IConfiguration configuration) : IFeatureFlags
 {
-    public bool IsFeatureEnabled(string featureFlag)
+    public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
     {
         var configKey = $"featureFlags:{featureFlag}";
         
@@ -15,7 +15,7 @@ internal sealed class FeatureFlags(IConfiguration configuration) : IFeatureFlags
         
         if (string.IsNullOrEmpty(value))
         {
-            return false;
+            return defaultValue;
         }
         
         return bool.TryParse(value, out var enabled) && enabled;

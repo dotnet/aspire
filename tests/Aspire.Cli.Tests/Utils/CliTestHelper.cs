@@ -32,6 +32,25 @@ internal static class CliTestHelper
 
         var configBuilder = new ConfigurationBuilder();
 
+        var configurationValues = new Dictionary<string, string?>();
+
+        // Populate feature flag configuration in in-memory collection.
+        options.ConfigurationCallback += config => {
+            foreach (var featureFlag in options.EnabledFeatureFlags)
+            {
+                config[$"featureFlags:{featureFlag}"] = "true";
+            }
+
+            foreach (var featureFlag in options.DisabledFeatureFlags)
+            {
+                config[$"featureFlags:{featureFlag}"] = "false";
+            }
+        };
+
+        options.ConfigurationCallback(configurationValues);
+
+        configBuilder.AddInMemoryCollection(configurationValues);
+
         var globalSettingsFilePath = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "settings.global.json");
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
         ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile);
@@ -83,7 +102,14 @@ internal sealed class CliServiceCollectionTestOptions
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
-    
+
+    public Action<Dictionary<string, string?>> ConfigurationCallback { get; set; } = (Dictionary<string, string?> config) =>
+    {
+    };
+
+    public string[] EnabledFeatureFlags { get; set; } = Array.Empty<string>();
+    public string[] DisabledFeatureFlags { get; set; } = Array.Empty<string>();
+
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
@@ -141,29 +167,34 @@ internal sealed class CliServiceCollectionTestOptions
         return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationService, telemetry);
     }
 
-    public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
         return new AspireCliTelemetry();
     };
 
-    public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
         return new ConsoleInteractionService(ansiConsole);
     };
 
-    public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
         var interactiveService = serviceProvider.GetRequiredService<IInteractionService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new CertificateService(interactiveService, telemetry);
     };
 
-    public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
     };
 
-    public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) => {
+    public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
@@ -196,7 +227,7 @@ internal sealed class CliServiceCollectionTestOptions
     };
 }
 
-internal sealed class  TestOutputTextWriter(ITestOutputHelper outputHelper) : TextWriter
+internal sealed class TestOutputTextWriter(ITestOutputHelper outputHelper) : TextWriter
 {
     public override Encoding Encoding => Encoding.UTF8;
 

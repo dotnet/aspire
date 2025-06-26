@@ -78,4 +78,8 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayEmptyLine()
     {
     }
+
+    public void DisplayPlainText(string text)
+    {
+    }
 }

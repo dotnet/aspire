@@ -193,7 +193,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("config get nonexistent.key");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(1, exitCode);
+        Assert.Equal(10, exitCode);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Verify it's deleted
         var getResult = command.Parse("config get deletekey");
         var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(1, getExitCode); // Should return error for missing key
+        Assert.Equal(10, getExitCode); // Should return error for missing key
     }
 
     [Fact]
@@ -279,22 +279,14 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void FeatureFlags_WhenNotSet_DefaultsToFalse()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var featureFlags = provider.GetRequiredService<IFeatureFlags>();
-        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
-        Assert.False(featureFlags.IsFeatureEnabled("nonExistentFlag"));
-    }
-
-    [Fact]
     public async Task FeatureFlags_WhenSetToTrue_ReturnsTrue()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(
+            workspace,
+            outputHelper,
+            options => options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }
+            );
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to true
@@ -305,14 +297,14 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatureFlags>();
-        Assert.True(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+        Assert.True(featureFlags.IsFeatureEnabled("deployCommandEnabled", defaultValue: false));
     }
 
     [Fact]
     public async Task FeatureFlags_WhenSetToFalse_ReturnsFalse()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => options.DisabledFeatureFlags = new[] { "deployCommandEnabled" });
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to false
@@ -323,14 +315,20 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatureFlags>();
-        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled", defaultValue: true));
     }
 
     [Fact]
     public async Task FeatureFlags_WhenSetToInvalidValue_ReturnsFalse()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(
+            workspace,
+            outputHelper,
+            options => options.ConfigurationCallback += confing =>
+            {
+                confing["featureFlags:deployCommandEnabled"] = "invalid"; // Set an invalid value
+            });
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to an invalid value
@@ -341,7 +339,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatureFlags>();
-        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled"));
+        Assert.False(featureFlags.IsFeatureEnabled("deployCommandEnabled", defaultValue: true));
     }
 
     [Fact]

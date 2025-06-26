@@ -80,7 +80,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(configCommand);
         
         // Only add deploy command if the feature flag is enabled
-        if (featureFlags.IsFeatureEnabled("deployCommandEnabled"))
+        if (featureFlags.IsFeatureEnabled("deployCommandEnabled", false))
         {
             Subcommands.Add(deployCommand);
         }

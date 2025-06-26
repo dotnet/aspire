@@ -16,6 +16,7 @@ internal interface IInteractionService
     int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion);
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
+    void DisplayPlainText(string text);
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message);
     void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls);
