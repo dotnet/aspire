@@ -9,15 +9,17 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
 using Aspire.DashboardService.Proto.V1;
+using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.Options;
+using ResourceCommandResponseKind = Aspire.Dashboard.Model.ResourceCommandResponseKind;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.Dashboard.ServiceClient;
 
 /// <summary>
 /// Implements gRPC client that communicates with a resource server, populating data for the dashboard.
@@ -292,7 +294,7 @@ internal sealed class DashboardClient : IDashboardClient
         public int ErrorCount { get; set; }
     }
 
-    private async Task WatchWithRecoveryAsync(CancellationToken cancellationToken, Func<RetryContext, CancellationToken, Task<bool>> action)
+    private async Task WatchWithRecoveryAsync(CancellationToken cancellationToken, Func<RetryContext, CancellationToken, Task<RetryResult>> action)
     {
         // Track the number of errors we've seen since the last successfully received message.
         // As this number climbs, we extend the amount of time between reconnection attempts, in
@@ -316,7 +318,7 @@ internal sealed class DashboardClient : IDashboardClient
 
             try
             {
-                if (await action(retryContext, cancellationToken).ConfigureAwait(false))
+                if (await action(retryContext, cancellationToken).ConfigureAwait(false) == RetryResult.DoNotRetry)
                 {
                     return;
                 }
@@ -341,7 +343,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    private async Task<bool> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
+    private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
         var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
@@ -422,11 +424,10 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }
 
-        // Retry.
-        return false;
+        return RetryResult.Retry;
     }
 
-    private async Task<bool> WatchInteractionsAsync(RetryContext retryContext, CancellationToken cancellationToken)
+    private async Task<RetryResult> WatchInteractionsAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
         // Create the watch interactions call. This is a bidirectional streaming call.
         // Responses are streamed out to all watchers. Requests are sent from the incoming interaction channel.
@@ -438,8 +439,7 @@ internal sealed class DashboardClient : IDashboardClient
             // The server does not support this method.
             _logger.LogWarning("Server does not support interactions.");
 
-            // Don't retry.
-            return true;
+            return RetryResult.DoNotRetry;
         }
 
         // Send
@@ -502,8 +502,7 @@ internal sealed class DashboardClient : IDashboardClient
             cts.Cancel();
         }
 
-        // Retry.
-        return false;
+        return RetryResult.Retry;
     }
 
     private static async Task<bool> IsUnimplemented(AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate> call)
@@ -788,5 +787,11 @@ internal sealed class DashboardClient : IDashboardClient
     private class InteractionCollection : KeyedCollection<int, WatchInteractionsResponseUpdate>
     {
         protected override int GetKeyForItem(WatchInteractionsResponseUpdate item) => item.InteractionId;
+    }
+
+    private enum RetryResult
+    {
+        Retry,
+        DoNotRetry
     }
 }

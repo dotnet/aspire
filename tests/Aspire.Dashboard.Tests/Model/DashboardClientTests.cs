@@ -2,16 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Google.Protobuf.WellKnownTypes;
 using Aspire.DashboardService.Proto.V1;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Microsoft.AspNetCore.InternalTesting;
-using Grpc.Core;
 
 namespace Aspire.Dashboard.Tests.Model;
 
