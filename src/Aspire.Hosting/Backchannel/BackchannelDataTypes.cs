@@ -1,7 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// These types are source shared between the CLI and the Aspire.Hosting projects.
+// The CLI sets the types in its own namespace.
+#if CLI
+namespace Aspire.Cli.Backchannel;
+#else
 namespace Aspire.Hosting.Backchannel;
+#endif
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
