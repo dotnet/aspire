@@ -124,7 +124,8 @@ internal class ExecResourceManager : BackgroundService
 
         // take all applicable annotations from target resource to replicate the environment
         foreach (var annotation in project.Annotations.Where(annotation =>
-            annotation is EnvironmentAnnotation or EnvironmentCallbackAnnotation or ResourceRelationshipAnnotation))
+            annotation is EnvironmentAnnotation or EnvironmentCallbackAnnotation
+                       or ResourceRelationshipAnnotation or WaitAnnotation))
         {
             executable.Annotations.Add(annotation);
         }
