@@ -14,7 +14,12 @@
 			]
 		},
 		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/devcontainers/features/python:1": {}
+		"ghcr.io/devcontainers/features/python:1": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+			"version": "latest",
+			"helm": "latest",
+			"minikube": "latest"
+		}
 	},
 
 	"hostRequirements": {
@@ -39,7 +44,8 @@
 				"ms-dotnettools.csdevkit",
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.azure-dev",
-				"GitHub.copilot"
+				"GitHub.copilot",
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,

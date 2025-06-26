@@ -158,7 +158,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) => {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new DotNetCliRunner(logger, serviceProvider, telemetry);
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
     };
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) => {

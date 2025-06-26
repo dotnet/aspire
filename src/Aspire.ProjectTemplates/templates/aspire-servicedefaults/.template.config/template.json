@@ -65,14 +65,14 @@
       "datatype": "choice",
       "choices": [
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        },
-        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.4"
@@ -85,14 +85,14 @@
       "isEnabled": "Framework == net8.0",
       "choices": [
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        },
-        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.4"
@@ -105,14 +105,14 @@
       "isEnabled": "Framework == net9.0",
       "choices": [
         {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        },
-        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
+        },
+        {
+          "choice": "9.3",
+          "displayName": "9.3",
+          "description": "Chooses .NET Aspire 9.3"
         }
       ],
       "defaultValue": "9.4"
@@ -124,11 +124,6 @@
       "datatype": "choice",
       "isEnabled": "Framework == net10.0",
       "choices": [
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
-        },
         {
           "choice": "9.4",
           "displayName": "9.4",
@@ -153,10 +148,6 @@
           },
           {
             "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
-          },
-          {
-            "condition": "AspireVersionNet10 == 9.3",
             "value": "9.3"
           },
           {

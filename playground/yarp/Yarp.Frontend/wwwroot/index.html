@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+        }
+
+        #data-container {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weather Forecast</h1>
+    <button onclick="fetchData()">Load forecast</button>
+    <div id="data-container"></div>
+
+    <script>
+        async function fetchData() {
+            const container = document.getElementById('data-container');
+            container.innerHTML = 'Loading...';
+
+            try {
+                const response = await fetch('/api/weatherforecast');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                container.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                container.innerHTML = 'Error fetching data: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

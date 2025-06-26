@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="new">Generates deployment artifacts for an Aspire app host project.</target>
+        <target state="translated">Aspire 앱 호스트 프로젝트에 대한 배포 아티팩트를 생성합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">
         <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">아티팩트 게시가 종료 코드 {0}(으)로 실패했습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
-        <target state="new">Generating artifacts...</target>
+        <target state="translated">아티팩트 생성 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts.</source>
-        <target state="new">The output path for the generated artifacts.</target>
+        <target state="translated">생성된 아티팩트의 출력 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
-        <target state="new">Select a publisher:</target>
+        <target state="translated">게시자 선택:</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyPublishedArtifacts">
         <source>Successfully published artifacts to: {0}</source>
-        <target state="new">Successfully published artifacts to: {0}</target>
+        <target state="translated">아티팩트를 다음에 게시함: {0}</target>
         <note />
       </trans-unit>
     </body>

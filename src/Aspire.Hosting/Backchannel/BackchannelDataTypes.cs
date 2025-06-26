@@ -53,9 +53,25 @@ internal sealed class DashboardUrlsState
 }
 
 /// <summary>
-/// Represents the activity and status of a publishing operation.
+/// Envelope for publishing activities sent over the backchannel.
 /// </summary>
-internal sealed class PublishingActivityState
+internal sealed class PublishingActivity
+{
+    /// <summary>
+    /// Gets the type discriminator for the publishing activity.
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the data containing all properties for the publishing activity.
+    /// </summary>
+    public required PublishingActivityData Data { get; init; }
+}
+
+/// <summary>
+/// Common data for all publishing activities.
+/// </summary>
+internal sealed class PublishingActivityData
 {
     /// <summary>
     /// Gets the unique identifier for the publishing activity.
@@ -68,14 +84,55 @@ internal sealed class PublishingActivityState
     public required string StatusText { get; init; }
 
     /// <summary>
+    /// Gets the completion state of the publishing activity.
+    /// </summary>
+    public string CompletionState { get; init; } = CompletionStates.InProgress;
+
+    /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    public bool IsComplete { get; init; }
+    public bool IsComplete => CompletionState is not CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    public bool IsError { get; init; }
+    public bool IsError => CompletionState is CompletionStates.CompletedWithError;
+
+    /// <summary>
+    /// Gets a value indicating whether the publishing activity completed with warnings.
+    /// </summary>
+    public bool IsWarning => CompletionState is CompletionStates.CompletedWithWarning;
+
+    /// <summary>
+    /// Gets the identifier of the step this task belongs to (only applicable for tasks).
+    /// </summary>
+    public string? StepId { get; init; }
+
+    /// <summary>
+    /// Gets the optional completion message for tasks (appears as dimmed child text).
+    /// </summary>
+    public string? CompletionMessage { get; init; }
+}
+
+/// <summary>
+/// Constants for publishing activity types.
+/// </summary>
+internal static class PublishingActivityTypes
+{
+    public const string Step = "step";
+    public const string Task = "task";
+    public const string PublishComplete = "publish-complete";
+}
+
+/// <summary>
+/// Constants for completion state values.
+/// </summary>
+internal static class CompletionStates
+{
+    public const string InProgress = "InProgress";
+    public const string Completed = "Completed";
+    public const string CompletedWithWarning = "CompletedWithWarning";
+    public const string CompletedWithError = "CompletedWithError";
 }
 
 internal sealed class CommandOutput

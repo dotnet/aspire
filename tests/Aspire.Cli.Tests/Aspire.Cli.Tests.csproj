@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <PackageReference Include="StreamJsonRpc" />
+    <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
   </ItemGroup>
 
 </Project>

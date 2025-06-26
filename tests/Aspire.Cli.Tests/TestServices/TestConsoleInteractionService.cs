@@ -84,4 +84,8 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
         Console.WriteLine($"[{logLevel.ToString()}] {message}");
     }
+
+    public void OpenNewProject(string projectPath)
+    {
+    }
 }

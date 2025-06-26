@@ -34,9 +34,8 @@
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
 
-    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
-      <Access>Internal</Access>
-      <Link>ResourceService\resource_service.proto</Link>
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\dashboard_service.proto">
+      <Link>ServiceClient\dashboard_service.proto</Link>
     </Protobuf>
 
     <EmbeddedResource Include="Embedded\blazor.web.js" LogicalName="_aspire/blazor.web.js" />

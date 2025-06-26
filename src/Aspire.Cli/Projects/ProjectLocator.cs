@@ -7,6 +7,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -79,7 +80,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         while (true)
         {
-            var settingsFile = new FileInfo(Path.Combine(searchDirectory.FullName, ".aspire", "settings.json"));
+            var settingsFile = new FileInfo(ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName));
 
             if (settingsFile.Exists)
             {
@@ -172,7 +173,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFilePath = Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+        var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(currentDirectory.FullName);
         var settingsFile = new FileInfo(settingsFilePath);
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);

@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="new">Wait for a debugger to attach before executing the command.</target>
+        <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
-        <target state="new">Enable debug logging to the console.</target>
+        <target state="translated">Konsolda hata ayıklama kaydını etkinleştirin.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
-        <target state="new">The Aspire CLI can be used to create, run, and publish Aspire-based applications.</target>
+        <target state="translated">Aspire CLI, Aspire tabanlı uygulamalar oluşturmak, çalıştırmak ve yayımlamak için kullanılabilir.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="new">Wait for a debugger to attach before executing the command.</target>
+        <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">
         <source>Waiting for debugger to attach to CLI process ID: {0}</source>
-        <target state="new">Waiting for debugger to attach to CLI process ID: {0}</target>
+        <target state="translated">Hata ayıklayıcısının CLI işlem kimliğine eklenmesi bekleniyor: {0}</target>
         <note />
       </trans-unit>
     </body>

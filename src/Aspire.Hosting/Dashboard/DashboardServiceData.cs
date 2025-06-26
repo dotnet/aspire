@@ -3,9 +3,12 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.DashboardService.Proto.V1;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 /// <summary>
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
@@ -16,17 +19,20 @@ internal sealed class DashboardServiceData : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
     private readonly ResourceCommandService _resourceCommandService;
+    private readonly InteractionService _interactionService;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        ResourceCommandService resourceCommandService)
+        ResourceCommandService resourceCommandService,
+        InteractionService interactionService)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _resourceCommandService = resourceCommandService;
+        _interactionService = interactionService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -100,6 +106,11 @@ internal sealed class DashboardServiceData : IDisposable
         }
     }
 
+    internal IAsyncEnumerable<Interaction> SubscribeInteractionUpdates()
+    {
+        return _interactionService.SubscribeInteractionUpdates();
+    }
+
     internal ResourceSnapshotSubscription SubscribeResources()
     {
         return _resourcePublisher.Subscribe();
@@ -138,6 +149,61 @@ internal sealed class DashboardServiceData : IDisposable
             }
         }
     }
+
+    internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        await _interactionService.CompleteInteractionAsync(
+            request.InteractionId,
+            async (interaction, serviceProvider, cancellationToken) =>
+            {
+                switch (request.KindCase)
+                {
+                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
+                        return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
+                        return new InteractionCompletionState { Complete = true, State = request.MessageBar.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
+                        var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+                        var options = (InputsDialogInteractionOptions)interaction.Options;
+
+                        for (var i = 0; i < inputsInfo.Inputs.Count; i++)
+                        {
+                            var modelInput = inputsInfo.Inputs[i];
+                            var requestInput = request.InputsDialog.InputItems[i];
+
+                            var incomingValue = requestInput.Value;
+
+                            // Ensure checkbox value is either true or false.
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
+                            {
+                                incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+                            }
+
+                            modelInput.SetValue(incomingValue);
+                            modelInput.ValidationErrors.Clear();
+                        }
+
+                        var hasErrors = false;
+                        if (options.ValidationCallback is { } validationCallback)
+                        {
+                            var context = new InputsDialogValidationContext
+                            {
+                                CancellationToken = cancellationToken,
+                                ServiceProvider = serviceProvider,
+                                Inputs = inputsInfo.Inputs
+                            };
+                            await validationCallback(context).ConfigureAwait(false);
+
+                            hasErrors = context.HasErrors;
+                        }
+
+                        return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                    default:
+                        return new InteractionCompletionState { Complete = true };
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
 }
 
 internal enum ExecuteCommandResultType
@@ -146,3 +212,5 @@ internal enum ExecuteCommandResultType
     Failure,
     Canceled
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

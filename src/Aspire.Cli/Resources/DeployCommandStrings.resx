@@ -116,7 +116,7 @@
     <value>Successfully deployed. Artifacts available at: {0}</value>
   </data>
   <data name="DeploymentFailed" xml:space="preserve">
-    <value>Deployment failed with exit code {exitCode}. For more information run with --debug switch.</value>
+    <value>Deployment failed with exit code {0}. For more information run with --debug switch.</value>
   </data>
   <data name="DeploymentCanceled" xml:space="preserve">
     <value>The deployment was canceled.</value>

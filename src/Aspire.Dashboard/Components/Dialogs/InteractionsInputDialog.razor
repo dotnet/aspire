@@ -1,0 +1,115 @@
+﻿@using Aspire.Dashboard.Components.Controls.Chart
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@using Aspire.Dashboard.Extensions
+@using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.DashboardService.Proto.V1
+@using Dialogs = Aspire.Dashboard.Resources.Dialogs
+@implements IDialogContentComponent<InteractionsInputsDialogViewModel>
+
+@inject IStringLocalizer<Dialogs> Loc
+
+<FluentDialogHeader ShowDismiss="true">
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+<FluentDialogBody Class="interaction-input-dialog">
+    @if (!string.IsNullOrEmpty(Content.Interaction.Message))
+    {
+        <p>@((MarkupString)Content.Interaction.Message)</p>
+    }
+
+    <EditForm EditContext="@_editContext" OnValidSubmit="@SubmitAsync">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            @foreach (var vm in _inputDialogInputViewModels)
+            {
+                @*
+                * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
+                * Immediate value of true on text inputs ensures the value is set to the server token with every key press in textbox.
+                *@
+                var localItem = vm;
+                <div class="interaction-input">
+                    @switch (vm.Input.InputType)
+                    {
+                        case InputType.Text:
+                            <FluentTextField @ref="@_elementRefs[localItem]"
+                                             @bind-Value="localItem.Value"
+                                             Label="@localItem.Input.Label"
+                                             Placeholder="@localItem.Input.Placeholder"
+                                             Required="localItem.Input.Required"
+                                             Immediate="true" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.SecretText:
+                            <FluentTextField @ref="@_elementRefs[localItem]"
+                                             @bind-Value="localItem.Value"
+                                             Label="@localItem.Input.Label"
+                                             Placeholder="@localItem.Input.Placeholder"
+                                             Required="localItem.Input.Required"
+                                             TextFieldType="TextFieldType.Password"
+                                             AutoComplete="one-time-code"
+                                             Immediate="true" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.Choice:
+                            <FluentSelect TOption="SelectViewModel<string>"
+                                          @ref="@_elementRefs[localItem]"
+                                          @bind-Value="localItem.Value"
+                                          Label="@localItem.Input.Label"
+                                          Placeholder="@localItem.Input.Placeholder"
+                                          Required="localItem.Input.Required"
+                                          Items="localItem.SelectOptions"
+                                          OptionValue="@(vm => vm.Id)"
+                                          OptionText="@(vm => vm.Name)"
+                                          Height="250px"
+                                          Position="SelectPosition.Below" />
+                            <ValidationMessage For="@(() => localItem.Value)" />
+                            break;
+                        case InputType.Boolean:
+                            <FluentCheckbox @ref="@_elementRefs[localItem]"
+                                            @bind-Value="localItem.IsChecked"
+                                            Label="@localItem.Input.Label"
+                                            Placeholder="@localItem.Input.Placeholder" />
+                            break;
+                        case InputType.Number:
+                            <FluentNumberField TValue="int?"
+                                               @ref="@_elementRefs[localItem]"
+                                               @bind-Value="localItem.NumberValue"
+                                               Label="@localItem.Input.Label"
+                                               Placeholder="@localItem.Input.Placeholder"
+                                               Required="localItem.Input.Required"
+                                               Immediate="true" />
+                            <ValidationMessage For="@(() => localItem.NumberValue)" />
+                            break;
+                        default:
+                            @* Ignore unexpected InputTypes *@
+                            break;
+                    }
+                </div>
+            }
+        </FluentStack>
+
+        @* Hidden submit is so the form is submitted when the user presses enter. *@
+        <button type="submit" style="display:none"></button>
+    </EditForm>
+</FluentDialogBody>
+
+<FluentDialogFooter>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@SubmitAsync">
+        @Dialog.Instance.Parameters.PrimaryAction
+    </FluentButton>
+    @if (!string.IsNullOrEmpty(Dialog.Instance.Parameters.SecondaryAction))
+    {
+        <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">
+            @Dialog.Instance.Parameters.SecondaryAction
+        </FluentButton>
+    }
+</FluentDialogFooter>

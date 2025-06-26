@@ -8,7 +8,7 @@ param administratorLoginPassword string
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyVaultName
 }
 
@@ -54,7 +54,7 @@ resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
   parent: postgres
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionString'
   properties: {
     value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'

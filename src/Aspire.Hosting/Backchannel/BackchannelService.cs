@@ -67,8 +67,6 @@ internal sealed class BackchannelService(
                 backchannelConnectedEvent,
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
-
-            logger.LogDebug("Accepted backchannel connection from {RemoteEndPoint}", clientSocket.RemoteEndPoint);
         }
         catch (TaskCanceledException ex)
         {

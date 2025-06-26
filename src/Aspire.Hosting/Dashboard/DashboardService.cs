@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static Aspire.Hosting.ApplicationModel.Interaction;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -19,7 +20,7 @@ namespace Aspire.Hosting.Dashboard;
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
-    : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
+    : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
     // Protobuf sends strings as UTF8. Be conservative and assume the average character byte size is 2.
@@ -50,6 +51,159 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             };
         }
     }
+
+    public override async Task WatchInteractions(IAsyncStreamReader<WatchInteractionsRequestUpdate> requestStream, IServerStreamWriter<WatchInteractionsResponseUpdate> responseStream, ServerCallContext context)
+    {
+        await ExecuteAsync(
+            WatchInteractionsInternal,
+            context).ConfigureAwait(false);
+
+        async Task WatchInteractionsInternal(CancellationToken cancellationToken)
+        {
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var updates = serviceData.SubscribeInteractionUpdates();
+
+            // Send
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach (var interaction in updates.WithCancellation(cts.Token).ConfigureAwait(false))
+                    {
+                        var change = new WatchInteractionsResponseUpdate();
+                        change.InteractionId = interaction.InteractionId;
+                        change.Title = interaction.Title;
+                        if (interaction.Message != null)
+                        {
+                            change.Message = interaction.Message;
+                        }
+                        if (interaction.Options.PrimaryButtonText != null)
+                        {
+                            change.PrimaryButtonText = interaction.Options.PrimaryButtonText;
+                        }
+                        if (interaction.Options.SecondaryButtonText != null)
+                        {
+                            change.SecondaryButtonText = interaction.Options.SecondaryButtonText;
+                        }
+                        change.ShowDismiss = interaction.Options.ShowDismiss ?? true;
+                        change.ShowSecondaryButton = interaction.Options.ShowSecondaryButton ?? true;
+
+                        if (interaction.State == InteractionState.Complete)
+                        {
+                            change.Complete = new InteractionComplete();
+                        }
+                        else if (interaction.InteractionInfo is MessageBoxInteractionInfo messageBox)
+                        {
+                            change.MessageBox = new InteractionMessageBox();
+                            change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
+                        }
+                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        {
+                            change.MessageBar = new InteractionMessageBar();
+                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
+                            if (messageBar.LinkText != null)
+                            {
+                                change.MessageBar.LinkText = messageBar.LinkText;
+                            }
+                            if (messageBar.LinkUrl != null)
+                            {
+                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                            }
+                        }
+                        else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
+                        {
+                            change.InputsDialog = new InteractionInputsDialog();
+
+                            var inputInstances = inputs.Inputs.Select(input =>
+                            {
+                                var dto = new InteractionInput
+                                {
+                                    InputType = MapInputType(input.InputType),
+                                    Required = input.Required
+                                };
+                                if (input.Label != null)
+                                {
+                                    dto.Label = input.Label;
+                                }
+                                if (input.Placeholder != null)
+                                {
+                                    dto.Placeholder = input.Placeholder;
+                                }
+                                if (input.Value != null)
+                                {
+                                    dto.Value = input.Value;
+                                }
+                                if (input.Options != null)
+                                {
+                                    dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                dto.ValidationErrors.AddRange(input.ValidationErrors);
+                                return dto;
+                            }).ToList();
+                            change.InputsDialog.InputItems.AddRange(inputInstances);
+                        }
+
+                        await responseStream.WriteAsync(change, cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "Error while watching interactions.");
+                }
+                finally
+                {
+                    cts.Cancel();
+                }
+            }, cts.Token);
+
+            // Receive
+            try
+            {
+                await foreach (var request in requestStream.ReadAllAsync(cts.Token).ConfigureAwait(false))
+                {
+                    await serviceData.SendInteractionRequestAsync(request, cts.Token).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                // Ensure the write task is cancelled if we exit the loop.
+                cts.Cancel();
+            }
+        }
+    }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private static MessageIntent MapMessageIntent(ApplicationModel.MessageIntent? intent)
+    {
+        if (intent is null)
+        {
+            return MessageIntent.None;
+        }
+
+        return intent.Value switch
+        {
+            ApplicationModel.MessageIntent.Success => MessageIntent.Success,
+            ApplicationModel.MessageIntent.Warning => MessageIntent.Warning,
+            ApplicationModel.MessageIntent.Error => MessageIntent.Error,
+            ApplicationModel.MessageIntent.Information => MessageIntent.Information,
+            ApplicationModel.MessageIntent.Confirmation => MessageIntent.Confirmation,
+            _ => MessageIntent.None,
+        };
+    }
+
+    private static InputType MapInputType(ApplicationModel.InputType inputType)
+    {
+        return inputType switch
+        {
+            ApplicationModel.InputType.Text => InputType.Text,
+            ApplicationModel.InputType.SecretText => InputType.SecretText,
+            ApplicationModel.InputType.Choice => InputType.Choice,
+            ApplicationModel.InputType.Boolean => InputType.Boolean,
+            ApplicationModel.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
+    }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(
         WatchResourcesRequest request,
@@ -196,7 +350,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error executing service method '{serverCallContext.Method}'.");
+            logger.LogError(ex, "Error executing service method '{Method}'.", serverCallContext.Method);
             throw;
         }
     }

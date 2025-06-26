@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as net from 'net';
 import waitForExpect from 'wait-for-expect';
 import * as vscode from 'vscode';
+import * as tls from 'tls';
 
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
@@ -16,7 +17,7 @@ suite('End-to-end RPC server auth tests', () => {
 		const { connection, rpcServerInfo, client } = await getRealRpcServer();
 
 		// Act & Assert
-		const response = await connection.sendRequest('ping', { token: rpcServerInfo.token });
+		const response = await connection.sendRequest('ping', rpcServerInfo.token);
 		assert.deepStrictEqual(response, { message: 'pong' });
 
 		connection.dispose();
@@ -41,9 +42,13 @@ suite('End-to-end RPC server auth tests', () => {
 
 		const rpcServerInfo = extension.exports.getRpcServerInfo() as RpcServerInformation;
 
-		// Connect as a client
-		const client = net.createConnection(rpcServerInfo.address);
-		await new Promise<void>((resolve) => client.once('connect', resolve));
+		const port = Number(rpcServerInfo.address.replace('localhost:', ''));
+		const client = tls.connect({
+			port,
+			host: 'localhost',
+			rejectUnauthorized: false,
+		});
+		await new Promise<void>((resolve) => client.once('secureConnect', resolve));
 
 		const connection = createMessageConnection(
 			new StreamMessageReader(client),

@@ -16,6 +16,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Json.Patch;
 using k8s;
@@ -47,6 +48,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly ILogger<DcpExecutor> _logger;
     private readonly DistributedApplicationModel _model;
     private readonly DistributedApplicationOptions _distributedApplicationOptions;
+    private readonly IDistributedApplicationEventing _distributedApplicationEventing;
     private readonly IOptions<DcpOptions> _options;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly List<AppResource> _appResources = [];
@@ -75,6 +77,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                        DistributedApplicationModel model,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
+                       IDistributedApplicationEventing distributedApplicationEventing,
                        DistributedApplicationOptions distributedApplicationOptions,
                        IOptions<DcpOptions> options,
                        DistributedApplicationExecutionContext executionContext,
@@ -92,6 +95,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         _executorEvents = executorEvents;
         _logger = logger;
         _model = model;
+        _distributedApplicationEventing = distributedApplicationEventing;
         _distributedApplicationOptions = distributedApplicationOptions;
         _options = options;
         _executionContext = executionContext;
@@ -716,6 +720,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         AddAllocatedEndpointInfo(toCreate);
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
+
+        // Fire the endpoints allocated event for all DCP managed resources with endpoints.
+        foreach (var resource in toCreate.Select(r => r.ModelResource).OfType<IResourceWithEndpoints>())
+        {
+            var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
+            await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
+        }
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);

@@ -4,127 +4,147 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to AppHost backchannel.</source>
-        <target state="new">Already connected to AppHost backchannel.</target>
+        <target state="translated">AppHost 백채널에 이미 연결되었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
-        <target state="new">AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">AppHost가 CLI와 호환되지 않습니다. AppHost를 {0} 기능을 지원하는 버전으로 업데이트해야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>AppHost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="new">AppHost file was specified in '{0}' but it does not exist at '{1}'.</target>
+        <target state="translated">appHost 파일이 '{0}'에 지정되었지만, '{1}'에 존재하지 않습니다.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
-        <target state="new">AspireHostingVersion is null</target>
+        <target state="translated">AspireHostingVersion이 null입니다</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireSDKVersionNotSupported">
         <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
-        <target state="new">The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</target>
+        <target state="translated">Aspire.Hosting 패키지 버전 {0}은(는) 지원되지 않습니다. 최신 버전으로 업데이트하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="CantUseBothWatchAndNoBuild">
         <source>Cannot use --watch and --no-build at the same time.</source>
-        <target state="new">Cannot use --watch and --no-build at the same time.</target>
+        <target state="translated">--watch와 --no-build를 동시에 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
-        <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
+        <target state="translated">개발자 인증서를 완전히 신뢰할 수 없습니다(신뢰 종료 코드: {0}).</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
-        <target state="new">Configuration key {0} not found.</target>
+        <target state="translated">구성 키 {0}을(를) 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyRequired">
         <source>Configuration key is required.</source>
-        <target state="new">Configuration key is required.</target>
+        <target state="translated">구성 키가 필요합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationValueRequired">
         <source>Configuration value is required.</source>
-        <target state="new">Configuration value is required.</target>
+        <target state="translated">구성 값이 필요합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotParseAspireSDKVersion">
         <source>Could not parse Aspire.Hosting package version.</source>
-        <target state="new">Could not parse Aspire.Hosting package version.</target>
+        <target state="translated">Aspire.Hosting 패키지 버전을 구문 분석할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorDeletingConfiguration">
         <source>Error deleting configuration: {0}</source>
-        <target state="new">Error deleting configuration: {0}</target>
+        <target state="translated">구성을 삭제하는 동안 오류가 발생함: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorSettingConfiguration">
         <source>Error setting configuration: {0}</source>
-        <target state="new">Error setting configuration: {0}</target>
+        <target state="translated">구성 설정 오류: {0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ExtensionIncompatibleWithCli">
+        <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
+        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionTokenMustBeSet">
+        <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
+        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
-        <target state="new">Failed to parse template version from stdout.</target>
+        <target state="translated">stdout에서 템플릿 버전을 구문 분석하지 못했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
-        <target state="new">Failed to retrieve template packages via cache.</target>
+        <target state="translated">캐시를 통해 템플릿 패키지를 검색하지 못했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToSearchForPackages">
         <source>Failed to search for packages. Exit code: {0}.</source>
-        <target state="new">Failed to search for packages. Exit code: {0}.</target>
+        <target state="translated">패키지를 검색하지 못했습니다. 종료 코드: {0}.</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
         <source>Invalid locale {0} provided will not be used.</source>
-        <target state="new">Invalid locale {0} provided will not be used.</target>
+        <target state="translated">제공한 로캘 {0}이(가) 잘못되어 사용되지 않습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidSocketPath">
+        <source>The provided extension socket path needs two valid parts.</source>
+        <target state="new">The provided extension socket path needs two valid parts.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
-        <target state="new">Multiple project files found.</target>
+        <target state="translated">여러 프로젝트 파일을 찾았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoProjectFileFound">
         <source>No project file found.</source>
-        <target state="new">No project file found.</target>
+        <target state="translated">프로젝트 파일을 찾을 수 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSelectionMade">
+        <source>Input was required for prompt '{0}' but not provided.</source>
+        <target state="new">Input was required for prompt '{0}' but not provided.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
         <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
-        <target state="new">The project could not be analyzed due to a build error. For more information run with --debug switch.</target>
+        <target state="translated">빌드 오류로 인해 프로젝트를 분석할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
-        <target state="new">Project file does not exist.</target>
+        <target state="translated">프로젝트 파일이 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire app host project.</source>
-        <target state="new">Project file is not an Aspire app host project.</target>
+        <target state="translated">프로젝트 파일이 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project is not an Aspire app host project.</source>
-        <target state="new">The project is not an Aspire app host project.</target>
+        <target state="translated">프로젝트가 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
-        <target state="new">Unable to retrieve the assembly version.</target>
+        <target state="translated">어셈블리 버전을 검색할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedLocaleProvided">
         <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
-        <target state="new">Unsupported locale {0} provided will not be used. Supported locales are: {1}.</target>
+        <target state="translated">제공한 로캘 {0}이(가) 지원되지 않아 사용되지 않습니다. 지원되는 로캘은 {1}입니다.</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
     </body>

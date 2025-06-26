@@ -4,82 +4,82 @@
     <body>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
-        <target state="new">Configuration '{0}' deleted globally.</target>
+        <target state="translated">La configurazione '{0}' è stata eliminata a livello globale.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedLocally">
         <source>Configuration '{0}' deleted locally.</source>
-        <target state="new">Configuration '{0}' deleted locally.</target>
+        <target state="translated">La configurazione '{0}' è stata eliminata a livello locale.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeySetGlobally">
         <source>Configuration '{0}' set to '{1}' globally.</source>
-        <target state="new">Configuration '{0}' set to '{1}' globally.</target>
+        <target state="translated">La configurazione '{0}' è impostata su '{1}' a livello globale.</target>
         <note>{0} is the key, {1} is the value</note>
       </trans-unit>
       <trans-unit id="ConfigurationKeySetLocally">
         <source>Configuration '{0}' set to '{1}' locally.</source>
-        <target state="new">Configuration '{0}' set to '{1}' locally.</target>
+        <target state="translated">Configurazione '{0}' impostata su '{1}' a livello locale.</target>
         <note>{0} is the key, {1} is the value</note>
       </trans-unit>
       <trans-unit id="DeleteCommand_Description">
         <source>Delete a configuration value.</source>
-        <target state="new">Delete a configuration value.</target>
+        <target state="translated">Elimina un valore di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_GlobalArgumentDescription">
         <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</source>
-        <target state="new">Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</target>
+        <target state="translated">Elimina il valore di configurazione dal file globale $HOME/.fqd/settings.json anziché dal file di impostazioni locali.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_KeyArgumentDescription">
         <source>The configuration key to delete.</source>
-        <target state="new">The configuration key to delete.</target>
+        <target state="translated">Chiave di configurazione da eliminare.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage configuration settings.</source>
-        <target state="new">Manage configuration settings.</target>
+        <target state="translated">Gestisci le impostazioni di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_Description">
         <source>Get a configuration value.</source>
-        <target state="new">Get a configuration value.</target>
+        <target state="translated">Ottieni un valore di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_KeyArgumentDescription">
         <source>The configuration key to retrieve.</source>
-        <target state="new">The configuration key to retrieve.</target>
+        <target state="translated">Chiave di configurazione da recuperare.</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
-        <target state="new">List all configuration values.</target>
+        <target state="translated">Elenca tutti i valori di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
-        <target state="new">No configuration values found.</target>
+        <target state="translated">Non sono stati trovati valori di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">
         <source>Set a configuration value.</source>
-        <target state="new">Set a configuration value.</target>
+        <target state="translated">Imposta un valore di configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_GlobalArgumentDescription">
         <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</source>
-        <target state="new">Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</target>
+        <target state="translated">Imposta il valore di configurazione a livello globale in $HOME/.fqd/settings.json anziché nel file di impostazioni locali.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_KeyArgumentDescription">
         <source>The configuration key to set.</source>
-        <target state="new">The configuration key to set.</target>
+        <target state="translated">Chiave di configurazione da impostare.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
-        <target state="new">The configuration value to set.</target>
+        <target state="translated">Valore di configurazione da impostare.</target>
         <note />
       </trans-unit>
     </body>
