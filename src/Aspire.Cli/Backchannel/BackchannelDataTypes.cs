@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Cli.Backchannel;
 
 /// <summary>
@@ -51,6 +53,22 @@ internal sealed class DashboardUrlsState
 }
 
 /// <summary>
+/// Represents a single line of output to be displayed, along with its associated stream (such as "stdout" or "stderr").
+/// </summary>
+internal sealed class DisplayLineState(string stream, string line)
+{
+    /// <summary>
+    /// Gets the name of the stream the line belongs to (e.g., "stdout", "stderr").
+    /// </summary>
+    public string Stream { get; } = stream;
+
+    /// <summary>
+    /// Gets the content of the line to be displayed.
+    /// </summary>
+    public string Line { get; } = line;
+}
+
+/// <summary>
 /// Envelope for publishing activity items sent over the backchannel.
 /// </summary>
 internal sealed class PublishingActivity
@@ -82,19 +100,24 @@ internal sealed class PublishingActivityData
     public required string StatusText { get; init; }
 
     /// <summary>
+    /// Gets the completion state of the publishing activity.
+    /// </summary>
+    public string CompletionState { get; init; } = CompletionStates.InProgress;
+
+    /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    public bool IsComplete { get; init; }
+    public bool IsComplete => CompletionState is not CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    public bool IsError { get; init; }
+    public bool IsError => CompletionState is CompletionStates.CompletedWithError;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity completed with warnings.
     /// </summary>
-    public bool IsWarning { get; init; }
+    public bool IsWarning => CompletionState is CompletionStates.CompletedWithWarning;
 
     /// <summary>
     /// Gets the identifier of the step this task belongs to (only applicable for tasks).
@@ -115,4 +138,24 @@ internal static class PublishingActivityTypes
     public const string Step = "step";
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
+}
+
+/// <summary>
+/// Constants for completion state values.
+/// </summary>
+internal static class CompletionStates
+{
+    public const string InProgress = "InProgress";
+    public const string Completed = "Completed";
+    public const string CompletedWithWarning = "CompletedWithWarning";
+    public const string CompletedWithError = "CompletedWithError";
 }

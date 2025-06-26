@@ -19,7 +19,7 @@ public sealed class InputViewModel
     public void SetInput(InteractionInput input)
     {
         Input = input;
-        if (input.InputType == InputType.Select && input.Options != null)
+        if (input.InputType == InputType.Choice && input.Options != null)
         {
             var optionsVM = input.Options
                 .Select(option => new SelectViewModel<string> { Id = option.Key, Name = option.Value, })

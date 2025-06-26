@@ -203,7 +203,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
            var dinnerInput = new InteractionInput
            {
-               InputType = InputType.Select,
+               InputType = InputType.Choice,
                Label = "Dinner",
                Placeholder = "Select dinner",
                Required = true,
@@ -231,10 +231,10 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
            var inputs = new List<InteractionInput>
            {
                new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
-               new InteractionInput { InputType = InputType.Password, Label = "Password", Placeholder = "Enter password", Required = true },
+               new InteractionInput { InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true },
                dinnerInput,
                numberOfPeopleInput,
-               new InteractionInput { InputType = InputType.Checkbox, Label = "Remember me", Placeholder = "What does this do?", Required = true },
+               new InteractionInput { InputType = InputType.Boolean, Label = "Remember me", Placeholder = "What does this do?", Required = true },
            };
            var result = await interactionService.PromptInputsAsync(
                "Input request",

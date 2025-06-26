@@ -80,38 +80,32 @@ public sealed class AzurePublishingContext(
             cancellationToken
         ).ConfigureAwait(false);
 
-        (string Message, bool IsError) stepInfo;
-
-        try
+        await using (step.ConfigureAwait(false))
         {
-            await WriteAzureArtifactsOutputAsync(step, model, environment, cancellationToken).ConfigureAwait(false);
+            var writeTask = await step.CreateTaskAsync("Writing Azure Bicep templates", cancellationToken).ConfigureAwait(false);
 
-            await SaveToDiskAsync(outputPath).ConfigureAwait(false);
+            await using (writeTask.ConfigureAwait(false))
+            {
+                try
+                {
+                    await WriteAzureArtifactsOutputAsync(step, model, environment, cancellationToken).ConfigureAwait(false);
 
-            stepInfo = (
-                $"Azure Bicep templates written successfully to {outputPath}.",
-                false
-            );
+                    await SaveToDiskAsync(outputPath).ConfigureAwait(false);
+
+                    await writeTask.CompleteAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await writeTask.FailAsync($"Failed to write Azure Bicep templates: {ex.Message}", cancellationToken).ConfigureAwait(false);
+
+                    Logger.LogError(ex, "Failed to write Azure Bicep templates to {OutputPath}", outputPath);
+                    throw;
+                }
+            }
         }
-        catch (Exception ex)
-        {
-            stepInfo = (
-                $"Failed to write Azure Bicep templates: {ex.Message}",
-                true
-            );
-
-            Logger.LogError(ex, "Failed to write Azure Bicep templates to {OutputPath}", outputPath);
-        }
-
-        await ProgressReporter.CompleteStepAsync(
-            step,
-            stepInfo.Message,
-            stepInfo.IsError,
-            cancellationToken
-        ).ConfigureAwait(false);
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken _)
+    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -220,7 +214,7 @@ public sealed class AzurePublishingContext(
 
         var computeEnvironmentTask = await step.CreateTaskAsync(
             "Analyzing model for compute environments.",
-            cancellationToken: default
+            cancellationToken: cancellationToken
             ).ConfigureAwait(false);
 
         foreach (var resource in bicepResourcesToPublish)
@@ -232,7 +226,7 @@ public sealed class AzurePublishingContext(
 
             var task = await step.CreateTaskAsync(
                 $"Processing Azure resource {resource.Name}",
-                cancellationToken: default
+                cancellationToken: cancellationToken
             )
             .ConfigureAwait(false);
 
@@ -262,14 +256,14 @@ public sealed class AzurePublishingContext(
 
             await task.SucceedAsync(
                 $"Wrote bicep module for resource {resource.Name} to {module.Path}",
-                cancellationToken: default
+                cancellationToken: cancellationToken
             ).ConfigureAwait(false);
         }
 
         var (message, state) = computeEnvironments.Count switch
         {
-            0 => ("No azure compute environments found in the model.", TaskCompletionState.CompletedWithWarning),
-            _ => ($"Found {computeEnvironments.Count} compute environment(s) in the model.", TaskCompletionState.Completed)
+            0 => ("No azure compute environments found in the model.", CompletionState.CompletedWithWarning),
+            _ => ($"Found {computeEnvironments.Count} compute environment(s) in the model.", CompletionState.Completed)
         };
 
         // Report the completion of the compute environment task.
@@ -277,7 +271,7 @@ public sealed class AzurePublishingContext(
             computeEnvironmentTask,
             state,
             message,
-            cancellationToken: default
+            cancellationToken: cancellationToken
         ).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();

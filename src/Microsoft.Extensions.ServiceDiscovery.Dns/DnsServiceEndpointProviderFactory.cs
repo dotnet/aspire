@@ -4,18 +4,20 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 internal sealed partial class DnsServiceEndpointProviderFactory(
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : IServiceEndpointProviderFactory
 {
     /// <inheritdoc/>
     public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider)
     {
-        provider = new DnsServiceEndpointProvider(query, hostName: query.ServiceName, options, logger, timeProvider);
+        provider = new DnsServiceEndpointProvider(query, hostName: query.ServiceName, options, logger, resolver, timeProvider);
         return true;
     }
 }

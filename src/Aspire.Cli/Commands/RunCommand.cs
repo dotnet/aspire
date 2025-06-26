@@ -157,19 +157,16 @@ internal sealed class RunCommand : BaseCommand
             grid.AddColumn();
 
             grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
-
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
                 grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
+            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
             _ansiConsole.Write(grid);
 
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
             if (isCodespaces || isRemoteContainers)
             {
@@ -193,7 +190,7 @@ internal sealed class RunCommand : BaseCommand
             await pendingLogCapture;
             return await pendingRun;
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;

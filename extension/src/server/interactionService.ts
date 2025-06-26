@@ -1,6 +1,6 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { IOutputChannelWriter } from '../utils/vsc';
+import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/vsc';
 import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability } from '../constants/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
@@ -19,6 +19,7 @@ export interface IInteractionService {
     displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
     displayCancellationMessage: (message: string) => void;
+    openProject: (projectPath: string) => void;
 }
 
 type DashboardUrls = {
@@ -196,6 +197,15 @@ export class InteractionService implements IInteractionService {
         vscode.window.showWarningMessage(formatText(message));
         this._outputChannelWriter.appendLine(formatText(message));
     }
+
+    openProject(projectPath: string) {
+        if (isWorkspaceOpen(false)) {
+            return;
+        }
+
+        const uri = vscode.Uri.file(projectPath);
+        vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+    }
 }
 
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
@@ -212,4 +222,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
+    connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
 }

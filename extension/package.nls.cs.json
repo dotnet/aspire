@@ -25,5 +25,6 @@
 	"aspire-vscode.strings.aspireHostingSdkVersion": "Aspire Hosting SDK Version: {0}",
 	"aspire-vscode.strings.aspireCliVersion": "Aspire CLI Version: {0}",
 	"aspire-vscode.strings.requiredCapability": "Required Capability: {0}",
-	"aspire-vscode.strings.aspireTerminalName": "Aspire Terminal"
+	"aspire-vscode.strings.aspireTerminalName": "Aspire Terminal",
+	"aspire-vscode.strings.rpcServerError": "RPC Server error: {0}"
 }
