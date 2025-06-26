@@ -100,19 +100,24 @@ internal sealed class PublishingActivityData
     public required string StatusText { get; init; }
 
     /// <summary>
+    /// Gets the completion state of the publishing activity.
+    /// </summary>
+    public string CompletionState { get; init; } = CompletionStates.InProgress;
+
+    /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    public bool IsComplete { get; init; }
+    public bool IsComplete => CompletionState is not CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    public bool IsError { get; init; }
+    public bool IsError => CompletionState is CompletionStates.CompletedWithError;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity completed with warnings.
     /// </summary>
-    public bool IsWarning { get; init; }
+    public bool IsWarning => CompletionState is CompletionStates.CompletedWithWarning;
 
     /// <summary>
     /// Gets the identifier of the step this task belongs to (only applicable for tasks).
@@ -142,4 +147,15 @@ internal class BackchannelLogEntry
     public required string Message { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required string CategoryName { get; set; }
+}
+
+/// <summary>
+/// Constants for completion state values.
+/// </summary>
+internal static class CompletionStates
+{
+    public const string InProgress = "InProgress";
+    public const string Completed = "Completed";
+    public const string CompletedWithWarning = "CompletedWithWarning";
+    public const string CompletedWithError = "CompletedWithError";
 }
