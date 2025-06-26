@@ -12,6 +12,11 @@
         <target state="new">Run an Aspire app host in exec mode.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToParseCommand">
+        <source>Failed to parse command</source>
+        <target state="new">Failed to parse command</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
         <target state="new">The path to the Aspire app host project file.</target>
@@ -25,6 +30,11 @@
       <trans-unit id="TargetResourceArgumentDescription">
         <source>The name of the target resource to execute the command against.</source>
         <target state="new">The name of the target resource to execute the command against.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TargetResourceNotSpecified">
+        <source>Target resource is not specified.</source>
+        <target state="new">Target resource is not specified.</target>
         <note />
       </trans-unit>
     </body>
