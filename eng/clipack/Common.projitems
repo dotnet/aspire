@@ -7,14 +7,6 @@
     <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
   </PropertyGroup>
 
-  <!-- Enable native AOT on non-official builds to ensure the Cli is AOT compatible. -->
-  <!-- TODO: https://github.com/dotnet/aspire/issues/8677 - enable PublishAot when the official build infrastructure supports all platforms. -->
-  <PropertyGroup Condition="'$(OfficialBuildId)' == ''">
-    <PublishNativeAot Condition="$(CliRuntime.StartsWith('linux-')) AND $([System.OperatingSystem]::IsLinux())">true</PublishNativeAot>
-    <PublishNativeAot Condition="$(CliRuntime.StartsWith('osx-')) AND $([System.OperatingSystem]::IsMacOS())">true</PublishNativeAot>
-    <PublishNativeAot Condition="$(CliRuntime.StartsWith('win-')) AND '$(CliRuntime)' != 'win-x86' AND $([System.OperatingSystem]::IsWindows())">true</PublishNativeAot>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Archives" />
   </ItemGroup>
@@ -23,26 +15,12 @@
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
-    </ItemGroup>
 
-    <ItemGroup Condition="'$(PublishNativeAot)' == 'true'">
       <!-- Always publish Release for native aot, since Debug hits a warning https://github.com/protocolbuffers/protobuf/issues/21824. -->
       <AdditionalProperties Include="Configuration=Release" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(PublishNativeAot)' != 'true'">
-      <AdditionalProperties Include="Configuration=$(Configuration)" />
-      <AdditionalProperties Include="PublishSingleFile=true" />
-      <AdditionalProperties Include="SelfContained=true" />
-      <AdditionalProperties Include="PublishAot=false" />
-    </ItemGroup>
-
-    <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
-    <MSBuild
-        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
-        Targets="publish"
-        Properties="@(AdditionalProperties)"
-        RemoveProperties="OutputPath;TargetFramework" />
+    <Exec Command="dotnet publish $(RepoRoot)src/Aspire.Cli/Aspire.Cli.csproj @(AdditionalProperties -> '-p:%(Identity)', ' ')" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />

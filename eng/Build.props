@@ -3,7 +3,11 @@
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\**\*.csproj" />
+
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
+
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
 
     <!-- `$(SkipTestProjects)` allows skipping test projects from being
