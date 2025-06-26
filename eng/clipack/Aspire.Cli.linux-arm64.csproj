@@ -6,4 +6,11 @@
 
   <Import Project="Common.projitems" />
 
+  <ItemGroup>
+    <!-- linux builds on x64, but doesn't have arm64 native tools. So disable native AOT for now. -->
+    <AdditionalProperties Include="PublishAot=false" />
+    <AdditionalProperties Include="PublishSingleFile=true" />
+    <AdditionalProperties Include="SelfContained=true" />
+  </ItemGroup>
+
 </Project>
