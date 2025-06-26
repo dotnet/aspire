@@ -113,7 +113,9 @@ public sealed class AzurePublishingContext(
             outputDirectory.Create();
         }
 
-        var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>().ToList();
+        var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>()
+            .Where(r => !r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) || lastAnnotation != ManifestPublishingCallbackAnnotation.Ignore)
+            .ToList();
 
         MapParameter(environment.ResourceGroupName);
         MapParameter(environment.Location);
