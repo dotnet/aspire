@@ -42,7 +42,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// account is created as a serverless account. If true, it will use the default Azure Cosmos DB SKU, which is
     /// typically a provisioned throughput account.
     /// </summary>
-    internal bool UseDefaultAzureSku {  get; set; } // Default to false
+    internal bool UseDefaultAzureSku { get; set; } // Default to false
 
     /// <summary>
     /// Gets the "connectionString" secret reference from the key vault associated with this resource.

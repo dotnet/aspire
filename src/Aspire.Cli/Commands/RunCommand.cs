@@ -165,10 +165,8 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(grid);
 
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
             if (isCodespaces || isRemoteContainers)
             {
@@ -192,7 +190,7 @@ internal sealed class RunCommand : BaseCommand
             await pendingLogCapture;
             return await pendingRun;
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;

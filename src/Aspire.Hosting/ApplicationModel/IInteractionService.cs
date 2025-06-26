@@ -121,7 +121,7 @@ public sealed class InteractionInput
     public bool Required { get; init; }
 
     /// <summary>
-    /// Gets or sets the options for the input. Only used by <see cref="InputType.Select"/> inputs.
+    /// Gets or sets the options for the input. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
 
@@ -151,17 +151,17 @@ public enum InputType
     /// </summary>
     Text,
     /// <summary>
-    /// A password input.
+    /// A secure text input.
     /// </summary>
-    Password,
+    SecretText,
     /// <summary>
-    /// A select input.
+    /// A choice input. Selects from a list of options.
     /// </summary>
-    Select,
+    Choice,
     /// <summary>
-    /// A checkbox input.
+    /// A boolean input.
     /// </summary>
-    Checkbox,
+    Boolean,
     /// <summary>
     /// A numeric input.
     /// </summary>

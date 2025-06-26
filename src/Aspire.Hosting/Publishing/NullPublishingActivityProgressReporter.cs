@@ -31,15 +31,16 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     /// <inheritdoc/>
     public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step);
         task.Reporter = this;
+        step.AddTask(task);
         return Task.FromResult(task);
     }
 
     /// <inheritdoc/>
-    public Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
+    public Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default)
     {
-        step.IsComplete = true;
+        step.CompletionState = completionState;
         step.CompletionText = completionText;
         return Task.CompletedTask;
     }
@@ -52,7 +53,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    public Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         task.CompletionState = completionState;
         task.CompletionMessage = completionMessage ?? string.Empty;
@@ -60,7 +61,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    public Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }

@@ -82,7 +82,6 @@ internal class BackchannelLogger(string categoryName, Channel<BackchannelLogEntr
                 LogLevel = logLevel,
                 EventId = eventId,
                 Message = formatter(state, exception),
-                Exception = exception,
             };
 
             channel.Writer.TryWrite(entry);
@@ -95,7 +94,6 @@ internal class BackchannelLogEntry
     public required EventId EventId { get; set; }
     public required LogLevel LogLevel { get; set; }
     public required string Message { get; set; }
-    public Exception? Exception { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required string CategoryName { get; set; }
 }

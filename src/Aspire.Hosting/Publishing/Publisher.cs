@@ -55,22 +55,22 @@ internal class Publisher(
             }
         }
 
-        (string Message, TaskCompletionState State) taskInfo;
+        (string Message, CompletionState State) taskInfo;
 
         if (options.Value.Deploy)
         {
             taskInfo = deployingResources.Count switch
             {
-                0 => ("No resources in the distributed application model support deployment.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
+                0 => ("No resources in the distributed application model support deployment.", CompletionState.CompletedWithError),
+                _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
             };
         }
         else
         {
             taskInfo = publishingResources.Count switch
             {
-                0 => ("No resources in the distributed application model support publishing.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
+                0 => ("No resources in the distributed application model support publishing.", CompletionState.CompletedWithError),
+                _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
             };
         }
 
@@ -85,16 +85,12 @@ internal class Publisher(
         await progressReporter.CompleteStepAsync(
                     step,
                     "Model analysis completed.",
-                    isError: taskInfo.State == TaskCompletionState.CompletedWithError,
+                    taskInfo.State,
                     cancellationToken)
                     .ConfigureAwait(false);
 
-        if (taskInfo.State == TaskCompletionState.CompletedWithError)
+        if (taskInfo.State == CompletionState.CompletedWithError)
         {
-            // TOOD: This should be automatically handled (if any steps fail)
-            await progressReporter.CompletePublishAsync(false, cancellationToken)
-                .ConfigureAwait(false);
-
             // If there are no resources to publish or deploy, we can exit early
             return;
         }

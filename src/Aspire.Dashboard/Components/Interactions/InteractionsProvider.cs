@@ -459,7 +459,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             Width = parameters.Width,
             Height = parameters.Height,
             AriaLabel = (content.Title ?? ""),
-            OnDialogResult = parameters.OnDialogResult
+            OnDialogResult = parameters.OnDialogResult,
+            PreventDismissOnOverlayClick = true
         };
         return await dialogService.ShowDialogAsync(typeof(MessageBox), content, dialogParameters);
     }
