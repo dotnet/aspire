@@ -27,24 +27,41 @@
         <p>@((MarkupString)Content.Interaction.Message)</p>
     }
 
-    <EditForm EditContext="@_editContext">
+    <EditForm EditContext="@_editContext" OnValidSubmit="@SubmitAsync">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             @foreach (var vm in _inputDialogInputViewModels)
             {
+                @*
+                * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
+                * Immediate value of true on text inputs ensures the value is set to the server token with every key press in textbox.
+                *@
                 var localItem = vm;
                 <div class="interaction-input">
                     @switch (vm.Input.InputType)
                     {
                         case InputType.Text:
-                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" />
+                            <FluentTextField @ref="@_elementRefs[localItem]"
+                                             @bind-Value="localItem.Value"
+                                             Label="@localItem.Input.Label"
+                                             Placeholder="@localItem.Input.Placeholder"
+                                             Required="localItem.Input.Required"
+                                             Immediate="true" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
-                        case InputType.Password:
-                            <FluentTextField @bind-Value="localItem.Value" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" TextFieldType="TextFieldType.Password" />
+                        case InputType.SecretText:
+                            <FluentTextField @ref="@_elementRefs[localItem]"
+                                             @bind-Value="localItem.Value"
+                                             Label="@localItem.Input.Label"
+                                             Placeholder="@localItem.Input.Placeholder"
+                                             Required="localItem.Input.Required"
+                                             TextFieldType="TextFieldType.Password"
+                                             AutoComplete="one-time-code"
+                                             Immediate="true" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
-                        case InputType.Select:
+                        case InputType.Choice:
                             <FluentSelect TOption="SelectViewModel<string>"
+                                          @ref="@_elementRefs[localItem]"
                                           @bind-Value="localItem.Value"
                                           Label="@localItem.Input.Label"
                                           Placeholder="@localItem.Input.Placeholder"
@@ -56,11 +73,20 @@
                                           Position="SelectPosition.Below" />
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
-                        case InputType.Checkbox:
-                            <FluentCheckbox @bind-Value="localItem.IsChecked" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" />
+                        case InputType.Boolean:
+                            <FluentCheckbox @ref="@_elementRefs[localItem]"
+                                            @bind-Value="localItem.IsChecked"
+                                            Label="@localItem.Input.Label"
+                                            Placeholder="@localItem.Input.Placeholder" />
                             break;
                         case InputType.Number:
-                            <FluentNumberField @bind-Value="localItem.NumberValue" Label="@localItem.Input.Label" Placeholder="@localItem.Input.Placeholder" Required="localItem.Input.Required" />
+                            <FluentNumberField TValue="int?"
+                                               @ref="@_elementRefs[localItem]"
+                                               @bind-Value="localItem.NumberValue"
+                                               Label="@localItem.Input.Label"
+                                               Placeholder="@localItem.Input.Placeholder"
+                                               Required="localItem.Input.Required"
+                                               Immediate="true" />
                             <ValidationMessage For="@(() => localItem.NumberValue)" />
                             break;
                         default:
@@ -70,11 +96,14 @@
                 </div>
             }
         </FluentStack>
+
+        @* Hidden submit is so the form is submitted when the user presses enter. *@
+        <button type="submit" style="display:none"></button>
     </EditForm>
 </FluentDialogBody>
 
 <FluentDialogFooter>
-    <FluentButton Appearance="Appearance.Accent" OnClick="@OkAsync">
+    <FluentButton Appearance="Appearance.Accent" OnClick="@SubmitAsync">
         @Dialog.Instance.Parameters.PrimaryAction
     </FluentButton>
     @if (!string.IsNullOrEmpty(Dialog.Instance.Parameters.SecondaryAction))
