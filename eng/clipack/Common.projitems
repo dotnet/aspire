@@ -5,6 +5,8 @@
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
     <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
     <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
+
+    <PublishNativeAot Condition="'$(PublishNativeAot)' == ''">true</PublishNativeAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,9 +17,17 @@
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
+    </ItemGroup>
 
+    <ItemGroup Condition="'$(PublishNativeAot)' == 'true'">
       <!-- Always publish Release for native aot, since Debug hits a warning https://github.com/protocolbuffers/protobuf/issues/21824. -->
       <AdditionalProperties Include="Configuration=Release" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(PublishNativeAot)' != 'true'">
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="PublishAot=false" />
+      <AdditionalProperties Include="PublishSingleFile=true" />
+      <AdditionalProperties Include="SelfContained=true" />
     </ItemGroup>
 
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->

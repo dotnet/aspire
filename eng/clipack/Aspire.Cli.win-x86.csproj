@@ -2,15 +2,10 @@
   <PropertyGroup>
     <CliRuntime>win-x86</CliRuntime>
     <CliPlatformType>Windows</CliPlatformType>
+    <!-- native AOT doesn't support win-x86  -->
+    <PublishNativeAot>false</PublishNativeAot>
   </PropertyGroup>
 
   <Import Project="Common.projitems" />
-
-  <ItemGroup>
-    <!-- native AOT doesn't support win-x86  -->
-    <AdditionalProperties Include="PublishAot=false" />
-    <AdditionalProperties Include="PublishSingleFile=true" />
-    <AdditionalProperties Include="SelfContained=true" />
-  </ItemGroup>
 
 </Project>
