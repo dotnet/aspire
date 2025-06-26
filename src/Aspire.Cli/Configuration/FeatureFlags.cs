@@ -1,18 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Configuration;
+
 namespace Aspire.Cli.Configuration;
 
-internal sealed class FeatureFlags(IConfigurationService configurationService) : IFeatureFlags
+internal sealed class FeatureFlags(IConfiguration configuration) : IFeatureFlags
 {
     public bool IsFeatureEnabled(string featureFlag)
     {
-        var configKey = $"featureFlags.{featureFlag}";
+        var configKey = $"featureFlags:{featureFlag}";
         
-        // Use GetAllConfigurationAsync to get the current state from files
-        var allConfig = configurationService.GetAllConfigurationAsync().GetAwaiter().GetResult();
+        var value = configuration[configKey];
         
-        if (!allConfig.TryGetValue(configKey, out var value) || string.IsNullOrEmpty(value))
+        if (string.IsNullOrEmpty(value))
         {
             return false;
         }

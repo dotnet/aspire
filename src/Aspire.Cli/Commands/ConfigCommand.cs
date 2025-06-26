@@ -69,7 +69,7 @@ internal sealed class ConfigCommand : BaseCommand
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             var value = await _configurationService.GetConfigurationAsync(key, cancellationToken);
@@ -77,12 +77,12 @@ internal sealed class ConfigCommand : BaseCommand
             if (value is not null)
             {
                 Console.WriteLine(value);
-                return 0;
+                return ExitCodeConstants.Success;
             }
             else
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
         }
     }
@@ -126,13 +126,13 @@ internal sealed class ConfigCommand : BaseCommand
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             if (value is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             try
@@ -144,12 +144,12 @@ internal sealed class ConfigCommand : BaseCommand
                     : string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetLocally, key,
                         value));
 
-                return 0;
+                return ExitCodeConstants.Success;
             }
             catch (Exception ex)
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
         }
     }
@@ -217,7 +217,7 @@ internal sealed class ConfigCommand : BaseCommand
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             try
@@ -236,18 +236,18 @@ internal sealed class ConfigCommand : BaseCommand
                         _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
                     }
 
-                    return 0;
+                    return ExitCodeConstants.Success;
                 }
                 else
                 {
                     _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                    return 1;
+                    return ExitCodeConstants.InvalidCommand;
                 }
             }
             catch (Exception ex)
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
         }
     }

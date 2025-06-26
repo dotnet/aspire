@@ -55,7 +55,7 @@ internal static class CliTestHelper
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
         services.AddSingleton(options.ConfigurationServiceFactory);
-        services.AddSingleton<IFeatureFlags, FeatureFlags>();
+        services.AddSingleton(options.FeatureFlagsFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -176,6 +176,12 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new AppHostBackchannel(logger, telemetry);
+    };
+
+    public Func<IServiceProvider, IFeatureFlags> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new FeatureFlags(configuration);
     };
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
