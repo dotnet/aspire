@@ -1,4 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
+import { vscOutputChannelWriter } from '../utils/vsc';
+import { logAsyncOperation } from '../utils/logging';
+import { version } from 'node:process';
 
 export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
@@ -19,14 +22,28 @@ export class RpcClient implements ICliRpcClient {
         this._token = token;
     }
 
-    async getCliVersion(): Promise<string> {
-        return await this._messageConnection.sendRequest<string>('getCliVersion', this._token);
+    getCliVersion(): Promise<string> {
+        return logAsyncOperation(
+            "interaction",
+            `Requesting CLI version from CLI`,
+            (version: string) => `Received CLI version: ${version}`,
+            async () => {
+                return await this._messageConnection.sendRequest<string>('getCliVersion', this._token);
+            }
+        );
     }
 
-    async validatePromptInputString(input: string): Promise<ValidationResult | null> {
-        return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
-            token: this._token,
-            input
-        });
-    }
+    validatePromptInputString(input: string): Promise<ValidationResult | null> {
+    return logAsyncOperation(
+        "interaction",
+        `Validating prompt input string`,
+        (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
+        async () => {
+            return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
+                token: this._token,
+                input
+            });
+        }
+    );
+}
 }

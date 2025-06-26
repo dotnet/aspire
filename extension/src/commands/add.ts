@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { sendToAspireTerminal } from '../utils/terminal';
-import { isWorkspaceOpen, vscOutputChannelWriter } from '../utils/vsc';
+import { isWorkspaceOpen } from '../utils/vsc';
 
 export async function addCommand() {
     if (!isWorkspaceOpen()) {

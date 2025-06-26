@@ -2,7 +2,7 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError, rpcServerListening, rpcServerError } from '../constants/strings';
+import { rpcServerAddressError, rpcServerError } from '../constants/strings';
 import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
@@ -56,34 +56,36 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             connection.listen();
         });
 
+        outputChannelWriter.appendLine(`rpc-server`, `Setting up RPC server with token: ${token}`);
         rpcServer.listen(0, () => {
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 const fullAddress = (addressInfo.address === "::" ? "localhost" : `${addressInfo.address}`) + ":" + addressInfo.port;
-                outputChannelWriter.appendLine(rpcServerListening(fullAddress));
+                outputChannelWriter.appendLine(`rpc-server`, `RPC server listening on ${fullAddress}`);
                 resolve({
                     token: token,
                     server: rpcServer,
                     address: fullAddress,
-                    dispose: () => disposeRpcServer(rpcServer),
+                    dispose: () => disposeRpcServer(rpcServer, outputChannelWriter),
                     cert: cert
                 });
             }
             else {
-                outputChannelWriter.appendLine(rpcServerAddressError);
+                outputChannelWriter.appendLine(`rpc-server`, rpcServerAddressError);
                 vscode.window.showErrorMessage(rpcServerAddressError);
                 reject(new Error(rpcServerAddressError));
             }
         });
         
         rpcServer.on('error', (err) => {
-            outputChannelWriter.appendLine(rpcServerError(err));
+            outputChannelWriter.appendLine("rpc-server", rpcServerError(err));
             reject(err);
         });
     });
 }
 
-function disposeRpcServer(rpcServer: net.Server) {
+function disposeRpcServer(rpcServer: net.Server, outputChannelWriter: IOutputChannelWriter) {
+    outputChannelWriter.appendLine("rpc-server", `Disposing RPC server`);
     rpcServer.close();
 }
 

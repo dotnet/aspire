@@ -13,7 +13,7 @@ export async function tryExecuteCommand(command: () => Promise<void>): Promise<v
 }
 
 export interface IOutputChannelWriter {
-    appendLine(message: string): void;
+    appendLine(category: OutputLogCategory, message: string): void;
     append(message: string): void;
 }
 
@@ -24,8 +24,8 @@ class VSCOutputChannelWriter implements IOutputChannelWriter {
         this._channel = outputChannel;
     }
 
-    appendLine(message: string): void {
-        this._channel.appendLine(message);
+    appendLine(category: OutputLogCategory, message: string): void {
+        this._channel.appendLine(`[${category}] ${message}`);
     }
 
     append(message: string): void {
@@ -34,6 +34,8 @@ class VSCOutputChannelWriter implements IOutputChannelWriter {
 }
 
 export const vscOutputChannelWriter: IOutputChannelWriter = new VSCOutputChannelWriter();
+
+export type OutputLogCategory = "lifecycle" | "command" | "interaction" | "rpc-server" | "cli-log";
 
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
