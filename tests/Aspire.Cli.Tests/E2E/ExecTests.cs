@@ -57,15 +57,6 @@ public class ExecTests(ITestOutputHelper output)
         //    "--add-postgres", // arbitraty flags for apphost
         //];
 
-        // PRINT ENV
-        //string[] args = [
-        //    "--operation", "exec", // EXEC type
-        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-        //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"Get-ChildItem Env:\"", // command packed into string
-        //    "--add-postgres", // arbitraty flags for apphost
-        //];
-
         // APPLY MIGRATION UPDATE ON DB
         string[] args = [
             "--operation", "exec", // EXEC type
@@ -102,8 +93,6 @@ public class ExecTests(ITestOutputHelper output)
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
             .WithReference(pgsqlDb)
             .WaitFor(pgsqlDb);
-
-        builder.AddExecutable("dotnetef", "dotnet", workingDirectory: @"D:\code\aspire\tests\TestingAppHost1\TestingAppHost1.MyWebApp", args: "ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp");
 
         await using var app = await builder.BuildAsync();
 
