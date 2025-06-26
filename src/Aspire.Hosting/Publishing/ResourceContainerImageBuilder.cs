@@ -145,18 +145,7 @@ internal sealed class ResourceContainerImageBuilder(
         return BuildImageAsync(step: null, resource, options, cancellationToken);
     }
 
-    // Backward compatibility methods
-    public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
-    {
-        return BuildImagesAsync(resources, options: null, cancellationToken);
-    }
-
-    public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
-    {
-        return BuildImageAsync(resource, options: null, cancellationToken);
-    }
-
-    private async Task BuildImageAsync(PublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
 
@@ -182,6 +171,7 @@ internal sealed class ResourceContainerImageBuilder(
                     dockerfileBuildAnnotation.DockerfilePath,
                     containerImageAnnotation.Image,
                     step,
+                    options,
                     cancellationToken).ConfigureAwait(false);
                 return;
             }
@@ -210,9 +200,37 @@ internal sealed class ResourceContainerImageBuilder(
                     throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
                 }
 
+                var arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}";
+
+                // Add additional arguments based on options
+                if (options is not null)
+                {
+                    if (!string.IsNullOrEmpty(options.OutputPath))
+                    {
+                        arguments += $" /p:ContainerArchiveOutputPath={options.OutputPath}";
+                    }
+
+                    if (options.ImageFormat.HasValue)
+                    {
+                        var format = options.ImageFormat.Value switch
+                        {
+                            ContainerImageFormat.Docker => "Docker",
+                            ContainerImageFormat.OciTar => "OciTar",
+                            ContainerImageFormat.DockerTar => "DockerTar",
+                            _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                        };
+                        arguments += $" /p:ContainerImageFormat={format}";
+                    }
+
+                    if (!string.IsNullOrEmpty(options.TargetPlatform))
+                    {
+                        arguments += $" /p:ContainerRuntimeIdentifier={options.TargetPlatform}";
+                    }
+                }
+
                 var spec = new ProcessSpec("dotnet")
                 {
-                    Arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}",
+                    Arguments = arguments,
                     OnOutputData = output =>
                     {
                         logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
@@ -254,77 +272,9 @@ internal sealed class ResourceContainerImageBuilder(
                 }
             }
         }
-
-        // Build the dotnet publish command with base arguments
-        var arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}";
-
-        // Add additional arguments based on options
-        if (options is not null)
-        {
-            if (!string.IsNullOrEmpty(options.OutputPath))
-            {
-                arguments += $" /p:ContainerArchiveOutputPath={options.OutputPath}";
-            }
-
-            if (options.ImageFormat.HasValue)
-            {
-                var format = options.ImageFormat.Value switch
-                {
-                    ContainerImageFormat.Docker => "Docker",
-                    ContainerImageFormat.OciTar => "OciTar",
-                    ContainerImageFormat.DockerTar => "DockerTar",
-                    _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-                };
-                arguments += $" /p:ContainerImageFormat={format}";
-            }
-
-            if (!string.IsNullOrEmpty(options.TargetPlatform))
-            {
-                arguments += $" /p:ContainerRuntimeIdentifier={options.TargetPlatform}";
-            }
-        }
-
-        var spec = new ProcessSpec("dotnet")
-        {
-            Arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}",
-            OnOutputData = output =>
-            {
-                logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
-            }
-        };
-
-        logger.LogInformation(
-            "Starting .NET CLI with arguments: {Arguments}",
-            string.Join(" ", spec.Arguments)
-            );
-
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-                throw new DistributedApplicationException($"Failed to build container image.");
-            }
-            else
-            {
-                logger.LogDebug(
-                    ".NET CLI completed with exit code: {ExitCode}",
-                    processResult.ExitCode);
-            }
-        }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -342,6 +292,7 @@ internal sealed class ResourceContainerImageBuilder(
                         contextPath,
                         dockerfilePath,
                         imageName,
+                        options,
                         cancellationToken).ConfigureAwait(false);
 
                     await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
@@ -363,6 +314,7 @@ internal sealed class ResourceContainerImageBuilder(
                     contextPath,
                     dockerfilePath,
                     imageName,
+                    options,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
