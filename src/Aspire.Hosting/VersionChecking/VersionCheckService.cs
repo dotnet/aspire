@@ -27,15 +27,17 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly DistributedApplicationOptions _options;
     private readonly IVersionFetcher _versionFetcher;
+    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly SemVersion? _appHostVersion;
 
-    public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger, IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher)
+    public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger, IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher, DistributedApplicationExecutionContext executionContext)
     {
         _interactionService = interactionService;
         _logger = logger;
         _configuration = configuration;
         _options = options;
         _versionFetcher = versionFetcher;
+        _executionContext = executionContext;
 
         var version = typeof(VersionCheckService).Assembly.GetName().Version!;
         var patch = version.Build > 0 ? version.Build : 0;
@@ -44,9 +46,10 @@ internal sealed class VersionCheckService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_interactionService.IsAvailable)
+        if (!_interactionService.IsAvailable || _executionContext.IsPublishMode)
         {
             // Don't check version if there is no way to prompt that information to the user.
+            // Or app is being run during a publish.
             return;
         }
 
