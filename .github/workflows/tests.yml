@@ -87,6 +87,13 @@ jobs:
           name: built-nugets
           path: artifacts/packages
 
+      - name: Upload logs
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: build_packages_logs
+          path: artifacts/log
+        condition: failure()
+
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Linux
