@@ -14,7 +14,7 @@ import { publishCommand } from './commands/publish';
 export let rpcServerInfo: RpcServerInformation | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-	vscOutputChannelWriter.appendLine("lifecycle", "activating Aspire extension");
+	vscOutputChannelWriter.appendLine("lifecycle", "Activating Aspire extension");
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand(addCommand));

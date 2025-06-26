@@ -7,7 +7,8 @@ export async function logAsyncOperation<T>(category: OutputLogCategory, beforeMe
         vscOutputChannelWriter.appendLine(category, afterMessage(result));
         return result;
     } catch (error) {
-        vscOutputChannelWriter.appendLine(category, `Error during operation: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+        vscOutputChannelWriter.appendLine(category, `Error during operation: ${errorMessage}`);
         throw error;
     }
 }
