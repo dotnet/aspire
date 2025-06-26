@@ -144,17 +144,6 @@ internal sealed class ResourceContainerImageBuilder(
         return BuildImageAsync(step: null, resource, options, cancellationToken);
     }
 
-    // Backward compatibility methods
-    public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
-    {
-        return BuildImagesAsync(resources, options: null, cancellationToken);
-    }
-
-    public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
-    {
-        return BuildImageAsync(resource, options: null, cancellationToken);
-    }
-
     private async Task BuildImageAsync(PublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
@@ -181,6 +170,7 @@ internal sealed class ResourceContainerImageBuilder(
                     dockerfileBuildAnnotation.DockerfilePath,
                     containerImageAnnotation.Image,
                     step,
+                    options,
                     cancellationToken).ConfigureAwait(false);
                 return;
             }
@@ -283,7 +273,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, PublishingStep? step, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, PublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -297,6 +287,7 @@ internal sealed class ResourceContainerImageBuilder(
                 contextPath,
                 dockerfilePath,
                 imageName,
+                options,
                 cancellationToken).ConfigureAwait(false);
 
             if (publishingTask is not null)
