@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="new">Generates deployment artifacts for an Aspire app host project.</target>
+        <target state="translated">為 Aspire 應用程式主機專案產生部署成品。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">
         <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">發行成品失敗，結束代碼為 {0}。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
-        <target state="new">Generating artifacts...</target>
+        <target state="translated">正在產生成品...</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts.</source>
-        <target state="new">The output path for the generated artifacts.</target>
+        <target state="translated">產生成品的輸出路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Aspire 應用程式主機專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
-        <target state="new">Select a publisher:</target>
+        <target state="translated">選取發行者：</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyPublishedArtifacts">
         <source>Successfully published artifacts to: {0}</source>
-        <target state="new">Successfully published artifacts to: {0}</target>
+        <target state="translated">已成功將成品發行至：{0}</target>
         <note />
       </trans-unit>
     </body>

@@ -21,22 +21,46 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, CancellationToken cancellationToken)
+    public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var activity = new PublishingActivity(id, isPrimary);
-        activity.LastStatus = new PublishingActivityStatus
-        {
-            Activity = activity,
-            StatusText = initialStatusText,
-            IsComplete = false,
-            IsError = false
-        };
-
-        return Task.FromResult(activity);
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
+        step.Reporter = this;
+        return Task.FromResult(step);
     }
 
     /// <inheritdoc/>
-    public Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, CancellationToken cancellationToken)
+    public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
+    {
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
+        task.Reporter = this;
+        return Task.FromResult(task);
+    }
+
+    /// <inheritdoc/>
+    public Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
+    {
+        step.IsComplete = true;
+        step.CompletionText = completionText;
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
+    {
+        task.StatusText = statusText;
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    {
+        task.CompletionState = completionState;
+        task.CompletionMessage = completionMessage ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }

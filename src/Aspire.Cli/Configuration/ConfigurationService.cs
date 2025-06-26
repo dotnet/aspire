@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Configuration;
 
@@ -93,7 +94,7 @@ internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileI
         // Walk up the directory tree to find existing settings file
         while (searchDirectory is not null)
         {
-            var settingsFilePath = Path.Combine(searchDirectory.FullName, ".aspire", "settings.json");
+            var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);
 
             if (File.Exists(settingsFilePath))
             {
@@ -104,7 +105,7 @@ internal sealed class ConfigurationService(DirectoryInfo currentDirectory, FileI
         }
 
         // If no existing settings file found, create one in current directory
-        return Path.Combine(currentDirectory.FullName, ".aspire", "settings.json");
+        return ConfigurationHelper.BuildPathToSettingsJsonFile(currentDirectory.FullName);
     }
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)

@@ -174,4 +174,7 @@
     <value>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</value>
     <comment>{0} is a date, {1} is a date, {2} is a number.</comment>
   </data>
+  <data name="ConsoleLogsErrorWatchingLogs" xml:space="preserve">
+    <value>Error watching logs</value>
+  </data>
 </root>

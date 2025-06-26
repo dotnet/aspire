@@ -5,5 +5,7 @@ namespace Aspire.Hosting.Publishing;
 
 internal interface IContainerRuntime
 {
+    string Name { get; }
+    Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
     public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken);
 }

@@ -1,15 +1,16 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { IOutputChannelWriter } from '../utils/vsc';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard } from '../constants/strings';
+import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability } from '../constants/strings';
 import { ICliRpcClient } from './rpcClient';
+import { formatText } from '../utils/strings';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
-    displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string) => void;
+    displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
     displayError: (errorMessage: string) => void;
     displayMessage: (emoji: string, message: string) => void;
     displaySuccess: (message: string) => void;
@@ -44,7 +45,7 @@ export class InteractionService implements IInteractionService {
         }
 
         if (statusText) {
-            this._statusBarItem.text = statusText;
+            this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
@@ -53,15 +54,16 @@ export class InteractionService implements IInteractionService {
 
     async promptForString(promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
-            vscode.window.showErrorMessage('Failed to show prompt, text was empty.');
-            this._outputChannelWriter.appendLine('Failed to show prompt, text was empty.');
+            vscode.window.showErrorMessage(failedToShowPromptEmpty);
+            this._outputChannelWriter.appendLine(failedToShowPromptEmpty);
+            return null;
         }
 
         const input = await vscode.window.showInputBox({
-            prompt: promptText,
-            value: defaultValue || '',
+            prompt: formatText(promptText),
+            value: formatText(defaultValue ?? ''),
             validateInput: async (value: string) => {
-                const validationResult = await rpcClient.validatePromptInputString(promptText, value, vscode.env.language);
+                const validationResult = await rpcClient.validatePromptInputString(value);
                 if (validationResult) {
                     return validationResult.successful ? null : validationResult.message;
                 }
@@ -78,7 +80,7 @@ export class InteractionService implements IInteractionService {
         const no = noLabel;
 
         const result = await vscode.window.showInformationMessage(
-            promptText,
+            formatText(promptText),
             { modal: true },
             yes,
             no
@@ -91,57 +93,57 @@ export class InteractionService implements IInteractionService {
         if (result === no) {
             return false;
         }
+
         return null;
     }
 
     async promptForSelection(promptText: string, choices: string[]): Promise<string | null> {
         const selected = await vscode.window.showQuickPick(choices, {
-            placeHolder: promptText,
+            placeHolder: formatText(promptText),
             canPickMany: false,
             ignoreFocusOut: true
         });
 
-        return selected || null;
+        return selected ?? null;
     }
 
-    displayIncompatibleVersionError(requiredCapability: string, appHostHostingSdkVersion: string) {
-        const cliInformationalVersion = 'Unknown'; // Replace with actual CLI version if available
+    async displayIncompatibleVersionError(requiredCapabilityStr: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) {
+        const cliInformationalVersion =  await rpcClient.getCliVersion();
 
         const errorLines = [
-            "The app host is not compatible. Consider upgrading the app host or Aspire CLI.",
-            "",
-            `\tAspire Hosting SDK Version: ${appHostHostingSdkVersion}`,
-            `\tAspire CLI Version: ${cliInformationalVersion}`,
-            `\tRequired Capability: ${requiredCapability}`,
-            ""
+            incompatibleAppHostError,
+            aspireHostingSdkVersion(appHostHostingSdkVersion),
+            aspireCliVersion(cliInformationalVersion),
+            requiredCapability(requiredCapabilityStr),
         ];
 
+        vscode.window.showErrorMessage(formatText(errorLines.join('. ')));
+
         errorLines.forEach(line => {
-            vscode.window.showErrorMessage(line);
-            this._outputChannelWriter.appendLine(line);
+            this._outputChannelWriter.appendLine(formatText(line));
         });
     }
 
     displayError(errorMessage: string) {
-        vscode.window.showErrorMessage(errorMessage);
-        this._outputChannelWriter.appendLine(errorMessage);
+        vscode.window.showErrorMessage(formatText(errorMessage));
+        this._outputChannelWriter.appendLine(formatText(errorMessage));
     }
 
     displayMessage(emoji: string, message: string) {
-        vscode.window.showInformationMessage(message);
-        this._outputChannelWriter.appendLine(message);
+        vscode.window.showInformationMessage(formatText(message));
+        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
-        vscode.window.showInformationMessage(message);
-        this._outputChannelWriter.appendLine(message);
+        vscode.window.showInformationMessage(formatText(message));
+        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     displaySubtleMessage(message: string) {
-        vscode.window.setStatusBarMessage(message, 5000);
-        this._outputChannelWriter.appendLine(message);
+        vscode.window.setStatusBarMessage(formatText(message), 5000);
+        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
@@ -186,31 +188,28 @@ export class InteractionService implements IInteractionService {
 
     displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.line).join('\n');
-        vscode.window.showInformationMessage(displayText);
-        lines.forEach(line => this._outputChannelWriter.appendLine(line.line));
+        vscode.window.showInformationMessage(formatText(displayText));
+        lines.forEach(line => this._outputChannelWriter.appendLine(formatText(line.line)));
     }
 
     displayCancellationMessage(message: string) {
-        vscode.window.showWarningMessage(message);
-        this._outputChannelWriter.appendLine(message);
+        vscode.window.showWarningMessage(formatText(message));
+        this._outputChannelWriter.appendLine(formatText(message));
     }
 }
 
-export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient) {
-    connection.onRequest("showStatus", interactionService.showStatus.bind(interactionService));
-    connection.onRequest("promptForString", (promptText: string, defaultValue: string | null) =>
-        interactionService.promptForString(promptText, defaultValue, rpcClient));
-    connection.onRequest("confirm", interactionService.confirm.bind(interactionService));
-    connection.onRequest("promptForSelection", (promptText: string, choices: string[]) =>
-        interactionService.promptForSelection(promptText, choices)
-    );
-    connection.onRequest("displayIncompatibleVersionError", interactionService.displayIncompatibleVersionError.bind(interactionService));
-    connection.onRequest("displayError", interactionService.displayError.bind(interactionService));
-    connection.onRequest("displayMessage", interactionService.displayMessage.bind(interactionService));
-    connection.onRequest("displaySuccess", interactionService.displaySuccess.bind(interactionService));
-    connection.onRequest("displaySubtleMessage", interactionService.displaySubtleMessage.bind(interactionService));
-    connection.onRequest("displayEmptyLine", interactionService.displayEmptyLine.bind(interactionService));
-    connection.onRequest("displayDashboardUrls", interactionService.displayDashboardUrls.bind(interactionService));
-    connection.onRequest("displayLines", interactionService.displayLines.bind(interactionService));
-    connection.onRequest("displayCancellationMessage", interactionService.displayCancellationMessage.bind(interactionService));
+export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
+    connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
+    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null) => interactionService.promptForString(promptText, defaultValue, rpcClient)));
+    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
+    connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
+    connection.onRequest("displayIncompatibleVersionError", withAuthentication((requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
+    connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
+    connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
+    connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", withAuthentication( interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
+    connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
+    connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
 }

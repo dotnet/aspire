@@ -19,8 +19,28 @@
         "category": "Aspire"
       },
       {
-        "command": "aspire-vscode.addPackage",
-        "title": "%command.addPackage%",
+        "command": "aspire-vscode.add",
+        "title": "%command.add%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.new",
+        "title": "%command.new%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.publish",
+        "title": "%command.publish%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.config",
+        "title": "%command.config%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.deploy",
+        "title": "%command.deploy%",
         "category": "Aspire"
       }
     ]

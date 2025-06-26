@@ -4,127 +4,127 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to AppHost backchannel.</source>
-        <target state="new">Already connected to AppHost backchannel.</target>
+        <target state="translated">已連線到 AppHost 後通道。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
-        <target state="new">AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">AppHost 與 CLI 不相容。AppHost 必須更新為支援 {0} 功能的版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>AppHost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="new">AppHost file was specified in '{0}' but it does not exist at '{1}'.</target>
+        <target state="translated">在 '{0}' 中指定了 AppHost 檔案，但在 '{1}' 中不存在。</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
-        <target state="new">AspireHostingVersion is null</target>
+        <target state="translated">AspireHostingVersion 為 null</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireSDKVersionNotSupported">
         <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
-        <target state="new">The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</target>
+        <target state="translated">不支援 Aspire.Hosting 套件版本 {0}。請更新至最新版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="CantUseBothWatchAndNoBuild">
         <source>Cannot use --watch and --no-build at the same time.</source>
-        <target state="new">Cannot use --watch and --no-build at the same time.</target>
+        <target state="translated">無法同時使用 --watch 和 --no-build。</target>
         <note />
       </trans-unit>
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
-        <target state="new">Developer certificates may not be fully trusted (trust exit code was: {0}).</target>
+        <target state="translated">開發人員憑證可能未完全受信任 (信任結束代碼為: {0})。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
-        <target state="new">Configuration key {0} not found.</target>
+        <target state="translated">找不到設定金鑰 {0}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyRequired">
         <source>Configuration key is required.</source>
-        <target state="new">Configuration key is required.</target>
+        <target state="translated">必須提供設定金鑰。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationValueRequired">
         <source>Configuration value is required.</source>
-        <target state="new">Configuration value is required.</target>
+        <target state="translated">設定值為必須。</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotParseAspireSDKVersion">
         <source>Could not parse Aspire.Hosting package version.</source>
-        <target state="new">Could not parse Aspire.Hosting package version.</target>
+        <target state="translated">無法剖析 Aspire.Hosting 套件版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorDeletingConfiguration">
         <source>Error deleting configuration: {0}</source>
-        <target state="new">Error deleting configuration: {0}</target>
+        <target state="translated">刪除設定檔時發生錯誤: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorSettingConfiguration">
         <source>Error setting configuration: {0}</source>
-        <target state="new">Error setting configuration: {0}</target>
+        <target state="translated">設定設定時發生錯誤: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
-        <target state="new">Failed to parse template version from stdout.</target>
+        <target state="translated">無法從 stdout 剖析範本版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
-        <target state="new">Failed to retrieve template packages via cache.</target>
+        <target state="translated">無法透過快取擷取範本套件。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToSearchForPackages">
         <source>Failed to search for packages. Exit code: {0}.</source>
-        <target state="new">Failed to search for packages. Exit code: {0}.</target>
+        <target state="translated">無法搜尋套件。結束代碼: {0}。</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
         <source>Invalid locale {0} provided will not be used.</source>
-        <target state="new">Invalid locale {0} provided will not be used.</target>
+        <target state="translated">提供的無效地區設定 {0} 將不會被使用。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
-        <target state="new">Multiple project files found.</target>
+        <target state="translated">找到多個專案檔案。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoProjectFileFound">
         <source>No project file found.</source>
-        <target state="new">No project file found.</target>
+        <target state="translated">找不到專案檔案啊。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
         <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
-        <target state="new">The project could not be analyzed due to a build error. For more information run with --debug switch.</target>
+        <target state="translated">因為組建錯誤，無法分析專案。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
-        <target state="new">Project file does not exist.</target>
+        <target state="translated">專案檔案不存在。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire app host project.</source>
-        <target state="new">Project file is not an Aspire app host project.</target>
+        <target state="translated">專案檔案不是 Aspire 應用程式主機專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project is not an Aspire app host project.</source>
-        <target state="new">The project is not an Aspire app host project.</target>
+        <target state="translated">專案不是 Aspire 應用程式主機專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
-        <target state="new">Unable to retrieve the assembly version.</target>
+        <target state="translated">無法擷取組件版本。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedLocaleProvided">
         <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
-        <target state="new">Unsupported locale {0} provided will not be used. Supported locales are: {1}.</target>
+        <target state="translated">提供的不支援地區設定 {0} 將不會被使用。支援的地區設定為: {1}。</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
     </body>

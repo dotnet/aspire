@@ -9,7 +9,7 @@ using Aspire.Dashboard.Resources;
 using Aspire.Hosting;
 using Google.Protobuf.Collections;
 
-namespace Aspire.ResourceService.Proto.V1;
+namespace Aspire.DashboardService.Proto.V1;
 
 partial class Resource
 {
