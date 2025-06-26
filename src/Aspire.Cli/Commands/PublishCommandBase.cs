@@ -386,18 +386,13 @@ internal abstract class PublishCommandBase : BaseCommand
 
         if (publishingActivity is not null)
         {
-            if (hasErrors)
-            {
-                AnsiConsole.MarkupLine($"[red bold]❌ PUBLISHING FAILED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
-            else if (hasWarnings)
-            {
-                AnsiConsole.MarkupLine($"[yellow bold]⚠ PUBLISHING COMPLETED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
-            else
-            {
-                AnsiConsole.MarkupLine($"[green bold]✅ PUBLISHING COMPLETED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
+            var prefix = hasErrors
+                ? "[red bold]❌ PUBLISHING FAILED:[/]"
+                : hasWarnings
+                    ? "[yellow bold]⚠️ PUBLISHING COMPLETED:[/]"
+                    : "[green bold]✅ PUBLISHING COMPLETED:[/]";
+            
+            AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
 
         return !hasErrors;
