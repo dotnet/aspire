@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
 import { aspireTerminalName } from '../constants/strings';
+import { vscOutputChannelWriter } from './vsc';
 
 export function getAspireTerminal(): vscode.Terminal {
     if (!rpcServerInfo) {
@@ -28,6 +29,13 @@ export function getAspireTerminal(): vscode.Terminal {
             env
         });
     }
+}
+
+export function sendToAspireTerminal(command: string) {
+    const terminal = getAspireTerminal();
+    vscOutputChannelWriter.appendLine(`Sending command to Aspire terminal: ${command}`);
+    terminal.sendText(command);
+    terminal.show();
 }
 
 type CommandFlag = {
