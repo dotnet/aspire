@@ -1,19 +1,8 @@
 <Project>
+  <PropertyGroup>
+    <IsCliToolProject>true</IsCliToolProject>
+  </PropertyGroup>
 
   <Import Project="Aspire.Cli.csproj" />
-
-  <PropertyGroup>
-    <!-- This package needs to remain as preview. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <IsPackable>true</IsPackable>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>aspire</ToolCommandName>
-    <PackageId>Aspire.Cli</PackageId>
-    <RollForward>Major</RollForward>
-    <PackageTags>aspire cli</PackageTags>
-    <Description>Command line tool for Aspire developers.</Description>
-    <PublishAot>false</PublishAot>
-    <PublishTrimmed>false</PublishTrimmed>
-  </PropertyGroup>
 
 </Project>
