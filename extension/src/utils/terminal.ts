@@ -11,20 +11,21 @@ export function getAspireTerminal(): vscode.Terminal {
 
     const existingTerminal = vscode.window.terminals.find(terminal => terminal.name === terminalName);
     if (existingTerminal) {
-        existingTerminal.dispose();
+        return existingTerminal;
     }
+    else {
+        const env = { 
+            ...process.env, 
+            ASPIRE_EXTENSION_ENDPOINT: rpcServerInfo.address,
+            ASPIRE_EXTENSION_TOKEN: rpcServerInfo.token,
+            ASPIRE_EXTENSION_CERT: Buffer.from(rpcServerInfo.cert, 'utf-8').toString('base64'),
+            ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
+            ASPIRE_LOCALE_OVERRIDE: vscode.env.language
+         };
 
-    const env = {
-        ...process.env,
-        ASPIRE_EXTENSION_ENDPOINT: rpcServerInfo.address,
-        ASPIRE_EXTENSION_TOKEN: rpcServerInfo.token,
-        ASPIRE_EXTENSION_CERT: Buffer.from(rpcServerInfo.cert, 'utf-8').toString('base64'),
-        ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
-        ASPIRE_LOCALE_OVERRIDE: vscode.env.language
-    };
-
-    return vscode.window.createTerminal({
-        name: terminalName,
-        env
-    });
+        return vscode.window.createTerminal({
+            name: terminalName,
+            env
+        });
+    }
 }
