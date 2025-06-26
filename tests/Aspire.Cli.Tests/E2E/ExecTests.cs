@@ -3,15 +3,15 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Projects;
 using Xunit;
-using Aspire.Hosting.Backchannel;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Tests.E2E;
 
@@ -19,103 +19,113 @@ public class ExecTests(ITestOutputHelper output)
 {
     [Fact]
     [RequiresDocker]
+    public async Task Exec_PingGoogleCom_ShouldProduceLogs()
+    {
+        var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
+
+        string[] args = [
+            "--operation", "exec",
+            "--project", myWebAppProjectMetadata.ProjectPath,
+            "--resource", "mywebapp1",
+            "--command", "\"ping google.com\""
+        ];
+
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Contains("Reply from"));
+        Assert.Contains(logs, x => x.Contains("Ping statistics for"));
+        Assert.Contains(logs, x => x.Contains("Approximate round trip times in milli-seconds"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task Exec_DotnetHelp_ShouldProduceLogs()
+    {
+        var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
+
+        string[] args = [
+            "--operation", "exec",
+            "--project", myWebAppProjectMetadata.ProjectPath,
+            "--resource", "mywebapp1",
+            "--command", "\"dotnet --help\""
+        ];
+
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Contains("Usage: dotnet [sdk-options] [command] [command-options] [arguments]"));
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Exec_InitializeMigrations_ShouldCreateMigrationsInWebApp()
     {
         var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
-        // DeleteMigrations(myWebAppProjectMetadata);
+        DeleteMigrations(myWebAppProjectMetadata);
 
-        // RUN apphost
-        //string[] args = [
-        //    "--operation", "run", // RUN type
-        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-        //    "--add-postgres", // arbitraty flags for apphost
-        //];
-
-        // DOTNET LIST-SDKS COMMAND
-        //string[] args = [
-        //    "--operation", "exec", // EXEC type
-        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-        //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"dotnet --list-sdks\"", // command packed into string
-        //    "--add-postgres", // arbitraty flags for apphost
-        //];
-
-        // PING GOOGLE.COM COMMAND
-        //string[] args = [
-        //    "--operation", "exec", // EXEC type
-        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-        //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"ping google.com\"", // command packed into string
-        //    "--add-postgres", // arbitraty flags for apphost
-        //];
-
-        // ADD MIGRATION
-        //string[] args = [
-        //    "--operation", "exec", // EXEC type
-        //    "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-        //    "--resource", "mywebapp1", // target resource
-        //    "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"", // command packed into string
-        //    "--add-postgres", // arbitraty flags for apphost
-        //];
-
-        // APPLY MIGRATION UPDATE ON DB
         string[] args = [
-            "--operation", "exec", // EXEC type
-            "--project", myWebAppProjectMetadata.ProjectPath, // apphost 
-            "--resource", "mywebapp1", // target resource
-            "--command", "\"dotnet ef database update\"", // command packed into string
-            "--add-postgres", // arbitraty flags for apphost
+            "--operation", "exec",
+            "--project", myWebAppProjectMetadata.ProjectPath,
+            "--resource", "mywebapp1",
+            "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"",
+            "--add-postgres",
         ];
 
-        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (appOptions, _) =>
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Contains("Build started"));
+
+        AssertMigrationsCreated(myWebAppProjectMetadata);
+        DeleteMigrations(myWebAppProjectMetadata);
+    }
+
+    private async Task<List<string>> ExecAndCollectLogsAsync(DistributedApplication app, int timeoutSec = 30)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
+
+        var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
+        var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
+
+        var logs = new List<string>();
+        var startTask = app.StartAsync(cts.Token);
+        await foreach (var message in outputStream)
         {
-        };
+            var logLevel = message.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
+            var log = $"Received output: #{message.LineNumber} [level={logLevel}] [type={message.Type}] {message.Text}";
 
-        Environment.SetEnvironmentVariable("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+            logs.Add(log);
+            output.WriteLine(log);
+        }
 
+        await startTask;
+        return logs;
+    }
+
+    private async Task<DistributedApplication> BuildAppAsync(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? configureBuilder = null)
+    {
+        configureBuilder ??= (appOptions, _) => { };
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        // dependant of the target resource
-        var pgsql = builder
-            .AddPostgres(
-                name: "postgres1",
-                port: 6000,
-                userName: builder.AddParameter("pgsqluser"),
-                password: builder.AddParameter("pgsqlpass", secret: true))
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000));
-        var pgsqlDb = pgsql.AddDatabase("postgresDb");
+        var pgsqlDb = builder
+            .AddPostgres("postgres1", port: 6000)
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000))
+            .AddDatabase("postgresDb");
 
-        //var connStr = await pgsql.Resource.GetConnectionStringAsync();
-        //output.WriteLine("PGSQL Connection string: " + connStr);
-
-        // the target resource
         var project = builder
             .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
             .WithReference(pgsqlDb)
             .WaitFor(pgsqlDb);
 
-        await using var app = await builder.BuildAsync();
-
-        var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
-        var outputStream = appHostRpcTarget.ExecAsync(CancellationToken.None);
-
-        var startTask = app.StartAsync(CancellationToken.None);
-        await foreach (var message in outputStream)
-        {
-            var logLevel = message.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
-            output.WriteLine($"Received output: #{message.LineNumber} [level={logLevel}] [type={message.Type}] {message.Text}");
-        }
-
-        await startTask;
-
-        AssertMigrationsCreated(myWebAppProjectMetadata);
-        // DeleteMigrations(myWebAppProjectMetadata);
+        return await builder.BuildAsync();
     }
 
-#pragma warning disable IDE0051 // Remove unused private members
     private static void DeleteMigrations(IProjectMetadata projectMetadata)
-#pragma warning restore IDE0051 // Remove unused private members
     {
         var projectDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
         if (!Directory.Exists(projectDirectory))

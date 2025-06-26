@@ -173,7 +173,8 @@ internal class ExecResourceManager : BackgroundService
             var commandUnwrapped = command.AsSpan(1, command.Length - 2).ToString();
 
             var split = commandUnwrapped.Split(' ', count: 2);
-            var (exe, argsString) = (split[0], split[1]);
+            var exe = split[0];
+            string argsString = split.Length > 1 ? split[1] : string.Empty;
 
             string[] args = [];
             if (!string.IsNullOrEmpty(argsString))
