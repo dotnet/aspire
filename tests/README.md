@@ -24,3 +24,12 @@ Individual test projects can be opted-out by setting appropriate MSBuild propert
   - `<RunOnAzdoCILinux>false</RunOnAzdoCILinux>` and/or
   - `<RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>` and/or
   - `<RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>`.
+
+## Controlling local command line test runs
+
+- Set `TestMethod`, `TestClass` or `TestNamespace` to run specific tests.
+- Set `TestCaptureOutput=false` to see the output on the command line.
+- Use `-tl:false` to disable msbuild's terminal logger so live output can be seen.
+
+Example: `dotnet test tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj -bl -p:TestClass=Aspire.Templates.Tests.NewUpAndBuildStandaloneTemplateTests -p:TestCaptureOutput=false -tl:false`
+

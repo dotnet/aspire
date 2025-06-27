@@ -7,6 +7,10 @@
     <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(PrepareForHelix)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
+
+    <TestingPlatformCommandLineArguments Condition="'$(TestMethod)' != ''">$(TestingPlatformCommandLineArguments) --filter-method $(TestMethod)</TestingPlatformCommandLineArguments>
+    <TestingPlatformCommandLineArguments Condition="'$(TestClass)' != ''">$(TestingPlatformCommandLineArguments) --filter-class $(TestClass)</TestingPlatformCommandLineArguments>
+    <TestingPlatformCommandLineArguments Condition="'$(TestNamespace)' != ''">$(TestingPlatformCommandLineArguments) --filter-namespace $(TestNamespace)</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
