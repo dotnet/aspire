@@ -31,6 +31,14 @@
       <AdditionalProperties Include="PublishAot=false" />
       <AdditionalProperties Include="PublishSingleFile=true" />
       <AdditionalProperties Include="SelfContained=true" />
+
+      <!-- Windows pdb aren't really needed any more. See https://github.com/dotnet/arcade/issues/15724
+          As the pdb file is in the same location for all the RIDs it causes arcade's `_DeployPortableSymbolsToSymStore`
+          target to race.
+
+          `The process cannot access the file 'D:\a\_work\1\s\artifacts\SymStore\Release\Aspire.Cli\net8.0\aspire.pdb' because it is being used by another process`
+      -->
+      <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
