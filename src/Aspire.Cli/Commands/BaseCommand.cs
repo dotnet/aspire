@@ -37,6 +37,8 @@ internal abstract class BaseCommand : Command
                     // Ignore any errors during update check to avoid impacting the main command
                 }
             }
+
+            return exitCode;
         });
     }
 

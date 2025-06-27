@@ -18,6 +18,7 @@ using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Xunit;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -75,6 +76,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.TemplateProviderFactory);
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
+        services.AddSingleton(options.CliUpdateNotifierFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -127,6 +129,14 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         return new NewCommandPrompter(interactionService);
+    };
+
+    public Func<IServiceProvider, ICliUpdateNotififier> CliUpdateNotifierFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<CliUpdateNotififier>();
+        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
+        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        return new CliUpdateNotififier(logger, nuGetPackageCache, ansiConsole);
     };
 
     public Func<IServiceProvider, IAddCommandPrompter> AddCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, DirectoryInfo currentDirectory) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, DirectoryInfo currentDirectory, IFeatures features) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -32,23 +33,26 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
             }
         }, stoppingToken);
 
-        // Also prefetch CLI packages for update notifications
-        _ = Task.Run(async () =>
+        if (features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
         {
-            try
+            // Also prefetch CLI packages for update notifications
+                _ = Task.Run(async () =>
             {
-                await nuGetPackageCache.GetCliPackagesAsync(
-                    workingDirectory: currentDirectory,
-                    prerelease: true,
-                    source: null,
-                    cancellationToken: stoppingToken
-                    );
-            }
-            catch (System.Exception ex)
-            {
-                logger.LogDebug(ex, "Non-fatal error while prefetching CLI packages. This is not critical to the operation of the CLI.");
-            }
-        }, stoppingToken);
+                try
+                {
+                    await nuGetPackageCache.GetCliPackagesAsync(
+                        workingDirectory: currentDirectory,
+                        prerelease: true,
+                        source: null,
+                        cancellationToken: stoppingToken
+                        );
+                }
+                catch (System.Exception ex)
+                {
+                    logger.LogDebug(ex, "Non-fatal error while prefetching CLI packages. This is not critical to the operation of the CLI.");
+                }
+            }, stoppingToken);
+        }
 
         return Task.CompletedTask;
     }
