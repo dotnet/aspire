@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding YARP resources to the application model.
 /// </summary>
-public static class YarpServiceExtensions
+public static class YarpResourceExtensions
 {
     private const int Port = 5000;
 
@@ -47,7 +47,23 @@ public static class YarpServiceExtensions
         // Map the configuration file
         yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
         {
-            var contents = await yarpBuilder.Resource.ConfigurationBuilder.Build(ct).ConfigureAwait(false);
+            // Call all the config delegates
+            var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
+            foreach (var configurator in yarpBuilder.Resource.ConfigurationBuilderDelegates)
+            {
+                configurator(configBuilder);
+            }
+            // Add all routes and cluster to the json config generator
+            foreach (var route in configBuilder.Routes)
+            {
+                yarpBuilder.Resource.JsonConfigGenerator.AddRoute(route.RouteConfig);
+            }
+            foreach (var destination in configBuilder.Clusters)
+            {
+                yarpBuilder.Resource.JsonConfigGenerator.AddCluster(destination.ClusterConfig);
+            }
+            // Generate the json content
+            var contents = await yarpBuilder.Resource.JsonConfigGenerator.Build(ct).ConfigureAwait(false);
 
             var configFile = new ContainerFile
             {
@@ -69,7 +85,7 @@ public static class YarpServiceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
     {
-        builder.Resource.ConfigurationBuilder.WithConfigFile(configFilePath);
+        builder.Resource.JsonConfigGenerator.WithConfigFile(configFilePath);
         return builder;
     }
 
@@ -79,9 +95,20 @@ public static class YarpServiceExtensions
     /// <param name="builder">The YARP resource to configure.</param>
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigGeneratorBuilder> configurationBuilder)
+    {
+        configurationBuilder(builder.Resource.JsonConfigGenerator);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configure the YARP resource.
+    /// </summary>
+    /// <param name="builder">The YARP resource to configure.</param>
+    /// <param name="configurationBuilder">The delegate to configure YARP.</param>
     public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
     {
-        configurationBuilder(builder.Resource.ConfigurationBuilder);
+        builder.Resource.ConfigurationBuilderDelegates.Add(configurationBuilder);
         return builder;
     }
 }

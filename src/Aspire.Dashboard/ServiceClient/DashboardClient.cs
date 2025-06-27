@@ -9,15 +9,17 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
 using Aspire.DashboardService.Proto.V1;
+using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.Options;
+using ResourceCommandResponseKind = Aspire.Dashboard.Model.ResourceCommandResponseKind;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.Dashboard.ServiceClient;
 
 /// <summary>
 /// Implements gRPC client that communicates with a resource server, populating data for the dashboard.
@@ -48,6 +50,8 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly TaskCompletionSource _initialDataReceivedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Channel<WatchInteractionsRequestUpdate> _incomingInteractionChannel = Channel.CreateUnbounded<WatchInteractionsRequestUpdate>();
     private readonly object _lock = new();
+    private readonly TaskCompletionSource _resourceWatchCompleteTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _interactionWatchCompleteTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly ILoggerFactory _loggerFactory;
     private readonly IKnownPropertyLookup _knownPropertyLookup;
@@ -65,7 +69,7 @@ internal sealed class DashboardClient : IDashboardClient
     private int _state = StateNone;
 
     private readonly GrpcChannel? _channel;
-    private readonly Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient? _client;
+    internal Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient? _client;
     private readonly Metadata _headers = [];
 
     private Task? _connection;
@@ -89,7 +93,7 @@ internal sealed class DashboardClient : IDashboardClient
         if (dashboardOptions.Value.ResourceServiceClient.GetUri() is null)
         {
             _state = StateDisabled;
-            _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug("{ConfigKey} is not specified. Dashboard client services are unavailable.", DashboardConfigNames.ResourceServiceUrlName.ConfigKey);
             _cts.Cancel();
             _whenConnectedTcs.TrySetCanceled();
             return;
@@ -216,6 +220,9 @@ internal sealed class DashboardClient : IDashboardClient
     // For testing purposes
     internal int OutgoingResourceSubscriberCount => _outgoingResourceChannels.Count;
     internal int OutgoingInteractionSubscriberCount => _outgoingInteractionChannels.Count;
+    internal void SetDashboardServiceClient(Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient client) => _client = client;
+    internal Task ResourceWatchCompleteTask => _resourceWatchCompleteTcs.Task;
+    internal Task InteractionWatchCompleteTask => _interactionWatchCompleteTcs.Task;
 
     public bool IsEnabled => _state is not StateDisabled;
 
@@ -244,8 +251,16 @@ internal sealed class DashboardClient : IDashboardClient
             await ConnectAsync().ConfigureAwait(false);
 
             await Task.WhenAll(
-                Task.Run(() => WatchWithRecoveryAsync(cancellationToken, WatchResourcesAsync), cancellationToken),
-                Task.Run(() => WatchWithRecoveryAsync(cancellationToken, WatchInteractionsAsync), cancellationToken)).ConfigureAwait(false);
+                Task.Run(async () =>
+                {
+                    await WatchWithRecoveryAsync(cancellationToken, WatchResourcesAsync).ConfigureAwait(false);
+                    _resourceWatchCompleteTcs.TrySetResult();
+                }, cancellationToken),
+                Task.Run(async () =>
+                {
+                    await WatchWithRecoveryAsync(cancellationToken, WatchInteractionsAsync).ConfigureAwait(false);
+                    _interactionWatchCompleteTcs.TrySetResult();
+                }, cancellationToken)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -279,7 +294,7 @@ internal sealed class DashboardClient : IDashboardClient
         public int ErrorCount { get; set; }
     }
 
-    private async Task WatchWithRecoveryAsync(CancellationToken cancellationToken, Func<RetryContext, CancellationToken, Task> action)
+    private async Task WatchWithRecoveryAsync(CancellationToken cancellationToken, Func<RetryContext, CancellationToken, Task<RetryResult>> action)
     {
         // Track the number of errors we've seen since the last successfully received message.
         // As this number climbs, we extend the amount of time between reconnection attempts, in
@@ -303,7 +318,10 @@ internal sealed class DashboardClient : IDashboardClient
 
             try
             {
-                await action(retryContext, cancellationToken).ConfigureAwait(false);
+                if (await action(retryContext, cancellationToken).ConfigureAwait(false) == RetryResult.DoNotRetry)
+                {
+                    return;
+                }
             }
             catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
             {
@@ -325,7 +343,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    private async Task WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
+    private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
         var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
@@ -405,14 +423,24 @@ internal sealed class DashboardClient : IDashboardClient
                 }
             }
         }
+
+        return RetryResult.Retry;
     }
 
-    private async Task WatchInteractionsAsync(RetryContext retryContext, CancellationToken cancellationToken)
+    private async Task<RetryResult> WatchInteractionsAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
         // Create the watch interactions call. This is a bidirectional streaming call.
         // Responses are streamed out to all watchers. Requests are sent from the incoming interaction channel.
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         using var call = _client!.WatchInteractions(headers: _headers, cancellationToken: cts.Token);
+
+        if (await IsUnimplemented(call).ConfigureAwait(false))
+        {
+            // The server does not support this method.
+            _logger.LogWarning("Server does not support interactions.");
+
+            return RetryResult.DoNotRetry;
+        }
 
         // Send
         _ = Task.Run(async () =>
@@ -473,6 +501,29 @@ internal sealed class DashboardClient : IDashboardClient
             // Ensure the write task is cancelled if we exit the loop.
             cts.Cancel();
         }
+
+        return RetryResult.Retry;
+    }
+
+    private static async Task<bool> IsUnimplemented(AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate> call)
+    {
+        // Wait for the server to respond with initial headers. Require before calling GetStatus.
+        await call.ResponseHeadersAsync.ConfigureAwait(false);
+
+        try
+        {
+            var status = call.GetStatus();
+            if (status.StatusCode == StatusCode.Unimplemented)
+            {
+                return true;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Expected from GetStatus when the method is still in progress.
+        }
+
+        return false;
     }
 
     public async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
@@ -736,5 +787,11 @@ internal sealed class DashboardClient : IDashboardClient
     private class InteractionCollection : KeyedCollection<int, WatchInteractionsResponseUpdate>
     {
         protected override int GetKeyForItem(WatchInteractionsResponseUpdate item) => item.InteractionId;
+    }
+
+    private enum RetryResult
+    {
+        Retry,
+        DoNotRetry
     }
 }

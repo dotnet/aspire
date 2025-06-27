@@ -1,17 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
-using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -20,6 +16,7 @@ internal interface IAppHostBackchannel
     Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task RequestStopAsync(CancellationToken cancellationToken);
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
@@ -81,6 +78,27 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         return (url.BaseUrlWithLoginToken, url.CodespacesUrlWithLoginToken);
     }
 
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Requesting AppHost log entries");
+
+        var logEntries = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<BackchannelLogEntry>>(
+            "GetAppHostLogEntriesAsync",
+            [],
+            cancellationToken);
+
+        logger.LogDebug("Received AppHost log entries async enumerable");
+
+        await foreach (var entry in logEntries.WithCancellation(cancellationToken))
+        {
+            yield return entry;
+        }
+    }
+
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
@@ -120,7 +138,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
 
             var stream = new NetworkStream(socket, true);
-            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, CreateMessageFormatter()));
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
             rpc.StartListening();
 
             var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
@@ -146,15 +164,6 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
                 BaselineCapability
                 );
         }
-    }
-
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
-    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode", Justification = "Using the Json source generator.")]
-    private static SystemTextJsonFormatter CreateMessageFormatter()
-    {
-        var formatter = new SystemTextJsonFormatter();
-        formatter.JsonSerializerOptions.TypeInfoResolver = SourceGenerationContext.Default;
-        return formatter;
     }
 
     public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -195,12 +204,3 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     }
 }
 
-[JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(DashboardUrlsState))]
-[JsonSerializable(typeof(JsonElement))]
-[JsonSerializable(typeof(IAsyncEnumerable<RpcResourceState>))]
-[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<RpcResourceState>))]
-[JsonSerializable(typeof(IAsyncEnumerable<PublishingActivity>))]
-[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
-[JsonSerializable(typeof(RequestId))]
-internal partial class SourceGenerationContext : JsonSerializerContext;

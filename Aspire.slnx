@@ -72,6 +72,7 @@
     <Project Path="src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj" />
   </Folder>
   <Folder Name="/Hosting/Azure/">
+    <Project Path="src/Aspire.Hosting.Azure.AIFoundry/Aspire.Hosting.Azure.AIFoundry.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppConfiguration/Aspire.Hosting.Azure.AppConfiguration.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.ApplicationInsights/Aspire.Hosting.Azure.ApplicationInsights.csproj" />
@@ -99,6 +100,10 @@
     <File Path="playground/Directory.Build.targets" />
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/playground/AzureAIFoundryEndToEnd/">
+    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
+    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
   </Folder>
   <Folder Name="/playground/AzureAppService/">
     <Project Path="playground/AzureAppService/AzureAppService.ApiService/AzureAppService.ApiService.csproj" />
@@ -282,6 +287,11 @@
     <Project Path="playground/webpubsub/WebPubSub.AppHost/WebPubSub.AppHost.csproj" />
     <Project Path="playground/webpubsub/WebPubSubWeb/WebPubSubWeb.csproj" />
   </Folder>
+  <Folder Name="/playground/yarp/">
+    <Project Path="playground/yarp/Yarp.AppHost/Yarp.AppHost.csproj" Id="8dcffdd3-e0d3-44cc-8fb7-6d7a3db2e1d5" />
+    <Project Path="playground/yarp/Yarp.Backend/Yarp.Backend.csproj" Id="1a96af46-9332-4e00-9202-fb00bd7d37b3" />
+    <Project Path="playground/yarp/Yarp.Frontend/Yarp.Frontend.csproj" Id="a5c7276a-9ac5-4b89-9c1a-34efd457c7a4" />
+  </Folder>
   <Folder Name="/ServiceDiscovery/">
     <Project Path="src/Microsoft.Extensions.ServiceDiscovery.Abstractions/Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
     <Project Path="src/Microsoft.Extensions.ServiceDiscovery.Dns/Microsoft.Extensions.ServiceDiscovery.Dns.csproj" />
@@ -403,8 +413,8 @@
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
-    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
+    <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />

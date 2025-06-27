@@ -176,6 +176,9 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             {
                 if (!File.Exists(path))
                 {
+                    // Ensure the parent directory exists before attempting to create the file
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                    
                     // The extra ceremony here is to avoid accidentally overwriting the file if it was
                     // created after we checked for its existence. If the file exists when we go to write
                     // it then we will throw and log a warning, but otherwise continue executing.

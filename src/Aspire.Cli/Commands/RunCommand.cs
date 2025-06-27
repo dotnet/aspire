@@ -11,8 +11,8 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
@@ -25,8 +25,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IConfiguration _configuration;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
+    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry, IConfiguration configuration)
         : base("run", RunCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -35,6 +36,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -42,6 +44,7 @@ internal sealed class RunCommand : BaseCommand
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
+        _configuration = configuration;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -77,10 +80,6 @@ internal sealed class RunCommand : BaseCommand
             var debug = parseResult.GetValue<bool>("--debug");
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
-
-            var forceUseRichConsole = Environment.GetEnvironmentVariable(KnownConfigNames.ForceRichConsole) == "true";
-
-            var useRichConsole = forceUseRichConsole || !debug;
 
             if (waitForDebugger)
             {
@@ -136,163 +135,62 @@ internal sealed class RunCommand : BaseCommand
                 runOptions,
                 cancellationToken);
 
-            if (useRichConsole)
+            // Wait for the backchannel to be established.
+            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
             {
-                // We wait for the back channel to be created to signal that
-                // the AppHost is ready to accept requests.
-                var backchannel = await _interactionService.ShowStatusAsync(
-                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
-                    async () => {
+                return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
+            });
 
-                        // If we use the --wait-for-debugger option we print out the process ID
-                        // of the apphost so that the user can attach to it.
-                        if (waitForDebugger)
-                        {
-                            _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
-                        }
+            var logFile = GetAppHostLogFile();
 
-                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
-                        // before the backchannel is created, therefore waiting on the backchannel is a
-                        // good signal that the debugger was attached (or timed out).
-                        var backchannel = await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
-                        return backchannel;
-                    });
+            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-                // We wait for the first update of the console model via RPC from the AppHost.
-                var dashboardUrls = await _interactionService.ShowStatusAsync(
-                    $":chart_increasing:  {RunCommandStrings.StartingDashboard}",
-                    () => backchannel.GetDashboardUrlsAsync(cancellationToken));
+            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            {
+                return await backchannel.GetDashboardUrlsAsync(cancellationToken);
+            });
 
-                _interactionService.DisplayDashboardUrls(dashboardUrls);
+            _ansiConsole.WriteLine();
 
-                var table = new Table().Border(TableBorder.Rounded);
+            var grid = new Grid();
+            grid.AddColumn();
+            grid.AddColumn();
 
-                // Add columns
-                table.AddColumn(RunCommandStrings.Resource);
-                table.AddColumn(RunCommandStrings.Type);
-                table.AddColumn(RunCommandStrings.State);
-                table.AddColumn(RunCommandStrings.Health);
-                table.AddColumn(RunCommandStrings.Endpoints);
+            grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+            {
+                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+            }
+            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
-                // We add a default row here to say that
-                // there are no resources in the app host.
-                // This will be replaced once the first
-                // resource is streamed back from the
-                // app host which should be almost immediate
-                // if no resources are present.
+            _ansiConsole.Write(grid);
 
-                // Create placeholders based on number of columns defined.
-                var placeholders = new Markup[table.Columns.Count];
-                for (int i = 0; i < table.Columns.Count; i++)
+            var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
+            var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+
+            if (isCodespaces || isRemoteContainers)
+            {
+                _ansiConsole.WriteLine();
+                _ansiConsole.MarkupLine("[bold green]Endpoints:[/]");
+
+                try
                 {
-                    placeholders[i] = new Markup("--");
-                }
-                table.Rows.Add(placeholders);
-
-                var message = new Markup(RunCommandStrings.PressCtrlCToStopAppHost);
-
-                var renderables = new List<IRenderable> {
-                    table,
-                    message
-                };
-                var rows = new Rows(renderables);
-
-                await _ansiConsole.Live(rows).StartAsync(async context =>
-                {
-                    // If we are running an apphost that has no
-                    // resources in it then we want to display
-                    // the message that there are no resources.
-                    // That is why we immediately do a refresh.
-                    context.Refresh();
-
-                    var knownResources = new SortedDictionary<string, RpcResourceState>();
-
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-
-                    try
+                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                     {
-                        await foreach (var resourceState in resourceStates)
-                        {
-                            knownResources[resourceState.Resource] = resourceState;
-
-                            table.Rows.Clear();
-
-                            foreach (var knownResource in knownResources)
-                            {
-                                var nameRenderable = new Text(knownResource.Key, new Style().Foreground(Color.White));
-
-                                var typeRenderable = new Text(knownResource.Value.Type, new Style().Foreground(Color.White));
-
-                                var stateRenderable = knownResource.Value.State switch
-                                {
-                                    "Running" => new Text(knownResource.Value.State, new Style().Foreground(Color.Green)),
-                                    "Starting" => new Text(knownResource.Value.State, new Style().Foreground(Color.LightGreen)),
-                                    "FailedToStart" => new Text(knownResource.Value.State, new Style().Foreground(Color.Red)),
-                                    "Waiting" => new Text(knownResource.Value.State, new Style().Foreground(Color.White)),
-                                    "Unhealthy" => new Text(knownResource.Value.State, new Style().Foreground(Color.Yellow)),
-                                    "Exited" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "Finished" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    "NotStarted" => new Text(knownResource.Value.State, new Style().Foreground(Color.Grey)),
-                                    _ => new Text(knownResource.Value.State ?? "Unknown", new Style().Foreground(Color.Grey))
-                                };
-
-                                var healthRenderable = knownResource.Value.Health switch
-                                {
-                                    "Healthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Green)),
-                                    "Degraded" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Yellow)),
-                                    "Unhealthy" => new Text(knownResource.Value.Health, new Style().Foreground(Color.Red)),
-                                    null => new Text(TemplatingStrings.Unknown, new Style().Foreground(Color.Grey)),
-                                    _ => new Text(knownResource.Value.Health, new Style().Foreground(Color.Grey))
-                                };
-
-                                IRenderable endpointsRenderable = new Text(TemplatingStrings.None);
-                                if (knownResource.Value.Endpoints?.Length > 0)
-                                {
-                                    endpointsRenderable = new Rows(
-                                        knownResource.Value.Endpoints.Select(e => new Text(e, new Style().Link(e)))
-                                    );
-                                }
-
-                                table.AddRow(nameRenderable, typeRenderable, stateRenderable, healthRenderable, endpointsRenderable);
-                            }
-
-                            context.Refresh();
-                        }
+                        ProcessResourceState(resourceState);
                     }
-                    catch (ConnectionLostException ex) when (ex.InnerException is OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the WaitForExitAsync
-                        // call on the process and shuts down the apphost before the JsonRpc connection gets it meaning
-                        // that the apphost side of the RPC connection will be closed. Therefore if we get a
-                        // ConnectionLostException AND the inner exception is an OperationCancelledException we can
-                        // asume that the apphost was shutdown and we can ignore it.
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // This exception will be thrown if the cancellation request reaches the our side
-                        // of the backchannel side first and the connection is torn down on our-side
-                        // gracefully. We can ignore this exception as well.
-                    }
-                });
-
-                var result =  await pendingRun;
-                if (result != 0)
-                {
-                    _interactionService.DisplayLines(runOutputCollector.GetLines());
-                    _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
-                    return result;
                 }
-                else
+                catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
                 {
-                    return ExitCodeConstants.Success;
+                    // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
             }
-            else
-            {
-                return await pendingRun;
-            }
+
+            await pendingLogCapture;
+            return await pendingRun;
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
@@ -321,20 +219,99 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+    }
+
+    private static FileInfo GetAppHostLogFile()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.log");
+        var logFile = new FileInfo(logFilePath);
+        return logFile;
+    }
+
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Yield();
+
+            if (!logFile.Directory!.Exists)
+            {
+                logFile.Directory.Create();
+            }
+
+            using var streamWriter = new StreamWriter(logFile.FullName, append: true)
+            {
+                AutoFlush = true
+            };
+
+            var logEntries = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
+
+            await foreach (var entry in logEntries.WithCancellation(cancellationToken))
+            {
+                await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow the exception if the operation was cancelled.
+            return;
+        }
+        catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Just swallow this exception because this is an orderly shutdown of the backchannel.
+            return;
+        }
+    }
+
+    private readonly Dictionary<string, RpcResourceState> _resourceStates = new();
+
+    public void ProcessResourceState(RpcResourceState resourceState)
+    {
+        if (_resourceStates.TryGetValue(resourceState.Resource, out var existingResourceState))
+        {
+            if (resourceState.Endpoints.Except(existingResourceState.Endpoints) is { } endpoints && endpoints.Any())
+            {
+                foreach (var endpoint in endpoints)
+                {
+                    DisplayEndpoint(resourceState.Resource, endpoint);
+                }
+            }
+
+            _resourceStates[resourceState.Resource] = resourceState;
+        }
+        else
+        {
+            if (resourceState.Endpoints is { } endpoints && endpoints.Any())
+            {
+                foreach (var endpoint in endpoints)
+                {
+                    DisplayEndpoint(resourceState.Resource, endpoint);
+                }
+            }
+
+            _resourceStates[resourceState.Resource] = resourceState;
+        }
+
+        void DisplayEndpoint(string resourceName, string endpoint)
+        {
+            _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]");
         }
     }
 }

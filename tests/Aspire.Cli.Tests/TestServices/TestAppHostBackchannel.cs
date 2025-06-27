@@ -20,6 +20,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     public TaskCompletionSource? GetResourceStatesAsyncCalled { get; set; }
     public Func<CancellationToken, IAsyncEnumerable<RpcResourceState>>? GetResourceStatesAsyncCallback { get; set; }
 
+    public TaskCompletionSource? GetAppHostLogEntriesAsyncCalled { get; set; }
+    public Func<CancellationToken, IAsyncEnumerable<BackchannelLogEntry>>? GetAppHostLogEntriesAsyncCallback { get; set; }
+
     public TaskCompletionSource? ConnectAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task>? ConnectAsyncCallback { get; set; }
 
@@ -125,9 +128,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "root-step",
                     StatusText = "Publishing artifacts",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = null
                 }
             };
@@ -138,9 +139,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-1",
                     StatusText = "Generating YAML goodness",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -151,9 +150,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-1",
                     StatusText = "Generating YAML goodness",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -164,9 +161,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 1",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -177,9 +172,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 1",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -190,9 +183,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 2",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -203,9 +194,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 2",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -216,9 +205,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "root-step",
                     StatusText = "Publishing artifacts",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = null
                 }
             };
@@ -235,6 +222,18 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         else
         {
             return ["baseline.v2"];
+        }
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    {
+        GetAppHostLogEntriesAsyncCalled?.SetResult();
+        if (GetAppHostLogEntriesAsyncCallback != null)
+        {
+            await foreach (var entry in GetAppHostLogEntriesAsyncCallback.Invoke(cancellationToken))
+            {
+                yield return entry;
+            }
         }
     }
 }

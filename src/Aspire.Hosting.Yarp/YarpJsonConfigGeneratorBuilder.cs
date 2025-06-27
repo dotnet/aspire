@@ -9,14 +9,14 @@ using Yarp.ReverseProxy.Configuration;
 
 namespace Aspire.Hosting.Yarp;
 
-internal sealed class YarpConfigurationBuilder : IYarpConfigurationBuilder
+internal sealed class YarpJsonConfigGeneratorBuilder : IYarpJsonConfigGeneratorBuilder
 {
     private string? _configFilePath;
     private readonly List<ClusterConfig> _clusterConfigs = new List<ClusterConfig>();
     private readonly List<RouteConfig> _routeConfigs = new List<RouteConfig>();
     private readonly JsonSerializerOptions _serializerOptions;
 
-    public YarpConfigurationBuilder()
+    public YarpJsonConfigGeneratorBuilder()
     {
         _serializerOptions = new JsonSerializerOptions()
         {
@@ -27,7 +27,7 @@ internal sealed class YarpConfigurationBuilder : IYarpConfigurationBuilder
         _serializerOptions.Converters.Add(new JsonStringEnumConverter(new PascalCaseJsonNamingPolicy()));
     }
 
-    public IYarpConfigurationBuilder AddCluster(ClusterConfig cluster)
+    public IYarpJsonConfigGeneratorBuilder AddCluster(ClusterConfig cluster)
     {
         if (_configFilePath != null)
         {
@@ -37,7 +37,7 @@ internal sealed class YarpConfigurationBuilder : IYarpConfigurationBuilder
         return this;
     }
 
-    public IYarpConfigurationBuilder AddRoute(RouteConfig route)
+    public IYarpJsonConfigGeneratorBuilder AddRoute(RouteConfig route)
     {
         if (_configFilePath != null)
         {
@@ -47,7 +47,7 @@ internal sealed class YarpConfigurationBuilder : IYarpConfigurationBuilder
         return this;
     }
 
-    public IYarpConfigurationBuilder WithConfigFile(string configFilePath)
+    public IYarpJsonConfigGeneratorBuilder WithConfigFile(string configFilePath)
     {
         if (_clusterConfigs.Count > 0 || _routeConfigs.Count > 0)
         {

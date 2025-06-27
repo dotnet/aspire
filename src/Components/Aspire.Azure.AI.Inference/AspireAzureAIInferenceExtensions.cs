@@ -6,6 +6,7 @@ using Azure;
 using Azure.AI.Inference;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Core.Pipeline;
 using Azure.Identity;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Azure;
@@ -113,15 +114,27 @@ public static class AspireAzureAIInferenceExtensions
                 }
                 else
                 {
+                    var endpoint = settings.Endpoint;
+
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
                         var credential = new AzureKeyCredential(settings.Key);
-                        return new ChatCompletionsClient(settings.Endpoint, credential, options);
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                     else
                     {
-                        return new ChatCompletionsClient(settings.Endpoint, settings.TokenCredential ?? new DefaultAzureCredential(), options);
+                        var credential = settings.TokenCredential ?? new DefaultAzureCredential();
+
+                        // Defines the scopes used for authorization when connecting to Azure AI Inference services.
+                        // Use the default one (ml.azure.com) and add the public one required for Azure Foundry AI.
+                        // If users want to use a different scope they can configure the option using the client builder.
+                        // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50872
+
+                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, ["https://cognitiveservices.azure.com/.default"]);
+                        options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry);
+
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                 }
             });

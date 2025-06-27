@@ -2,9 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <!--
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.AIFoundry\Aspire.Hosting.Azure.AIFoundry.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.AppConfiguration\Aspire.Hosting.Azure.AppConfiguration.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.AppService\Aspire.Hosting.Azure.AppService.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />

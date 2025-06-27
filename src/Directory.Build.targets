@@ -18,7 +18,7 @@
   <!-- Used by Aspire.Workload.Testing.targets -->
   <Target Name="GetPackageName" Returns="@(PackageName)">
     <ItemGroup>
-      <PackageName Include="$(MSBuildProjectName)" Condition="'$(IsPackable)' == 'true'" WithPackageVersion="$(PackageVersion)" />
+      <PackageName Include="$(PackageId)" Condition="'$(IsPackable)' == 'true'" WithPackageVersion="$(PackageVersion)" />
     </ItemGroup>
   </Target>
 </Project>

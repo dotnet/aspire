@@ -22,6 +22,7 @@ using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
 
 #if DEBUG
 using OpenTelemetry;
@@ -43,7 +44,7 @@ public class Program
         return globalSettingsPath;
     }
 
-    private static IHost BuildApplication(string[] args)
+    private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
 
@@ -52,6 +53,8 @@ public class Program
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
+
+        await TrySetLocaleOverrideAsync(builder.Configuration);
 
         builder.Logging.ClearProviders();
 
@@ -89,13 +92,14 @@ public class Program
 
         // Shared services.
         builder.Services.AddSingleton(BuildAnsiConsole);
+        AddInteractionServices(builder);
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
-        builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
@@ -122,8 +126,9 @@ public class Program
 
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
@@ -160,9 +165,7 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        await TrySetLocaleOverrideAsync();
-
-        using var app = BuildApplication(args);
+        using var app = await BuildApplicationAsync(args);
 
         await app.StartAsync().ConfigureAwait(false);
 
@@ -179,13 +182,38 @@ public class Program
         return exitCode;
     }
 
+    private static void AddInteractionServices(HostApplicationBuilder builder)
+    {
+        var extensionEndpoint = builder.Configuration[KnownConfigNames.ExtensionEndpoint];
+
+        if (extensionEndpoint is not null)
+        {
+            builder.Services.AddSingleton<ExtensionRpcTarget>();
+            builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
+
+            var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                return new ExtensionInteractionService(consoleInteractionService,
+                    provider.GetRequiredService<IExtensionBackchannel>(),
+                    extensionPromptEnabled);
+            });
+        }
+        else
+        {
+            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+        }
+    }
+
     private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
 
-    private static async Task TrySetLocaleOverrideAsync()
+    private static async Task TrySetLocaleOverrideAsync(ConfigurationManager configuration)
     {
-        var localeOverride = Environment.GetEnvironmentVariable(KnownConfigNames.CliLocaleOverride)
+        var localeOverride = configuration[KnownConfigNames.CliLocaleOverride]
                              // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
-                             ?? Environment.GetEnvironmentVariable(KnownConfigNames.DotnetCliUiLanguage);
+                             ?? configuration[KnownConfigNames.DotnetCliUiLanguage];
         if (localeOverride is not null)
         {
             if (!TrySetLocaleOverride(localeOverride, out var errorMessage))

@@ -98,6 +98,11 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
     }
 
+    public void DisplayPlainText(string message)
+    {
+        _ansiConsole.WriteLine(message);
+    }
+
     public void DisplaySuccess(string message)
     {
         DisplayMessage("thumbs_up", message);
@@ -156,5 +161,9 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayEmptyLine()
     {
         _ansiConsole.WriteLine();
+    }
+
+    public void OpenNewProject(string projectPath)
+    {
     }
 }

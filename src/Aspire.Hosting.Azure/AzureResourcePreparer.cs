@@ -58,7 +58,7 @@ internal sealed class AzureResourcePreparer(
         var azureResources = new List<(IResource, IAzureResource)>();
         foreach (var resource in appModel.Resources)
         {
-            if (resource.IsContainer())
+            if (resource.IsContainer() || resource.IsEmulator())
             {
                 continue;
             }
@@ -148,7 +148,7 @@ internal sealed class AzureResourcePreparer(
                         .ToLookup(a => a.Target);
                 foreach (var azureReference in azureReferences.OfType<AzureProvisioningResource>())
                 {
-                    if (azureReference.IsContainer())
+                    if (azureReference.IsContainer() || azureReference.IsEmulator())
                     {
                         // Skip emulators
                         continue;
