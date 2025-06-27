@@ -50,7 +50,7 @@ internal sealed class VersionCheckService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_interactionService.IsAvailable || _executionContext.IsPublishMode)
+        if (!_interactionService.IsAvailable || _executionContext.IsPublishMode || _configuration.GetBool(KnownConfigNames.VersionCheckDisabled, defaultValue: false))
         {
             // Don't check version if there is no way to prompt that information to the user.
             // Or app is being run during a publish.
@@ -129,13 +129,15 @@ internal sealed class VersionCheckService : BackgroundService
             options: new MessageBarInteractionOptions
             {
                 LinkText = "Upgrade instructions",
+                LinkUrl = "https://aka.ms/dotnet/aspire/update-latest",
                 PrimaryButtonText = "Ignore"
             },
             cancellationToken: stoppingToken).ConfigureAwait(false);
 
+        // True when the user clicked the primary button (Ignore).
         if (result.Data)
         {
-            // User chose to ignore. Set the latest version as the ignored version.
+            _logger.LogDebug("User chose to ignore version {Version}.", latestVersion);
             SecretsStore.TrySetUserSecret(_options.Assembly, IgnoreVersionKey, latestVersion.ToString());
         }
 

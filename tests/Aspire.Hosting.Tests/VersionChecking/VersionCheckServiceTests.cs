@@ -39,6 +39,29 @@ public class VersionCheckServiceTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_DisabledInConfiguration_NoFetch()
+    {
+        // Arrange
+        var interactionService = new TestInteractionService();
+        var configurationManager = new ConfigurationManager();
+        configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.VersionCheckDisabled] = "true"
+        });
+        var versionFetcher = new TestVersionFetcher();
+        var options = new DistributedApplicationOptions();
+        var service = CreateVersionCheckService(interactionService: interactionService, versionFetcher: versionFetcher, configuration: configurationManager, options: options);
+
+        // Act
+        _ = service.StartAsync(CancellationToken.None);
+
+        await service.ExecuteTask!.DefaultTimeout();
+
+        // Assert
+        Assert.False(versionFetcher.FetchCalled);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_InsideLastCheckInterval_NoFetch()
     {
         // Arrange
