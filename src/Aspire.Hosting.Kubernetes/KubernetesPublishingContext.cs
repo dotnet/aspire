@@ -18,7 +18,7 @@ internal sealed class KubernetesPublishingContext(
     ILogger logger,
     CancellationToken cancellationToken = default)
 {
-    private string RootOutputPath { get; } = outputPath;
+    public readonly string OutputPath = outputPath;
 
     private readonly Dictionary<string, Dictionary<string, object>> _helmValues = new()
     {
@@ -39,8 +39,7 @@ internal sealed class KubernetesPublishingContext(
         .WithIndentedSequences()
         .Build();
 
-    private string GetOutputPath(KubernetesEnvironmentResource environment) =>
-        Path.Combine(RootOutputPath, environment.Name);
+    public ILogger Logger => logger;
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
@@ -53,7 +52,7 @@ internal sealed class KubernetesPublishingContext(
         logger.StartGeneratingKubernetes();
 
         ArgumentNullException.ThrowIfNull(model);
-        ArgumentNullException.ThrowIfNull(RootOutputPath);
+        ArgumentNullException.ThrowIfNull(OutputPath);
 
         if (model.Resources.Count == 0)
         {
@@ -63,7 +62,7 @@ internal sealed class KubernetesPublishingContext(
 
         await WriteKubernetesOutputAsync(model, environment).ConfigureAwait(false);
 
-        logger.FinishGeneratingKubernetes(RootOutputPath);
+        logger.FinishGeneratingKubernetes(OutputPath);
     }
 
     private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
@@ -80,13 +79,13 @@ internal sealed class KubernetesPublishingContext(
                     }
                 }
 
-                await WriteKubernetesTemplatesForResource(environment, resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
+                await WriteKubernetesTemplatesForResource(resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
                 AppendResourceContextToHelmValues(resource, serviceResource);
             }
         }
 
         await WriteKubernetesHelmChartAsync(environment).ConfigureAwait(false);
-        await WriteKubernetesHelmValuesAsync(environment).ConfigureAwait(false);
+        await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
     private void AppendResourceContextToHelmValues(IResource resource, KubernetesResource resourceContext)
@@ -124,9 +123,9 @@ internal sealed class KubernetesPublishingContext(
         }
     }
 
-    private async Task WriteKubernetesTemplatesForResource(KubernetesEnvironmentResource environment, IResource resource, IEnumerable<BaseKubernetesResource> templatedItems)
+    private async Task WriteKubernetesTemplatesForResource(IResource resource, IEnumerable<BaseKubernetesResource> templatedItems)
     {
-        var templatesFolder = Path.Combine(GetOutputPath(environment), "templates", resource.Name);
+        var templatesFolder = Path.Combine(OutputPath, "templates", resource.Name);
         Directory.CreateDirectory(templatesFolder);
 
         foreach (var templatedItem in templatedItems)
@@ -157,12 +156,11 @@ internal sealed class KubernetesPublishingContext(
         return $"{resourceName}.yaml";
     }
 
-    private async Task WriteKubernetesHelmValuesAsync(KubernetesEnvironmentResource environment)
+    private async Task WriteKubernetesHelmValuesAsync()
     {
         var valuesYaml = _serializer.Serialize(_helmValues);
-        var outputPath = GetOutputPath(environment);
-        var outputFile = Path.Combine(outputPath, "values.yaml");
-        Directory.CreateDirectory(outputPath);
+        var outputFile = Path.Combine(OutputPath!, "values.yaml");
+        Directory.CreateDirectory(OutputPath!);
         await File.WriteAllTextAsync(outputFile, valuesYaml, cancellationToken).ConfigureAwait(false);
     }
 
@@ -181,9 +179,8 @@ internal sealed class KubernetesPublishingContext(
         };
 
         var chartYaml = _serializer.Serialize(helmChart);
-        var outputPath = GetOutputPath(environment);
-        var outputFile = Path.Combine(outputPath, "Chart.yaml");
-        Directory.CreateDirectory(outputPath);
+        var outputFile = Path.Combine(OutputPath, "Chart.yaml");
+        Directory.CreateDirectory(OutputPath);
         await File.WriteAllTextAsync(outputFile, chartYaml, cancellationToken).ConfigureAwait(false);
     }
 }

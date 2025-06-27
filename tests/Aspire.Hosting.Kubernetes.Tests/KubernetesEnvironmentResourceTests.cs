@@ -23,9 +23,9 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
         var app = builder.Build();
         app.Run();
 
-        var chartYaml = Path.Combine(tempDir.FullName, "env", "Chart.yaml");
-        var valuesYaml = Path.Combine(tempDir.FullName, "env", "values.yaml");
-        var deploymentYaml = Path.Combine(tempDir.FullName, "env", "templates", "service", "deployment.yaml");
+        var chartYaml = Path.Combine(tempDir.FullName, "Chart.yaml");
+        var valuesYaml = Path.Combine(tempDir.FullName, "values.yaml");
+        var deploymentYaml = Path.Combine(tempDir.FullName, "templates", "service", "deployment.yaml");
 
         await Verify(File.ReadAllText(chartYaml), "yaml")
             .AppendContentAsFile(File.ReadAllText(valuesYaml), "yaml")

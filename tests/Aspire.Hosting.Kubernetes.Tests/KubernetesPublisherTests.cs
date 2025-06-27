@@ -46,14 +46,14 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "env/Chart.yaml",
-            "env/values.yaml",
-            "env/templates/project1/deployment.yaml",
-            "env/templates/project1/config.yaml",
-            "env/templates/myapp/deployment.yaml",
-            "env/templates/myapp/service.yaml",
-            "env/templates/myapp/config.yaml",
-            "env/templates/myapp/secrets.yaml"
+            "Chart.yaml",
+            "values.yaml",
+            "templates/project1/deployment.yaml",
+            "templates/project1/config.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/service.yaml",
+            "templates/myapp/config.yaml",
+            "templates/myapp/secrets.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -99,7 +99,7 @@ public class KubernetesPublisherTests()
         app.Run();
 
         // Assert
-        var deploymentPath = Path.Combine(tempDir.Path, "env/templates/service/deployment.yaml");
+        var deploymentPath = Path.Combine(tempDir.Path, "templates/service/deployment.yaml");
         Assert.True(File.Exists(deploymentPath));
 
         var content = await File.ReadAllTextAsync(deploymentPath);
@@ -120,14 +120,17 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
             .PublishAsKubernetesService(serviceResource => {
-                serviceResource.Workload = new ArgoRollout {
+                serviceResource.Workload = new ArgoRollout
+                {
                     Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
                     Spec = { Template = serviceResource.Workload!.PodTemplate, Selector = { MatchLabels = serviceResource.Labels.ToDictionary() } }
                 };
-                serviceResource.AdditionalResources.Add(new KedaScaledObject {
-                    Metadata = { Name = "myapp-scaler"},
-                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }});
-        });
+                serviceResource.AdditionalResources.Add(new KedaScaledObject
+                {
+                    Metadata = { Name = "myapp-scaler" },
+                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }
+                });
+            });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
@@ -139,12 +142,12 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "env/Chart.yaml",
-            "env/values.yaml",
-            "env/templates/myapp/rollout.yaml",
-            "env/templates/myapp/service.yaml",
-            "env/templates/myapp/config.yaml",
-            "env/templates/myapp/scaler.yaml"
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/rollout.yaml",
+            "templates/myapp/service.yaml",
+            "templates/myapp/config.yaml",
+            "templates/myapp/scaler.yaml"
         };
 
         SettingsTask settingsTask = default!;
@@ -186,11 +189,11 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "env/Chart.yaml",
-            "env/values.yaml",
-            "env/templates/SpeciaL-ApP/deployment.yaml",
-            "env/templates/SpeciaL-ApP/config.yaml",
-            "env/templates/SpeciaL-ApP/secrets.yaml"
+            "Chart.yaml",
+            "values.yaml",
+            "templates/SpeciaL-ApP/deployment.yaml",
+            "templates/SpeciaL-ApP/config.yaml",
+            "templates/SpeciaL-ApP/secrets.yaml"
         };
 
         SettingsTask settingsTask = default!;
