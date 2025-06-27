@@ -217,6 +217,11 @@ internal class ExtensionInteractionService : IInteractionService
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken)));
     }
 
+    public void DisplayPlainText(string text)
+    {
+        _consoleInteractionService.DisplayPlainText(text);
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);

@@ -102,6 +102,11 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
     }
 
+    public void DisplayPlainText(string message)
+    {
+        _ansiConsole.WriteLine(message);
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var style = isErrorMessage ? s_errorMessageStyle

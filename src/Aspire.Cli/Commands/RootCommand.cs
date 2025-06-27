@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Diagnostics;
 #endif
 
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using BaseRootCommand = System.CommandLine.RootCommand;
@@ -26,6 +27,7 @@ internal sealed class RootCommand : BaseRootCommand
         DeployCommand deployCommand,
         ConfigCommand configCommand,
         ExecCommand execCommand,
+        IFeatures featureFlags,
         IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
@@ -36,6 +38,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
+        ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
 
         _interactionService = interactionService;
@@ -85,7 +88,12 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
-        Subcommands.Add(deployCommand);
         Subcommands.Add(execCommand);
+
+        // Only add deploy command if the feature flag is enabled
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.DeployCommandEnabled, false))
+        {
+            Subcommands.Add(deployCommand);
+        }
     }
 }

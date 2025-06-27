@@ -23,7 +23,7 @@ public static class DistributedApplicationModelExtensions
                 continue;
             }
 
-            if (!r.IsContainer() && r is not ProjectResource)
+            if (!r.IsContainer() && !r.IsEmulator() && r is not ProjectResource)
             {
                 continue;
             }
