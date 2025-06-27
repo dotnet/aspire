@@ -6,10 +6,14 @@ import { Code } from '@astrojs/starlight/components';
     <div class="environment-toggle">
         <div class="toggle-container">
             <button class="active toggle-btn toggle-local">Local</button>
+            <button class="toggle-btn toggle-test">Test</button>
             <button class="toggle-btn toggle-prod">Prod</button>
         </div>
         <div class="subtitle local local-active">
             Local development with containerized services
+        </div>
+        <div class="subtitle test">
+            Spin up and tear down complete staging environments for testing.
         </div>
         <div class="subtitle prod">
             Production cloud services—zero code changes
@@ -26,6 +30,9 @@ import { Code } from '@astrojs/starlight/components';
                 <div class="terminal local-view">
                     <Code code="aspire run" lang="bash" />
                 </div>
+                <div class="terminal test-view">
+                    <Code code="aspire up" lang="bash" />
+                </div>
                 <div class="terminal prod-view">
                     <Code code="aspire publish" lang="bash" />
                 </div>
@@ -37,6 +44,10 @@ import { Code } from '@astrojs/starlight/components';
             <div class="service-name">Redis</div>
             <div class="service-type">AWS ElastiCache</div>
         </div>
+        <div class="orbit-node orbit-service orbit-redis test-view">
+            <div class="service-name">Redis</div>
+            <div class="service-type">Temporary Container App</div>
+        </div>
         <div class="orbit-node orbit-service orbit-redis local-view">
             <div class="service-name">Redis</div>
             <div class="service-type">Local Container</div>
@@ -44,11 +55,15 @@ import { Code } from '@astrojs/starlight/components';
 
         <div class="orbit-node orbit-service orbit-postgres prod-view"
              data-providers='["Google Cloud SQL", "Azure Database for PostgreSQL", "AWS RDS"]'>
-            <div class="service-name">Postgres</div>
+            <div class="service-name">PostgreSQL</div>
             <div class="service-type">Google Cloud SQL</div>
         </div>
+        <div class="orbit-node orbit-service orbit-postgres test-view">
+            <div class="service-name">PostgreSQL</div>
+            <div class="service-type">Staged DB</div>
+        </div>
         <div class="orbit-node orbit-service orbit-postgres local-view">
-            <div class="service-name">Postgres</div>
+            <div class="service-name">PostgreSQL</div>
             <div class="service-type">Local Container</div>
         </div>
 
@@ -56,6 +71,10 @@ import { Code } from '@astrojs/starlight/components';
              data-providers='["Vercel", "Netlify", "Azure Static Web Apps", "AWS Amplify", "Google Firebase Hosting"]'>
             <div class="service-name">Frontend</div>
             <div class="service-type">Vercel</div>
+        </div>
+        <div class="orbit-node orbit-service orbit-frontend test-view">
+            <div class="service-name">Frontend</div>
+            <div class="service-type">Dev Tunnel</div>
         </div>
         <div class="orbit-node orbit-service orbit-frontend local-view">
             <div class="service-name">Frontend</div>
@@ -67,6 +86,10 @@ import { Code } from '@astrojs/starlight/components';
             <div class="service-name">API</div>
             <div class="service-type">Azure Container Apps</div>
         </div>
+        <div class="orbit-node orbit-service orbit-api test-view">
+            <div class="service-name">API</div>
+            <div class="service-type">Staging Environment</div>
+        </div>
         <div class="orbit-node orbit-service orbit-api local-view">
             <div class="service-name">API</div>
             <div class="service-type">Local Process</div>
@@ -77,8 +100,10 @@ import { Code } from '@astrojs/starlight/components';
 <script is:inline>
     document.addEventListener('DOMContentLoaded', () => {
         const localBtn = document.querySelector('.toggle-local');
+        const testBtn = document.querySelector('.toggle-test');
         const prodBtn = document.querySelector('.toggle-prod');
         const localSubtitle = document.querySelector('.subtitle.local');
+        const testSubtitle = document.querySelector('.subtitle.test');
         const prodSubtitle = document.querySelector('.subtitle.prod');
         const container = document.querySelector('.orbit-container');
 
@@ -146,10 +171,24 @@ import { Code } from '@astrojs/starlight/components';
 
         localBtn.addEventListener('click', () => {
             localBtn.classList.add('active');
+            testBtn.classList.remove('active');
             prodBtn.classList.remove('active');
-            container.classList.remove('prod-active');
+            container.classList.remove('test-active', 'prod-active');
             container.classList.add('local-active');
             localSubtitle.classList.add('local-active');
+            testSubtitle.classList.remove('test-active');
+            prodSubtitle.classList.remove('prod-active');
+            stopProviderAnimation();
+        });
+
+        testBtn.addEventListener('click', () => {
+            testBtn.classList.add('active');
+            localBtn.classList.remove('active');
+            prodBtn.classList.remove('active');
+            container.classList.remove('local-active', 'prod-active');
+            container.classList.add('test-active');
+            testSubtitle.classList.add('test-active');
+            localSubtitle.classList.remove('local-active');
             prodSubtitle.classList.remove('prod-active');
             stopProviderAnimation();
         });
@@ -157,10 +196,12 @@ import { Code } from '@astrojs/starlight/components';
         prodBtn.addEventListener('click', () => {
             prodBtn.classList.add('active');
             localBtn.classList.remove('active');
-            container.classList.remove('local-active');
+            testBtn.classList.remove('active');
+            container.classList.remove('local-active', 'test-active');
             container.classList.add('prod-active');
             prodSubtitle.classList.add('prod-active');
             localSubtitle.classList.remove('local-active');
+            testSubtitle.classList.remove('test-active');
             startProviderAnimation();
         });
 
@@ -223,6 +264,11 @@ import { Code } from '@astrojs/starlight/components';
     .local-active .orbit-outer {
         border-color: var(--sl-color-accent);
     }
+    .test-active .orbit-inner,
+    .test-active .orbit-middle,
+    .test-active .orbit-outer {
+        border-color: var(--sl-color-orange-low);
+    }
     .prod-active .orbit-inner,
     .prod-active .orbit-middle,
     .prod-active .orbit-outer {
@@ -246,6 +292,7 @@ import { Code } from '@astrojs/starlight/components';
     }
 
     .orbit-container.prod-active .prod-view,
+    .orbit-container.test-active .test-view,
     .orbit-container.local-active .local-view {
         display: block;
     }
@@ -267,6 +314,10 @@ import { Code } from '@astrojs/starlight/components';
 
     .prod-view.orbit-node {
         background: var(--sl-color-green-low);
+    }
+
+    .test-view.orbit-node {
+        background: var(--sl-color-orange-low);
     }
 
     .local-view.orbit-node {
@@ -380,6 +431,10 @@ import { Code } from '@astrojs/starlight/components';
         background: var(--sl-color-green-low);
     }
 
+    .toggle-test.active {
+        background: var(--sl-color-orange-low);
+    }
+
     .subtitle {
         font-size: var(--sl-text-lg);
         color: var(--sl-color-text);
@@ -389,6 +444,7 @@ import { Code } from '@astrojs/starlight/components';
     }
 
     .subtitle.local-active,
+    .subtitle.test-active,
     .subtitle.prod-active {
         display: block;
     }
