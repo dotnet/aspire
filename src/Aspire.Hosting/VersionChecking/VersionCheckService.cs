@@ -16,11 +16,11 @@ namespace Aspire.Hosting.VersionChecking;
 
 internal sealed class VersionCheckService : BackgroundService
 {
-    private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(1);
+    private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(2);
 
-    internal const string CheckDateKey = "Aspire.Hosting.VersionChecker.LastCheckDate";
-    internal const string KnownLastestVersionDateKey = "Aspire.Hosting.VersionChecker.KnownLastestVersion";
-    internal const string IgnoreVersionKey = "Aspire.Hosting.VersionChecker.IgnoreVersion";
+    internal const string CheckDateKey = "Aspire.Hosting.VersionCheck.LastCheckDate";
+    internal const string KnownLastestVersionDateKey = "Aspire.Hosting.VersionCheck.KnownLastestVersion";
+    internal const string IgnoreVersionKey = "Aspire.Hosting.VersionCheck.IgnoreVersion";
 
     private readonly IInteractionService _interactionService;
     private readonly ILogger<VersionCheckService> _logger;
