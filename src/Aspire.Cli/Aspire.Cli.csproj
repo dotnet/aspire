@@ -19,9 +19,10 @@
     <PackageId>Aspire.Cli</PackageId>
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
+    <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <Description>Command line tool for Aspire developers.</Description>
     <!-- TODO: https://github.com/dotnet/aspire/issues/8677 - enable PublishAot when the build infrastructure supports all platforms. -->
-    <!--<PublishAot>true</PublishAot>--> 
+    <!--<PublishAot>true</PublishAot>-->
     <!--JsonSerializerIsReflectionEnabledByDefault can be removed when PublishAot is enabled. -->
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -43,6 +44,7 @@
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="StringComparers.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\BackchannelDataTypes.cs" />
   </ItemGroup>
 
   <ItemGroup>
