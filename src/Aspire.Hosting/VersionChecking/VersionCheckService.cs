@@ -18,9 +18,9 @@ internal sealed class VersionCheckService : BackgroundService
 {
     private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(1);
 
-    private const string CheckDateKey = "Aspire.Hosting.VersionChecker.LastCheckDate";
-    private const string KnownLastestVersionDateKey = "Aspire.Hosting.VersionChecker.KnownLastestVersion";
-    private const string IgnoreVersionKey = "Aspire.Hosting.VersionChecker.IgnoreVersion";
+    internal const string CheckDateKey = "Aspire.Hosting.VersionChecker.LastCheckDate";
+    internal const string KnownLastestVersionDateKey = "Aspire.Hosting.VersionChecker.KnownLastestVersion";
+    internal const string IgnoreVersionKey = "Aspire.Hosting.VersionChecker.IgnoreVersion";
 
     private readonly IInteractionService _interactionService;
     private readonly ILogger<VersionCheckService> _logger;
@@ -28,9 +28,12 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly DistributedApplicationOptions _options;
     private readonly IVersionFetcher _versionFetcher;
     private readonly DistributedApplicationExecutionContext _executionContext;
+    private readonly TimeProvider _timeProvider;
     private readonly SemVersion? _appHostVersion;
 
-    public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger, IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher, DistributedApplicationExecutionContext executionContext)
+    public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
+        IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher,
+        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -38,6 +41,7 @@ internal sealed class VersionCheckService : BackgroundService
         _options = options;
         _versionFetcher = versionFetcher;
         _executionContext = executionContext;
+        _timeProvider = timeProvider;
 
         var version = typeof(VersionCheckService).Assembly.GetName().Version!;
         var patch = version.Build > 0 ? version.Build : 0;
@@ -69,11 +73,12 @@ internal sealed class VersionCheckService : BackgroundService
 
     private async Task CheckForLatestAsync(CancellationToken stoppingToken)
     {
+        var now = _timeProvider.GetUtcNow();
         var checkForLatestVersion = true;
         if (_configuration[CheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
         {
-            if (DateTime.UtcNow - checkDate < s_checkInterval)
+            if (now - checkDate < s_checkInterval)
             {
                 // Already checked within the last day.
                 checkForLatestVersion = false;
@@ -83,6 +88,7 @@ internal sealed class VersionCheckService : BackgroundService
         SemVersion? latestVersion = null;
         if (checkForLatestVersion)
         {
+            SecretsStore.TrySetUserSecret(_options.Assembly, CheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(stoppingToken).ConfigureAwait(false);
         }
 
@@ -111,7 +117,7 @@ internal sealed class VersionCheckService : BackgroundService
             }
         }
 
-        if (IsVersionGreater(latestVersion, storedKnownLatestVersion))
+        if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
             SecretsStore.TrySetUserSecret(_options.Assembly, KnownLastestVersionDateKey, latestVersion.ToString());
