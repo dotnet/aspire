@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
@@ -28,7 +29,8 @@ public class ExecTests(ITestOutputHelper output)
             "--operation", "exec",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
-            "--command", "\"dotnet --info\""
+            "--command", "\"dotnet --info\"",
+            "--postgres"
         ];
 
         var app = await BuildAppAsync(args);
@@ -46,7 +48,8 @@ public class ExecTests(ITestOutputHelper output)
             "--operation", "exec",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
-            "--command", "\"dotnet --help\""
+            "--command", "\"dotnet --help\"",
+            "--postgres"
         ];
 
         var app = await BuildAppAsync(args);
@@ -69,7 +72,8 @@ public class ExecTests(ITestOutputHelper output)
             "--operation", "exec",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
-            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\""
+            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\"",
+            "--postgres"
         ];
 
         var app = await BuildAppAsync(args);
@@ -111,12 +115,20 @@ public class ExecTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(DatabaseMigration_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        var sqlServerDb = builder.AddSqlServer("sql1").AddDatabase("db1");
+        IResourceBuilder<IResourceWithConnectionString> database;
+        if (args.Contains("--postgres"))
+        {
+            database = builder.AddPostgres("sql1").AddDatabase("db1");
+        }
+        else
+        {
+            database = builder.AddSqlServer("sql1").AddDatabase("db1");
+        }
 
         var project = builder
             .AddProject<DatabaseMigration_ApiService>("api")
-            .WithReference(sqlServerDb)
-            .WaitFor(sqlServerDb);
+            .WithReference(database)
+            .WaitFor(database);
 
         return await builder.BuildAsync();
     }
