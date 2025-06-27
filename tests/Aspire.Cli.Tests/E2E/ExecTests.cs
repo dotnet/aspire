@@ -19,7 +19,7 @@ public class ExecTests(ITestOutputHelper output)
 {
     [Fact]
     [RequiresDocker]
-    public async Task Exec_PingGoogleCom_ShouldProduceLogs()
+    public async Task Exec_DotnetInfo_ShouldProduceLogs()
     {
         var apiService = new DatabaseMigration_ApiService();
 
@@ -27,16 +27,14 @@ public class ExecTests(ITestOutputHelper output)
             "--operation", "exec",
             "--project", apiService.ProjectPath,
             "--resource", "api",
-            "--command", "\"ping google.com\""
+            "--command", "\"dotnet --info\""
         ];
 
         var app = await BuildAppAsync(args);
         var logs = await ExecAndCollectLogsAsync(app);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains("Reply from"));
-        Assert.Contains(logs, x => x.Contains("Ping statistics for"));
-        Assert.Contains(logs, x => x.Contains("Approximate round trip times in milli-seconds"));
+        Assert.Contains(logs, x => x.Contains(".NET SDKs installed"));
     }
 
     [Fact]

@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Diagnostics;
+
 namespace Aspire.Hosting.ApplicationModel;
+
 /// <summary>
 /// Represents a distributed application.
 /// </summary>
@@ -16,6 +19,7 @@ public class DistributedApplicationModel(IResourceCollection resources)
     /// The resources used to initiate the model.
     /// </param>
     public DistributedApplicationModel(IEnumerable<IResource> resources) : this(new ResourceCollection(resources)) { }
+
     /// <summary>
     /// Gets the collection of resources associated with the distributed application.
     /// </summary>

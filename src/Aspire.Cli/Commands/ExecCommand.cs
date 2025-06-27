@@ -79,7 +79,6 @@ internal class ExecCommand : BaseCommand
             }
 
             var env = new Dictionary<string, string>();
-            var watch = parseResult.GetValue<bool>("--watch");
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
             if (waitForDebugger)
@@ -135,10 +134,10 @@ internal class ExecCommand : BaseCommand
             ];
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-            var pendingRun = _runner.RunAsync(
+            var pending = _runner.RunAsync(
                 projectFile: effectiveAppHostProjectFile,
-                watch: watch,
-                noBuild: !watch,
+                watch: false,
+                noBuild: !false,
                 args: args,
                 env: env,
                 backchannelCompletionSource: backchannelCompletionSource,
