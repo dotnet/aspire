@@ -48,7 +48,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 return runner;
             };
 
-            options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }; // Ensure deploy command is enabled
+            options.EnabledFeatureFlags = new[] { KnownFeatureFlags.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -84,7 +84,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 return runner;
             };
 
-            options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }; // Ensure deploy command is enabled
+            options.EnabledFeatureFlags = new[] { KnownFeatureFlags.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -120,7 +120,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 return runner;
             };
 
-            options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }; // Ensure deploy command is enabled
+            options.EnabledFeatureFlags = new[] { KnownFeatureFlags.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -186,7 +186,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }; // Ensure deploy command is enabled
+            options.EnabledFeatureFlags = new[] { KnownFeatureFlags.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -254,7 +254,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 return prompter;
             };
 
-            options.EnabledFeatureFlags = new[] { "deployCommandEnabled" }; // Ensure deploy command is enabled
+            options.EnabledFeatureFlags = new[] { KnownFeatureFlags.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
