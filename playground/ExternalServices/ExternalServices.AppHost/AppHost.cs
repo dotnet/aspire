@@ -14,7 +14,8 @@ var nuget = builder.AddExternalService("nuget", "https://api.nuget.org/")
 var externalGateway = builder.AddYarp("gateway")
     .WithConfiguration(c =>
     {
-        c.AddRoute("/nuget/{**catchall}", nuget).WithTransformPathRemovePrefix("/nuget");
+        var nugetCluster = c.AddCluster(nuget);
+        c.AddRoute("/nuget/{**catchall}", nugetCluster).WithTransformPathRemovePrefix("/nuget");
         c.AddRoute("/external-service/{**catchall}", externalService).WithTransformPathRemovePrefix("/external-service");
     });
 
