@@ -106,7 +106,8 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         {
             var isHostingOrCommunityToolkitNamespaced = packageName.StartsWith("Aspire.Hosting.", StringComparison.Ordinal) ||
                    packageName.StartsWith("CommunityToolkit.Aspire.Hosting.", StringComparison.Ordinal) ||
-                   packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal);
+                   packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal) ||
+                   packageName.Equals("Aspire.Cli", StringComparison.Ordinal);
 
             var isExcluded = packageName.StartsWith("Aspire.Hosting.AppHost") ||
                              packageName.StartsWith("Aspire.Hosting.Sdk") ||

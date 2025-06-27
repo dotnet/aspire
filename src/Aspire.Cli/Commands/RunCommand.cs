@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,8 +28,18 @@ internal sealed class RunCommand : BaseCommand
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
 
-    public RunCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry, IConfiguration configuration)
-        : base("run", RunCommandStrings.Description)
+    public RunCommand(
+        IDotNetCliRunner runner,
+        IInteractionService interactionService,
+        ICertificateService certificateService,
+        IProjectLocator projectLocator,
+        IAnsiConsole ansiConsole,
+        AspireCliTelemetry telemetry,
+        IConfiguration configuration,
+        IFeatures features,
+        ICliUpdateNotififier updateNotifier
+        )
+        : base("run", RunCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
