@@ -9,7 +9,7 @@ using Aspire.Hosting.Utils;
 public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task PublishingKubernetesEnviromentPublishesFile()
+    public async Task PublishingKubernetesEnvironmentPublishesFile()
     {
         var tempDir = Directory.CreateTempSubdirectory(".k8s-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
