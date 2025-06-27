@@ -176,7 +176,17 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(name, externalService.Resource.UrlParameter);
+            builder.WithEnvironment(context =>
+            {
+                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                {
+                    context.EnvironmentVariables[name] = uri.ToString();
+                }
+                else
+                {
+                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                }
+            });
         }
 
         return builder;
@@ -510,16 +520,26 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(externalService);
 
-        var envVarName = $"services__{externalService.Resource.Name}__default__0";
-
-        if (externalService.Resource.Uri is not null)
+        if (externalService.Resource.Uri is { } uri)
         {
             builder.WithReferenceRelationship(externalService.Resource);
-            builder.WithEnvironment(envVarName, externalService.Resource.Uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.Unescaped));
+            var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+            builder.WithEnvironment(envVarName, uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.Unescaped));
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(envVarName, $"{externalService.Resource.UrlParameter}");
+            builder.WithEnvironment(context =>
+            {
+                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                {
+                    var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                    context.EnvironmentVariables[envVarName] = uri.ToString();
+                }
+                else
+                {
+                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                }
+            });
         }
 
         return builder;

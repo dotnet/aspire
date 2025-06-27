@@ -22,16 +22,15 @@ public static class ExternalServiceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="url">The URL of the external service.</param>
     /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    /// <exception cref="ArgumentException">Thrown when the URL is not a valid, absolute URI.</exception>
     public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, string url)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(url);
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        if (!ExternalServiceResource.TryGetUri(url, out var uri, out var message))
         {
-            throw new ArgumentException($"The URL '{url}' is not a valid absolute URI.", nameof(url));
+            throw new ArgumentException($"The external service URL '{url}' is invalid: {message}", nameof(url));
         }
 
         return AddExternalServiceImpl(builder, name, uri);
@@ -44,22 +43,11 @@ public static class ExternalServiceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="uri">The URI of the external service.</param>
     /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    /// <exception cref="ArgumentException">Thrown when the URI is not absolute.</exception>
     public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, Uri uri)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(uri);
-
-        if (!uri.IsAbsoluteUri)
-        {
-            throw new ArgumentException("The URI for the external service must be absolute.", nameof(uri));
-        }
-
-        if (uri.AbsolutePath != "/")
-        {
-            throw new ArgumentException("The URI absolute path must be \"/\".", nameof(uri));
-        }
 
         return AddExternalServiceImpl(builder, name, uri);
     }
@@ -118,9 +106,9 @@ public static class ExternalServiceBuilderExtensions
                     // If the URI is not set, it means we are using a parameterized URL
                     var url = resource.UrlParameter?.Value;
 
-                    if (!Uri.TryCreate(url, UriKind.Absolute, out uri) || uri.AbsolutePath != "/")
+                    if (!ExternalServiceResource.TryGetUri(url, out uri, out var message))
                     {
-                        e.Logger.LogError("The URL parameter '{ParameterName}' does not resolve to a valid absolute root URI.", resource.UrlParameter?.Name);
+                        e.Logger.LogError("The value for URL parameter '{ParameterName}' is invalid: {Error}", resource.UrlParameter?.Name, message);
 
                         await e.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
                         {

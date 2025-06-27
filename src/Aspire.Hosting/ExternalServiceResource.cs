@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -22,14 +23,9 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
     {
         _uri = uri ?? throw new ArgumentNullException(nameof(uri), "The URI for the external service cannot be null.");
 
-        if (!_uri.IsAbsoluteUri)
+        if (GetUriValidationException(_uri) is { } exception)
         {
-            throw new ArgumentException("The URI for the external service must be absolute.", nameof(uri));
-        }
-
-        if (_uri.AbsolutePath != "/")
-        {
-            throw new ArgumentException("The URI absolute path must be \"/\".", nameof(uri));
+            throw exception;
         }
     }
 
@@ -58,4 +54,38 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
     /// If <see cref="UrlParameter"/> is <c>null</c>, the external service URL is not parameterized and can be accessed directly via <see cref="Uri"/>.
     /// </remarks>
     public ParameterResource? UrlParameter => _urlParameter;
+
+    internal static bool TryGetUri(string? url, [NotNullWhen(true)] out Uri? uri, [NotNullWhen(false)] out string? message)
+    {
+        if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out uri))
+        {
+            uri = null;
+            message = "The URL for the external service must be an absolute URI.";
+            return false;
+        }
+
+        if (GetUriValidationException(uri) is { } exception)
+        {
+            message = exception.Message;
+            uri = null;
+            return false;
+        }
+
+        message = null;
+
+        return true;
+    }
+
+    private static ArgumentException? GetUriValidationException(Uri uri)
+    {
+        if (!uri.IsAbsoluteUri)
+        {
+            return new ArgumentException("The URI for the external service must be absolute.", nameof(uri));
+        }
+        if (uri.AbsolutePath != "/")
+        {
+            return new ArgumentException("The URI absolute path must be \"/\".", nameof(uri));
+        }
+        return null;
+    }
 }
