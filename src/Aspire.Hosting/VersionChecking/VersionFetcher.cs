@@ -39,7 +39,7 @@ internal sealed class VersionFetcher : IVersionFetcher
             },
         };
 
-        _logger.LogInformation("Running dotnet CLI to check for latest version with arguments: {ArgumentList}", spec.Arguments);
+        _logger.LogDebug("Running dotnet CLI to check for latest version with arguments: {ArgumentList}", spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -50,7 +50,7 @@ internal sealed class VersionFetcher : IVersionFetcher
 
             if (processResult.ExitCode != 0)
             {
-                _logger.LogError("The dotnet CLI call to check for latest version failed with exit code {ExitCode}.", processResult.ExitCode);
+                _logger.LogDebug("The dotnet CLI call to check for latest version failed with exit code {ExitCode}.", processResult.ExitCode);
                 return null;
             }
         }
