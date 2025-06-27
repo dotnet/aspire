@@ -47,6 +47,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 };
                 return runner;
             };
+
+            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -81,6 +83,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 };
                 return runner;
             };
+
+            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -115,6 +119,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 };
                 return runner;
             };
+
+            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -179,6 +185,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var prompter = new TestDeployCommandPrompter(interactionService);
                 return prompter;
             };
+
+            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();
@@ -245,6 +253,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var prompter = new TestDeployCommandPrompter(interactionService);
                 return prompter;
             };
+
+            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled }; // Ensure deploy command is enabled
         });
 
         var provider = services.BuildServiceProvider();

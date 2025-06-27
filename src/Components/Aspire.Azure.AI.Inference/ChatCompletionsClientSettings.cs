@@ -103,17 +103,24 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue(nameof(DeploymentId), out var modelId))
+        if (connectionBuilder.TryGetValue("DeploymentId", out var modelId))
         {
             DeploymentId = modelId.ToString();
         }
 
-        if (connectionBuilder.TryGetValue(nameof(Endpoint), out var endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var serviceUri))
+        // Use the EndpointAIInference key if available, otherwise fallback to Endpoint.
+        // This is because Azure AI Inference may require a /models suffix in the endpoint URL while some
+        // other client libraries may not. 
+        if (connectionBuilder.TryGetValue("EndpointAIInference", out var endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var serviceUri))
+        {
+            Endpoint = serviceUri;
+        }
+        else if (connectionBuilder.TryGetValue("Endpoint", out endpoint) && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out serviceUri))
         {
             Endpoint = serviceUri;
         }
 
-        if (connectionBuilder.TryGetValue(nameof(Key), out var key) && !string.IsNullOrWhiteSpace(key.ToString()))
+        if (connectionBuilder.TryGetValue("Key", out var key) && !string.IsNullOrWhiteSpace(key.ToString()))
         {
             Key = key.ToString();
         }
