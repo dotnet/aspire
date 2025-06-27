@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../UpdateCommandStrings.resx">
+    <body>
+      <trans-unit id="CheckingForUpdates">
+        <source>Checking for Aspire package updates...</source>
+        <target state="new">Checking for Aspire package updates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmUpdates">
+        <source>Do you want to update these packages?</source>
+        <target state="new">Do you want to update these packages?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Update Aspire packages in the AppHost project.</source>
+        <target state="new">Update Aspire packages in the AppHost project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoAspirePackagesFound">
+        <source>No Aspire packages found in the project.</source>
+        <target state="new">No Aspire packages found in the project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoUpdatesAvailable">
+        <source>No updates available for Aspire packages.</source>
+        <target state="new">No updates available for Aspire packages.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageUpdateFailed">
+        <source>Package update failed.</source>
+        <target state="new">Package update failed.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesUpdatedSuccessfully">
+        <source>Aspire packages updated successfully.</source>
+        <target state="new">Aspire packages updated successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project. If not specified, the command will search for an AppHost project in the current directory and its subdirectories.</source>
+        <target state="new">The path to the Aspire AppHost project. If not specified, the command will search for an AppHost project in the current directory and its subdirectories.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateCancelled">
+        <source>Update cancelled.</source>
+        <target state="new">Update cancelled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatingPackages">
+        <source>Updating Aspire packages...</source>
+        <target state="new">Updating Aspire packages...</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
