@@ -10,7 +10,7 @@ internal sealed class ExternalServiceParameterResource : ParameterResource, IRes
     public ExternalServiceParameterResource(string name, Func<ParameterDefault?, string> callback) : base(name, callback, secret: false)
     {
         // Add endpoint annotation for service discovery
-        var endpointAnnotation = new EndpointAnnotation(System.Net.Sockets.ProtocolType.Tcp, uriScheme: "http", name: "default", isProxied: false);
+        var endpointAnnotation = new EndpointAnnotation(System.Net.Sockets.ProtocolType.Tcp, uriScheme: "http", name: "http", isProxied: false);
         // Note: AllocatedEndpoint will be set later when the resource is initialized
         Annotations.Add(endpointAnnotation);
     }

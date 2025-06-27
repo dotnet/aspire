@@ -519,7 +519,7 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(envVarName, $"{externalService.Resource.UrlParameter}");
+            builder.WithEnvironment(envVarName, externalService.Resource.UrlParameter);
         }
 
         return builder;
