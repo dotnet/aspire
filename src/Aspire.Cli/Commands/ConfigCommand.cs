@@ -7,6 +7,7 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
@@ -17,8 +18,8 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService)
-        : base("config", ConfigCommandStrings.Description)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotififier updateNotifier)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -28,16 +29,18 @@ internal sealed class ConfigCommand : BaseCommand
         _configurationService = configurationService;
         _interactionService = interactionService;
 
-        var getCommand = new GetCommand(configurationService, _interactionService);
-        var setCommand = new SetCommand(configurationService, _interactionService);
-        var listCommand = new ListCommand(configurationService, _interactionService);
-        var deleteCommand = new DeleteCommand(configurationService, _interactionService);
+        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
+        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
+        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
+        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
     }
+
+    protected override bool UpdateNotificationsEnabled => throw new NotImplementedException();
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -50,8 +53,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("get", ConfigCommandStrings.GetCommand_Description)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotififier updateNotifier)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -62,6 +65,8 @@ internal sealed class ConfigCommand : BaseCommand
             };
             Arguments.Add(keyArgument);
         }
+
+        protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
@@ -92,8 +97,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("set", ConfigCommandStrings.SetCommand_Description)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotififier updateNotifier)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -116,6 +121,8 @@ internal sealed class ConfigCommand : BaseCommand
             };
             Options.Add(globalOption);
         }
+
+        protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
@@ -159,12 +166,14 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("list", ConfigCommandStrings.ListCommand_Description)
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotififier updateNotifier)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
         }
+
+        protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
@@ -190,8 +199,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description)
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotififier updateNotifier)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;

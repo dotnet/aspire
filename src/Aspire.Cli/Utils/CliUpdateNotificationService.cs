@@ -8,17 +8,17 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
 
-internal interface ICliUpdateNotificationService
+internal interface ICliUpdateNotififier
 {
     Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default);
 }
 
-internal sealed class CliUpdateNotificationService(
-    ILogger<CliUpdateNotificationService> logger,
+internal sealed class CliUpdateNotififier(
+    ILogger<CliUpdateNotififier> logger,
     INuGetPackageCache nuGetPackageCache,
-    IAnsiConsole console) : ICliUpdateNotificationService
+    IAnsiConsole console) : ICliUpdateNotififier
 {
-    private const string UpdateUrl = "https://aka.ms/aspire/update-cli";
+    private const string UpdateUrl = "https://aka.ms/aspire/update";
 
     public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default)
     {
@@ -111,7 +111,7 @@ internal sealed class CliUpdateNotificationService(
     {
         console.WriteLine();
         console.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
-        console.MarkupLine($"[dim]Update using: [bold]dotnet tool update --global Aspire.Cli[/][/]");
         console.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
+        console.WriteLine();
     }
 }
