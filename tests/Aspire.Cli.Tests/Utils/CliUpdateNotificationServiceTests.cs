@@ -6,8 +6,6 @@ using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-using Aspire.Cli.Tests.Utils;
-
 namespace Aspire.Cli.Tests.Utils;
 
 public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
@@ -21,10 +19,10 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         
         // Replace the NuGetPackageCache with our test implementation
         services.AddSingleton<INuGetPackageCache, TestNuGetPackageCache>();
-        services.AddSingleton<ICliUpdateNotificationService, CliUpdateNotificationService>();
+        services.AddSingleton<ICliUpdateNotififier, CliUpdateNotififier>();
         
         var provider = services.BuildServiceProvider();
-        var service = provider.GetRequiredService<ICliUpdateNotificationService>();
+        var service = provider.GetRequiredService<ICliUpdateNotififier>();
         
         // Mock packages with a newer stable version
         var nugetCache = provider.GetRequiredService<INuGetPackageCache>() as TestNuGetPackageCache;
@@ -45,10 +43,10 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         
         // Replace the NuGetPackageCache with our test implementation
         services.AddSingleton<INuGetPackageCache, TestNuGetPackageCache>();
-        services.AddSingleton<ICliUpdateNotificationService, CliUpdateNotificationService>();
+        services.AddSingleton<ICliUpdateNotififier, CliUpdateNotififier>();
         
         var provider = services.BuildServiceProvider();
-        var service = provider.GetRequiredService<ICliUpdateNotificationService>();
+        var service = provider.GetRequiredService<ICliUpdateNotififier>();
 
         // Act & Assert (should not throw)
         await service.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot);
