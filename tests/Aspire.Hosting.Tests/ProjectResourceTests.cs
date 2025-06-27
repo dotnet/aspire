@@ -609,13 +609,13 @@ public class ProjectResourceTests
         appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
             .WithEndpoint("http", e =>
             {
-                Assert.Equal(Environment.MachineName, e.TargetHost);
+                Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
                 e.IsProxied = isProxied;
             })
             .WithEndpoint("https", e =>
             {
-                Assert.Equal(Environment.MachineName, e.TargetHost);
+                Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
                 e.IsProxied = isProxied;
             });
