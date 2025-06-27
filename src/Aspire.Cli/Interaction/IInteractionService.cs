@@ -24,4 +24,5 @@ internal interface IInteractionService
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
     void OpenNewProject(string projectPath);
+    void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }

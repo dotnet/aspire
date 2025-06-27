@@ -7,13 +7,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddSqlServerDbContext<MyDb1Context>("db1", configureDbContextOptions: options =>
+if (args.Contains("--postgres"))
 {
-    options.UseSqlServer(sqlServerOptions =>
+    builder.Services.AddDbContextPool<MyDb1Context>(options =>
     {
-        sqlServerOptions.MigrationsAssembly("DatabaseMigration.ApiModel");
+        var connectionString = builder.Configuration.GetConnectionString("db1");
+        options.UseNpgsql(connectionString, options =>
+        {
+            options.MigrationsAssembly("DatabaseMigration.ApiModel");
+        });
     });
-});
+}
+else
+{
+    builder.AddSqlServerDbContext<MyDb1Context>("db1", configureDbContextOptions: options =>
+    {
+        options.UseSqlServer(sqlServerOptions =>
+        {
+            sqlServerOptions.MigrationsAssembly("DatabaseMigration.ApiModel");
+        });
+    });
+}
 
 var app = builder.Build();
 

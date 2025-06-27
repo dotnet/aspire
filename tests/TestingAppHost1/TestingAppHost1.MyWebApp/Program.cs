@@ -51,7 +51,7 @@ app.MapGet("/get-launch-profile-var-from-app-host", () =>
 
 app.Run();
 
-sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }

@@ -135,6 +135,26 @@ public static class DistributedApplicationTestingBuilder
         return new TestingBuilder(args, configureBuilder);
     }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="IDistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <param name="args">The command line arguments to pass to the entry point.</param>
+    /// <param name="configureBuilder">The delegate used to configure the builder.</param>
+    /// <param name="appHostAssembly">The assembly of app host</param>
+    /// <returns>
+    /// A new instance of <see cref="IDistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    public static IDistributedApplicationTestingBuilder Create(
+        string[] args,
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder,
+        Assembly appHostAssembly)
+    {
+        ThrowIfNullOrContainsIsNullOrEmpty(args);
+        ArgumentNullException.ThrowIfNull(configureBuilder);
+
+        return new TestingBuilder(args, configureBuilder, appHostAssembly);
+    }
+
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -293,18 +313,31 @@ public static class DistributedApplicationTestingBuilder
 
     private sealed class TestingBuilder(
         string[] args,
-        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder) : IDistributedApplicationTestingBuilder
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder,
+        Assembly? appHostAssembly = null)
+        : IDistributedApplicationTestingBuilder
     {
-        private readonly DistributedApplicationBuilder _innerBuilder = CreateInnerBuilder(args, configureBuilder);
+        private readonly DistributedApplicationBuilder _innerBuilder = CreateInnerBuilder(args, configureBuilder, appHostAssembly);
         private DistributedApplication? _app;
 
         private static DistributedApplicationBuilder CreateInnerBuilder(
             string[] args,
-            Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+            Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder,
+            Assembly? appHostAssembly = null)
         {
             var builder = TestingBuilderFactory.CreateBuilder(args, onConstructing: (applicationOptions, hostBuilderOptions) =>
             {
-                DistributedApplicationFactory.ConfigureBuilder(args, applicationOptions, hostBuilderOptions, FindApplicationAssembly(), configureBuilder);
+                Assembly appAssembly;
+                if (appHostAssembly is not null && GetDcpCliPath(appHostAssembly) is { Length: > 0 })
+                {
+                    appAssembly = appHostAssembly;
+                }
+                else
+                {
+                    appAssembly = FindApplicationAssembly();
+                }
+
+                DistributedApplicationFactory.ConfigureBuilder(args, applicationOptions, hostBuilderOptions, appAssembly, configureBuilder);
             });
 
             if (!builder.Configuration.GetValue(KnownConfigNames.TestingDisableHttpClient, false))
