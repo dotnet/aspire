@@ -63,7 +63,7 @@ public sealed class ComponentTelemetryContext : IDisposable
         _initializeCorrelation = telemetryService.PostUserTask(
             TelemetryEventKeys.ComponentInitialize,
             TelemetryResult.Success,
-            properties: CreateStartAndDisposeProperties());
+            properties: CreateInitializeAndDisposeProperties());
     }
 
     public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
@@ -108,7 +108,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             correlatedWith: _initializeCorrelation?.Properties);
     }
 
-    private Dictionary<string, AspireTelemetryProperty> CreateStartAndDisposeProperties()
+    private Dictionary<string, AspireTelemetryProperty> CreateInitializeAndDisposeProperties()
     {
         return new Dictionary<string, AspireTelemetryProperty>
         {
@@ -125,7 +125,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             _telemetryService?.PostOperation(
                 TelemetryEventKeys.ComponentDispose,
                 TelemetryResult.Success,
-                properties: CreateStartAndDisposeProperties(),
+                properties: CreateInitializeAndDisposeProperties(),
                 correlatedWith: _initializeCorrelation?.Properties);
 
             _disposed = true;
