@@ -387,10 +387,10 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var prefix = hasErrors
-                ? "[red]❌ PUBLISHING FAILED:[/]"
-                : hasWarnings
-                    ? "[yellow]⚠️ PUBLISHING COMPLETED:[/]"
-                    : "[green]✅ PUBLISHING COMPLETED:[/]";
+                ? "[red]✗ PUBLISHING FAILED:[/]"
+: hasWarnings
+                    ? "[yellow]⚠ PUBLISHING COMPLETED:[/]"
+                    : "[green]✓ PUBLISHING COMPLETED:[/]";
             
             AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
