@@ -31,7 +31,7 @@ public interface IYarpConfigurationBuilder
     /// </summary>
     /// <param name="externalService">The external service used by this cluster.</param>
     /// <returns></returns>
-    public YarpCluster AddCluster(ExternalServiceResource externalService);
+    public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService);
 }
 
 /// <summary>
@@ -85,7 +85,7 @@ public static class YarpConfigurationBuilderExtensions
     /// <returns></returns>
     public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, IResourceBuilder<ExternalServiceResource> externalService)
     {
-        var cluster = builder.AddCluster(externalService.Resource);
+        var cluster = builder.AddCluster(externalService);
         return builder.AddRoute(path, cluster);
     }
 

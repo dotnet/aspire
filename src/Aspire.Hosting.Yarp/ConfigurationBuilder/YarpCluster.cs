@@ -17,9 +17,9 @@ public class YarpCluster
     private readonly ExternalServiceResource? _externalService;
 
     /// <summary>
-    /// 
+    /// Creates a new instance of <see cref="YarpCluster"/> with a specified endpoint reference.
     /// </summary>
-    /// <param name="endpoint"></param>
+    /// <param name="endpoint">The endpoint.</param>
     public YarpCluster(EndpointReference endpoint)
     {
         _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
@@ -27,9 +27,9 @@ public class YarpCluster
     }
 
     /// <summary>
-    /// 
+    /// Creates a new instance of <see cref="YarpCluster"/> with a specified external service resource.
     /// </summary>
-    /// <param name="externalService"></param>
+    /// <param name="externalService">The external service.</param>
     public YarpCluster(ExternalServiceResource externalService)
     {
         _externalService = externalService ?? throw new ArgumentNullException(nameof(externalService));
