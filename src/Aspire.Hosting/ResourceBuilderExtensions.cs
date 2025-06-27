@@ -179,7 +179,7 @@ public static class ResourceBuilderExtensions
             builder.WithEnvironment(name, externalService.Resource.UrlParameter);
             builder.WithEnvironment(context =>
             {
-                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var _, out var message))
+                if (context.ExecutionContext.IsPublishMode || ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var _, out var message))
                 {
                     context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
                 }
@@ -531,7 +531,13 @@ public static class ResourceBuilderExtensions
         {
             builder.WithEnvironment(context =>
             {
-                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    // In publish mode we can't read the parameter value to get the scheme so use 'default'
+                    var envVarName = $"services__{externalService.Resource.Name}__default__0";
+                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                }
+                else if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
                 {
                     var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
                     context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
