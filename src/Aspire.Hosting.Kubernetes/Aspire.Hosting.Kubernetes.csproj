@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared\ResourceNameComparer.cs" />
     <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
   </ItemGroup>
 

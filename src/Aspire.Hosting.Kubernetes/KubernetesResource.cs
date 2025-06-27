@@ -18,6 +18,8 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
+    internal Dictionary<string, object> RawEnvironmentVariables { get; } = [];
+    internal List<object> RawArguments { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Parameters { get; } = [];
@@ -94,11 +96,50 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void BuildKubernetesResources()
     {
+        ProcessEnvironmentVariablesAndArguments();
         SetLabels();
         CreateApplication();
         ConfigMap = resource.ToConfigMap(this);
         Secret = resource.ToSecret(this);
         Service = resource.ToService(this);
+    }
+
+    private void ProcessEnvironmentVariablesAndArguments()
+    {
+        // Process deferred environment variables
+        foreach (var environmentVariable in RawEnvironmentVariables)
+        {
+            var key = environmentVariable.Key.ToHelmValuesSectionName();
+            var value = this.ProcessValue(environmentVariable.Value);
+
+            switch (value)
+            {
+                case AlreadyProcessedValue:
+                    // Already processed by AsHelmValuePlaceholder, no further action needed
+                    continue;
+                case string stringValue:
+                    ProcessEnvironmentStringValue(stringValue, key, resource.Name);
+                    continue;
+                default:
+                    ProcessEnvironmentDefaultValue(value, key, resource.Name);
+                    break;
+            }
+        }
+
+        // Process deferred arguments
+        foreach (var arg in RawArguments)
+        {
+            var value = this.ProcessValue(arg);
+
+            string str = value switch
+            {
+                AlreadyProcessedValue processedValue => processedValue.Expression,
+                string s => s,
+                _ => throw new NotSupportedException("Command line args must be strings")
+            };
+
+            Commands.Add(str);
+        }
     }
 
     private void SetLabels()
@@ -139,14 +180,13 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         return expression;
     }
 
-    internal async Task ProcessResourceAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    internal async Task ProcessResourceAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         ProcessEndpoints();
         ProcessVolumes();
-
-        await ProcessEnvironmentAsync(context, executionContext, cancellationToken).ConfigureAwait(false);
-        await ProcessArgumentsAsync(context, executionContext, cancellationToken).ConfigureAwait(false);
-
+        await ProcessEnvironmentAsync(executionContext, cancellationToken).ConfigureAwait(false);
+        await ProcessArgumentsAsync(executionContext, cancellationToken).ConfigureAwait(false);
+        
         BuildKubernetesResources();
     }
 
@@ -157,33 +197,30 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             return;
         }
 
-        foreach (var endpoint in endpoints)
+        string ResolveTargetPort(EndpointAnnotation endpoint)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            if (endpoint.TargetPort is int port)
             {
-                GenerateDefaultProjectEndpointMapping(endpoint);
-                continue;
+                return port.ToString(CultureInfo.InvariantCulture);
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, portValue, endpoint.Name);
+            // For resources without an explicit target port, we create a parameter
+            const string defaultPort = "8080";
+
+            var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
+            var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
+            Parameters[paramName] = new(helmExpression, defaultPort);
+
+            return helmExpression;
         }
-    }
 
-    private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
-    {
-        const string defaultPort = "8080";
+        foreach (var endpoint in endpoints)
+        {
+            var internalPort = ResolveTargetPort(endpoint);
+            var exposedPort = endpoint.Port;
 
-        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-
-        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
-        Parameters[paramName] = new(helmExpression, defaultPort);
-
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
-
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, internalPort, endpoint.Name);
+        }
     }
 
     private void ProcessVolumes()
@@ -216,73 +253,32 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private async Task ProcessArgumentsAsync(KubernetesEnvironmentContext environmentContext, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private async Task ProcessArgumentsAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext(RawArguments, cancellationToken: cancellationToken)
+            {
+                ExecutionContext = executionContext
+            };
 
             foreach (var c in commandLineArgsCallbackAnnotations)
             {
                 await c.Callback(context).ConfigureAwait(false);
             }
-
-            foreach (var arg in context.Args)
-            {
-                var value = await this.ProcessValueAsync(environmentContext, executionContext, arg).ConfigureAwait(false);
-
-                if (value is not string str)
-                {
-                    throw new NotSupportedException("Command line args must be strings");
-                }
-
-                Commands.Add(new(str));
-            }
         }
     }
 
-    private async Task ProcessEnvironmentAsync(KubernetesEnvironmentContext environmentContext, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
         {
-            var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
+            var context = new EnvironmentCallbackContext(executionContext, resource, RawEnvironmentVariables, cancellationToken: cancellationToken);
 
             foreach (var c in environmentCallbacks)
             {
                 await c.Callback(context).ConfigureAwait(false);
             }
-
-            foreach (var environmentVariable in context.EnvironmentVariables)
-            {
-                var key = environmentVariable.Key.ToHelmValuesSectionName();
-                var value = await this.ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
-
-                switch (value)
-                {
-                    case HelmExpressionWithValue helmExpression:
-                        ProcessEnvironmentHelmExpression(helmExpression, key);
-                        continue;
-                    case string stringValue:
-                        ProcessEnvironmentStringValue(stringValue, key, resource.Name);
-                        continue;
-                    default:
-                        ProcessEnvironmentDefaultValue(value, key, resource.Name);
-                        break;
-                }
-            }
-        }
-    }
-
-    private void ProcessEnvironmentHelmExpression(HelmExpressionWithValue helmExpression, string key)
-    {
-        switch (helmExpression)
-        {
-            case { IsHelmSecretExpression: true, ValueContainsSecretExpression: false }:
-                Secrets[key] = helmExpression;
-                return;
-            case { IsHelmSecretExpression: false, ValueContainsSecretExpression: false }:
-                EnvironmentVariables[key] = helmExpression;
-                break;
         }
     }
 
@@ -303,6 +299,12 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         var configExpression = key.ToHelmConfigExpression(resourceName);
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
+    }
+
+    internal class AlreadyProcessedValue(string expression)
+    {
+        public string Expression { get; } = expression;
+        public override string ToString() => Expression;
     }
 
     internal class HelmExpressionWithValue(string helmExpression, string? value)
