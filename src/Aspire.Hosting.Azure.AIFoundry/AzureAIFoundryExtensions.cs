@@ -132,7 +132,7 @@ public static class AzureAIFoundryExtensions
 
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(builder.Resource, (@event, ct)
+        return builder.OnInitializeResource((@event, ct)
             => Task.Run(async () =>
             {
                 var resource = (AzureAIFoundryResource)@event.Resource;
@@ -176,8 +176,6 @@ public static class AzureAIFoundryExtensions
                 }
 
             }, ct));
-
-        return builder;
     }
 
     /// <summary>

@@ -45,37 +45,6 @@ public static partial class SqlServerBuilderExtensions
 
         string? connectionString = null;
 
-        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServer, async (@event, ct) =>
-        {
-            connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
-            }
-        });
-
-        builder.Eventing.Subscribe<ResourceReadyEvent>(sqlServer, async (@event, ct) =>
-        {
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
-            }
-
-            using var sqlConnection = new SqlConnection(connectionString);
-            await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
-
-            if (sqlConnection.State != System.Data.ConnectionState.Open)
-            {
-                throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
-            }
-
-            foreach (var sqlDatabase in sqlServer.DatabaseResources)
-            {
-                await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
-            }
-        });
-
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
@@ -88,7 +57,36 @@ public static partial class SqlServerBuilderExtensions
                       {
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
                       })
-                      .WithHealthCheck(healthCheckKey);
+                      .WithHealthCheck(healthCheckKey)
+                      .OnConnectionStringAvailable(async (@event, ct) =>
+                      {
+                          connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+                          if (connectionString == null)
+                          {
+                              throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+                          }
+                      })
+                      .OnResourceReady(async (@event, ct) =>
+                      {
+                          if (connectionString is null)
+                          {
+                              throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+                          }
+
+                          using var sqlConnection = new SqlConnection(connectionString);
+                          await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+                          if (sqlConnection.State != System.Data.ConnectionState.Open)
+                          {
+                              throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
+                          }
+
+                          foreach (var sqlDatabase in sqlServer.DatabaseResources)
+                          {
+                              await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
+                          }
+                      });
     }
 
     /// <summary>
@@ -112,22 +110,21 @@ public static partial class SqlServerBuilderExtensions
 
         string? connectionString = null;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
-        {
-            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
-            }
-        });
-
         var healthCheckKey = $"{name}_check";
         builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         return builder.ApplicationBuilder
             .AddResource(sqlServerDatabase)
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (@event, ct) =>
+            {
+                connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+                if (connectionString == null)
+                {
+                    throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+                }
+            });
     }
 
     /// <summary>
