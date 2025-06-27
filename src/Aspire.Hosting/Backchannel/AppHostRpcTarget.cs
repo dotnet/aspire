@@ -22,8 +22,7 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityProgressReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options,
-    ExecResourceManager execResourceManager)
+    DistributedApplicationOptions options)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
@@ -176,6 +175,7 @@ internal class AppHostRpcTarget(
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
         var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
         await foreach (var commandOutput in logsStream.ConfigureAwait(false))
         {

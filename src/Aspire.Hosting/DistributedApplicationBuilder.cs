@@ -108,10 +108,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     // values in various callbacks and is a central location to access useful services like IServiceProvider.
     private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
 
-    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions()
+    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions(out string? configurationOperation)
     {
-        var operationConfiguration = _innerBuilder.Configuration["AppHost:Operation"];
-        if (operationConfiguration is null)
+        configurationOperation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant();
+        if (configurationOperation is null)
         {
             return _innerBuilder.Configuration["Publishing:Publisher"] switch
             {
@@ -120,7 +120,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             };
         }
 
-        var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
+        var operation = configurationOperation switch
         {
             "publish" => DistributedApplicationOperation.Publish,
             "run" or "exec" => DistributedApplicationOperation.Run,
@@ -205,8 +205,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = BuildExecutionContextOptions();
+        _executionContextOptions = BuildExecutionContextOptions(out var configurationOperation);
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        bool IsExecMode() => configurationOperation is "exec";
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
@@ -229,8 +231,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         });
 
         // exec
-        _innerBuilder.Services.AddSingleton<ExecResourceManager>();
-        _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ExecResourceManager>());
+        if (IsExecMode())
+        {
+            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+            _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ExecResourceManager>());
+        }
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -278,7 +283,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigureHealthChecks();
 
-        if (ExecutionContext.IsRunMode)
+        if (ExecutionContext.IsRunMode && !IsExecMode())
         {
             // Dashboard
             if (!options.DisableDashboard)
