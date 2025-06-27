@@ -123,6 +123,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         var env1 = builder.AddDockerComposeEnvironment("env1");
         var env2 = builder.AddDockerComposeEnvironment("env2");
