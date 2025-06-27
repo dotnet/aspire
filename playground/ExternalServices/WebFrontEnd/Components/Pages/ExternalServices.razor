@@ -37,32 +37,35 @@ else
 <h2>Via YARP gateway</h2>
 <p>
     <strong>NuGet API version: </strong>
-    @if (nugetApiVersion == null)
+    @if (gatewayNugetApiVersion == null)
     {
         <em>loading...</em>
     }
     else
     {
-        @nugetApiVersion
+        @gatewayNugetApiVersion
     }
 </p>
 
 <p>
-    <strong>Response from @externalServiceUrl: </strong>
-    @if (externalServiceStatus == null)
+    <strong>Response from @gatewayExternalServiceUrl: </strong>
+    @if (gatewayExternalServiceStatus == null)
     {
         <em>loading...</em>
     }
     else
     {
-        @externalServiceStatus
+        @gatewayExternalServiceStatus
     }
 </p>
 
 @code {
     private string? externalServiceUrl;
     private string? nugetApiVersion;
-    private int? externalServiceStatus;
+    private string? externalServiceStatus;
+    private string? gatewayExternalServiceUrl;
+    private string? gatewayNugetApiVersion;
+    private string? gatewayExternalServiceStatus;
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,27 +77,31 @@ else
         var nugetTask = GetNuGetVersion(nugetClient);
 
         var gatewayClient = HttpClientFactory.CreateClient("gateway");
-        var gatewayExternalServiceTask = GetExternalServiceStatus(gatewayClient, "/external-service");
-        var gatewayNugetTask = GetNuGetVersion(gatewayClient, "/nuget");
+        gatewayExternalServiceUrl = new Uri(gatewayClient.BaseAddress!, "/external-service").ToString();
+        var gatewayExternalServiceTask = GetExternalServiceStatus(gatewayClient, "external-service");
+        var gatewayNugetTask = GetNuGetVersion(gatewayClient, "nuget");
 
-        await Task.WhenAll(nugetTask, externalServiceTask, gatewayExternalServiceTask, gatewayExternalServiceTask);
+        externalServiceStatus = await externalServiceTask;
+        nugetApiVersion = await nugetTask;
+        gatewayExternalServiceStatus = await gatewayExternalServiceTask;
+        gatewayNugetApiVersion = await gatewayNugetTask;
     }
 
-    private async Task GetExternalServiceStatus(HttpClient client, string? pathPrefix = null)
+    private async Task<string> GetExternalServiceStatus(HttpClient client, string? pathPrefix = null)
     {
         try
         {
             var path = $"{pathPrefix}";
             var response = await client.GetAsync(path);
-            externalServiceStatus = (int)response.StatusCode;
+            return response.StatusCode.ToString();
         }
         catch (Exception ex)
         {
-            nugetApiVersion = $"Error: {ex.Message}";
+            return $"Error: {ex.Message}";
         }
     }
 
-    private async Task GetNuGetVersion(HttpClient client, string? pathPrefix = null)
+    private async Task<string?> GetNuGetVersion(HttpClient client, string? pathPrefix = null)
     {
         try
         {
@@ -104,11 +111,11 @@ else
 
             using var contentStream = await response.Content.ReadAsStreamAsync();
 
-            nugetApiVersion = await GetPropertyValueAsync(contentStream, "version");
+            return await GetPropertyValueAsync(contentStream, "version");
         }
         catch (Exception ex)
         {
-            nugetApiVersion = $"Error: {ex.Message}";
+            return $"Error: {ex.Message}";
         }
     }
 

@@ -48,10 +48,7 @@ public class YarpCluster
         Debug.Assert(_endpoint is not null || _externalService is not null, "Either endpoint or external service must be provided.");
 
         var name = _endpoint?.Resource.Name ?? _externalService!.Name;
-        var scheme = _endpoint?.Scheme ??
-            (_externalService!.Uri is not null
-                ? _externalService.Uri.Scheme
-                : _externalService.UrlParameter!.Value);
+        var scheme = _endpoint?.Scheme ?? GetSchemeFromExternalService(_externalService!);
 
         return new ClusterConfig
         {
@@ -61,6 +58,24 @@ public class YarpCluster
                 { "destination1", new DestinationConfig { Address = $"{scheme}://{name}" } },
             }
         };
+    }
+
+    private static string GetSchemeFromExternalService(ExternalServiceResource externalService)
+    {
+        if (externalService.Uri is not null)
+        {
+            return externalService.Uri.Scheme;
+        }
+        if (externalService.UrlParameter is not null)
+        {
+            var url = externalService.UrlParameter.Value;
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return uri.Scheme;
+            }
+            // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
+        }
+        throw new InvalidOperationException("External service must have either a URI or a URL parameter defined.");
     }
 }
 
