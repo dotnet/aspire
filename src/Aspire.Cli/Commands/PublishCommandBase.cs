@@ -382,17 +382,17 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
+        var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
         if (publishingActivity is not null)
         {
-            if (hasErrors)
-            {
-                AnsiConsole.MarkupLine($"[red bold]❌ PUBLISHING FAILED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
-            else
-            {
-                AnsiConsole.MarkupLine($"[green bold]✅ PUBLISHING COMPLETED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
+            var prefix = hasErrors
+                ? "[red]✗ PUBLISHING FAILED:[/]"
+: hasWarnings
+                    ? "[yellow]⚠ PUBLISHING COMPLETED:[/]"
+                    : "[green]✓ PUBLISHING COMPLETED:[/]";
+            
+            AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
 
         return !hasErrors;
