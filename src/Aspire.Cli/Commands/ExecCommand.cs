@@ -134,7 +134,7 @@ internal class ExecCommand : BaseCommand
             ];
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-            var pending = _runner.RunAsync(
+            var pendingRun = _runner.RunAsync(
                 projectFile: effectiveAppHostProjectFile,
                 watch: false,
                 noBuild: !false,
