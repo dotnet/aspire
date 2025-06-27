@@ -17,6 +17,7 @@ internal static class ResourceIconHelpers
             KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
             KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, IconVariant.Filled),
             KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, IconVariant.Filled),
             string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, IconVariant.Filled),
             _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
         };

@@ -56,6 +56,7 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+        _eventing.Subscribe<InitializeResourceEvent>(OnResourceInitialized);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -265,8 +266,17 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        await ProcessResourceWithoutLifetime(@event.Resource, cancellationToken).ConfigureAwait(false);
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
+    {
+        if (@event.Resource is not IResourceWithoutLifetime)
+        {
+            return;
+        }
+
+        await ProcessResourceWithoutLifetime(@event.Resource, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ProcessResourceWithoutLifetime(IResource resource, CancellationToken cancellationToken)
