@@ -16,7 +16,7 @@
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Production",
         "services__nuget__https__0": "https://api.nuget.org",
-        "services__external-service__https__0": "https://example.com/"
+        "services__external-service__https__0": "{external-service-url.value}"
       },
       "bindings": {
         "http": {
@@ -37,7 +37,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
         "services__nuget__https__0": "https://api.nuget.org",
-        "EXTERNAL_SERVICE_URL": "https://example.com/",
+        "EXTERNAL_SERVICE_URL": "{external-service-url.value}",
         "services__gateway__http__0": "{gateway.bindings.http.url}"
       },
       "bindings": {

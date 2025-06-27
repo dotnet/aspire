@@ -176,11 +176,12 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
+            builder.WithEnvironment(name, externalService.Resource.UrlParameter);
             builder.WithEnvironment(context =>
             {
-                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var _, out var message))
                 {
-                    context.EnvironmentVariables[name] = uri.ToString();
+                    context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
                 }
                 else
                 {
@@ -533,7 +534,7 @@ public static class ResourceBuilderExtensions
                 if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
                 {
                     var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-                    context.EnvironmentVariables[envVarName] = uri.ToString();
+                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
                 }
                 else
                 {

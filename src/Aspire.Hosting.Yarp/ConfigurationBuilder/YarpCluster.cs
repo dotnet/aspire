@@ -70,7 +70,6 @@ public class YarpCluster
         }
         if (externalService.UrlParameter is not null)
         {
-            // Should this be returning ValueExpression here if we're publishing?
             return externalService.UrlParameter.Value;
             // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
         }
