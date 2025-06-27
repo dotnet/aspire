@@ -14,7 +14,7 @@
     <!-- dotnet 8.0 versions for running tests - used for templates tests -->
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
     <!-- dotnet 10.0 versions for running tests - used for templates tests -->
-    <DotNetSdkNextVersionForTesting>10.0.100-preview.5.25277.114</DotNetSdkNextVersionForTesting>
+    <DotNetSdkCurrentVersionForTesting>9.0.200</DotNetSdkCurrentVersionForTesting>
     <XunitV3Version>3.0.0-pre.25</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
