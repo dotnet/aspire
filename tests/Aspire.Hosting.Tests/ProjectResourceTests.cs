@@ -635,11 +635,11 @@ public class ProjectResourceTests
         if (isProxied)
         {
             // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
-            Assert.Equal($"http://{Environment.MachineName}:p0;https://{Environment.MachineName}:p1", config["ASPNETCORE_URLS"]);
+            Assert.Equal("http://*:p0;https://*:p1", config["ASPNETCORE_URLS"]);
         }
         else
         {
-            Assert.Equal($"http://{Environment.MachineName}:{http.TargetPort};https://{Environment.MachineName}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+            Assert.Equal($"http://*:{http.TargetPort};https://*:{https.TargetPort}", config["ASPNETCORE_URLS"]);
         }
 
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
