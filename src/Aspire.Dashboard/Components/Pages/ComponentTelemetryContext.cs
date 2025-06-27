@@ -37,11 +37,13 @@ public sealed class ComponentTelemetryContext : IDisposable
     private DashboardTelemetryService? _telemetryService;
     private OperationContext? _initializeCorrelation;
     private readonly string _componentId;
+    private readonly ComponentType _type;
     private bool _disposed;
 
-    public ComponentTelemetryContext(ComponentType type, string componentName)
+    public ComponentTelemetryContext(ComponentType type, string componentId)
     {
-        _componentId = $"{type.ToString()}-{componentName}";
+        _componentId = componentId;
+        _type = type;
     }
 
     // Internal for testing
@@ -52,6 +54,7 @@ public sealed class ComponentTelemetryContext : IDisposable
         _telemetryService = telemetryService;
 
         Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentId);
+        Properties[TelemetryPropertyKeys.DashboardComponentType] = new AspireTelemetryProperty(_type.ToString());
         if (browserUserAgent != null)
         {
             Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(browserUserAgent);
@@ -60,11 +63,7 @@ public sealed class ComponentTelemetryContext : IDisposable
         _initializeCorrelation = telemetryService.PostUserTask(
             TelemetryEventKeys.ComponentInitialize,
             TelemetryResult.Success,
-            properties: new Dictionary<string, AspireTelemetryProperty>
-            {
-                // Component properties
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) }
-            });
+            properties: CreateStartAndDisposeProperties());
     }
 
     public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
@@ -109,6 +108,16 @@ public sealed class ComponentTelemetryContext : IDisposable
             correlatedWith: _initializeCorrelation?.Properties);
     }
 
+    private Dictionary<string, AspireTelemetryProperty> CreateStartAndDisposeProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            // Component properties
+            { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) },
+            { TelemetryPropertyKeys.DashboardComponentType, new AspireTelemetryProperty(_type.ToString()) },
+        };
+    }
+
     public void Dispose()
     {
         if (!_disposed)
@@ -116,10 +125,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             _telemetryService?.PostOperation(
                 TelemetryEventKeys.ComponentDispose,
                 TelemetryResult.Success,
-                properties: new Dictionary<string, AspireTelemetryProperty>
-                {
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) }
-                },
+                properties: CreateStartAndDisposeProperties(),
                 correlatedWith: _initializeCorrelation?.Properties);
 
             _disposed = true;
