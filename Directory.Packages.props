@@ -34,7 +34,7 @@
     <PackageVersion Include="Azure.Provisioning" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.AppContainers" Version="1.1.0" />
-    <PackageVersion Include="Azure.Provisioning.AppService" Version="1.1.1" />
+    <PackageVersion Include="Azure.Provisioning.AppService" Version="1.2.0" />
     <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.ContainerRegistry" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="1.1.0" />
