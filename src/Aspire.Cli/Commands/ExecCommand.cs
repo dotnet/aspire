@@ -275,9 +275,8 @@ internal class ExecCommand : BaseCommand
                 if (option is not null)
                 {
                     // If the option is not a bool, it expects a value
-                    var optionType = option.GetType();
-                    var isBool = optionType.IsGenericType && optionType.GetGenericArguments()[0] == typeof(bool);
-                    if (!isBool && i + 1 < allTokens.Count)
+                    var isFlag = option.Arity.MaximumNumberOfValues == 0;
+                    if (!isFlag && i + 1 < allTokens.Count)
                     {
                         i += 2;
                         continue;

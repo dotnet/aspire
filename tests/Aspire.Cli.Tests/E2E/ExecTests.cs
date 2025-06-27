@@ -17,15 +17,16 @@ namespace Aspire.Cli.Tests.E2E;
 
 public class ExecTests(ITestOutputHelper output)
 {
+    private static string DatabaseMigrationsAppHostProjectPath =>
+        Path.Combine(DatabaseMigration_AppHost.ProjectPath, "DatabaseMigration.AppHost.csproj");
+
     [Fact]
     [RequiresDocker]
     public async Task Exec_DotnetInfo_ShouldProduceLogs()
     {
-        var apiService = new DatabaseMigration_ApiService();
-
         string[] args = [
             "--operation", "exec",
-            "--project", apiService.ProjectPath,
+            "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", "\"dotnet --info\""
         ];
@@ -41,11 +42,9 @@ public class ExecTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_DotnetHelp_ShouldProduceLogs()
     {
-        var apiService = new DatabaseMigration_ApiService();
-
         string[] args = [
             "--operation", "exec",
-            "--project", apiService.ProjectPath,
+            "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", "\"dotnet --help\""
         ];
@@ -68,7 +67,7 @@ public class ExecTests(ITestOutputHelper output)
 
         string[] args = [
             "--operation", "exec",
-            "--project", Path.Combine(DatabaseMigration_AppHost.ProjectPath, "DatabaseMigration.AppHost.csproj"),
+            "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\""
         ];

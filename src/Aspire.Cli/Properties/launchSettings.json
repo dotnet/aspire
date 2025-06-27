@@ -30,10 +30,10 @@
       "environmentVariables": {
       }
     },
-    "run-pgsql": {
+    "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --add-postgres",
+      "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
@@ -41,7 +41,7 @@
     "exec-add-migration": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres -- dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp",
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource mywebapp1 -- dotnet ef migrations add AddVersion --project ../../../../../playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
@@ -49,7 +49,7 @@
     "exec-database-update": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj --resource mywebapp1 --add-postgres -- dotnet ef database update",
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource mywebapp1 -- dotnet ef database update",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
