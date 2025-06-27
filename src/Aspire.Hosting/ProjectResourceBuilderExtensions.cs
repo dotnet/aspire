@@ -854,17 +854,6 @@ public static class ProjectResourceBuilderExtensions
             return "localhost";
         }
         return host;
-        /*
-        else if (IPAddress.TryParse(host, out var _))
-        {
-            // If the given host is an IP address, we use it as is
-            return host;
-        }
-
-        // Kestrel treats any other value than localhost or an IP address as the equivalent of [::] (or 0.0.0.0 for IPv4)
-        // We return the machine name here as DCP will will resolve it to all interfaces as well.
-        return Environment.MachineName;
-        */
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource

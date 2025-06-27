@@ -1495,27 +1495,31 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         }
     }
 
+    /// <summary>
+    /// Normalize the target host to a tuple of (address, binding mode). A user may have configured
+    /// an endpoint target host that isn't itself a valid IP address or hostname that can be resolved
+    /// by other services or clients. For example, 0.0.0.0 is considered to mean that the service should
+    /// bind to all IPv4 addresses. When the target host indicates that the service should bind to all
+    /// IPv4 or IPv6 addresses, we instead return "localhost" as the address. The binding mode is metdata
+    /// that indicates whether an endpoint is bound to a single address or some set of multiple addresses
+    /// on the system.
+    /// </summary>
+    /// <param name="targetHost">The target host from an EndpointAnnotation</param>
+    /// <returns>A tuple of (address, binding mode).</returns>
     private static (string, EndpointBindingMode) NormalizeTargetHost(string targetHost)
     {
-        if (string.Equals("localhost", targetHost, StringComparison.OrdinalIgnoreCase))
+        return targetHost switch
         {
-            return ("localhost", EndpointBindingMode.SingleAddress);
-        }
-        else if (IPAddress.TryParse(targetHost, out var ipAddress))
-        {
-            if (IPAddress.Any.Equals(ipAddress))
+            null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
+            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
+            var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
-                return ("localhost", EndpointBindingMode.IPv4AnyAddresses);
-            }
-            else if (IPAddress.IPv6Any.Equals(ipAddress))
-            {
-                return ("localhost", EndpointBindingMode.IPv6AnyAddresses);
-            }
-
-            return (targetHost, EndpointBindingMode.SingleAddress);
-        }
-
-        return ("localhost", EndpointBindingMode.DualStackAnyAddresses);
+                var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
+                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addreses)
+                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is
+            },
+            _ => ("localhost", EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
+        };
     }
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
