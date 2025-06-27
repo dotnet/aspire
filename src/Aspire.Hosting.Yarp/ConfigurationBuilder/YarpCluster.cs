@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
@@ -10,20 +11,56 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Represents a cluster for YARP routes
 /// </summary>
-public class YarpCluster(EndpointReference endpoint)
+public class YarpCluster
 {
-    internal ClusterConfig ClusterConfig { get; private set; } = new()
+    private readonly EndpointReference? _endpoint;
+    private readonly ExternalServiceResource? _externalService;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="endpoint"></param>
+    public YarpCluster(EndpointReference endpoint)
     {
-        ClusterId = $"cluster_{endpoint.Resource.Name}_{Guid.NewGuid().ToString("N")}",
-        Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "destination1", new DestinationConfig { Address = $"{endpoint.Scheme}://{endpoint.Resource.Name}" } },
-        }
-    };
+        _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        ClusterConfig = CreateClusterConfig();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="externalService"></param>
+    public YarpCluster(ExternalServiceResource externalService)
+    {
+        _externalService = externalService ?? throw new ArgumentNullException(nameof(externalService));
+        ClusterConfig = CreateClusterConfig();
+    }
+
+    internal ClusterConfig ClusterConfig { get; private set; }
 
     internal void Configure(Func<ClusterConfig, ClusterConfig> configure)
     {
         ClusterConfig = configure(ClusterConfig);
+    }
+
+    private ClusterConfig CreateClusterConfig()
+    {
+        Debug.Assert(_endpoint is not null || _externalService is not null, "Either endpoint or external service must be provided.");
+
+        var name = _endpoint?.Resource.Name ?? _externalService!.Name;
+        var scheme = _endpoint?.Scheme ??
+            (_externalService!.Uri is not null
+                ? _externalService.Uri.Scheme
+                : _externalService.UrlParameter!.Value);
+
+        return new ClusterConfig
+        {
+            ClusterId = $"cluster_{name}_{Guid.NewGuid():N}",
+            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "destination1", new DestinationConfig { Address = $"{scheme}://{name}" } },
+            }
+        };
     }
 }
 

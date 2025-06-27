@@ -7,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddHttpClient("gateway", client => client.BaseAddress = new Uri("https+http://gateway"));
+
 builder.Services.AddHttpClient("nuget", client => client.BaseAddress = new Uri("https://nuget"));
 
 builder.Services.AddHttpClient("external-service", client =>

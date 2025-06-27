@@ -10,6 +10,7 @@
 
 <p>This component demonstrates communicating with external services.</p>
 
+<h2>Direct to External Services</h2>
 <p>
     <strong>NuGet API version: </strong>
     @if (nugetApiVersion == null)
@@ -33,6 +34,31 @@ else
 }
 </p>
 
+<h2>Via YARP gateway</h2>
+<p>
+    <strong>NuGet API version: </strong>
+    @if (nugetApiVersion == null)
+    {
+        <em>loading...</em>
+    }
+    else
+    {
+        @nugetApiVersion
+    }
+</p>
+
+<p>
+    <strong>Response from @externalServiceUrl: </strong>
+    @if (externalServiceStatus == null)
+    {
+        <em>loading...</em>
+    }
+    else
+    {
+        @externalServiceStatus
+    }
+</p>
+
 @code {
     private string? externalServiceUrl;
     private string? nugetApiVersion;
@@ -47,14 +73,19 @@ else
         var nugetClient = HttpClientFactory.CreateClient("nuget");
         var nugetTask = GetNuGetVersion(nugetClient);
 
-        await Task.WhenAll(nugetTask, externalServiceTask);
+        var gatewayClient = HttpClientFactory.CreateClient("gateway");
+        var gatewayExternalServiceTask = GetExternalServiceStatus(gatewayClient, "/external-service");
+        var gatewayNugetTask = GetNuGetVersion(gatewayClient, "/nuget");
+
+        await Task.WhenAll(nugetTask, externalServiceTask, gatewayExternalServiceTask, gatewayExternalServiceTask);
     }
 
-    private async Task GetExternalServiceStatus(HttpClient client)
+    private async Task GetExternalServiceStatus(HttpClient client, string? pathPrefix = null)
     {
         try
         {
-            var response = await client.GetAsync("/");
+            var path = $"{pathPrefix}";
+            var response = await client.GetAsync(path);
             externalServiceStatus = (int)response.StatusCode;
         }
         catch (Exception ex)
@@ -63,11 +94,12 @@ else
         }
     }
 
-    private async Task GetNuGetVersion(HttpClient client)
+    private async Task GetNuGetVersion(HttpClient client, string? pathPrefix = null)
     {
         try
         {
-            var response = await client.GetAsync("/v3/index.json");
+            var path = $"{pathPrefix}/v3/index.json";
+            var response = await client.GetAsync(path);
             response.EnsureSuccessStatusCode();
 
             using var contentStream = await response.Content.ReadAsStreamAsync();

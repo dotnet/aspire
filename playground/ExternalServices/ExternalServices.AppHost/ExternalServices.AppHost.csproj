@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Yarp\Aspire.Hosting.Yarp.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\WebFrontEnd\WebFrontEnd.csproj" />
   </ItemGroup>
 

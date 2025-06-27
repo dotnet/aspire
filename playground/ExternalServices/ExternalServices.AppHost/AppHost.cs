@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Yarp.Transforms;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // URL value is in appsettings.json, or can be overridden by environment variable
@@ -9,9 +11,17 @@ var externalService = builder.AddExternalService("external-service", builder.Add
 var nuget = builder.AddExternalService("nuget", "https://api.nuget.org/")
     .WithHttpHealthCheck(path: "/v3/index.json");
 
+var externalGateway = builder.AddYarp("gateway")
+    .WithConfiguration(c =>
+    {
+        c.AddRoute("/nuget/{**catchall}", nuget).WithTransformPathRemovePrefix("/nuget");
+        c.AddRoute("/external-service/{**catchall}", externalService).WithTransformPathRemovePrefix("/external-service");
+    });
+
 builder.AddProject<Projects.WebFrontEnd>("frontend")
        .WithReference(nuget)
-       .WithEnvironment("EXTERNAL_SERVICE_URL", externalService);
+       .WithEnvironment("EXTERNAL_SERVICE_URL", externalService)
+       .WithReference(externalGateway.GetEndpoint("http"));
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
