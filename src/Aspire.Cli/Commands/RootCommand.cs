@@ -19,7 +19,7 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IInteractionService _interactionService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatureFlags featureFlags, IInteractionService interactionService)
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatures featureFlags, IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -80,7 +80,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(configCommand);
         
         // Only add deploy command if the feature flag is enabled
-        if (featureFlags.IsFeatureEnabled(KnownFeatureFlags.DeployCommandEnabled, false))
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.DeployCommandEnabled, false))
         {
             Subcommands.Add(deployCommand);
         }

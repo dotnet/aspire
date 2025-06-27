@@ -4,7 +4,8 @@
 namespace Aspire.Cli;
 
 // this is a copy of Shared/KnownResourceNames.cs
-internal static class KnownFeatureFlags
+internal static class KnownFeatures
 {
+    public static string FeaturePrefix => "features";
     public static string DeployCommandEnabled => "deployCommandEnabled";
 }

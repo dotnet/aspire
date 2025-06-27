@@ -5,11 +5,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class FeatureFlags(IConfiguration configuration) : IFeatureFlags
+internal sealed class Features(IConfiguration configuration) : IFeatures
 {
-    public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
+    public bool IsFeatureEnabled(string feature, bool defaultValue)
     {
-        var configKey = $"featureFlags:{featureFlag}";
+        var configKey = $"features:{feature}";
         
         var value = configuration[configKey];
         

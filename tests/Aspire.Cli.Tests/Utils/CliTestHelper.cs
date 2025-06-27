@@ -36,14 +36,14 @@ internal static class CliTestHelper
 
         // Populate feature flag configuration in in-memory collection.
         options.ConfigurationCallback += config => {
-            foreach (var featureFlag in options.EnabledFeatureFlags)
+            foreach (var featureFlag in options.EnabledFeatures)
             {
-                config[$"featureFlags:{featureFlag}"] = "true";
+                config[$"{KnownFeatures.FeaturePrefix}:{featureFlag}"] = "true";
             }
 
-            foreach (var featureFlag in options.DisabledFeatureFlags)
+            foreach (var featureFlag in options.DisabledFeatures)
             {
-                config[$"featureFlags:{featureFlag}"] = "false";
+                config[$"{KnownFeatures.FeaturePrefix}:{featureFlag}"] = "false";
             }
         };
 
@@ -107,8 +107,8 @@ internal sealed class CliServiceCollectionTestOptions
     {
     };
 
-    public string[] EnabledFeatureFlags { get; set; } = Array.Empty<string>();
-    public string[] DisabledFeatureFlags { get; set; } = Array.Empty<string>();
+    public string[] EnabledFeatures { get; set; } = Array.Empty<string>();
+    public string[] DisabledFeatures { get; set; } = Array.Empty<string>();
 
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
@@ -209,10 +209,10 @@ internal sealed class CliServiceCollectionTestOptions
         return new AppHostBackchannel(logger, telemetry);
     };
 
-    public Func<IServiceProvider, IFeatureFlags> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, IFeatures> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new FeatureFlags(configuration);
+        return new Features(configuration);
     };
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
