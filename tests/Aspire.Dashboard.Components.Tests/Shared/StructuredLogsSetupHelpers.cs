@@ -4,6 +4,8 @@
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -21,6 +23,8 @@ internal static class StructuredLogsSetupHelpers
         context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        context.Services.AddSingleton<DashboardTelemetryService>();
+        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
