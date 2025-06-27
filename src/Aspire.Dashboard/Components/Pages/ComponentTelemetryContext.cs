@@ -26,16 +26,22 @@ public sealed class ComponentTelemetryContextProvider
     }
 }
 
+public enum ComponentType
+{
+    Page,
+    Control
+}
+
 public sealed class ComponentTelemetryContext : IDisposable
 {
     private DashboardTelemetryService? _telemetryService;
     private OperationContext? _initializeCorrelation;
-    private readonly string _componentType;
+    private readonly string _componentName;
     private bool _disposed;
 
-    public ComponentTelemetryContext(string componentType)
+    public ComponentTelemetryContext(ComponentType type, string componentName)
     {
-        _componentType = componentType;
+        _componentName = $"{type.ToString()}-{componentName}";
     }
 
     // Internal for testing
@@ -45,7 +51,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         _telemetryService = telemetryService;
 
-        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentType);
+        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentName);
         if (browserUserAgent != null)
         {
             Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(browserUserAgent);
@@ -57,7 +63,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             properties: new Dictionary<string, AspireTelemetryProperty>
             {
                 // Component properties
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentType) }
+                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentName) }
             });
     }
 
@@ -92,7 +98,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (_telemetryService == null)
         {
-            logger.LogWarning("Telemetry service for '{ComponentType}' is not initialized. Cannot post properties.", _componentType);
+            logger.LogWarning("Telemetry service for '{ComponentType}' is not initialized. Cannot post properties.", _componentName);
             return;
         }
 
@@ -112,7 +118,7 @@ public sealed class ComponentTelemetryContext : IDisposable
                 TelemetryResult.Success,
                 properties: new Dictionary<string, AspireTelemetryProperty>
                 {
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentType) }
+                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentName) }
                 },
                 correlatedWith: _initializeCorrelation?.Properties);
 

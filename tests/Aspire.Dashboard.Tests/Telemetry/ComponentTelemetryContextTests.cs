@@ -14,7 +14,7 @@ public class ComponentTelemetryContextTests
     public async Task ComponentTelemetryContext_TelemetryEnabled_EndToEnd()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
@@ -24,7 +24,7 @@ public class ComponentTelemetryContextTests
 
         // Act & assert initialize
         telemetryContextProvider.Initialize(telemetryContext);
-        for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
+        for (var i = 0; i < telemetryService._defaultProperties.Count; i++)
         {
             Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var postPropertyOperation));
             Assert.Equal(TelemetryEndpoints.TelemetryPostProperty, postPropertyOperation.Name);
@@ -64,7 +64,7 @@ public class ComponentTelemetryContextTests
     public async Task ComponentTelemetryContext_TelemetryDisabled_EndToEnd()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = false };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
@@ -90,7 +90,7 @@ public class ComponentTelemetryContextTests
     public void ComponentTelemetryContext_DisposeWithoutInitialize_NoThrow()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
 
         // Act
         telemetryContext.Dispose();
