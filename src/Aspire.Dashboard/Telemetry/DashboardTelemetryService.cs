@@ -10,6 +10,7 @@ public sealed class DashboardTelemetryService
     private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
     private readonly ILogger<DashboardTelemetryService> _logger;
     private readonly IDashboardTelemetrySender _telemetrySender;
+    private readonly Dictionary<string, AspireTelemetryProperty> _defaultProperties;
 
     public DashboardTelemetryService(
         ILogger<DashboardTelemetryService> logger,
@@ -17,6 +18,12 @@ public sealed class DashboardTelemetryService
     {
         _logger = logger;
         _telemetrySender = telemetrySender;
+
+        _defaultProperties = new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
+            { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
+        };
     }
 
     /// <summary>
@@ -62,7 +69,7 @@ public sealed class DashboardTelemetryService
             // Post session property values after initialization, if telemetry has been enabled.
             if (IsTelemetryEnabled)
             {
-                foreach (var (key, value) in GetDefaultProperties())
+                foreach (var (key, value) in _defaultProperties)
                 {
                     PostProperty(key, value);
                 }
@@ -341,18 +348,6 @@ public sealed class DashboardTelemetryService
         });
     }
 
-    /// <summary>
-    /// Gets identifying properties for the telemetry session.
-    /// </summary>
-    public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties()
-    {
-        return new Dictionary<string, AspireTelemetryProperty>
-        {
-            { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
-            { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
-        };
-    }
-
     private static async Task<TResponse> PostRequestAsync<TRequest, TResponse>(HttpClient client, string endpoint, TRequest request)
     {
         var httpResponseMessage = await client.PostAsJsonAsync(endpoint, request).ConfigureAwait(false);
@@ -368,6 +363,14 @@ public sealed class DashboardTelemetryService
     private static string GetCompositeEventName(string eventName, string endpoint)
     {
         return $"{endpoint} - ${eventName}";
+    }
+
+    private IDictionary<string, AspireTelemetryProperty> IncludeDefaultProperties(IDictionary<string, AspireTelemetryProperty> properties)
+    {
+        foreach (var (key, value) in _defaultProperties)
+        {
+            properties[key] = value;
+        }
     }
 }
 
