@@ -40,7 +40,7 @@ internal sealed class ConfigCommand : BaseCommand
         Subcommands.Add(deleteCommand);
     }
 
-    protected override bool UpdateNotificationsEnabled => throw new NotImplementedException();
+    protected override bool UpdateNotificationsEnabled => false;
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -217,6 +217,8 @@ internal sealed class ConfigCommand : BaseCommand
             };
             Options.Add(globalOption);
         }
+
+        protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
