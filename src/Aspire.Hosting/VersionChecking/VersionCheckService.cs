@@ -106,7 +106,7 @@ internal sealed class VersionCheckService : BackgroundService
             if (IsVersionGreaterOrEqual(ignoreVersion, latestVersion))
             {
                 // Ignored version is greater or equal to latest version so exit.
-                _logger.LogInformation("Ignoring version {Version} as it is less than or equal to the ignored version {IgnoreVersion}.", latestVersion, ignoreVersion);
+                _logger.LogDebug("Ignoring version {Version} as it is less than or equal to the ignored version {IgnoreVersion}.", latestVersion, ignoreVersion);
                 return;
             }
         }
