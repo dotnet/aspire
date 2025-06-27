@@ -36,12 +36,12 @@ public sealed class ComponentTelemetryContext : IDisposable
 {
     private DashboardTelemetryService? _telemetryService;
     private OperationContext? _initializeCorrelation;
-    private readonly string _componentName;
+    private readonly string _componentId;
     private bool _disposed;
 
     public ComponentTelemetryContext(ComponentType type, string componentName)
     {
-        _componentName = $"{type.ToString()}-{componentName}";
+        _componentId = $"{type.ToString()}-{componentName}";
     }
 
     // Internal for testing
@@ -51,7 +51,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         _telemetryService = telemetryService;
 
-        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentName);
+        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentId);
         if (browserUserAgent != null)
         {
             Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(browserUserAgent);
@@ -63,7 +63,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             properties: new Dictionary<string, AspireTelemetryProperty>
             {
                 // Component properties
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentName) }
+                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) }
             });
     }
 
@@ -98,7 +98,7 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         if (_telemetryService == null)
         {
-            logger.LogWarning("Telemetry service for '{ComponentType}' is not initialized. Cannot post properties.", _componentName);
+            logger.LogWarning("Telemetry service for '{ComponentType}' is not initialized. Cannot post properties.", _componentId);
             return;
         }
 
@@ -118,7 +118,7 @@ public sealed class ComponentTelemetryContext : IDisposable
                 TelemetryResult.Success,
                 properties: new Dictionary<string, AspireTelemetryProperty>
                 {
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentName) }
+                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) }
                 },
                 correlatedWith: _initializeCorrelation?.Properties);
 
