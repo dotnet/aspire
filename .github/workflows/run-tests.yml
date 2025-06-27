@@ -115,6 +115,9 @@ jobs:
           /p:SkipPackageCheckForTemplatesTesting=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
+      - name: Install dotnet ef global tool
+        run: ${{ env.DOTNET_SCRIPT }} tool install --global dotnet-ef
+
       - name: Install Azure Functions Core Tools
         if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
