@@ -1,20 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.EntityFrameworkCore;
-using TestingAppHost1.MyWebApp;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 // Add services to the container.
-
-builder.Services.AddDbContextPool<MyAppDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("postgresDb");
-    options.UseNpgsql(connectionString);
-});
 
 var app = builder.Build();
 
@@ -28,13 +19,6 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
-
-app.MapGet("/entities", async (MyAppDbContext db) =>
-{
-    var forecasts = await db.Set<MyEntity>().ToListAsync();
-    return Results.Ok(forecasts);
-})
-.WithName("GetWeatherForecastsFromDb");
 
 app.MapGet("/weatherforecast", () =>
 {

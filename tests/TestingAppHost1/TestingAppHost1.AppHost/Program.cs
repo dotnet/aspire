@@ -7,18 +7,6 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-IResourceBuilder<PostgresDatabaseResource> pgsqlDb = null!;
-if (args.Contains("--add-postgres"))
-{
-    pgsqlDb = builder
-        .AddPostgres(
-            name: "postgres1",
-            port: 6000,
-            userName: builder.AddParameter("pgsqluser"),
-            password: builder.AddParameter("pgsqlpass", secret: true))
-        .AddDatabase("postgresDb");
-}
-
 builder.Configuration["ConnectionStrings:cs"] = "testconnection";
 
 builder.AddConnectionString("cs");
@@ -33,13 +21,6 @@ if (args.Contains("--add-redis"))
 var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
     .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
-
-if (args.Contains("--add-postgres") && pgsqlDb is not null)
-{
-    webApp
-        .WithReference(pgsqlDb) // injects configuration and has the connection string from pgsql
-        .WaitFor(pgsqlDb);
-}
 
 if (builder.Configuration.GetValue("USE_HTTPS", false))
 {

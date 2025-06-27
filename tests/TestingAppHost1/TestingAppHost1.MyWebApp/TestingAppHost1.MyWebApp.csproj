@@ -10,13 +10,4 @@
     <ProjectReference Include="..\TestingAppHost1.ServiceDefaults\TestingAppHost1.ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Migrations\" />
-  </ItemGroup>
-
 </Project>

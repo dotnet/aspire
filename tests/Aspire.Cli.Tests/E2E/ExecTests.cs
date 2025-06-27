@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +21,12 @@ public class ExecTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_PingGoogleCom_ShouldProduceLogs()
     {
-        var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
+        var apiService = new DatabaseMigration_ApiService();
 
         string[] args = [
             "--operation", "exec",
-            "--project", myWebAppProjectMetadata.ProjectPath,
-            "--resource", "mywebapp1",
+            "--project", apiService.ProjectPath,
+            "--resource", "api",
             "--command", "\"ping google.com\""
         ];
 
@@ -43,12 +43,12 @@ public class ExecTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_DotnetHelp_ShouldProduceLogs()
     {
-        var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
+        var apiService = new DatabaseMigration_ApiService();
 
         string[] args = [
             "--operation", "exec",
-            "--project", myWebAppProjectMetadata.ProjectPath,
-            "--resource", "mywebapp1",
+            "--project", apiService.ProjectPath,
+            "--resource", "api",
             "--command", "\"dotnet --help\""
         ];
 
@@ -63,25 +63,27 @@ public class ExecTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_InitializeMigrations_ShouldCreateMigrationsInWebApp()
     {
-        var myWebAppProjectMetadata = new TestingAppHost1_MyWebApp();
-        DeleteMigrations(myWebAppProjectMetadata);
+        var migrationName = "AddVersion";
+
+        var apiModelProjectDir = @$"{MSBuildUtils.GetRepoRoot()}\playground\DatabaseMigration\DatabaseMigration.ApiModel";
+        DeleteMigrations(apiModelProjectDir, migrationName);
 
         string[] args = [
             "--operation", "exec",
-            "--project", myWebAppProjectMetadata.ProjectPath,
-            "--resource", "mywebapp1",
-            "--command", "\"dotnet ef migrations add Init --msbuildprojectextensionspath D:\\code\\aspire\\artifacts\\obj\\TestingAppHost1.MyWebApp\"",
-            "--add-postgres",
+            "--project", Path.Combine(DatabaseMigration_AppHost.ProjectPath, "DatabaseMigration.AppHost.csproj"),
+            "--resource", "api",
+            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\""
         ];
 
         var app = await BuildAppAsync(args);
-        var logs = await ExecAndCollectLogsAsync(app);
+        var logs = await ExecAndCollectLogsAsync(app, timeoutSec: 60);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
         Assert.Contains(logs, x => x.Contains("Build started"));
+        Assert.Contains(logs, x => x.Contains("Build succeeded"));
 
-        AssertMigrationsCreated(myWebAppProjectMetadata);
-        DeleteMigrations(myWebAppProjectMetadata);
+        AssertMigrationsCreated(apiModelProjectDir, migrationName);
+        DeleteMigrations(apiModelProjectDir, migrationName);
     }
 
     private async Task<List<string>> ExecAndCollectLogsAsync(DistributedApplication app, int timeoutSec = 30)
@@ -109,25 +111,21 @@ public class ExecTests(ITestOutputHelper output)
     private async Task<DistributedApplication> BuildAppAsync(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? configureBuilder = null)
     {
         configureBuilder ??= (appOptions, _) => { };
-        var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(TestingAppHost1_AppHost).Assembly)
+        var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(DatabaseMigration_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
-        var pgsqlDb = builder
-            .AddPostgres("postgres1", port: 6000)
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6000))
-            .AddDatabase("postgresDb");
+        var sqlServerDb = builder.AddSqlServer("sql1").AddDatabase("db1");
 
         var project = builder
-            .AddProject<TestingAppHost1_MyWebApp>("mywebapp1")
-            .WithReference(pgsqlDb)
-            .WaitFor(pgsqlDb);
+            .AddProject<DatabaseMigration_ApiService>("api")
+            .WithReference(sqlServerDb)
+            .WaitFor(sqlServerDb);
 
         return await builder.BuildAsync();
     }
 
-    private static void DeleteMigrations(IProjectMetadata projectMetadata)
+    private static void DeleteMigrations(string projectDirectory, params string[] fileExpectedNames)
     {
-        var projectDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
         if (!Directory.Exists(projectDirectory))
         {
             return;
@@ -144,7 +142,10 @@ public class ExecTests(ITestOutputHelper output)
         {
             try
             {
-                File.Delete(migrationFile);
+                if (fileExpectedNames.Any(migrationFile.Contains))
+                {
+                    File.Delete(migrationFile);
+                }
             }
             catch (FileNotFoundException)
             {
@@ -153,14 +154,24 @@ public class ExecTests(ITestOutputHelper output)
         }
     }
 
-    private static void AssertMigrationsCreated(IProjectMetadata projectMetadata)
+    private void AssertMigrationsCreated(
+        string projectDirectory,
+        params string[] expectedFileNames)
     {
-        var projectDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
-        var migrationFiles = Directory.GetFiles(Path.Combine(projectDirectory!, "Migrations"));
+        var migrationFiles = Directory.GetFiles(Path.Combine((string)projectDirectory!, "Migrations"));
         Assert.NotEmpty(migrationFiles);
-        Assert.All(migrationFiles, file =>
-            Assert.True(file.Contains("Init", StringComparison.OrdinalIgnoreCase)
-                     || file.Contains("Snapshot", StringComparison.OrdinalIgnoreCase))
-        );
+
+        var createdMigrationFiles = new List<string>();
+        foreach (var file in migrationFiles)
+        {
+            if (expectedFileNames.Any(file.Contains))
+            {
+                createdMigrationFiles.Add(file);
+                output.WriteLine("ASSERT: Created migration file found: " + file);
+            }
+        }
+
+        // At least one migration should be found with expected file names
+        Assert.NotEmpty(createdMigrationFiles);
     }
 }
