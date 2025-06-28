@@ -59,7 +59,7 @@ internal class ExtensionInteractionService : IInteractionService
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
-        CancellationToken cancellationToken = default)
+        bool isSecret = false, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -87,7 +87,7 @@ internal class ExtensionInteractionService : IInteractionService
         }
         else
         {
-            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, cancellationToken).ConfigureAwait(false);
+            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, cancellationToken).ConfigureAwait(false);
         }
     }
 

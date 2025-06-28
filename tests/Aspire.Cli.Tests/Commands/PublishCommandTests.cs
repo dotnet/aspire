@@ -178,7 +178,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
                 // Simulate a successful build
                 runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
-                
+
                 // Simulate a successful app host information retrieval
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {

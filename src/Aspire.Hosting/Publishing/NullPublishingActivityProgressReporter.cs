@@ -23,16 +23,20 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     /// <inheritdoc/>
     public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
-        step.Reporter = this;
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title)
+        {
+            Reporter = this
+        };
         return Task.FromResult(step);
     }
 
     /// <inheritdoc/>
     public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step);
-        task.Reporter = this;
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step)
+        {
+            Reporter = this
+        };
         step.AddTask(task);
         return Task.FromResult(task);
     }
@@ -62,6 +66,18 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
 
     /// <inheritdoc/>
     public Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CreatePromptAsync(string displayText, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CompletePromptAsync(string promptId, string? response, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }

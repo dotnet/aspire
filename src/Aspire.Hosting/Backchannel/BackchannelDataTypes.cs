@@ -110,6 +110,37 @@ internal sealed class PublishingActivityData
     /// Gets the optional completion message for tasks (appears as dimmed child text).
     /// </summary>
     public string? CompletionMessage { get; init; }
+
+    /// <summary>
+    /// Gets the input information for prompt activities, if available.
+    /// </summary>
+    public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+}
+
+/// <summary>
+/// Represents an input for a publishing prompt.
+/// </summary>
+internal sealed class PublishingPromptInput
+{
+    /// <summary>
+    /// Gets the label for the input.
+    /// </summary>
+    public required string Label { get; init; }
+
+    /// <summary>
+    /// Gets the type of the input.
+    /// </summary>
+    public required string InputType { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the input is required.
+    /// </summary>
+    public bool Required { get; init; }
+
+    /// <summary>
+    /// Gets the options for the input. Only used by select inputs.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
 }
 
 /// <summary>
@@ -120,6 +151,7 @@ internal static class PublishingActivityTypes
     public const string Step = "step";
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
+    public const string Prompt = "prompt";
 }
 
 /// <summary>
