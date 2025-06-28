@@ -300,6 +300,10 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
                     }
+                    else if (IsCompletionStateWarning(stepInfo.CompletionState))
+                    {
+                        AnsiConsole.MarkupLine($"[yellow bold]⚠ WARNING:[/] {stepInfo.CompletionText.EscapeMarkup()}");
+                    }
                     else
                     {
                         AnsiConsole.MarkupLine($"[green bold]✅ COMPLETED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
