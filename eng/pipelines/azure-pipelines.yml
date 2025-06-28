@@ -178,18 +178,21 @@ extends:
               image: 1es-mariner-2
               os: linux
 
-            variables:
-              - name: _buildScript
-                value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
-
             preSteps:
               - checkout: self
                 fetchDepth: 1
                 clean: true
 
             steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
                 displayName: Build os-specific packages
+
+              - template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
+                parameters:
+                  args:
+                    displayName: Publish CLI packages for the Windows job
+                    targetPath: $(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping/aspire-cli*
+                    artifactName: aspire-cli-archives
 
           - job: MacOS
             timeoutInMinutes: 90
@@ -199,18 +202,21 @@ extends:
               vmImage: macOS-latest-internal
               os: macOS
 
-            variables:
-              - name: _buildScript
-                value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
-
             preSteps:
               - checkout: self
                 fetchDepth: 1
                 clean: true
 
             steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
                 displayName: Build os-specific packages
+
+              - template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
+                parameters:
+                  args:
+                    displayName: Publish CLI packages for the Windows job
+                    targetPath: $(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping/aspire-cli*
+                    artifactName: aspire-cli-archives
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
