@@ -209,7 +209,7 @@ extends:
                 clean: true
 
             steps:
-              - script: value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
                 displayName: Build os-specific packages
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
