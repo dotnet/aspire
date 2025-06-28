@@ -71,7 +71,7 @@ internal sealed class VersionCheckService : BackgroundService
         }
     }
 
-    private async Task CheckForLatestAsync(CancellationToken stoppingToken)
+    private async Task CheckForLatestAsync(CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
         var checkForLatestVersion = true;
@@ -91,7 +91,7 @@ internal sealed class VersionCheckService : BackgroundService
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
             SecretsStore.TrySetUserSecret(_options.Assembly, CheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
-            latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(appHostDirectory, stoppingToken).ConfigureAwait(false);
+            latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
 
         if (TryGetConfigVersion(KnownLatestVersionDateKey, out var storedKnownLatestVersion))
@@ -134,7 +134,7 @@ internal sealed class VersionCheckService : BackgroundService
                 LinkUrl = "https://aka.ms/dotnet/aspire/update-latest",
                 PrimaryButtonText = "Ignore"
             },
-            cancellationToken: stoppingToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // True when the user clicked the primary button (Ignore).
         if (result.Data)
