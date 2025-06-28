@@ -19,7 +19,7 @@ internal sealed class VersionCheckService : BackgroundService
     private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(2);
 
     internal const string CheckDateKey = "Aspire.Hosting.VersionCheck.LastCheckDate";
-    internal const string KnownLastestVersionDateKey = "Aspire.Hosting.VersionCheck.KnownLastestVersion";
+    internal const string KnownLatestVersionDateKey = "Aspire.Hosting.VersionCheck.KnownLatestVersion";
     internal const string IgnoreVersionKey = "Aspire.Hosting.VersionCheck.IgnoreVersion";
 
     private readonly IInteractionService _interactionService;
@@ -88,11 +88,13 @@ internal sealed class VersionCheckService : BackgroundService
         SemVersion? latestVersion = null;
         if (checkForLatestVersion)
         {
+            var appHostDirectory = _configuration["AppHost:Directory"]!;
+
             SecretsStore.TrySetUserSecret(_options.Assembly, CheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
-            latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(stoppingToken).ConfigureAwait(false);
+            latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(appHostDirectory, stoppingToken).ConfigureAwait(false);
         }
 
-        if (TryGetConfigVersion(KnownLastestVersionDateKey, out var storedKnownLatestVersion))
+        if (TryGetConfigVersion(KnownLatestVersionDateKey, out var storedKnownLatestVersion))
         {
             if (latestVersion == null)
             {
@@ -103,7 +105,7 @@ internal sealed class VersionCheckService : BackgroundService
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
-            // App host version is greater than the latest version so exit.
+            // App host version is up to date or the latest version is unknown.
             return;
         }
 
@@ -120,7 +122,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
-            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLastestVersionDateKey, latestVersion.ToString());
+            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionDateKey, latestVersion.ToString());
         }
 
         var result = await _interactionService.PromptMessageBarAsync(
@@ -140,8 +142,6 @@ internal sealed class VersionCheckService : BackgroundService
             _logger.LogDebug("User chose to ignore version {Version}.", latestVersion);
             SecretsStore.TrySetUserSecret(_options.Assembly, IgnoreVersionKey, latestVersion.ToString());
         }
-
-        return;
     }
 
     public static bool IsVersionGreaterOrEqual(SemVersion? version1, SemVersion? version2)

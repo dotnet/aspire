@@ -109,7 +109,7 @@ public class VersionCheckServiceTests
         configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [VersionCheckService.CheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture),
-            [VersionCheckService.KnownLastestVersionDateKey] = "100.0.0"
+            [VersionCheckService.KnownLatestVersionDateKey] = "100.0.0"
         });
 
         var versionTcs = new TaskCompletionSource<SemVersion?>();
@@ -226,7 +226,7 @@ public class VersionCheckServiceTests
             _versionTask = versionTask ?? Task.FromResult<SemVersion?>(new SemVersion(100, 0, 0));
         }
 
-        public Task<SemVersion?> TryFetchLatestVersionAsync(CancellationToken cancellationToken)
+        public Task<SemVersion?> TryFetchLatestVersionAsync(string appHostDirectory, CancellationToken cancellationToken)
         {
             FetchCalled = true;
             return _versionTask;

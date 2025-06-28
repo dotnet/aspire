@@ -7,5 +7,5 @@ namespace Aspire.Hosting.VersionChecking;
 
 internal interface IVersionFetcher
 {
-    Task<SemVersion?> TryFetchLatestVersionAsync(CancellationToken cancellationToken);
+    Task<SemVersion?> TryFetchLatestVersionAsync(string appHostDirectory, CancellationToken cancellationToken);
 }

@@ -18,7 +18,7 @@ internal sealed class VersionFetcher : IVersionFetcher
         _logger = logger;
     }
 
-    public async Task<SemVersion?> TryFetchLatestVersionAsync(CancellationToken cancellationToken)
+    public async Task<SemVersion?> TryFetchLatestVersionAsync(string appHostDirectory, CancellationToken cancellationToken)
     {
         var outputJson = new StringBuilder();
         var spec = new ProcessSpec("dotnet")
@@ -35,6 +35,7 @@ internal sealed class VersionFetcher : IVersionFetcher
             {
                 _logger.LogDebug("dotnet (stderr): {Error}", error);
             },
+            WorkingDirectory = appHostDirectory
         };
 
         _logger.LogDebug("Running dotnet CLI to check for latest version with arguments: {ArgumentList}", spec.Arguments);
@@ -53,7 +54,12 @@ internal sealed class VersionFetcher : IVersionFetcher
             }
         }
 
-        var packages = ParseOutput(outputJson.ToString());
+        return GetLatestVersion(outputJson.ToString());
+    }
+
+    internal static SemVersion? GetLatestVersion(string outputJson)
+    {
+        var packages = ParseOutput(outputJson);
         var versions = new List<SemVersion>();
         foreach (var package in packages)
         {
@@ -63,7 +69,7 @@ internal sealed class VersionFetcher : IVersionFetcher
             }
         }
 
-        return versions.Order(SemVersion.PrecedenceComparer).FirstOrDefault();
+        return versions.OrderDescending(SemVersion.PrecedenceComparer).FirstOrDefault();
     }
 
     private static List<Package> ParseOutput(string outputJson)
