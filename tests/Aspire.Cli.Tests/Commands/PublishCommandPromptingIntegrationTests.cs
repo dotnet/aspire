@@ -129,7 +129,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         promptBackchannel.AddPrompt("choice-prompt-1", "Deployment Region", InputTypes.Choice, "Select region:", isRequired: true, options: options);
 
         // Set up the expected user selection (by value)
-        consoleService.SetupSelectionResponse("us-east-1");
+        consoleService.SetupSelectionResponse("US East (N. Virginia)");
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -278,7 +278,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Set up the expected user responses in order
         consoleService.SetupSequentialResponses(
             ("MyTestApp", ResponseType.String),
-            ("prod", ResponseType.Selection),
+            ("Production", ResponseType.Selection),
             ("true", ResponseType.Boolean)
         );
 
@@ -357,7 +357,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         consoleService.SetupSequentialResponses(
             ("Server=localhost;Database=MyApp;", ResponseType.String),
             ("secret-api-key-12345", ResponseType.String),
-            ("staging", ResponseType.Selection),
+            ("Staging", ResponseType.Selection),
             ("true", ResponseType.Boolean)
         );
 
@@ -468,6 +468,9 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         {
             ReceivedPrompts.Add(prompt);
 
+            var completionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _promptCompletionSources[prompt.PromptId] = completionSource;
+
             var inputs = prompt.Inputs.Select(input => new PublishingPromptInput
             {
                 Label = input.Label,
@@ -491,8 +494,6 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                 }
             };
 
-            var completionSource = new TaskCompletionSource();
-            _promptCompletionSources[prompt.PromptId] = completionSource;
             await completionSource.Task.WaitAsync(cancellationToken);
         }
 
