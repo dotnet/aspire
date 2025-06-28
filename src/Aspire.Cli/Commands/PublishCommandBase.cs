@@ -459,14 +459,14 @@ internal abstract class PublishCommandBase : BaseCommand
             InputType.Text => await _interactionService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
-                validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
+                required: input.Required,
                 cancellationToken: cancellationToken),
 
             InputType.SecretText => await _interactionService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
-                validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
                 isSecret: true,
+                required: input.Required,
                 cancellationToken: cancellationToken),
 
             InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
@@ -475,7 +475,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, cancellationToken: cancellationToken)
+            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
         };
     }
 
@@ -483,7 +483,7 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, cancellationToken: cancellationToken);
+            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
@@ -499,13 +499,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
     private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
-        ValidationResult Validator(string value)
+        static ValidationResult Validator(string value)
         {
-            if (input.Required && string.IsNullOrWhiteSpace(value))
-            {
-                return ValidationResult.Error("This field is required.");
-            }
-
             if (!string.IsNullOrWhiteSpace(value) && !double.TryParse(value, out _))
             {
                 return ValidationResult.Error("Please enter a valid number.");
@@ -518,6 +513,7 @@ internal abstract class PublishCommandBase : BaseCommand
             promptText,
             defaultValue: input.Value,
             validator: Validator,
+            required: input.Required,
             cancellationToken: cancellationToken);
     }
 
