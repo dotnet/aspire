@@ -28,7 +28,7 @@ public static class ExternalServiceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(url);
 
-        if (!ExternalServiceResource.TryGetUri(url, out var uri, out var message))
+        if (!ExternalServiceResource.UrlIsValidForExternalService(url, out var uri, out var message))
         {
             throw new ArgumentException($"The external service URL '{url}' is invalid: {message}", nameof(url));
         }
@@ -106,7 +106,7 @@ public static class ExternalServiceBuilderExtensions
                     // If the URI is not set, it means we are using a parameterized URL
                     var url = resource.UrlParameter?.Value;
 
-                    if (!ExternalServiceResource.TryGetUri(url, out uri, out var message))
+                    if (!ExternalServiceResource.UrlIsValidForExternalService(url, out uri, out var message))
                     {
                         e.Logger.LogError("The value for URL parameter '{ParameterName}' is invalid: {Error}", resource.UrlParameter?.Name, message);
 

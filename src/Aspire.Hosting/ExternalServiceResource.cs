@@ -19,6 +19,9 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="uri">The URI for the external service.</param>
+    /// <remarks>
+    /// The URI must be an absolute URI with the absolute path set to "/".
+    /// </remarks>
     public ExternalServiceResource(string name, Uri uri) : base(name)
     {
         _uri = uri ?? throw new ArgumentNullException(nameof(uri), "The URI for the external service cannot be null.");
@@ -32,8 +35,8 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
     /// <summary>
     /// Creates a new instance of <see cref="ExternalServiceResource"/> with a specified name and URL parameter.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="urlParameter"></param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="urlParameter">The parameter to use for the URL of the external service.</param>
     public ExternalServiceResource(string name, ParameterResource urlParameter) : base(name)
     {
         _urlParameter = urlParameter ?? throw new ArgumentNullException(nameof(urlParameter), "The URL parameter for the external service cannot be null.");
@@ -55,7 +58,7 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
     /// </remarks>
     public ParameterResource? UrlParameter => _urlParameter;
 
-    internal static bool TryGetUri(string? url, [NotNullWhen(true)] out Uri? uri, [NotNullWhen(false)] out string? message)
+    internal static bool UrlIsValidForExternalService(string? url, [NotNullWhen(true)] out Uri? uri, [NotNullWhen(false)] out string? message)
     {
         if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out uri))
         {

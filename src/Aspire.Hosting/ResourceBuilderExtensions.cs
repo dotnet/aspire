@@ -140,7 +140,8 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference)
+        where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -157,13 +158,13 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Adds an environment variable to the resource with the URL from the <see cref="ExternalServiceResource"/>.
     /// </summary>
-    /// <typeparam name="TDestination"></typeparam>
+    /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">Name of environment variable.</param>
+    /// <param name="name">The name of the environment variable.</param>
     /// <param name="externalService">The external service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithEnvironment<TDestination>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<ExternalServiceResource> externalService)
-        where TDestination : IResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ExternalServiceResource> externalService)
+        where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(externalService);
@@ -181,16 +182,14 @@ public static class ResourceBuilderExtensions
             {
                 if (context.ExecutionContext.IsPublishMode)
                 {
-                    throw new NotSupportedException("Setting URLs for external services from parameters is currently unsupported when publishing.");
+                    // In publish mode we can't validate the parameter value so we'll log a warning.
+                    LogExternalServiceParameterPublishWarning(externalService, context);
                 }
-                else if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var _, out var message))
-                {
-                    context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
-                }
-                else
+                else if (!ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var _, out var message))
                 {
                     throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
                 }
+                context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
             });
         }
 
@@ -525,33 +524,52 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(externalService);
 
+        builder.WithReferenceRelationship(externalService.Resource);
+
         if (externalService.Resource.Uri is { } uri)
         {
-            builder.WithReferenceRelationship(externalService.Resource);
             var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-            builder.WithEnvironment(envVarName, uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.Unescaped));
+            builder.WithEnvironment(envVarName, externalService.Resource.Uri.ToString());
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
             builder.WithEnvironment(context =>
             {
+                string envVarName;
                 if (context.ExecutionContext.IsPublishMode)
                 {
-                    throw new NotSupportedException("Setting URLs for external services from parameters is currently unsupported when publishing.");
+                    // In publish mode we can't validate the parameter value so we'll log a warning.
+                    LogExternalServiceParameterPublishWarning(externalService, context);
+
+                    // In publish mode we can't read the parameter value to get the scheme so use 'default'
+                    envVarName = $"services__{externalService.Resource.Name}__default__0";
                 }
-                else if (ExternalServiceResource.TryGetUri(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                else if (ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var uri, out var message))
                 {
-                    var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                    envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
                 }
                 else
                 {
                     throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
                 }
+                context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
             });
         }
 
         return builder;
+    }
+
+    private static void LogExternalServiceParameterPublishWarning(IResourceBuilder<ExternalServiceResource> externalService, EnvironmentCallbackContext context)
+    {
+        // In publish mode we can't validate the parameter value so we'll log a warning and use the default scheme.
+        var logger = context.ExecutionContext.ServiceProvider.GetRequiredService<ILogger<DistributedApplication>>();
+        if (logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning(
+                "The URL parameter '{UrlParameterName}' for the external service '{ServiceName}' cannot be validated in publish mode. When deploying, ensure the parameter value is a valid URI with an absolute path of '/'.",
+                externalService.Resource.UrlParameter?.Name,
+                externalService.Resource.Name);
+        }
     }
 
     /// <summary>
