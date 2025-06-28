@@ -444,7 +444,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
-        if (!Enum.TryParse<InputType>(input.InputType, out var inputType))
+        if (!Enum.TryParse<InputType>(input.InputType, ignoreCase: true, out var inputType))
         {
             // Fallback to text if unknown type
             inputType = InputType.Text;
@@ -482,19 +482,18 @@ internal abstract class PublishCommandBase : BaseCommand
             return await _interactionService.PromptForStringAsync(promptText, cancellationToken: cancellationToken);
         }
 
-        var choices = input.Options.Select(kvp => kvp.Key).ToList();
         var selectedChoice = await _interactionService.PromptForSelectionAsync(
             promptText,
-            choices,
-            choice => choice,
+            input.Options,
+            choice => choice.Value,
             cancellationToken);
 
-        return selectedChoice;
+        return selectedChoice.Key;
     }
 
     private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
-        ValidationResult validator(string value)
+        ValidationResult Validator(string value)
         {
             if (input.Required && string.IsNullOrWhiteSpace(value))
             {
@@ -511,7 +510,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
         return await _interactionService.PromptForStringAsync(
             promptText,
-            validator: validator,
+            validator: Validator,
             cancellationToken: cancellationToken);
     }
 

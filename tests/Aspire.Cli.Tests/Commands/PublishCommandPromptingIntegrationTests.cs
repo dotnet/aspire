@@ -445,6 +445,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();
+    private readonly Dictionary<string, TaskCompletionSource> _promptCompletionSources = new();
 
     public List<PromptData> ReceivedPrompts { get; } = [];
     public List<PromptCompletion> CompletedPrompts { get; } = [];
@@ -490,11 +491,9 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                 }
             };
 
-            // Wait for the prompt to be completed before proceeding
-            while (!CompletedPrompts.Any(c => c.PromptId == prompt.PromptId))
-            {
-                await Task.Delay(10, cancellationToken);
-            }
+            var completionSource = new TaskCompletionSource();
+            _promptCompletionSources[prompt.PromptId] = completionSource;
+            await completionSource.Task.WaitAsync(cancellationToken);
         }
 
         _completionSource.SetResult();
@@ -503,6 +502,12 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
     {
         CompletedPrompts.Add(new PromptCompletion(promptId, answers));
+        if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
+        {
+            completionSource.SetResult();
+            _promptCompletionSources.Remove(promptId);
+        }
+
         return Task.CompletedTask;
     }
 

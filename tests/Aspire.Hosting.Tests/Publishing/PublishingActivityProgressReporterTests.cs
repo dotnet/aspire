@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREINTERACTION001
 
-using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -496,7 +495,8 @@ public class PublishingActivityProgressReporterTests
 
         // Get the interaction ID from the activity that was emitted
         var activityReader = reporter.ActivityItemUpdated.Reader;
-        var activity = await WaitForActivityAsync(activityReader);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var activity = await activityReader.ReadAsync(cts.Token);
         var promptId = activity.Data.Id;
         Assert.NotNull(activity.Data.Inputs);
         var input = Assert.Single(activity.Data.Inputs);
@@ -512,23 +512,6 @@ public class PublishingActivityProgressReporterTests
         var promptResult = await promptTask;
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
-    }
-
-    private static async Task<PublishingActivity> WaitForActivityAsync(ChannelReader<PublishingActivity> reader, TimeSpan? timeout = null)
-    {
-        timeout ??= TimeSpan.FromSeconds(5);
-        var startTime = DateTime.UtcNow;
-
-        while (DateTime.UtcNow - startTime < timeout)
-        {
-            if (reader.TryRead(out var activity))
-            {
-                return activity;
-            }
-            await Task.Delay(10);
-        }
-
-        throw new TimeoutException($"No activity was received within {timeout.Value.TotalSeconds} seconds");
     }
 
     internal static InteractionService CreateInteractionService()

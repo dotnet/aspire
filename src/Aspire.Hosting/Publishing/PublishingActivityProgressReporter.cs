@@ -596,7 +596,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     /// </summary>
     private bool HasStepsInProgress()
     {
-        return _steps.Values.Any(step => step.CompletionState == CompletionState.InProgress);
+        return _steps.Any(step => step.Value.CompletionState == CompletionState.InProgress);
     }
 
     private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
