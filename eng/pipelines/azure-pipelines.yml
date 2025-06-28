@@ -170,39 +170,47 @@ extends:
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
 
-          - ${{ if eq(variables._RunAsPublic, True) }}:
-            - job: Linux
-              ${{ if or(startswith(variables['Build.SourceBranch'], 'refs/heads/release/'), startswith(variables['Build.SourceBranch'], 'refs/heads/internal/release/'), eq(variables['Build.Reason'], 'Manual')) }}:
-                # If the build is getting signed, then the timeout should be increased.
-                timeoutInMinutes: 120
-              ${{ else }}:
-                # timeout accounts for wait times for helix agents up to 30mins
-                timeoutInMinutes: 90
+          - job: Linux
+            timeoutInMinutes: 90
 
-              pool:
-                name: NetCore1ESPool-Internal
-                image: 1es-mariner-2
-                os: linux
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-mariner-2
+              os: linux
 
-              variables:
-                - name: _buildScript
-                  value: $(Build.SourcesDirectory)/build.sh --ci
+            variables:
+              - name: _buildScript
+                value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
 
-              preSteps:
-                - checkout: self
-                  fetchDepth: 1
-                  clean: true
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
 
-              steps:
-                - template: /eng/pipelines/templates/BuildAndTest.yml
-                  parameters:
-                    dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-                    buildScript: $(_buildScript)
-                    buildConfig: $(_BuildConfig)
-                    repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-                    repoLogPath: $(Build.Arcade.LogsPath)
-                    repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-                    isWindows: false
+            steps:
+              - script: value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+                displayName: Build os-specific packages
+
+          - job: MacOS
+            timeoutInMinutes: 90
+
+            pool:
+              name: Azure Pipelines
+              vmImage: macOS-latest-internal
+              os: macOS
+
+            variables:
+              - name: _buildScript
+                value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+            steps:
+              - script: value: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true
+                displayName: Build os-specific packages
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
