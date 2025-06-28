@@ -106,7 +106,7 @@ public sealed class PublishingStep : IAsyncDisposable
     {
         if (_tasks.IsEmpty)
         {
-            return CompletionState.InProgress;
+            return CompletionState.Completed;
         }
 
         var maxState = CompletionState.InProgress;
@@ -146,10 +146,14 @@ public sealed class PublishingStep : IAsyncDisposable
             return;
         }
 
+        // Only complete the step if it's still in progress to avoid double completion
+        if (CompletionState != CompletionState.InProgress)
+        {
+            return;
+        }
+
         // Use the current completion state or calculate it from child tasks if still in progress
-        var finalState = CompletionState == CompletionState.InProgress
-            ? CalculateAggregatedState()
-            : CompletionState;
+        var finalState = CalculateAggregatedState();
 
         // Only set completion text if it has not been explicitly set
         var completionText = string.IsNullOrEmpty(CompletionText)

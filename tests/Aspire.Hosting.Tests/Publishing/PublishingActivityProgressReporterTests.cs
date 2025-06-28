@@ -514,6 +514,135 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal("user-response", promptResult.Data?.Value);
     }
 
+    [Fact]
+    public async Task CalculateAggregatedState_WithNoTasks_ReturnsCompleted()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Act
+        var aggregatedState = step.CalculateAggregatedState();
+
+        // Assert
+        Assert.Equal(CompletionState.Completed, aggregatedState);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_StepWithNoTasks_CompletesWithSuccessState()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Clear the step creation activity
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act
+        await step.DisposeAsync();
+
+        // Assert
+        Assert.Equal(CompletionState.Completed, step.CompletionState);
+        
+        // Verify activity was emitted for step completion
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(step.Id, activity.Data.Id);
+        Assert.Equal(CompletionStates.Completed, activity.Data.CompletionState);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+        Assert.False(activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_StepWithCompletedTasks_CompletesWithSuccessState()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
+
+        // Complete all tasks successfully
+        await reporter.CompleteTaskAsync(task1, CompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task2, CompletionState.Completed, null, CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        // Act
+        await step.DisposeAsync();
+
+        // Assert
+        Assert.Equal(CompletionState.Completed, step.CompletionState);
+
+        // Verify activity was emitted for step completion
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(step.Id, activity.Data.Id);
+        Assert.Equal(CompletionStates.Completed, activity.Data.CompletionState);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+        Assert.False(activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_StepAlreadyCompleted_DoesNotCompleteAgain()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step explicitly first
+        await reporter.CompleteStepAsync(step, "Step completed manually", CompletionState.Completed, CancellationToken.None);
+
+        // Clear activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        // Act - Dispose should not cause another completion
+        await step.DisposeAsync();
+
+        // Assert - No new activities should be emitted
+        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+        Assert.Equal(CompletionState.Completed, step.CompletionState);
+        Assert.Equal("Step completed manually", step.CompletionText);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_StepWithWarningTasks_CompletesWithWarningState()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task1 = await reporter.CreateTaskAsync(step, "Task 1", CancellationToken.None);
+        var task2 = await reporter.CreateTaskAsync(step, "Task 2", CancellationToken.None);
+
+        // Complete tasks with different states
+        await reporter.CompleteTaskAsync(task1, CompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompleteTaskAsync(task2, CompletionState.CompletedWithWarning, null, CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        // Act
+        await step.DisposeAsync();
+
+        // Assert
+        Assert.Equal(CompletionState.CompletedWithWarning, step.CompletionState);
+
+        // Verify activity was emitted for step completion
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(step.Id, activity.Data.Id);
+        Assert.Equal(CompletionStates.CompletedWithWarning, activity.Data.CompletionState);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+        Assert.True(activity.Data.IsWarning);
+    }
+
     internal static InteractionService CreateInteractionService()
     {
         var services = new ServiceCollection();
