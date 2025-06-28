@@ -458,24 +458,24 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             InputType.Text => await _interactionService.PromptForStringAsync(
                 promptText,
-                defaultValue: null,
+                defaultValue: input.Value,
                 validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
                 cancellationToken: cancellationToken),
 
             InputType.SecretText => await _interactionService.PromptForStringAsync(
                 promptText,
-                defaultValue: null,
+                defaultValue: input.Value,
                 validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
                 isSecret: true,
                 cancellationToken: cancellationToken),
 
             InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
 
-            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: false, cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
+            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await _interactionService.PromptForStringAsync(promptText, cancellationToken: cancellationToken)
+            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, cancellationToken: cancellationToken)
         };
     }
 
@@ -483,9 +483,11 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await _interactionService.PromptForStringAsync(promptText, cancellationToken: cancellationToken);
+            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, cancellationToken: cancellationToken);
         }
 
+        // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
+        // but we can reorder the options to put the default first or use a different approach
         var selectedChoice = await _interactionService.PromptForSelectionAsync(
             promptText,
             input.Options,
@@ -514,8 +516,14 @@ internal abstract class PublishCommandBase : BaseCommand
 
         return await _interactionService.PromptForStringAsync(
             promptText,
+            defaultValue: input.Value,
             validator: Validator,
             cancellationToken: cancellationToken);
+    }
+
+    private static bool ParseBooleanValue(string? value)
+    {
+        return bool.TryParse(value, out var result) && result;
     }
 
     private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)

@@ -633,7 +633,8 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Label = input.Label,
                 InputType = input.InputType.ToString(),
                 Required = input.Required,
-                Options = input.Options
+                Options = input.Options,
+                Value = input.Value
             }).ToList();
 
             var activity = new PublishingActivity
