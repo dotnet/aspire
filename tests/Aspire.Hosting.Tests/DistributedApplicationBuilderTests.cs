@@ -45,7 +45,6 @@ public class DistributedApplicationBuilderTests
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
         Assert.Collection(
             lifecycles,
-            s => Assert.IsType<DashboardLifecycleHook>(s),
             s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
         );
 
