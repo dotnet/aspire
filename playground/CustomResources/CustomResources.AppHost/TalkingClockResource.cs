@@ -60,12 +60,12 @@ public static class TalkingClockExtensions
             await notification.PublishUpdateAsync(resource.TickHand, s => s with
             {
                 StartTimeStamp = DateTime.UtcNow,
-                State = "Wating on clock tick" // Custom state string for the tick hand.
+                State = "Waiting on clock tick" // Custom state string for the tick hand.
             });
             await notification.PublishUpdateAsync(resource.TockHand, s => s with
             {
                 StartTimeStamp = DateTime.UtcNow,
-                State = "Wating on clock tock" // Custom state string for the tockhand.
+                State = "Waiting on clock tock" // Custom state string for the tockhand.
             });
 
             // Enter the main loop that runs as long as cancellation is not requested.
