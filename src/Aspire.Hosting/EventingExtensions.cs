@@ -63,7 +63,7 @@ public static class EventingExtensions
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnResourceReady<T>(this IResourceBuilder<T> builder, Func<ResourceReadyEvent, CancellationToken, Task> callback)
-        where T : IResourceWithWaitSupport
+        where T : IResource
         => builder.OnEvent(callback);
 
     private static IResourceBuilder<TResource> OnEvent<TResource, TEvent>(this IResourceBuilder<TResource> builder, Func<TEvent, CancellationToken, Task> callback)
