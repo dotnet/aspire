@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
 import { tryExecuteCommand, vscOutputChannelWriter } from './utils/vsc';
-import { activated } from './loc/strings';
 import { RpcServerInformation, setupRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';

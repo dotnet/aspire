@@ -2,7 +2,7 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError, rpcServerListening, rpcServerError } from '../loc/strings';
+import { rpcServerAddressError, rpcServerError } from '../loc/strings';
 import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
@@ -38,6 +38,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
 
     return new Promise<RpcServerInformation>((resolve, reject) => {
         const rpcServer = tls.createServer({ key, cert }, (socket) => {
+            outputChannelWriter.appendLine('rpc-server', 'Client connected to RPC server');
             const connection = createMessageConnection(
                 new StreamMessageReader(socket),
                 new StreamMessageWriter(socket)
