@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
-import { aspireTerminalName } from '../constants/strings';
+import { aspireTerminalName } from '../loc/strings';
 
 export function getAspireTerminal(): vscode.Terminal {
     if (!rpcServerInfo) {
@@ -28,31 +28,4 @@ export function getAspireTerminal(): vscode.Terminal {
             env
         });
     }
-}
-
-type CommandFlag = {
-    singleDash?: boolean;
-    name: string;
-    value?: string;
-};
-
-export function buildCliCommand(executable: string, args: string | undefined, flags: CommandFlag[] | undefined) {
-    const commandParts: string[] = [executable];
-
-    if (args) {
-        commandParts.push(args);
-    }
-
-    if (flags) {
-        flags.forEach(flag => {
-            const flagPrefix = flag.singleDash ? '-' : '--';
-            commandParts.push(`${flagPrefix}${flag.name}`);
-            // If the flag has a value, append it to the command
-            if (flag.value) {
-                commandParts.push(" " + flag.value);
-            }
-        });
-    }
-
-    return commandParts.join(' ');
 }

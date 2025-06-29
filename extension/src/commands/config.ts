@@ -9,6 +9,6 @@ export async function configCommand() {
 
     const terminal = getAspireTerminal();
     
-    terminal.sendText(`aspire config`);
+    terminal.sendText('aspire config');
     terminal.show();
 }

@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink, yesLabel } from '../../constants/strings';
+import { codespacesLink, directLink } from '../../loc/strings';
 import { RpcServerInformation, setupRpcServer } from '../../server/rpcServer';
 import { IOutputChannelWriter } from '../../utils/vsc';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
