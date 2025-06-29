@@ -36,6 +36,8 @@ namespace Aspire.Hosting.Azure
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
 
