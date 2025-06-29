@@ -8,7 +8,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -185,34 +184,46 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
+    public async Task AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var tempDir = Directory.CreateTempSubdirectory(".azure-ignore-annotation-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
+            publisher: "default",
+            outputPath: tempDir.FullName);
 
-        // Add two Azure storage resources - one will be ignored, one will not
+        // Add Azure container app environment to ensure we have a publishing context
+        builder.AddAzureContainerAppEnvironment("acaEnv");
+
+        // Add an Azure storage resource that will be included
         var includedStorage = builder.AddAzureStorage("included-storage");
+        
+        // Add an Azure storage resource that will be excluded
         var excludedStorage = builder.AddAzureStorage("excluded-storage")
             .ExcludeFromManifest(); // This should be ignored during publishing
 
-        // Build the model
+        // Act
         using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        app.Run();
 
-        // Act - Get the AzureBicepResources using the same logic from AzurePublishingContext
-        var allBicepResources = model.Resources.OfType<AzureBicepResource>().ToList();
-        var filteredBicepResources = model.Resources.OfType<AzureBicepResource>()
-            .Where(r => !r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) || lastAnnotation != ManifestPublishingCallbackAnnotation.Ignore)
-            .ToList();
+        // Assert - Verify the generated bicep files
+        var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
+        Assert.True(File.Exists(mainBicepPath));
+        var mainBicep = File.ReadAllText(mainBicepPath);
 
-        // Assert
-        Assert.Equal(2, allBicepResources.Count);
-        Assert.Single(filteredBicepResources, r => r.Name == "included-storage");
-        
-        // Verify that the excluded resource has the ignore annotation
-        var excludedBicepResource = allBicepResources.Single(r => r.Name == "excluded-storage");
-        Assert.True(excludedBicepResource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var annotation));
-        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
+        // Check if included-storage bicep file was generated
+        var includedStorageBicepPath = Path.Combine(tempDir.FullName, "included-storage", "included-storage.bicep");
+        var includedStorageBicep = File.Exists(includedStorageBicepPath) ? File.ReadAllText(includedStorageBicepPath) : "";
+
+        // Verify that excluded-storage bicep file was NOT generated
+        var excludedStorageBicepPath = Path.Combine(tempDir.FullName, "excluded-storage", "excluded-storage.bicep");
+        Assert.False(File.Exists(excludedStorageBicepPath), "Excluded storage should not have a bicep file generated");
+
+        await Verify(mainBicep, "bicep")
+            .AppendContentAsFile(includedStorageBicep, "bicep");
+
+        tempDir.Delete(recursive: true);
     }
 
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
