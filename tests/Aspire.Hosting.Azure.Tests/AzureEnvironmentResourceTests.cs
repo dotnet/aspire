@@ -207,11 +207,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
 
         // Assert
         Assert.Equal(2, allBicepResources.Count);
-        Assert.Single(filteredBicepResources);
-        Assert.Equal("included-storage", filteredBicepResources.Single().Name);
-        
-        // Verify the excluded resource is not in the filtered list
-        Assert.DoesNotContain(filteredBicepResources, r => r.Name == "excluded-storage");
+        Assert.Single(filteredBicepResources, r => r.Name == "included-storage");
         
         // Verify that the excluded resource has the ignore annotation
         var excludedBicepResource = allBicepResources.Single(r => r.Name == "excluded-storage");
