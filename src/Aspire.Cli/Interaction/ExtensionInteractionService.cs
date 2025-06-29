@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -70,11 +68,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -102,12 +95,7 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.ConfirmAsync(promptText.RemoveSpectreFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
-                    tcs.SetResult(result.Value);
+                    tcs.SetResult(result);
                 }
                 catch (Exception ex)
                 {
@@ -136,11 +124,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
