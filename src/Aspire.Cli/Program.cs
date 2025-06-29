@@ -99,6 +99,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
@@ -125,8 +126,9 @@ public class Program
 
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)

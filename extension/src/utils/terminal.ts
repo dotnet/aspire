@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
-import { aspireTerminalName } from '../constants/strings';
 import { vscOutputChannelWriter } from './vsc';
+import { aspireTerminalName } from '../loc/strings';
 
 let hasRunGetAspireTerminal = false;
 export function getAspireTerminal(): vscode.Terminal {
@@ -45,31 +45,4 @@ export function sendToAspireTerminal(command: string) {
     vscOutputChannelWriter.appendLine("command", `Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
     terminal.show();
-}
-
-type CommandFlag = {
-    singleDash?: boolean;
-    name: string;
-    value?: string;
-};
-
-export function buildCliCommand(executable: string, args: string | undefined, flags: CommandFlag[] | undefined) {
-    const commandParts: string[] = [executable];
-
-    if (args) {
-        commandParts.push(args);
-    }
-
-    if (flags) {
-        flags.forEach(flag => {
-            const flagPrefix = flag.singleDash ? '-' : '--';
-            commandParts.push(`${flagPrefix}${flag.name}`);
-            // If the flag has a value, append it to the command
-            if (flag.value) {
-                commandParts.push(" " + flag.value);
-            }
-        });
-    }
-
-    return commandParts.join(' ');
 }

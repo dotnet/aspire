@@ -10,6 +10,10 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
 {
     private readonly IResourceBuilder<YarpResource> _parent = parent;
 
+    internal List<YarpCluster> Clusters { get; } = new();
+
+    internal List<YarpRoute> Routes { get; } = new();
+
     /// <inheritdoc/>
     public YarpRoute AddRoute(string path, YarpCluster cluster)
     {
@@ -18,7 +22,7 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
         {
             route.WithMatchPath(path);
         }
-        _parent.Resource.Routes.Add(route);
+        Routes.Add(route);
         return route;
     }
 
@@ -26,8 +30,17 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     public YarpCluster AddCluster(EndpointReference endpoint)
     {
         var destination = new YarpCluster(endpoint);
-        _parent.Resource.Destinations.Add(destination);
+        Clusters.Add(destination);
         _parent.WithReference(endpoint);
+        return destination;
+    }
+
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
+    {
+        var destination = new YarpCluster(resource.Resource);
+        Clusters.Add(destination);
+        _parent.WithReference(resource);
         return destination;
     }
 }

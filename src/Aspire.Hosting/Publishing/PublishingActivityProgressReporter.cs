@@ -2,11 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREINTERACTION001
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -103,7 +106,7 @@ public sealed class PublishingStep : IAsyncDisposable
     {
         if (_tasks.IsEmpty)
         {
-            return CompletionState.InProgress;
+            return CompletionState.Completed;
         }
 
         var maxState = CompletionState.InProgress;
@@ -143,10 +146,14 @@ public sealed class PublishingStep : IAsyncDisposable
             return;
         }
 
+        // Only complete the step if it's still in progress to avoid double completion
+        if (CompletionState != CompletionState.InProgress)
+        {
+            return;
+        }
+
         // Use the current completion state or calculate it from child tasks if still in progress
-        var finalState = CompletionState == CompletionState.InProgress
-            ? CalculateAggregatedState()
-            : CompletionState;
+        var finalState = CalculateAggregatedState();
 
         // Only set completion text if it has not been explicitly set
         var completionText = string.IsNullOrEmpty(CompletionText)
@@ -318,7 +325,6 @@ public interface IPublishingActivityProgressReporter
     /// <param name="completionText">The completion text for the step.</param>
     /// <param name="completionState">The completion state for the step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -327,7 +333,6 @@ public interface IPublishingActivityProgressReporter
     /// <param name="task">The task to update.</param>
     /// <param name="statusText">The new status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
     Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken);
 
@@ -338,7 +343,6 @@ public interface IPublishingActivityProgressReporter
     /// <param name="completionState">The completion state.</param>
     /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
     Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default);
 
@@ -347,15 +351,22 @@ public interface IPublishingActivityProgressReporter
     /// </summary>
     /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default);
 }
 
-internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter
+internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
+    private readonly InteractionService _interactionService;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private readonly Task _interactionServiceSubscriber;
 
-#pragma warning disable CS0618 // Type or member is obsolete - we're maintaining backward compatibility
+    public PublishingActivityProgressReporter(InteractionService interactionService)
+    {
+        _interactionService = interactionService;
+        _interactionServiceSubscriber = Task.Run(() => SubscribeToInteractionsAsync(_cancellationTokenSource.Token));
+    }
+
     private static string ToBackchannelCompletionState(CompletionState state) => state switch
     {
         CompletionState.InProgress => CompletionStates.InProgress,
@@ -367,8 +378,10 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
     public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
-        step.Reporter = this;
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title)
+        {
+            Reporter = this
+        };
         _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
@@ -402,8 +415,10 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             }
         }
 
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
-        task.Reporter = this;
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep)
+        {
+            Reporter = this
+        };
 
         // Add task to parent step
         parentStep.AddTask(task);
@@ -565,6 +580,131 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return maxState;
     }
 
+    private async Task SubscribeToInteractionsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var interaction in _interactionService.SubscribeInteractionUpdates(cancellationToken).ConfigureAwait(false))
+            {
+                await HandleInteractionUpdateAsync(interaction, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are any steps currently in progress.
+    /// </summary>
+    private bool HasStepsInProgress()
+    {
+        return _steps.Any(step => step.Value.CompletionState == CompletionState.InProgress);
+    }
+
+    private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
+    {
+        // Only handle input interaction types
+        if (interaction.InteractionInfo is not Interaction.InputsInteractionInfo inputsInfo || inputsInfo.Inputs.Count == 0)
+        {
+            return;
+        }
+
+        if (interaction.State == Interaction.InteractionState.InProgress)
+        {
+            if (HasStepsInProgress())
+            {
+                await _interactionService.CompleteInteractionAsync(interaction.InteractionId, (interaction, ServiceProvider, cancellationToken) =>
+                {
+                    // Complete the interaction with an error state
+                    interaction.CompletionTcs.TrySetException(new InvalidOperationException("Cannot prompt interaction while steps are in progress."));
+                    return Task.FromResult(new InteractionCompletionState
+                    {
+                        Complete = false,
+                        State = "Cannot prompt interaction while steps are in progress."
+                    });
+                }, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
+            {
+                Label = input.Label,
+                InputType = input.InputType.ToString(),
+                Required = input.Required,
+                Options = input.Options
+            }).ToList();
+
+            var activity = new PublishingActivity
+            {
+                Type = PublishingActivityTypes.Prompt,
+                Data = new PublishingActivityData
+                {
+                    Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
+                    StatusText = interaction.Message ?? $"{interaction.Title}: ",
+                    CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
+                    Inputs = promptInputs
+                }
+            };
+
+            await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    internal async Task CompleteInteractionAsync(string promptId, string?[]? responses, CancellationToken cancellationToken = default)
+    {
+        if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
+        {
+            await _interactionService.CompleteInteractionAsync(interactionId,
+                (interaction, serviceProvider, cancellationToken) =>
+                {
+                    if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+                    {
+                        // Set values for all inputs if we have responses
+                        if (responses is not null)
+                        {
+                            for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
+                            {
+                                inputsInfo.Inputs[i].SetValue(responses[i] ?? "");
+                            }
+                        }
+
+                        return Task.FromResult(new InteractionCompletionState
+                        {
+                            Complete = true,
+                            State = inputsInfo.Inputs
+                        });
+                    }
+
+                    return Task.FromResult(new InteractionCompletionState
+                    {
+                        Complete = true,
+                        State = null
+                    });
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_cancellationTokenSource.IsCancellationRequested)
+        {
+            _cancellationTokenSource.Cancel();
+        }
+
+        try
+        {
+            await _interactionServiceSubscriber.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+        }
+
+        _cancellationTokenSource.Dispose();
+    }
+
     internal Channel<PublishingActivity> ActivityItemUpdated { get; } = Channel.CreateUnbounded<PublishingActivity>();
-#pragma warning restore CS0618 // Type or member is obsolete
 }

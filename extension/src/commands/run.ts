@@ -6,6 +6,6 @@ export async function runCommand() {
     if (!isWorkspaceOpen()) {
         return;
     }
-    
+
     sendToAspireTerminal("aspire run");
 };

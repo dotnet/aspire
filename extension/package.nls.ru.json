@@ -1,12 +1,12 @@
 {
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
-	"command.run": "Run an Aspire app host in development mode.",
-	"command.add": "Add an integration to the Aspire project.",
-	"command.new": "Create a new Aspire sample project",
-	"command.publish": "Generates deployment artifacts for an Aspire app host project.",
-	"command.config": "Manage configuration settings.",
-	"command.deploy": "Deploy an Aspire app host project to its supported deployment targets.",
+	"command.run": "Run app host",
+	"command.add": "Add an integration",
+	"command.new": "New Aspire project",
+	"command.publish": "Publish deployment artifacts",
+	"command.config": "Manage configuration settings",
+	"command.deploy": "Deploy app host",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -24,5 +24,6 @@
 	"aspire-vscode.strings.aspireCliVersion": "Aspire CLI Version: {0}",
 	"aspire-vscode.strings.requiredCapability": "Required Capability: {0}",
 	"aspire-vscode.strings.aspireTerminalName": "Aspire Terminal",
-	"aspire-vscode.strings.rpcServerError": "RPC Server error: {0}"
+	"aspire-vscode.strings.rpcServerError": "RPC Server error: {0}",
+	"aspire-vscode.strings.aspireOutputChannelName": "Aspire Extension"
 }

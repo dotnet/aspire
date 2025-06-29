@@ -267,4 +267,36 @@ public class PublishingTests
         app.Run();
         Assert.Equal("second", called);
     }
+
+    [Fact]
+    public void DeployingContextProgressReporterProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+
+        // Explicitly set Deploy to true
+        builder.Configuration["Publishing:Deploy"] = "true";
+
+        var progressReporterAccessed = false;
+
+        builder.AddContainer("cache", "redis")
+               .WithAnnotation(new DeployingCallbackAnnotation(context =>
+                {
+                    // Verify that ProgressReporter property is accessible and not null
+                    Assert.NotNull(context.ProgressReporter);
+                    Assert.IsAssignableFrom<IPublishingActivityProgressReporter>(context.ProgressReporter);
+                    
+                    // Verify that accessing it multiple times returns the same instance (lazy initialization)
+                    var reporter1 = context.ProgressReporter;
+                    var reporter2 = context.ProgressReporter;
+                    Assert.Same(reporter1, reporter2);
+                    
+                    progressReporterAccessed = true;
+                    return Task.CompletedTask;
+                }));
+
+        using var app = builder.Build();
+        app.Run();
+
+        Assert.True(progressReporterAccessed, "ProgressReporter property was not tested.");
+    }
 }
