@@ -22,6 +22,7 @@ var db = builder.AddSqlServer("sql")
 var insertionrows = builder.AddParameter("insertionrows");
 
 var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"sql={db};rows={insertionrows}"));
+var throwing = builder.AddParameter("throwing", () => throw new InvalidOperationException("This is a test exception."));
 
 builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

@@ -303,12 +303,14 @@ internal sealed class ApplicationOrchestrator
                     return s with
                     {
                         State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = s.Properties.SetResourceProperty("Value", ex.Message)
+                        Properties = s.Properties.SetResourceProperty("Value", ex.Message),
+                        IsHidden = false
                     };
                 })
                 .ConfigureAwait(false);
 
-                _loggerService.GetLogger(parameterResource).LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
+                _loggerService.GetLogger(parameterResource)
+                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
             }
         }
 
