@@ -73,7 +73,7 @@ public class VersionCheckServiceTests
         var configurationManager = new ConfigurationManager();
         configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [VersionCheckService.CheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture)
+            [VersionCheckService.LastCheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture)
         });
 
         var versionTcs = new TaskCompletionSource<SemVersion?>();
@@ -108,8 +108,8 @@ public class VersionCheckServiceTests
         var configurationManager = new ConfigurationManager();
         configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [VersionCheckService.CheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture),
-            [VersionCheckService.KnownLatestVersionDateKey] = "100.0.0"
+            [VersionCheckService.LastCheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture),
+            [VersionCheckService.KnownLatestVersionKey] = "100.0.0"
         });
 
         var versionTcs = new TaskCompletionSource<SemVersion?>();

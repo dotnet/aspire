@@ -18,9 +18,9 @@ internal sealed class VersionCheckService : BackgroundService
 {
     private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(2);
 
-    internal const string CheckDateKey = "Aspire.Hosting.VersionCheck.LastCheckDate";
-    internal const string KnownLatestVersionDateKey = "Aspire.Hosting.VersionCheck.KnownLatestVersion";
-    internal const string IgnoreVersionKey = "Aspire.Hosting.VersionCheck.IgnoreVersion";
+    internal const string LastCheckDateKey = "Aspire:VersionCheck:LastCheckDate";
+    internal const string KnownLatestVersionKey = "Aspire:VersionCheck:KnownLatestVersion";
+    internal const string IgnoreVersionKey = "Aspire:VersionCheck:IgnoreVersion";
 
     private readonly IInteractionService _interactionService;
     private readonly ILogger<VersionCheckService> _logger;
@@ -29,7 +29,7 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly IVersionFetcher _versionFetcher;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
-    private readonly SemVersion? _appHostVersion;
+    private readonly SemVersion _appHostVersion;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
         IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher,
@@ -75,7 +75,7 @@ internal sealed class VersionCheckService : BackgroundService
     {
         var now = _timeProvider.GetUtcNow();
         var checkForLatestVersion = true;
-        if (_configuration[CheckDateKey] is string checkDateString &&
+        if (_configuration[LastCheckDateKey] is string checkDateString &&
             DateTime.TryParseExact(checkDateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var checkDate))
         {
             if (now - checkDate < s_checkInterval)
@@ -90,11 +90,11 @@ internal sealed class VersionCheckService : BackgroundService
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
-            SecretsStore.TrySetUserSecret(_options.Assembly, CheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
+            SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
 
-        if (TryGetConfigVersion(KnownLatestVersionDateKey, out var storedKnownLatestVersion))
+        if (TryGetConfigVersion(KnownLatestVersionKey, out var storedKnownLatestVersion))
         {
             if (latestVersion == null)
             {
@@ -122,7 +122,7 @@ internal sealed class VersionCheckService : BackgroundService
         if (IsVersionGreater(latestVersion, storedKnownLatestVersion) || storedKnownLatestVersion == null)
         {
             // Latest version is greater than the stored known latest version, so update it.
-            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionDateKey, latestVersion.ToString());
+            SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionKey, latestVersion.ToString());
         }
 
         var result = await _interactionService.PromptMessageBarAsync(
