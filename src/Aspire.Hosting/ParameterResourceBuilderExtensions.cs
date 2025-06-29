@@ -168,7 +168,7 @@ public static class ParameterResourceBuilderExtensions
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
             ],
-            State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+            State = KnownResourceStates.Waiting
         };
 
         return builder.AddResource(resource)

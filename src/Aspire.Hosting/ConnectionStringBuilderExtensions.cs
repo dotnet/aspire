@@ -43,6 +43,7 @@ public static class ConnectionStringBuilderExtensions
                       .WithInitialState(new CustomResourceSnapshot
                       {
                           ResourceType = "ConnectionString",
+                          State = KnownResourceStates.Waiting,
                           // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
                           IsHidden = true,
                           Properties = []
