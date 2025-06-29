@@ -9,4 +9,5 @@ internal static class KnownResourceTypes
     public const string Project = "Project";
     public const string Container = "Container";
     public const string Parameter = "Parameter";
+    public const string ConnectionString = "ConnectionString";
 }
