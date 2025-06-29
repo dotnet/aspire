@@ -9,27 +9,26 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddMongoDB("mongo")
     .WithMongoExpress(c => c.WithHostPort(3022))
-    .AddDatabase("db");
+    .AddDatabase("db")
+    .OnResourceReady(async (@event, ct) =>{
+        // Artificial delay to demonstrate the waiting
+        await Task.Delay(TimeSpan.FromSeconds(10), ct);
 
-builder.Eventing.Subscribe<ResourceReadyEvent>(db.Resource, async (@event, ct) =>
-{
-    // Artificial delay to demonstrate the waiting
-    await Task.Delay(TimeSpan.FromSeconds(10), ct);
+        // Seed the database with some data
+        //var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
+        var cs = await ((MongoDBDatabaseResource)@event.Resource).ConnectionStringExpression.GetValueAsync(ct);
+        using var client = new MongoClient(cs);
 
-    // Seed the database with some data
-    var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
-    using var client = new MongoClient(cs);
+        const string collectionName = "entries";
 
-    const string collectionName = "entries";
+        var myDb = client.GetDatabase("db");
+        await myDb.CreateCollectionAsync(collectionName, cancellationToken: ct);
 
-    var myDb = client.GetDatabase("db");
-    await myDb.CreateCollectionAsync(collectionName, cancellationToken: ct);
-
-    for (int i = 0; i < 10; i++)
-    {
-        await myDb.GetCollection<Entry>(collectionName).InsertOneAsync(new Entry(), cancellationToken: ct);
-    }
-});
+        for (int i = 0; i < 10; i++)
+        {
+            await myDb.GetCollection<Entry>(collectionName).InsertOneAsync(new Entry(), cancellationToken: ct);
+        }
+    });
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
