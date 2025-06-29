@@ -141,6 +141,11 @@ internal sealed class PublishingPromptInput
     /// Gets the options for the input. Only used by select inputs.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
+
+    /// <summary>
+    /// Gets the default value for the input.
+    /// </summary>
+    public string? Value { get; init; }
 }
 
 /// <summary>

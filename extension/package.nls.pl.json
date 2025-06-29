@@ -27,5 +27,6 @@
 	"aspire-vscode.strings.requiredCapability": "Required Capability: {0}",
 	"aspire-vscode.strings.aspireTerminalName": "Aspire Terminal",
 	"aspire-vscode.strings.rpcServerError": "RPC Server error: {0}",
-	"aspire-vscode.strings.aspireOutputChannelName": "Aspire Extension"
+	"aspire-vscode.strings.aspireOutputChannelName": "Aspire Extension",
+	"aspire-vscode.strings.fieldRequired": "This field is required"
 }
