@@ -1,7 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/vsc';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability } from '../constants/strings';
+import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../constants/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 
@@ -66,7 +66,7 @@ export class InteractionService implements IInteractionService {
             validateInput: async (value: string) => {
                 // Check required field validation first
                 if (required && (!value || value.trim() === '')) {
-                    return 'This field is required';
+                    return fieldRequired;
                 }
 
                 // Then check RPC validation
