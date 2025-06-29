@@ -1341,7 +1341,7 @@ public static class ResourceBuilderExtensions
 
         var endpointName = endpoint.EndpointName;
 
-        builder.OnResourceEndpointsAllocated((@event, ct) =>
+        builder.OnResourceEndpointsAllocated((_, @event, ct) =>
         {
             if (!endpoint.Exists)
             {
@@ -1352,7 +1352,7 @@ public static class ResourceBuilderExtensions
         });
 
         Uri? uri = null;
-        builder.OnBeforeResourceStarted((@event, ct) =>
+        builder.OnBeforeResourceStarted((_, @event, ct) =>
         {
             var baseUri = new Uri(endpoint.Url, UriKind.Absolute);
             uri = new Uri(baseUri, path);

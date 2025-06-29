@@ -58,7 +58,7 @@ public static partial class SqlServerBuilderExtensions
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
                       })
                       .WithHealthCheck(healthCheckKey)
-                      .OnConnectionStringAvailable(async (@event, ct) =>
+                      .OnConnectionStringAvailable(async (sqlServer, @event, ct) =>
                       {
                           connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
 
@@ -67,7 +67,7 @@ public static partial class SqlServerBuilderExtensions
                               throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
                           }
                       })
-                      .OnResourceReady(async (@event, ct) =>
+                      .OnResourceReady(async (sqlServer, @event, ct) =>
                       {
                           if (connectionString is null)
                           {
@@ -116,7 +116,7 @@ public static partial class SqlServerBuilderExtensions
         return builder.ApplicationBuilder
             .AddResource(sqlServerDatabase)
             .WithHealthCheck(healthCheckKey)
-            .OnConnectionStringAvailable(async (@event, ct) =>
+            .OnConnectionStringAvailable(async (sqlServerDatabase, @event, ct) =>
             {
                 connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 

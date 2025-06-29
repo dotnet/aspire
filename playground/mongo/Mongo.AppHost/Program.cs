@@ -10,13 +10,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 var db = builder.AddMongoDB("mongo")
     .WithMongoExpress(c => c.WithHostPort(3022))
     .AddDatabase("db")
-    .OnResourceReady(async (@event, ct) =>{
+    .OnResourceReady(async (db, @event, ct) =>{
         // Artificial delay to demonstrate the waiting
         await Task.Delay(TimeSpan.FromSeconds(10), ct);
 
         // Seed the database with some data
         //var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
-        var cs = await ((MongoDBDatabaseResource)@event.Resource).ConnectionStringExpression.GetValueAsync(ct);
+        var cs = await db.ConnectionStringExpression.GetValueAsync(ct);
         using var client = new MongoClient(cs);
 
         const string collectionName = "entries";

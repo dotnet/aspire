@@ -18,7 +18,7 @@ public static class EventingExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> OnBeforeResourceStarted<T>(this IResourceBuilder<T> builder, Func<BeforeResourceStartedEvent, CancellationToken, Task> callback)
+    public static IResourceBuilder<T> OnBeforeResourceStarted<T>(this IResourceBuilder<T> builder, Func<T, BeforeResourceStartedEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnEvent(callback);
 
@@ -29,7 +29,7 @@ public static class EventingExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> OnConnectionStringAvailable<T>(this IResourceBuilder<T> builder, Func<ConnectionStringAvailableEvent, CancellationToken, Task> callback)
+    public static IResourceBuilder<T> OnConnectionStringAvailable<T>(this IResourceBuilder<T> builder, Func<T, ConnectionStringAvailableEvent, CancellationToken, Task> callback)
         where T : IResourceWithConnectionString
         => builder.OnEvent(callback);
 
@@ -40,7 +40,7 @@ public static class EventingExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> OnInitializeResource<T>(this IResourceBuilder<T> builder, Func<InitializeResourceEvent, CancellationToken, Task> callback)
+    public static IResourceBuilder<T> OnInitializeResource<T>(this IResourceBuilder<T> builder, Func<T, InitializeResourceEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnEvent(callback);
 
@@ -51,7 +51,7 @@ public static class EventingExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> OnResourceEndpointsAllocated<T>(this IResourceBuilder<T> builder, Func<ResourceEndpointsAllocatedEvent, CancellationToken, Task> callback)
+    public static IResourceBuilder<T> OnResourceEndpointsAllocated<T>(this IResourceBuilder<T> builder, Func<T, ResourceEndpointsAllocatedEvent, CancellationToken, Task> callback)
         where T : IResourceWithEndpoints
         => builder.OnEvent(callback);
 
@@ -62,15 +62,15 @@ public static class EventingExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> OnResourceReady<T>(this IResourceBuilder<T> builder, Func<ResourceReadyEvent, CancellationToken, Task> callback)
+    public static IResourceBuilder<T> OnResourceReady<T>(this IResourceBuilder<T> builder, Func<T, ResourceReadyEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnEvent(callback);
 
-    private static IResourceBuilder<TResource> OnEvent<TResource, TEvent>(this IResourceBuilder<TResource> builder, Func<TEvent, CancellationToken, Task> callback)
+    private static IResourceBuilder<TResource> OnEvent<TResource, TEvent>(this IResourceBuilder<TResource> builder, Func<TResource, TEvent, CancellationToken, Task> callback)
         where TResource : IResource
         where TEvent : IDistributedApplicationResourceEvent
     {
-        builder.ApplicationBuilder.Eventing.Subscribe(builder.Resource, callback);
+        builder.ApplicationBuilder.Eventing.Subscribe<TEvent>(builder.Resource, (evt, ct) => callback(builder.Resource, evt, ct));
         return builder;
     }
 }

@@ -50,7 +50,7 @@ public static class TalkingClockExtensions
                 ]
             });
 
-        clockBuilder.OnInitializeResource(static async (@event, token) =>
+        clockBuilder.OnInitializeResource(static async (resource, @event, token) =>
         {
             // This event is published when the resource is initialized.
             // You add custom logic here to establish the lifecycle for your custom resource.
@@ -58,7 +58,6 @@ public static class TalkingClockExtensions
             var log = @event.Logger; // Get the logger for this resource instance.
             var eventing = @event.Eventing; // Get the eventing service for publishing events.
             var notification = @event.Notifications; // Get the notification service for state updates.
-            var resource = (TalkingClockResource)@event.Resource; // Get the resource instance.
             var services = @event.Services; // Get the service provider for dependency injection.
 
             // Publish an Aspire event indicating that this resource is about to start.

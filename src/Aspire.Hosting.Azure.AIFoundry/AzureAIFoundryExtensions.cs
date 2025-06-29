@@ -132,10 +132,9 @@ public static class AzureAIFoundryExtensions
 
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
-        return builder.OnInitializeResource((@event, ct)
+        return builder.OnInitializeResource((resource, @event, ct)
             => Task.Run(async () =>
             {
-                var resource = (AzureAIFoundryResource)@event.Resource;
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
                 var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
@@ -185,9 +184,7 @@ public static class AzureAIFoundryExtensions
     {
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
-        var foundryResource = builder.Resource.Parent;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
+        builder.OnResourceReady((foundryResource, @event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = @event.Services.GetRequiredService<ResourceLoggerService>();
