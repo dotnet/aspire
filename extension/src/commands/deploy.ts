@@ -8,7 +8,7 @@ export async function deployCommand() {
     }
 
     const terminal = getAspireTerminal();
-    
-    terminal.sendText(`aspire deploy`);
+
+    terminal.sendText('aspire deploy');
     terminal.show();
 }
