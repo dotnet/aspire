@@ -60,6 +60,11 @@ internal sealed class NewCommand : BaseCommand
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
 
+        var frameworkOption = new Option<string?>("--framework", "-f");
+        frameworkOption.Description = NewCommandStrings.FrameworkArgumentDescription;
+        frameworkOption.Recursive = true;
+        Options.Add(frameworkOption);
+
         _templates = templateProvider.GetTemplates();
 
         foreach (var template in _templates)

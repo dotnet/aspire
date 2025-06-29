@@ -15,7 +15,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool IsAspireHost, string? AspireHostingVersion)>? GetAppHostInformationAsyncCallback { get; set; }
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
     public Func<string, string, string?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
-    public Func<string, string, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
+    public Func<string, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
     public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, string?, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
@@ -64,10 +64,10 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : Task.FromResult<(int, string?)>((0, version)); // If not overridden, just return success for the version specified.
     }
 
-    public Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public Task<int> NewProjectAsync(string templateName, string name, string outputPath, string? framework, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return NewProjectAsyncCallback != null
-            ? Task.FromResult(NewProjectAsyncCallback(templateName, name, outputPath, options, cancellationToken))
+            ? Task.FromResult(NewProjectAsyncCallback(templateName, name, outputPath, framework, options, cancellationToken))
             : Task.FromResult(0); // If not overridden, just return success.
     }
 
