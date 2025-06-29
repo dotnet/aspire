@@ -10,7 +10,8 @@
 		"ghcr.io/devcontainers/features/docker-in-docker": {},
 		"ghcr.io/devcontainers/features/dotnet": {
 			"additionalVersions": [
-				"8.0.403"
+				"8.0.403",
+				"9.0"
 			]
 		},
 		"ghcr.io/devcontainers/features/node:1": {},
