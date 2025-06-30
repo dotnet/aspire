@@ -47,6 +47,7 @@
 ::deep .trace-view-grid .column-header {
     padding: 0 !important;
     min-height: 32px !important;
+    height: 32px !important;
     border-bottom: 0;
 }
 
