@@ -132,32 +132,32 @@ public static class AzureStorageExtensions
                });
 
         BlobServiceClient? blobServiceClient = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
-        {
-            // The BlobServiceClient is created before the health check is run.
-            // We can't use ConnectionStringAvailableEvent here because the resource doesn't have a connection string, so
-            // we use BeforeResourceStartedEvent
-
-            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            blobServiceClient = CreateBlobServiceClient(connectionString);
-        });
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
-        {
-            // The ResourceReadyEvent of a resource is triggered after its health check is healthy.
-            // This means we can safely use this event to create the blob containers.
-
-            if (blobServiceClient is null)
+        builder
+            .OnBeforeResourceStarted(async (storage, @event, ct) =>
             {
-                throw new InvalidOperationException("BlobServiceClient is not initialized.");
-            }
+                // The BlobServiceClient is created before the health check is run.
+                // We can't use ConnectionStringAvailableEvent here because the resource doesn't have a connection string, so
+                // we use BeforeResourceStartedEvent
 
-            foreach (var container in builder.Resource.BlobContainers)
+                var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+                blobServiceClient = CreateBlobServiceClient(connectionString);
+            })
+            .OnResourceReady(async (storage, @event, ct) =>
             {
-                var blobContainerClient = blobServiceClient.GetBlobContainerClient(container.BlobContainerName);
-                await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
-            }
-        });
+                // The ResourceReadyEvent of a resource is triggered after its health check is healthy.
+                // This means we can safely use this event to create the blob containers.
+
+                if (blobServiceClient is null)
+                {
+                    throw new InvalidOperationException("BlobServiceClient is not initialized.");
+                }
+
+                foreach (var container in builder.Resource.BlobContainers)
+                {
+                    var blobContainerClient = blobServiceClient.GetBlobContainerClient(container.BlobContainerName);
+                    await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+                }
+            });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
 
@@ -295,10 +295,6 @@ public static class AzureStorageExtensions
         var resource = new AzureBlobStorageResource(name, builder.Resource);
 
         string? connectionString = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
-        {
-            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-        });
 
         var healthCheckKey = $"{resource.Name}_check";
 
@@ -308,7 +304,13 @@ public static class AzureStorageExtensions
             return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
         }, name: healthCheckKey);
 
-        return builder.ApplicationBuilder.AddResource(resource).WithHealthCheck(healthCheckKey);
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (blobs, @event, ct) =>
+            {
+                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
     }
 
     /// <summary>
@@ -329,9 +331,9 @@ public static class AzureStorageExtensions
         builder.Resource.Parent.BlobContainers.Add(resource);
 
         string? connectionString = null;
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        builder.OnConnectionStringAvailable(async (blobStorage, @event, ct) =>
         {
-            connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            connectionString = await blobStorage.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
         });
 
         var healthCheckKey = $"{resource.Name}_check";

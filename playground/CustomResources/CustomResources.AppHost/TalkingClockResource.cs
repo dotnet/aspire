@@ -29,7 +29,28 @@ public static class TalkingClockExtensions
         var tockHandResource = new ClockHandResource(name + "-tock-hand");
         var clockResource = new TalkingClockResource(name, tickHandResource, tockHandResource);
 
-        builder.Eventing.Subscribe<InitializeResourceEvent>(clockResource, static async (@event, token) =>
+        // Add the resource instance to the Aspire application builder and configure it using fluent APIs.
+        var clockBuilder = builder.AddResource(clockResource)
+            // Use Aspire's ExcludeFromManifest to prevent this resource from being included in deployment manifests.
+            .ExcludeFromManifest()
+            // Set a URL for the resource, which will be displayed in the Aspire dashboard.
+            .WithUrl("https://www.speaking-clock.com/", "Speaking Clock")
+            // Use Aspire's WithInitialState to set an initial state snapshot for the resource.
+            // This provides initial metadata visible in the Aspire dashboard.
+            .WithInitialState(new CustomResourceSnapshot // Aspire type for custom resource state.
+            {
+                ResourceType = "TalkingClock", // A string identifying the type of resource for Aspire, this shows in the dashboard.
+                CreationTimeStamp = DateTime.UtcNow,
+                State = KnownResourceStates.NotStarted, // Use an Aspire well-known state.
+                // Add custom properties displayed in the Aspire dashboard's resource details.
+                Properties =
+                [
+                    // Use Aspire's known property key for source information.
+                    new(CustomResourceKnownProperties.Source, "Talking Clock")
+                ]
+            });
+
+        clockBuilder.OnInitializeResource(static async (resource, @event, token) =>
         {
             // This event is published when the resource is initialized.
             // You add custom logic here to establish the lifecycle for your custom resource.
@@ -37,7 +58,6 @@ public static class TalkingClockExtensions
             var log = @event.Logger; // Get the logger for this resource instance.
             var eventing = @event.Eventing; // Get the eventing service for publishing events.
             var notification = @event.Notifications; // Get the notification service for state updates.
-            var resource = (TalkingClockResource)@event.Resource; // Get the resource instance.
             var services = @event.Services; // Get the service provider for dependency injection.
 
             // Publish an Aspire event indicating that this resource is about to start.
@@ -96,27 +116,6 @@ public static class TalkingClockExtensions
                 await Task.Delay(1000, token);
             }
         });
-
-        // Add the resource instance to the Aspire application builder and configure it using fluent APIs.
-        var clockBuilder = builder.AddResource(clockResource)
-            // Use Aspire's ExcludeFromManifest to prevent this resource from being included in deployment manifests.
-            .ExcludeFromManifest()
-            // Set a URL for the resource, which will be displayed in the Aspire dashboard.
-            .WithUrl("https://www.speaking-clock.com/", "Speaking Clock")
-            // Use Aspire's WithInitialState to set an initial state snapshot for the resource.
-            // This provides initial metadata visible in the Aspire dashboard.
-            .WithInitialState(new CustomResourceSnapshot // Aspire type for custom resource state.
-            {
-                ResourceType = "TalkingClock", // A string identifying the type of resource for Aspire, this shows in the dashboard.
-                CreationTimeStamp = DateTime.UtcNow,
-                State = KnownResourceStates.NotStarted, // Use an Aspire well-known state.
-                // Add custom properties displayed in the Aspire dashboard's resource details.
-                Properties =
-                [
-                    // Use Aspire's known property key for source information.
-                    new(CustomResourceKnownProperties.Source, "Talking Clock")
-                ]
-            });
 
         AddHandResource(tickHandResource);
         AddHandResource(tockHandResource);
