@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Yarp;
 /// A resource that represents a YARP resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class YarpResource(string name) : ContainerResource(name)
+public class YarpResource(string name) : ContainerResource(name), IResourceWithServiceDiscovery
 {
     /// <summary>
     /// Configuration builder used to build the config file for the YARP resource

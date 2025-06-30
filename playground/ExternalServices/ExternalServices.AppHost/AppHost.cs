@@ -22,7 +22,7 @@ var externalGateway = builder.AddYarp("gateway")
 builder.AddProject<Projects.WebFrontEnd>("frontend")
        .WithReference(nuget)
        .WithEnvironment("EXTERNAL_SERVICE_URL", externalService)
-       .WithReference(externalGateway.GetEndpoint("http"));
+       .WithReference(externalGateway);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
