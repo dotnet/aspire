@@ -46,11 +46,38 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         services.AddServiceDiscoveryCore();
+
+        if (!GetDnsClientFallbackFlag())
+        {
+            services.TryAddSingleton<IDnsResolver, DnsResolver>();
+        }
+        else
+        {
+            services.TryAddSingleton<IDnsResolver, FallbackDnsResolver>();
+            services.TryAddSingleton<DnsClient.LookupClient>();
+        }
+
         services.TryAddSingleton<IDnsResolver, DnsResolver>();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
         return services;
+
+        static bool GetDnsClientFallbackFlag()
+        {
+            if (AppContext.TryGetSwitch("Microsoft.Extensions.ServiceDiscovery.Dns.UseDnsClientFallback", out var value))
+            {
+                return value;
+            }
+
+            var envVar = Environment.GetEnvironmentVariable("MICROSOFT_EXTENSIONS_SERVICE_DISCOVERY_DNS_USE_DNSCLIENT_FALLBACK");
+            if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
