@@ -58,7 +58,7 @@ internal sealed class AzureResourcePreparer(
         var azureResources = new List<(IResource, IAzureResource)>();
         foreach (var resource in appModel.Resources)
         {
-            if (resource.IsContainer())
+            if (resource.IsExcludedFromPublish() || resource.IsContainer())
             {
                 continue;
             }
@@ -129,7 +129,7 @@ internal sealed class AzureResourcePreparer(
             var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
-                if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+                if (resource.IsExcludedFromPublish())
                 {
                     continue;
                 }

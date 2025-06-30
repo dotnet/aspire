@@ -31,7 +31,7 @@ internal sealed class AzureAppServiceInfrastructure(
 
         foreach (var resource in appModel.Resources)
         {
-            if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (resource.IsExcludedFromPublish())
             {
                 continue;
             }

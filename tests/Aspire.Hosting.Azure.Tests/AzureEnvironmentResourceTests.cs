@@ -192,9 +192,6 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
             publisher: "default",
             outputPath: tempDir.Path);
 
-        // Add Azure container app environment to enable Azure publishing context
-        builder.AddAzureContainerAppEnvironment("acaEnv");
-
         // Add an Azure storage resource that will be included
         var includedStorage = builder.AddAzureStorage("included-storage");
 

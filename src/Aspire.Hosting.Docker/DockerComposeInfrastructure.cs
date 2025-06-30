@@ -53,7 +53,7 @@ internal sealed class DockerComposeInfrastructure(
 
         foreach (var r in appModel.Resources)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (r.IsExcludedFromPublish())
             {
                 continue;
             }
