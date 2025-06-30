@@ -600,9 +600,9 @@ public class ProjectResourceTests
     }
 
     [Theory]
-    [InlineData(true, "localhost")]
-    [InlineData(false, "*")]
-    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied)
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
@@ -635,11 +635,11 @@ public class ProjectResourceTests
         if (isProxied)
         {
             // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
-            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+            Assert.Equal("http://*:p0;https://*:p1", config["ASPNETCORE_URLS"]);
         }
         else
         {
-            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+            Assert.Equal($"http://*:{http.TargetPort};https://*:{https.TargetPort}", config["ASPNETCORE_URLS"]);
         }
 
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
