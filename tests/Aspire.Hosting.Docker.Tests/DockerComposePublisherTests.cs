@@ -479,6 +479,63 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.False(File.Exists(composePath));
     }
 
+    [Fact]
+    public async Task DockerComposeHandlesBindMounts()
+    {
+        using var tempDir = new TempDirectory();
+        
+        // Create a temporary file to use as a bind mount source
+        using var sourceDir = new TempDirectory();
+        var sourceFile = Path.Combine(sourceDir.Path, "test.txt");
+        await File.WriteAllTextAsync(sourceFile, "Hello, World!");
+        
+        var sourceDirectory = Path.Combine(sourceDir.Path, "testdir");
+        Directory.CreateDirectory(sourceDirectory);
+        var nestedFile = Path.Combine(sourceDirectory, "nested.txt");
+        await File.WriteAllTextAsync(nestedFile, "Nested content");
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        builder.AddContainer("api", "my-api")
+               .WithBindMount(sourceFile, "/app/test.txt")
+               .WithBindMount(sourceDirectory, "/app/testdir")
+               .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock"); // Docker socket - should pass through
+
+        var app = builder.Build();
+
+        // Act
+        app.Run();
+
+        // Assert
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        // Verify that the bind mount sources were copied to the output directory (but not docker socket)
+        var copiedFile = Path.Combine(tempDir.Path, "api", "bindmounts", "test.txt");
+        var copiedDirectory = Path.Combine(tempDir.Path, "api", "bindmounts", "testdir");
+        var copiedNestedFile = Path.Combine(copiedDirectory, "nested.txt");
+
+        Assert.True(File.Exists(copiedFile));
+        Assert.True(Directory.Exists(copiedDirectory));
+        Assert.True(File.Exists(copiedNestedFile));
+
+        // Docker socket should NOT be copied
+        var dockerSocketCopy = Path.Combine(tempDir.Path, "api", "bindmounts", "docker.sock");
+        Assert.False(File.Exists(dockerSocketCopy));
+
+        // Verify file contents
+        Assert.Equal("Hello, World!", await File.ReadAllTextAsync(copiedFile));
+        Assert.Equal("Nested content", await File.ReadAllTextAsync(copiedNestedFile));
+
+        // Verify the compose file uses relative paths for regular bind mounts and original path for docker socket
+        var composeContent = await File.ReadAllTextAsync(composePath);
+        await Verify(composeContent, "yaml");
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }

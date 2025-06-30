@@ -225,23 +225,130 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private static void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)
+    private void HandleComposeFileVolumes(DockerComposeServiceResource serviceResource, ComposeFile composeFile)
     {
-        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type != "bind"))
+        foreach (var volume in serviceResource.Volumes)
         {
-            if (composeFile.Volumes.ContainsKey(volume.Name))
+            if (volume.Type == "bind")
             {
-                continue;
+                // Handle bind mounts by copying them to the output folder and updating the path
+                HandleBindMount(serviceResource, volume);
+            }
+            else
+            {
+                // Handle regular volumes
+                if (composeFile.Volumes.ContainsKey(volume.Name))
+                {
+                    continue;
+                }
+
+                var newVolume = new Volume
+                {
+                    Name = volume.Name,
+                    Driver = volume.Driver ?? "local",
+                    External = volume.External,
+                };
+
+                composeFile.AddVolume(newVolume);
+            }
+        }
+    }
+
+    private void HandleBindMount(DockerComposeServiceResource serviceResource, Resources.ServiceNodes.Volume volume)
+    {
+        if (volume.Source is null || volume.Target is null)
+        {
+            return;
+        }
+
+        // Special handling for Docker socket - allow it to pass through without copying
+        if (IsDockerSocket(volume.Source))
+        {
+            logger.LogDebug("Docker socket bind mount '{Source}' will be passed through without copying", volume.Source);
+            return;
+        }
+
+        // Check for named pipes and warn
+        if (IsNamedPipe(volume.Source))
+        {
+            logger.LogWarning("Named pipe '{Source}' detected in bind mount. Named pipes may not work correctly in all Docker Compose environments", volume.Source);
+            return;
+        }
+
+        try
+        {
+            // Determine the destination path to copy the bind mount to
+            var serviceName = serviceResource.TargetResource.Name.ToLowerInvariant();
+            var bindMountDirectory = Path.Combine(OutputPath, serviceName, "bindmounts");
+            var destinationPath = Path.Combine(bindMountDirectory, Path.GetFileName(volume.Source));
+
+            // Create the directory structure
+            Directory.CreateDirectory(bindMountDirectory);
+
+            // Copy the source to the destination
+            if (File.Exists(volume.Source))
+            {
+                File.Copy(volume.Source, destinationPath, overwrite: true);
+            }
+            else if (Directory.Exists(volume.Source))
+            {
+                CopyDirectory(volume.Source, destinationPath);
+            }
+            else
+            {
+                logger.LogWarning("Bind mount source '{Source}' does not exist and will not be copied", volume.Source);
+                return;
             }
 
-            var newVolume = new Volume
-            {
-                Name = volume.Name,
-                Driver = volume.Driver ?? "local",
-                External = volume.External,
-            };
-
-            composeFile.AddVolume(newVolume);
+            // Update the source to use a relative path for portability
+            volume.Source = Path.GetRelativePath(OutputPath, destinationPath).Replace('\\', '/');
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to copy bind mount from '{Source}' to output folder", volume.Source);
+            throw;
+        }
+    }
+
+    private static void CopyDirectory(string sourceDir, string destinationDir)
+    {
+        var dir = new DirectoryInfo(sourceDir);
+
+        if (!dir.Exists)
+        {
+            throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+        }
+
+        // Create the destination directory
+        Directory.CreateDirectory(destinationDir);
+
+        // Copy files
+        foreach (var file in dir.GetFiles())
+        {
+            var targetFilePath = Path.Combine(destinationDir, file.Name);
+            file.CopyTo(targetFilePath, overwrite: true);
+        }
+
+        // Copy subdirectories recursively
+        foreach (var subDir in dir.GetDirectories())
+        {
+            var newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+            CopyDirectory(subDir.FullName, newDestinationDir);
+        }
+    }
+
+    private static bool IsDockerSocket(string path)
+    {
+        // Docker socket paths vary by platform
+        return path.Equals("/var/run/docker.sock", StringComparison.OrdinalIgnoreCase) ||
+               path.Equals(@"\\.\pipe\docker_engine", StringComparison.OrdinalIgnoreCase) ||
+               path.Equals("npipe:////./pipe/docker_engine", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsNamedPipe(string path)
+    {
+        // Named pipe patterns for Windows
+        return path.StartsWith(@"\\.\pipe\", StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWith("npipe:", StringComparison.OrdinalIgnoreCase);
     }
 }

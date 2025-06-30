@@ -1,0 +1,29 @@
+﻿services:
+  docker-compose-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+  api:
+    image: "my-api:latest"
+    volumes:
+      - type: "bind"
+        target: "/app/test.txt"
+        source: "api/bindmounts/test.txt"
+        read_only: false
+      - type: "bind"
+        target: "/app/testdir"
+        source: "api/bindmounts/testdir"
+        read_only: false
+      - type: "bind"
+        target: "/var/run/docker.sock"
+        source: "/var/run/docker.sock"
+        read_only: false
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
