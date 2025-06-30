@@ -41,10 +41,88 @@ public enum CompletionState
 }
 
 /// <summary>
+/// Internal interface for methods that step and task classes need to call on the reporter.
+/// </summary>
+internal interface IInternalPublishingActivityProgressReporter
+{
+    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
+    Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default);
+    Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken);
+    Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Interface for reporting publishing activity progress.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public interface IPublishingActivityProgressReporter
+{
+    /// <summary>
+    /// Creates a new publishing step with the specified title.
+    /// </summary>
+    /// <param name="title">The title of the publishing step.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The publishing step</returns>
+    Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Signals that the entire publishing process has completed.
+    /// </summary>
+    /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingStep : IAsyncDisposable
+public interface IPublishingStep : IAsyncDisposable
+{
+    /// <summary>
+    /// Creates a new task within this step.
+    /// </summary>
+    /// <param name="statusText">The initial status text for the task.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The created task.</returns>
+    Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Completes the step with the specified completion text and state.
+    /// </summary>
+    /// <param name="completionText">The completion text for the step.</param>
+    /// <param name="completionState">The completion state for the step.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Represents a publishing task, which belongs to a step.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public interface IPublishingTask : IAsyncDisposable
+{
+    /// <summary>
+    /// Updates the status text of this task.
+    /// </summary>
+    /// <param name="statusText">The new status text.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task UpdateAsync(string statusText, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Completes the task with the specified completion state and optional completion message.
+    /// </summary>
+    /// <param name="completionState">The completion state.</param>
+    /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task CompleteAsync(CompletionState completionState = CompletionState.Completed, string? completionMessage = null, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Represents a publishing step, which can contain multiple tasks.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class PublishingStep : IPublishingStep
 {
     private readonly ConcurrentDictionary<string, PublishingTask> _tasks = new();
 
@@ -89,7 +167,7 @@ public sealed class PublishingStep : IAsyncDisposable
     /// <summary>
     /// The progress reporter that created this step.
     /// </summary>
-    internal IPublishingActivityProgressReporter? Reporter { get; set; }
+    internal IInternalPublishingActivityProgressReporter? Reporter { get; set; }
 
     /// <summary>
     /// Adds a task to this step.
@@ -126,7 +204,7 @@ public sealed class PublishingStep : IAsyncDisposable
     /// <param name="statusText">The initial status text for the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
-    public async Task<PublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+    public async Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
     {
         if (Reporter is null)
         {
@@ -134,6 +212,22 @@ public sealed class PublishingStep : IAsyncDisposable
         }
 
         return await Reporter.CreateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Completes the step with the specified completion text and state.
+    /// </summary>
+    /// <param name="completionText">The completion text for the step.</param>
+    /// <param name="completionState">The completion state for the step.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    public async Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+    {
+        if (Reporter is null)
+        {
+            throw new InvalidOperationException("Cannot complete step: Reporter is not set.");
+        }
+
+        await Reporter.CompleteStepAsync(this, completionText, completionState, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -174,7 +268,7 @@ public sealed class PublishingStep : IAsyncDisposable
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingTask : IAsyncDisposable
+public sealed class PublishingTask : IPublishingTask
 {
     internal PublishingTask(string id, string stepId, string statusText, PublishingStep parentStep)
     {
@@ -216,7 +310,7 @@ public sealed class PublishingTask : IAsyncDisposable
     /// <summary>
     /// The progress reporter that created this task.
     /// </summary>
-    internal IPublishingActivityProgressReporter? Reporter { get; set; }
+    internal IInternalPublishingActivityProgressReporter? Reporter { get; set; }
 
     /// <summary>
     /// Updates the status text of this task.
@@ -234,18 +328,19 @@ public sealed class PublishingTask : IAsyncDisposable
     }
 
     /// <summary>
-    /// Marks the task as completed successfully.
+    /// Completes the task with the specified completion state and optional completion message.
     /// </summary>
-    /// <param name="completionMessage">Optional completion message.</param>
+    /// <param name="completionState">The completion state.</param>
+    /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
+    public async Task CompleteAsync(CompletionState completionState = CompletionState.Completed, string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         if (Reporter is null)
         {
             throw new InvalidOperationException("Cannot complete task: Reporter is not set.");
         }
 
-        await Reporter.CompleteTaskAsync(this, CompletionState.Completed, completionMessage, cancellationToken).ConfigureAwait(false);
+        await Reporter.CompleteTaskAsync(this, completionState, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -293,68 +388,7 @@ public sealed class PublishingTask : IAsyncDisposable
     }
 }
 
-/// <summary>
-/// Interface for reporting publishing activity progress.
-/// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IPublishingActivityProgressReporter
-{
-    /// <summary>
-    /// Creates a new publishing step with the specified ID and title.
-    /// </summary>
-    /// <param name="title">The title of the publishing step.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The publishing step</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a step with the same ID already exists.</exception>
-    Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Creates a new publishing task tied to a step.
-    /// </summary>
-    /// <param name="step">The step this task belongs to.</param>
-    /// <param name="statusText">The initial status text.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The publishing task</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the step does not exist or is already complete.</exception>
-    Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Completes a publishing step with the specified completion text and state.
-    /// </summary>
-    /// <param name="step">The step to complete.</param>
-    /// <param name="completionText">The completion text for the step.</param>
-    /// <param name="completionState">The completion state for the step.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Updates the status text of an existing publishing task.
-    /// </summary>
-    /// <param name="task">The task to update.</param>
-    /// <param name="statusText">The new status text.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
-    Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Completes a publishing task with the specified completion state and optional completion message.
-    /// </summary>
-    /// <param name="task">The task to complete.</param>
-    /// <param name="completionState">The completion state.</param>
-    /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <exception cref="InvalidOperationException">Thrown when the parent step is already complete.</exception>
-    Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Signals that the entire publishing process has completed.
-    /// </summary>
-    /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default);
-}
-
-internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter, IAsyncDisposable
+internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter, IInternalPublishingActivityProgressReporter, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
     private readonly InteractionService _interactionService;
@@ -376,7 +410,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         _ => CompletionStates.InProgress
     };
 
-    public async Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
+    public async Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title)
         {
@@ -400,7 +434,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return step;
     }
 
-    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
+    async Task<PublishingTask> IInternalPublishingActivityProgressReporter.CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -439,7 +473,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         return task;
     }
 
-    public async Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default)
+    async Task IInternalPublishingActivityProgressReporter.CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken)
     {
         lock (step)
         {
@@ -462,7 +496,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
+    async Task IInternalPublishingActivityProgressReporter.UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
@@ -494,7 +528,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    async Task IInternalPublishingActivityProgressReporter.CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {

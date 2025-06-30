@@ -33,8 +33,7 @@ internal class Publisher(
             cancellationToken)
             .ConfigureAwait(false);
 
-        var task = await progressReporter.CreateTaskAsync(
-            step,
+        var task = await step.CreateTaskAsync(
             "Analyzing the distributed application model for publishing and deployment capabilities.",
             cancellationToken)
             .ConfigureAwait(false);
@@ -74,16 +73,14 @@ internal class Publisher(
             };
         }
 
-        await progressReporter.CompleteTaskAsync(
-                    task,
+        await task.CompleteAsync(
                     taskInfo.State,
                     taskInfo.Message,
                     cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
         // This should be automagically handled by the progress reporter
-        await progressReporter.CompleteStepAsync(
-                    step,
+        await step.CompleteAsync(
                     "Model analysis completed.",
                     taskInfo.State,
                     cancellationToken)

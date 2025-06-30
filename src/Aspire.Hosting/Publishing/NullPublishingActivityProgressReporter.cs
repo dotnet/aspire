@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Publishing;
 /// Minimalistic reporter that does nothing.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class NullPublishingActivityProgressReporter : IPublishingActivityProgressReporter
+public sealed class NullPublishingActivityProgressReporter : IPublishingActivityProgressReporter, IInternalPublishingActivityProgressReporter
 {
     /// <summary>
     /// Gets the singleton instance of <see cref="NullPublishingActivityProgressReporter"/>.
@@ -21,17 +21,23 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
+    public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
         var step = new PublishingStep(Guid.NewGuid().ToString(), title)
         {
             Reporter = this
         };
-        return Task.FromResult(step);
+        return Task.FromResult<IPublishingStep>(step);
     }
 
     /// <inheritdoc/>
-    public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
+    public Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    // Internal methods for the step and task classes
+    Task<PublishingTask> IInternalPublishingActivityProgressReporter.CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
         var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step)
         {
@@ -41,32 +47,23 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
         return Task.FromResult(task);
     }
 
-    /// <inheritdoc/>
-    public Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default)
+    Task IInternalPublishingActivityProgressReporter.CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken)
     {
         step.CompletionState = completionState;
         step.CompletionText = completionText;
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc/>
-    public Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
+    Task IInternalPublishingActivityProgressReporter.UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
     {
         task.StatusText = statusText;
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc/>
-    public Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    Task IInternalPublishingActivityProgressReporter.CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
     {
         task.CompletionState = completionState;
         task.CompletionMessage = completionMessage ?? string.Empty;
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
-    {
         return Task.CompletedTask;
     }
 
