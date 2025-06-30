@@ -478,7 +478,7 @@ public static class OtlpHelpers
 
 public enum TelemetryType
 {
-    Trace,
-    Metric,
-    Log
+    Traces,
+    Metrics,
+    Logs
 }

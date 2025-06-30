@@ -336,7 +336,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var sl in scopeLogs)
             {
-                if (!OtlpHelpers.TryGetOrAddScope(_logScopes, sl.Scope, _otlpContext, TelemetryType.Log, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_logScopes, sl.Scope, _otlpContext, TelemetryType.Logs, out var scope))
                 {
                     context.FailureCount += sl.LogRecords.Count;
                     continue;
@@ -918,7 +918,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                if (!OtlpHelpers.TryGetOrAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, TelemetryType.Trace, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, TelemetryType.Traces, out var scope))
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
                     continue;
