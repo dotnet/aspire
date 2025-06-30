@@ -51,6 +51,11 @@ public class TestProgram : IDisposable
             EnableResourceLogging = true
         });
 
+        var dcpPathOverride = Environment.GetEnvironmentVariable("TEST_DCP_PATH");
+        if (!string.IsNullOrEmpty(dcpPathOverride))
+        {
+            builder.Configuration["DcpPublisher:CliPath"] = dcpPathOverride;
+        }
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
         builder.Configuration["DcpPublisher:WaitForResourceCleanup"] = "true";

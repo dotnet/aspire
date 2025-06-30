@@ -63,6 +63,12 @@ public static class TestDistributedApplicationBuilder
             builder.WithTestAndResourceLogging(testOutputHelper);
         }
 
+        var dcpPathOverride = Environment.GetEnvironmentVariable("TEST_DCP_PATH");
+        if (!string.IsNullOrEmpty(dcpPathOverride))
+        {
+            builder.Configuration["DcpPublisher:CliPath"] = dcpPathOverride;
+        }
+
         builder.WithTempAspireStore();
 
         return builder;
