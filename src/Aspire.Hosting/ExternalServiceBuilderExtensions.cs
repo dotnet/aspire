@@ -136,12 +136,12 @@ public static class ExternalServiceBuilderExtensions
 
                 static ImmutableArray<UrlSnapshot> AddUrlIfNotPresent(ImmutableArray<UrlSnapshot> urlSnapshots, Uri uri)
                 {
-                    if (urlSnapshots.FirstOrDefault(u => u.Url == uri.ToString()) is not null)
+                    if (urlSnapshots.Any(u => string.Equals(u.Url, uri.ToString(), StringComparisons.Url)))
                     {
                         return urlSnapshots; // URL already exists, no need to add it again
                     }
 
-                    return urlSnapshots.Add(new(null, uri.ToString(), false));
+                    return urlSnapshots.Add(new(Name: null, uri.ToString(), IsInternal: false));
                 }
             }
         });
@@ -159,8 +159,8 @@ public static class ExternalServiceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This method adds a health check to the health check service which polls the specified external service
-    /// on a periodic basis. The address is based on the URL of the external service, including the path if present.
-    /// A different path can be used by specifying it. The expected status code is set to 200 by default, but a
+    /// on a periodic basis. The address is based on the URL of the external service.
+    /// A path for the health check request can be specified. The expected status code is set to <c>200</c> by default but a
     /// different one can be specified.
     /// </para>
     /// </remarks>

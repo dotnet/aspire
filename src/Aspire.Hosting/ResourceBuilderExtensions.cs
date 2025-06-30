@@ -177,7 +177,6 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(name, externalService.Resource.UrlParameter);
             builder.WithEnvironment(context =>
             {
                 if (context.ExecutionContext.IsPublishMode)
@@ -529,7 +528,7 @@ public static class ResourceBuilderExtensions
         if (externalService.Resource.Uri is { } uri)
         {
             var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-            builder.WithEnvironment(envVarName, externalService.Resource.Uri.ToString());
+            builder.WithEnvironment(envVarName, uri.ToString());
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
