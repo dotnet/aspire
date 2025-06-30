@@ -53,7 +53,7 @@ public class OtlpApplication
 
             foreach (var sm in scopeMetrics)
             {
-                if (!OtlpHelpers.TryGetOrAddScope(_meters, sm.Scope, Context, TelemetryType.Metric, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_meters, sm.Scope, Context, TelemetryType.Metrics, out var scope))
                 {
                     context.FailureCount += sm.Metrics.Count;
                     continue;
