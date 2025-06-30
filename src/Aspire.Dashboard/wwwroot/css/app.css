@@ -817,8 +817,3 @@ fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
-
-#interactions-input-dialog .interaction-input-dialog {
-    max-height: 50vh;
-    overflow-y: auto;
-}
