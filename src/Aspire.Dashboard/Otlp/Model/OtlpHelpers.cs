@@ -469,7 +469,7 @@ public static class OtlpHelpers
         }
         catch (Exception ex)
         {
-            context.Logger.LogInformation(ex, "Error adding scope.");
+            context.Logger.LogInformation(ex, "Error adding scope to {TelemetryType}.", telemetryType);
             s = null;
             return false;
         }
