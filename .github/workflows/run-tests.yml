@@ -261,20 +261,6 @@ jobs:
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
-      - name: List obj folder contents
-        if: ${{ always() && inputs.testShortName == 'Cli' }}
-        run: |
-          echo "Listing artifacts/obj contents:"
-          ls -la ${{ github.workspace }}/artifacts/obj/ || echo "artifacts/obj directory not found"
-          echo "Listing DatabaseMigration.ApiModel obj contents:"
-          ls -la ${{ github.workspace }}/artifacts/obj/DatabaseMigration.ApiModel/ || echo "DatabaseMigration.ApiModel obj directory not found"
-          echo "Listing DatabaseMigration.ApiModel Debug contents:"
-          ls -la ${{ github.workspace }}/artifacts/obj/DatabaseMigration.ApiModel/Debug/ || echo "Debug directory not found"
-          echo "Listing DatabaseMigration.ApiModel Debug/net8.0 contents:"
-          ls -la ${{ github.workspace }}/artifacts/obj/DatabaseMigration.ApiModel/Debug/net8.0/ || echo "net8.0 directory not found"
-          echo "Finding all files recursively in DatabaseMigration.ApiModel obj:"
-          find ${{ github.workspace }}/artifacts/obj/DatabaseMigration.ApiModel/ -type f || echo "No files found"
-
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |

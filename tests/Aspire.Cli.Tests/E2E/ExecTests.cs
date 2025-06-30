@@ -61,19 +61,19 @@ public class ExecTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10138")]
     public async Task Exec_InitializeMigrations_ShouldCreateMigrationsInWebApp()
     {
         var migrationName = "AddVersion";
 
         var apiModelProjectDir = @$"{MSBuildUtils.GetRepoRoot()}\playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj";
-        var apiModelProjectObj = @$"{MSBuildUtils.GetRepoRoot()}\artifacts\obj\DatabaseMigration.ApiModel";
         DeleteMigrations(apiModelProjectDir, migrationName);
 
         string[] args = [
             "--operation", "exec",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
-            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir} --msbuildprojectextensionspath {apiModelProjectObj}\"",
+            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\"",
             "--postgres"
         ];
 
