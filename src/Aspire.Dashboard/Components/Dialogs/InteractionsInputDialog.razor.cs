@@ -21,6 +21,7 @@ public partial class InteractionsInputDialog
     private EditContext _editContext = default!;
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
+    private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
 
     protected override void OnInitialized()
     {
@@ -29,6 +30,8 @@ public partial class InteractionsInputDialog
 
         _editContext.OnValidationRequested += (s, e) => ValidateModel();
         _editContext.OnFieldChanged += (s, e) => ValidateField(e.FieldIdentifier);
+
+        _elementRefs = new();
     }
 
     protected override void OnParametersSet()
@@ -37,6 +40,15 @@ public partial class InteractionsInputDialog
         {
             _content = Content;
             _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
+
+            // Initialize keys for @ref binding.
+            // Do this in case Blazor tries to get the element from the dictionary.
+            // If the input view model isn't in the dictionary then it will throw a KeyNotFoundException.
+            _elementRefs.Clear();
+            foreach (var inputVM in _inputDialogInputViewModels)
+            {
+                _elementRefs[inputVM] = null;
+            }
 
             AddValidationErrorsFromModel();
 
@@ -47,6 +59,31 @@ public partial class InteractionsInputDialog
                 await InvokeAsync(StateHasChanged);
             };
         }
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Focus the first input when the dialog loads.
+            if (_inputDialogInputViewModels.Count > 0 && _elementRefs.TryGetValue(_inputDialogInputViewModels[0], out var firstInputElement))
+            {
+                if (firstInputElement is FluentInputBase<string> textInput)
+                {
+                    textInput.FocusAsync();
+                }
+                else if (firstInputElement is FluentInputBase<bool> boolInput)
+                {
+                    boolInput.FocusAsync();
+                }
+                else if (firstInputElement is FluentInputBase<int?> numberInput)
+                {
+                    numberInput.FocusAsync();
+                }
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     private void AddValidationErrorsFromModel()
@@ -101,7 +138,7 @@ public partial class InteractionsInputDialog
     {
         var fieldName = inputModel.Input.InputType switch
         {
-            InputType.Checkbox => nameof(inputModel.IsChecked),
+            InputType.Boolean => nameof(inputModel.IsChecked),
             InputType.Number => nameof(inputModel.NumberValue),
             _ => nameof(inputModel.Value)
         };
@@ -111,11 +148,11 @@ public partial class InteractionsInputDialog
     private static bool IsMissingRequiredValue(InputViewModel inputModel)
     {
         return inputModel.Input.Required &&
-            inputModel.Input.InputType != InputType.Checkbox &&
+            inputModel.Input.InputType != InputType.Boolean &&
             string.IsNullOrWhiteSpace(inputModel.Value);
     }
 
-    private async Task OkAsync()
+    private async Task SubmitAsync()
     {
         // The workflow is:
         // 1. Validate the model that required fields are present.

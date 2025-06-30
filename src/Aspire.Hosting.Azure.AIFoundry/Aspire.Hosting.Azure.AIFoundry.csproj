@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire integration hosting azure openai ai aifoundry foundry</PackageTags>
+    <Description>Azure AI Foundry resource types for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureAIFoundry_256x.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!--
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.CognitiveServices" />
+    <PackageReference Include="Microsoft.AI.Foundry.Local" />
+  </ItemGroup>
+
+</Project>

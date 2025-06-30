@@ -1527,7 +1527,7 @@ public class AzureContainerAppsTests
         }
 
         await RunTest(builder =>
-            builder.AddProject<Projects.ServiceA>("ServiceA")
+            builder.AddProject<Projects.ServiceA>("ServiceA", launchProfileName: null)
                 .PublishAsAzureContainerApp((_, _) => { }));
 
         await RunTest(builder =>

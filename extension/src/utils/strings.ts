@@ -1,4 +1,4 @@
-const emojiMap: { [key: string]: string } = {
+const emojiMap: { [key: string]: string; } = {
   ':ice:': '🧊',
   ':rocket:': '🚀',
   ':bug:': '🐛',
@@ -13,6 +13,9 @@ const emojiMap: { [key: string]: string } = {
   ':hammer_and_wrench:': '🛠️'
 };
 
+/**
+ * Formats a string by replacing emoji codes (such as :ice:) with their corresponding Unicode characters.
+ */
 export function formatText(str: string): string {
   return str.replace(/:[a-z]+(?:_[a-z]+)*:/g, match => emojiMap[match] || match);
 }

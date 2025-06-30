@@ -8,7 +8,7 @@ export async function publishCommand() {
     }
 
     const terminal = getAspireTerminal();
-    
-    terminal.sendText(`aspire publish`);
+
+    terminal.sendText('aspire publish');
     terminal.show();
 }

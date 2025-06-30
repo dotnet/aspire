@@ -257,7 +257,7 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
         var selectedPackage = packages.First();
         var version = await interactionService.PromptForSelectionAsync(
             string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-            packages,
+            packages.DistinctBy(p => p.Package.Version),
             p => p.Package.Version,
             cancellationToken);
         return version;

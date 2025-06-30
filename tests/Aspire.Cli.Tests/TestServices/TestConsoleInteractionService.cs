@@ -21,7 +21,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         action();
     }
 
-    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(defaultValue ?? string.Empty);
     }
@@ -79,6 +79,10 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
+    public void DisplayPlainText(string text)
+    {
+    }
+    
     public void OpenNewProject(string projectPath)
     {
     }

@@ -4,7 +4,6 @@
 using System.Net;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
 using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;

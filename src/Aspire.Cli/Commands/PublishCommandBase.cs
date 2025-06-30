@@ -25,6 +25,15 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
 
+    private static bool IsCompletionStateComplete(string completionState) =>
+        completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
+
+    private static bool IsCompletionStateError(string completionState) =>
+        completionState == CompletionStates.CompletedWithError;
+
+    private static bool IsCompletionStateWarning(string completionState) =>
+        completionState == CompletionStates.CompletedWithWarning;
+
     protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
         : base(name, description)
     {
@@ -156,7 +165,7 @@ internal abstract class PublishCommandBase : BaseCommand
             var noFailuresReported = debugMode switch
             {
                 true => await ProcessPublishingActivitiesAsync(publishingActivities, cancellationToken),
-                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, cancellationToken),
+                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
             };
 
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
@@ -225,14 +234,14 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             if (publishingActivity.Type == PublishingActivityTypes.PublishComplete)
             {
-                return !publishingActivity.Data.IsError;
+                return !IsCompletionStateError(publishingActivity.Data.CompletionState);
             }
         }
 
         return true;
     }
 
-    public static async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, CancellationToken cancellationToken)
+    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
@@ -267,7 +276,8 @@ internal abstract class PublishCommandBase : BaseCommand
                         Id = activity.Data.Id,
                         Title = activity.Data.StatusText,
                         Number = stepCounter++,
-                        StartTime = DateTime.UtcNow
+                        StartTime = DateTime.UtcNow,
+                        CompletionState = activity.Data.CompletionState
                     };
 
                     steps[activity.Data.Id] = stepInfo;
@@ -279,17 +289,20 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
                 // If the step is complete, update the step info, clear out any pending progress tasks, and
                 // display the completion status associated with the the step.
-                else if (activity.Data.IsComplete)
+                else if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    stepInfo.IsComplete = true;
-                    stepInfo.IsError = activity.Data.IsError;
+                    stepInfo.CompletionState = activity.Data.CompletionState;
                     stepInfo.CompletionText = activity.Data.StatusText;
 
                     await currentStepProgress.DisposeAsync();
 
-                    if (stepInfo.IsError)
+                    if (IsCompletionStateError(stepInfo.CompletionState))
                     {
                         AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
+                    }
+                    else if (IsCompletionStateWarning(stepInfo.CompletionState))
+                    {
+                        AnsiConsole.MarkupLine($"[yellow bold]⚠ WARNING:[/] {stepInfo.CompletionText.EscapeMarkup()}");
                     }
                     else
                     {
@@ -308,6 +321,10 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     throw new InvalidOperationException($"Step activity with ID '{activity.Data.Id}' is not complete. Expected it to be complete before processing tasks.");
                 }
+            }
+            else if (activity.Type == PublishingActivityTypes.Prompt)
+            {
+                await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
             }
             else
             {
@@ -329,7 +346,8 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         Id = activity.Data.Id,
                         StatusText = activity.Data.StatusText,
-                        StartTime = DateTime.UtcNow
+                        StartTime = DateTime.UtcNow,
+                        CompletionState = activity.Data.CompletionState
                     };
 
                     tasks[activity.Data.Id] = task;
@@ -345,14 +363,12 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
 
                 task.StatusText = activity.Data.StatusText;
-                task.IsComplete = activity.Data.IsComplete;
-                task.IsError = activity.Data.IsError;
-                task.IsWarning = activity.Data.IsWarning;
+                task.CompletionState = activity.Data.CompletionState;
 
-                if (task.IsError || task.IsWarning || task.IsComplete)
+                if (IsCompletionStateComplete(activity.Data.CompletionState))
                 {
-                    var prefix = task.IsError ? "[red]✗ FAILED:[/]" :
-                        task.IsWarning ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
+                    var prefix = IsCompletionStateError(task.CompletionState) ? "[red]✗ FAILED:[/]" :
+                        IsCompletionStateWarning(task.CompletionState) ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
                     task.ProgressTask.Description = $"  {prefix} {task.StatusText.EscapeMarkup()}";
                     task.CompletionMessage = activity.Data.CompletionMessage;
 
@@ -373,21 +389,139 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        var hasErrors = publishingActivity?.Data.IsError ?? false;
+        var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
+        var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
         if (publishingActivity is not null)
         {
-            if (hasErrors)
-            {
-                AnsiConsole.MarkupLine($"[red bold]❌ PUBLISHING FAILED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
-            else
-            {
-                AnsiConsole.MarkupLine($"[green bold]✅ PUBLISHING COMPLETED:[/] {publishingActivity.Data.StatusText.EscapeMarkup()}");
-            }
+            var prefix = hasErrors
+                ? "[red]✗ PUBLISHING FAILED:[/]"
+: hasWarnings
+                    ? "[yellow]⚠ PUBLISHING COMPLETED:[/]"
+                    : "[green]✓ PUBLISHING COMPLETED:[/]";
+
+            AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
 
         return !hasErrors;
+    }
+
+    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        if (activity.Data.IsComplete)
+        {
+            // Prompt is already completed, nothing to do
+            return;
+        }
+
+        // Check if we have input information
+        if (activity.Data.Inputs is null || activity.Data.Inputs.Count == 0)
+        {
+            throw new InvalidOperationException("Prompt provided without input data.");
+        }
+
+        // For multiple inputs, display the activity status text as a header
+        if (activity.Data.Inputs.Count > 1)
+        {
+            AnsiConsole.MarkupLine($"[bold]{activity.Data.StatusText.EscapeMarkup()}[/]");
+        }
+
+        // Handle multiple inputs
+        var results = new string?[activity.Data.Inputs.Count];
+        for (var i = 0; i < activity.Data.Inputs.Count; i++)
+        {
+            var input = activity.Data.Inputs[i];
+
+            // For multiple inputs, use the input label as the prompt
+            // For single input, use the activity status text as the prompt
+            var promptText = activity.Data.Inputs.Count > 1
+                ? $"{input.Label}: "
+                : $"[bold]{activity.Data.StatusText}[/]";
+
+            var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+            results[i] = result;
+        }
+
+        // Send all results as an array
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, results, cancellationToken);
+    }
+
+    private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
+    {
+        if (!Enum.TryParse<InputType>(input.InputType, ignoreCase: true, out var inputType))
+        {
+            // Fallback to text if unknown type
+            inputType = InputType.Text;
+        }
+
+        return inputType switch
+        {
+            InputType.Text => await _interactionService.PromptForStringAsync(
+                promptText,
+                defaultValue: input.Value,
+                required: input.Required,
+                cancellationToken: cancellationToken),
+
+            InputType.SecretText => await _interactionService.PromptForStringAsync(
+                promptText,
+                defaultValue: input.Value,
+                isSecret: true,
+                required: input.Required,
+                cancellationToken: cancellationToken),
+
+            InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
+
+            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
+
+            InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
+
+            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
+        };
+    }
+
+    private async Task<string?> HandleSelectInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
+    {
+        if (input.Options is null || input.Options.Count == 0)
+        {
+            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+        }
+
+        // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
+        // but we can reorder the options to put the default first or use a different approach
+        var selectedChoice = await _interactionService.PromptForSelectionAsync(
+            promptText,
+            input.Options,
+            choice => choice.Value,
+            cancellationToken);
+
+        AnsiConsole.MarkupLine($"{promptText.EscapeMarkup()} {selectedChoice.Value.EscapeMarkup()}");
+
+        return selectedChoice.Key;
+    }
+
+    private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
+    {
+        static ValidationResult Validator(string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !double.TryParse(value, out _))
+            {
+                return ValidationResult.Error("Please enter a valid number.");
+            }
+
+            return ValidationResult.Success();
+        }
+
+        return await _interactionService.PromptForStringAsync(
+            promptText,
+            defaultValue: input.Value,
+            validator: Validator,
+            required: input.Required,
+            cancellationToken: cancellationToken);
+    }
+
+    private static bool ParseBooleanValue(string? value)
+    {
+        return bool.TryParse(value, out var result) && result;
     }
 
     private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)
@@ -434,8 +568,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public DateTime StartTime { get; set; }
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string CompletionText { get; set; } = string.Empty;
         public Dictionary<string, TaskInfo> Tasks { get; } = [];
     }
@@ -445,9 +578,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Id { get; set; } = string.Empty;
         public string StatusText { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
-        public bool IsComplete { get; set; }
-        public bool IsError { get; set; }
-        public bool IsWarning { get; set; }
+        public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string? CompletionMessage { get; set; }
         public ProgressTask? ProgressTask { get; set; }
     }

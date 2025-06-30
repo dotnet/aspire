@@ -381,5 +381,5 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(Traces));
 }

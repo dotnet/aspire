@@ -23,23 +23,28 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     /// <inheritdoc/>
     public Task<PublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken)
     {
-        var step = new PublishingStep(Guid.NewGuid().ToString(), title);
-        step.Reporter = this;
+        var step = new PublishingStep(Guid.NewGuid().ToString(), title)
+        {
+            Reporter = this
+        };
         return Task.FromResult(step);
     }
 
     /// <inheritdoc/>
     public Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
     {
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText);
-        task.Reporter = this;
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, step)
+        {
+            Reporter = this
+        };
+        step.AddTask(task);
         return Task.FromResult(task);
     }
 
     /// <inheritdoc/>
-    public Task CompleteStepAsync(PublishingStep step, string completionText, bool isError = false, CancellationToken cancellationToken = default)
+    public Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default)
     {
-        step.IsComplete = true;
+        step.CompletionState = completionState;
         step.CompletionText = completionText;
         return Task.CompletedTask;
     }
@@ -52,7 +57,7 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompleteTaskAsync(PublishingTask task, TaskCompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
+    public Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         task.CompletionState = completionState;
         task.CompletionMessage = completionMessage ?? string.Empty;
@@ -60,7 +65,19 @@ public sealed class NullPublishingActivityProgressReporter : IPublishingActivity
     }
 
     /// <inheritdoc/>
-    public Task CompletePublishAsync(bool success, CancellationToken cancellationToken)
+    public Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CreatePromptAsync(string displayText, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CompletePromptAsync(string promptId, string? response, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }

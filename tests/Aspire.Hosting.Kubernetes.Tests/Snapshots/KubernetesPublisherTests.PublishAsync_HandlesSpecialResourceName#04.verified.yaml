@@ -8,4 +8,5 @@ metadata:
     component: "SpeciaL-ApP"
 stringData:
   param3: "{{ .Values.secrets.SpeciaL_ApP.param3 }}"
+  ConnectionStrings__api-cs: "Url={{ .Values.config.SpeciaL_ApP.param0 }}, Secret={{ .Values.secrets.SpeciaL_ApP.param1 }}"
 type: "Opaque"

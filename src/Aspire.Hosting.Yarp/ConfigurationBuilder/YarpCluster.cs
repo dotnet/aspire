@@ -13,17 +13,22 @@ namespace Aspire.Hosting.Yarp;
 /// </summary>
 public class YarpCluster
 {
-    private readonly EndpointReference? _endpoint;
-    private readonly ExternalServiceResource? _externalService;
+    /// <summary>
+    /// Construct a new YarpCluster targeting the endpoint in parameter.
+    /// </summary>
+    /// <param name="endpoint">The endpoint to target.</param>
+    public YarpCluster(EndpointReference endpoint)
+        : this(endpoint.Resource.Name, $"{endpoint.Scheme}://_{endpoint.EndpointName}.{endpoint.Resource.Name}")
+    {
+    }
 
     /// <summary>
-    /// Creates a new instance of <see cref="YarpCluster"/> with a specified endpoint reference.
+    /// Construct a new YarpCluster targeting the resource in parameter.
     /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    public YarpCluster(EndpointReference endpoint)
+    /// <param name="resource">The resource to target.</param>
+    public YarpCluster(IResourceWithServiceDiscovery resource)
+        : this(resource.Name, BuildEndpointUri(resource))
     {
-        _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
-        ClusterConfig = CreateClusterConfig();
     }
 
     /// <summary>
@@ -31,9 +36,20 @@ public class YarpCluster
     /// </summary>
     /// <param name="externalService">The external service.</param>
     public YarpCluster(ExternalServiceResource externalService)
+        : this(endpoint.Resource.Name, GetAddressFromExternalService(externalService))
     {
-        _externalService = externalService ?? throw new ArgumentNullException(nameof(externalService));
-        ClusterConfig = CreateClusterConfig();
+    }
+
+    private YarpCluster(string resourceName, string endpointUri)
+    {
+        ClusterConfig = new()
+        {
+            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid():N)}",
+            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "destination1", new DestinationConfig { Address = endpointUri } }
+            }
+        };
     }
 
     internal ClusterConfig ClusterConfig { get; private set; }
@@ -43,23 +59,24 @@ public class YarpCluster
         ClusterConfig = configure(ClusterConfig);
     }
 
-    private ClusterConfig CreateClusterConfig()
+    private static string BuildEndpointUri(IResourceWithServiceDiscovery resource)
     {
-        Debug.Assert(_endpoint is not null || _externalService is not null, "Either endpoint or external service must be provided.");
+        var resourceName = resource.Name;
 
-        var name = _endpoint?.Resource.Name ?? _externalService!.Name;
-        var address = _endpoint is { }
-            ? $"{_endpoint.Scheme}://{_endpoint?.Resource.Name}"
-            : GetAddressFromExternalService(_externalService!);
+        // NOTE: This should likely fallback to other endpoints with HTTP or HTTPS schemes in cases where they don't
+        //       have the default names.
+        var httpsEndpoint = resource.GetEndpoint("https");
+        var httpEndpoint = resource.GetEndpoint("http");
 
-        return new ClusterConfig
+        var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
         {
-            ClusterId = $"cluster_{name}_{Guid.NewGuid():N}",
-            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "destination1", new DestinationConfig { Address = address } },
-            }
+            (true, true) => "https+http",
+            (true, false) => "https",
+            (false, true) => "http",
+            _ => throw new ArgumentException("Cannot find a http or https endpoint for this resource.", nameof(resource))
         };
+
+        return $"{scheme}://{resourceName}";
     }
 
     private static string GetAddressFromExternalService(ExternalServiceResource externalService)
@@ -70,9 +87,10 @@ public class YarpCluster
         }
         if (externalService.UrlParameter is not null)
         {
+            // BUG: If we're in publish mode we shouldn't be accessing the parameter value.
             return externalService.UrlParameter.Value;
-            // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
         }
+        // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
         throw new InvalidOperationException("External service must have either a URI or a URL parameter defined.");
     }
 }

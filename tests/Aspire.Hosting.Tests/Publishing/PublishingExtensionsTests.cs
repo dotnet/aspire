@@ -10,11 +10,13 @@ namespace Aspire.Hosting.Tests.Publishing;
 
 public class PublishingExtensionsTests
 {
+    private readonly InteractionService _interactionService = PublishingActivityProgressReporterTests.CreateInteractionService();
+
     [Fact]
     public async Task PublishingStepExtensions_CreateTask_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -24,7 +26,7 @@ public class PublishingExtensionsTests
         Assert.NotNull(task);
         Assert.Equal(step.Id, task.StepId);
         Assert.Equal("Initial status", task.StatusText);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Fact]
@@ -36,7 +38,7 @@ public class PublishingExtensionsTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => step.CreateTaskAsync("Initial status", CancellationToken.None));
-        Assert.Equal("No progress reporter is available for this step.", exception.Message);
+        Assert.Equal("Cannot create task: Reporter is not set.", exception.Message);
     }
 
     [Fact]
@@ -53,14 +55,14 @@ public class PublishingExtensionsTests
         Assert.NotNull(task);
         Assert.Equal(step.Id, task.StepId);
         Assert.Equal("Initial status", task.StatusText);
-        Assert.Equal(TaskCompletionState.InProgress, task.CompletionState);
+        Assert.Equal(CompletionState.InProgress, task.CompletionState);
     }
 
     [Fact]
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -68,7 +70,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(step, result);
-        Assert.True(step.IsComplete);
+        Assert.True(step.CompletionState != CompletionState.InProgress);
         Assert.Equal("Success message", step.CompletionText);
     }
 
@@ -76,7 +78,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_UpdateStatus_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
@@ -92,7 +94,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
@@ -101,7 +103,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.Completed, task.CompletionState);
+        Assert.Equal(CompletionState.Completed, task.CompletionState);
         Assert.Equal("Success message", task.CompletionMessage);
     }
 
@@ -109,7 +111,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Warn_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
@@ -118,7 +120,7 @@ public class PublishingExtensionsTests
 
         // Assert
         Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.CompletedWithWarning, task.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithWarning, task.CompletionState);
         Assert.Equal("Warning message", task.CompletionMessage);
     }
 
@@ -126,16 +128,15 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Fail_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter();
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await reporter.CreateTaskAsync(step, "Initial status", CancellationToken.None);
 
         // Act
-        var result = await task.FailAsync("Error message", CancellationToken.None);
+        await task.FailAsync("Error message", CancellationToken.None);
 
         // Assert
-        Assert.Equal(task, result);
-        Assert.Equal(TaskCompletionState.CompletedWithError, task.CompletionState);
+        Assert.Equal(CompletionState.CompletedWithError, task.CompletionState);
         Assert.Equal("Error message", task.CompletionMessage);
     }
 }
