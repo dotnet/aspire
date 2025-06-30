@@ -46,7 +46,7 @@ public class AllocatedEndpoint
     /// <param name="port">The port number of the endpoint.</param>
     /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
     /// <param name="bindingMode">The binding mode of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null, EndpointBindingMode bindingMode)
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, EndpointBindingMode bindingMode, string? containerHostAddress = null, string? targetPortExpression = null)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -69,7 +69,7 @@ public class AllocatedEndpoint
     /// <param name="port">The port number of the endpoint.</param>
     /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
     public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null)
-        : this(endpoint, address, port, containerHostAddress, targetPortExpression, EndpointBindingMode.SingleAddress)
+        : this(endpoint, address, port, EndpointBindingMode.SingleAddress, containerHostAddress, targetPortExpression)
     {
     }
 

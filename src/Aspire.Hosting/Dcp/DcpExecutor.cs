@@ -760,9 +760,9 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     sp.EndpointAnnotation,
                     targetHost,
                     (int)svc.AllocatedPort!,
+                    bindingMode,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
-                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
-                    bindingMode: bindingMode);
+                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
         }
     }
