@@ -655,7 +655,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
                 pauseConsoleLogLine.TextContent);
         });
 
-        logger.LogInformation("Write a new log.");
+        logger.LogInformation("Write a new log after resume.");
         var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
 
