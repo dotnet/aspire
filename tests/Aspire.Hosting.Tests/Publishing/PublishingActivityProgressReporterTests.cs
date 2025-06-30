@@ -643,6 +643,29 @@ public class PublishingActivityProgressReporterTests
         Assert.True(activity.Data.IsWarning);
     }
 
+    [Fact]
+    public async Task NewApiCallPattern_WorksAsSpecified()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+
+        // Act & Assert - Test the new API call pattern from the issue
+        using var step = await reporter.CreateStepAsync("Build images", CancellationToken.None);
+        using var task = await step.CreateTaskAsync("docker build -t web:latest .", CancellationToken.None);
+
+        await task.UpdateAsync("Pushing layers…", CancellationToken.None);
+        await task.CompleteAsync(CompletionState.Completed, "Image pushed", CancellationToken.None);
+
+        await step.CompleteAsync("Build & push complete", CompletionState.Completed, CancellationToken.None);
+        await reporter.CompletePublishAsync(CompletionState.Completed, CancellationToken.None);
+
+        // Verify that the step and task completed successfully
+        Assert.Equal(CompletionState.Completed, ((PublishingStep)step).CompletionState);
+        Assert.Equal("Build & push complete", ((PublishingStep)step).CompletionText);
+        Assert.Equal(CompletionState.Completed, ((PublishingTask)task).CompletionState);
+        Assert.Equal("Image pushed", ((PublishingTask)task).CompletionMessage);
+    }
+
     internal static InteractionService CreateInteractionService()
     {
         var services = new ServiceCollection();
