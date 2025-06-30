@@ -53,7 +53,7 @@ public class OtlpApplication
 
             foreach (var sm in scopeMetrics)
             {
-                if (!OtlpHelpers.TryAddScope(_meters, sm.Scope, Context, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_meters, sm.Scope, Context, TelemetryType.Metric, out var scope))
                 {
                     context.FailureCount += sm.Metrics.Count;
                     continue;
@@ -72,19 +72,24 @@ public class OtlpApplication
 
                         var instrumentKey = new OtlpInstrumentKey(scope.Name, metric.Name);
                         ref var instrumentRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_instruments, instrumentKey, out _);
-                        // Adds to dictionary if not present.
-                        instrumentRef ??= new OtlpInstrument
+                        if (instrumentRef == null)
                         {
-                            Summary = new OtlpInstrumentSummary
+                            // Adds to dictionary if not present.
+                            instrumentRef = new OtlpInstrument
                             {
-                                Name = metric.Name,
-                                Description = metric.Description,
-                                Unit = metric.Unit,
-                                Type = MapMetricType(metric.DataCase),
-                                Parent = scope
-                            },
-                            Context = Context
-                        };
+                                Summary = new OtlpInstrumentSummary
+                                {
+                                    Name = metric.Name,
+                                    Description = metric.Description,
+                                    Unit = metric.Unit,
+                                    Type = MapMetricType(metric.DataCase),
+                                    Parent = scope
+                                },
+                                Context = Context
+                            };
+
+                            Context.Logger.LogTrace("Added metric instrument '{InstrumentName}' for scope '{ScopeName}'.", instrumentRef.Summary.Name, scope.Name);
+                        }
 
                         instrument = instrumentRef;
                     }
@@ -129,6 +134,7 @@ public class OtlpApplication
                     try
                     {
                         instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -143,6 +149,7 @@ public class OtlpApplication
                     try
                     {
                         instrument.FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Context);
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -157,6 +164,7 @@ public class OtlpApplication
                     try
                     {
                         instrument.FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Context);
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {

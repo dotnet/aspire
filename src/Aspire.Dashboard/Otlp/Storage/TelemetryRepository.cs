@@ -243,6 +243,10 @@ public sealed class TelemetryRepository : IDisposable
         {
             application.SetUninstrumentedPeer(uninstrumentedPeer);
         }
+        else
+        {
+            _logger.LogTrace("New application added: {ApplicationKey}", key);
+        }
         return (Application: application, IsNew: newApplication);
     }
 
@@ -332,7 +336,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var sl in scopeLogs)
             {
-                if (!OtlpHelpers.TryAddScope(_logScopes, sl.Scope, _otlpContext, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_logScopes, sl.Scope, _otlpContext, TelemetryType.Log, out var scope))
                 {
                     context.FailureCount += sl.LogRecords.Count;
                     continue;
@@ -378,6 +382,7 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             _logPropertyKeys.Add((applicationView.Application, kvp.Key));
                         }
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -913,7 +918,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                if (!OtlpHelpers.TryAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, TelemetryType.Trace, out var scope))
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
                     continue;
@@ -1024,6 +1029,7 @@ public sealed class TelemetryRepository : IDisposable
                         Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
 
                         updatedTraces[trace.Key] = trace;
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {

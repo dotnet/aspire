@@ -445,7 +445,7 @@ public static class OtlpHelpers
         }
     }
 
-    public static bool TryAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, [NotNullWhen(true)] out OtlpScope? s)
+    public static bool TryGetOrAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, TelemetryType telemetryType, [NotNullWhen(true)] out OtlpScope? s)
     {
         try
         {
@@ -455,7 +455,15 @@ public static class OtlpHelpers
             var name = scope?.Name ?? string.Empty;
             ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
             // Adds to dictionary if not present.
-            scopeRef ??= (scope != null) ? new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context)) : OtlpScope.Empty;
+            if (scopeRef == null)
+            {
+                scopeRef = (scope != null)
+                    ? new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context))
+                    : OtlpScope.Empty;
+
+                context.Logger.LogTrace("Added scope '{ScopeName}' to {TelemetryType}.", scopeRef.Name, telemetryType);
+            }
+
             s = scopeRef;
             return true;
         }
@@ -466,4 +474,11 @@ public static class OtlpHelpers
             return false;
         }
     }
+}
+
+public enum TelemetryType
+{
+    Trace,
+    Metric,
+    Log
 }
