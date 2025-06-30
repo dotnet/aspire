@@ -128,6 +128,69 @@ internal sealed class PublishingActivityData
     /// Gets the completion message for the publishing activity (optional).
     /// </summary>
     public string? CompletionMessage { get; init; }
+
+    /// <summary>
+    /// Gets the input information for prompt activities, if available.
+    /// </summary>
+    public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+}
+
+/// <summary>
+/// Represents an input for a publishing prompt.
+/// </summary>
+internal sealed class PublishingPromptInput
+{
+    /// <summary>
+    /// Gets the label for the input.
+    /// </summary>
+    public required string Label { get; init; }
+
+    /// <summary>
+    /// Gets the type of the input.
+    /// </summary>
+    public required string InputType { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the input is required.
+    /// </summary>
+    public bool Required { get; init; }
+
+    /// <summary>
+    /// Gets the options for the input. Only used by select inputs.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
+
+    /// <summary>
+    /// Gets the default value for the input.
+    /// </summary>
+    public string? Value { get; init; }
+}
+
+/// <summary>
+/// Specifies the type of input for a publishing prompt input.
+/// </summary>
+internal enum InputType
+{
+    /// <summary>
+    /// A single-line text input.
+    /// </summary>
+    Text,
+    /// <summary>
+    /// A secure text input.
+    /// </summary>
+    SecretText,
+    /// <summary>
+    /// A choice input. Selects from a list of options.
+    /// </summary>
+    Choice,
+    /// <summary>
+    /// A boolean input.
+    /// </summary>
+    Boolean,
+    /// <summary>
+    /// A numeric input.
+    /// </summary>
+    Number
 }
 
 /// <summary>
@@ -138,6 +201,7 @@ internal static class PublishingActivityTypes
     public const string Step = "step";
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
+    public const string Prompt = "prompt";
 }
 
 internal class BackchannelLogEntry

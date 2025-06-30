@@ -2,7 +2,7 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError, rpcServerListening, rpcServerError } from '../constants/strings';
+import { rpcServerAddressError, rpcServerListening, rpcServerError } from '../loc/strings';
 import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';

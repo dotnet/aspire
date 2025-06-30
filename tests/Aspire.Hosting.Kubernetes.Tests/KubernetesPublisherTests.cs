@@ -175,9 +175,14 @@ public class KubernetesPublisherTests()
 
         builder.AddKubernetesEnvironment("env");
 
+        var param0 = builder.AddParameter("param0");
+        var param1 = builder.AddParameter("param1", secret: true);
+        var cs = builder.AddConnectionString("api-cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
         builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
-            .WithEnvironment("param3", param3);
+            .WithEnvironment("param3", param3)
+            .WithReference(cs);
 
         var app = builder.Build();
 

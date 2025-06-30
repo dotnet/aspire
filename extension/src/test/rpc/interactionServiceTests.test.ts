@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink, yesLabel } from '../../constants/strings';
+import { codespacesLink, directLink } from '../../loc/strings';
 import { RpcServerInformation, setupRpcServer } from '../../server/rpcServer';
 import { IOutputChannelWriter } from '../../utils/vsc';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
@@ -66,7 +66,7 @@ suite('InteractionService endpoints', () => {
 			return 'valid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'valid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();
@@ -85,7 +85,7 @@ suite('InteractionService endpoints', () => {
 			return 'invalid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'invalid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();

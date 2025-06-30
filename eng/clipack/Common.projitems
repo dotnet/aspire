@@ -5,6 +5,11 @@
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
     <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
     <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
+
+    <!-- Publish native AOT if running on the target platfrom -->
+    <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
+    <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
+    <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,21 +18,43 @@
 
   <Target Name="PublishToDisk">
     <ItemGroup>
-      <AdditionalProperties Include="Configuration=$(Configuration)" />
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
+      <AdditionalProperties Include="PublishDir=$(OutputPath)" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(PublishNativeAot)' == 'true'">
+      <!-- Always publish Release for native aot, since Debug hits a warning https://github.com/protocolbuffers/protobuf/issues/21824. -->
+      <AdditionalProperties Include="Configuration=Release" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(PublishNativeAot)' != 'true'">
+      <AdditionalProperties Include="Configuration=$(Configuration)" />
+      <AdditionalProperties Include="PublishAot=false" />
       <AdditionalProperties Include="PublishSingleFile=true" />
       <AdditionalProperties Include="SelfContained=true" />
-      <AdditionalProperties Include="PublishDir=$(OutputPath)" />
+
+      <!-- Windows pdb aren't really needed any more. See https://github.com/dotnet/arcade/issues/15724
+          As the pdb file is in the same location for all the RIDs it causes arcade's `_DeployPortableSymbolsToSymStore`
+          target to race.
+
+          `The process cannot access the file 'D:\a\_work\1\s\artifacts\SymStore\Release\Aspire.Cli\net8.0\aspire.pdb' because it is being used by another process`
+      -->
+      <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
-        Targets="publish"
+        Targets="Publish"
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
+
+    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
+    <ItemGroup>
+      <DirectoriesToRemove Include="$(XlfLanguages)" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
   </Target>
 </Project>
