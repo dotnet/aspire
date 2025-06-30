@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
@@ -36,7 +35,7 @@ public class YarpCluster
     /// </summary>
     /// <param name="externalService">The external service.</param>
     public YarpCluster(ExternalServiceResource externalService)
-        : this(endpoint.Resource.Name, GetAddressFromExternalService(externalService))
+        : this(externalService.Name, GetAddressFromExternalService(externalService))
     {
     }
 
@@ -44,7 +43,7 @@ public class YarpCluster
     {
         ClusterConfig = new()
         {
-            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid():N)}",
+            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid():N}",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
             {
                 { "destination1", new DestinationConfig { Address = endpointUri } }
