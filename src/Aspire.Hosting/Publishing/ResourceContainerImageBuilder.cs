@@ -68,7 +68,6 @@ internal sealed class ResourceContainerImageBuilder(
             logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
 
             await task.CompleteAsync(
-                CompletionState.CompletedWithError,
                 $"{ContainerRuntime.Name} is not running or is unhealthy.",
                 cancellationToken).ConfigureAwait(false);
 
@@ -77,7 +76,6 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         await task.CompleteAsync(
-            containerRuntimeHealthy ? CompletionState.Completed : CompletionState.CompletedWithError,
             $"{ContainerRuntime.Name} is healthy.",
             cancellationToken).ConfigureAwait(false);
 
@@ -176,7 +174,7 @@ internal sealed class ResourceContainerImageBuilder(
 
                 if (publishingTask is not null)
                 {
-                    await publishingTask.CompleteAsync(CompletionState.CompletedWithError, $"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.CompleteAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
                 }
                 throw new DistributedApplicationException($"Failed to build container image.");
             }
@@ -184,7 +182,7 @@ internal sealed class ResourceContainerImageBuilder(
             {
                 if (publishingTask is not null)
                 {
-                    await publishingTask.CompleteAsync(CompletionState.Completed, $"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.CompleteAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
                 }
 
                 logger.LogDebug(
@@ -212,7 +210,7 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (publishingTask is not null)
             {
-                await publishingTask.CompleteAsync(CompletionState.Completed, $"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
+                await publishingTask.CompleteAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -221,7 +219,7 @@ internal sealed class ResourceContainerImageBuilder(
 
             if (publishingTask is not null)
             {
-                await publishingTask.CompleteAsync(CompletionState.CompletedWithError, $"Building image for {resourceName} failed", cancellationToken).ConfigureAwait(false);
+                await publishingTask.CompleteAsync($"Building image for {resourceName} failed", cancellationToken).ConfigureAwait(false);
             }
 
             throw;

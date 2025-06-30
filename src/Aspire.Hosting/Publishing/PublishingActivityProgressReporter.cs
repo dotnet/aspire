@@ -110,19 +110,18 @@ public interface IPublishingTask : IAsyncDisposable
     Task UpdateAsync(string statusText, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Completes the task with the specified completion state and optional completion message.
+    /// Completes the task with the specified completion message.
     /// </summary>
-    /// <param name="completionState">The completion state.</param>
     /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompleteAsync(CompletionState completionState = CompletionState.Completed, string? completionMessage = null, CancellationToken cancellationToken = default);
+    Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingStep : IPublishingStep
+internal sealed class PublishingStep : IPublishingStep
 {
     private readonly ConcurrentDictionary<string, PublishingTask> _tasks = new();
 
@@ -268,7 +267,7 @@ public sealed class PublishingStep : IPublishingStep
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class PublishingTask : IPublishingTask
+internal sealed class PublishingTask : IPublishingTask
 {
     internal PublishingTask(string id, string stepId, string statusText, PublishingStep parentStep)
     {
@@ -328,19 +327,18 @@ public sealed class PublishingTask : IPublishingTask
     }
 
     /// <summary>
-    /// Completes the task with the specified completion state and optional completion message.
+    /// Completes the task with the specified completion message.
     /// </summary>
-    /// <param name="completionState">The completion state.</param>
     /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task CompleteAsync(CompletionState completionState = CompletionState.Completed, string? completionMessage = null, CancellationToken cancellationToken = default)
+    public async Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         if (Reporter is null)
         {
             throw new InvalidOperationException("Cannot complete task: Reporter is not set.");
         }
 
-        await Reporter.CompleteTaskAsync(this, completionState, completionMessage, cancellationToken).ConfigureAwait(false);
+        await Reporter.CompleteTaskAsync(this, CompletionState.Completed, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

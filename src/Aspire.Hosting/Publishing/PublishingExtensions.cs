@@ -8,10 +8,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// Extension methods for <see cref="PublishingStep"/> and <see cref="PublishingTask"/> to provide direct operations.
+/// Extension methods for <see cref="IPublishingStep"/> and <see cref="IPublishingTask"/> to provide direct operations.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class PublishingExtensions
+internal static class PublishingExtensions
 {
     /// <summary>
     /// Completes a publishing step successfully.

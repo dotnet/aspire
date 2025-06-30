@@ -74,9 +74,8 @@ internal class Publisher(
         }
 
         await task.CompleteAsync(
-                    taskInfo.State,
                     taskInfo.Message,
-                    cancellationToken: cancellationToken)
+                    cancellationToken)
                     .ConfigureAwait(false);
 
         // This should be automagically handled by the progress reporter
