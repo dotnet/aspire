@@ -340,7 +340,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.MetricsBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(Metrics));
 
     public void UpdateTelemetryProperties()
     {

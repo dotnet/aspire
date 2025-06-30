@@ -11,7 +11,7 @@ public partial class NotFound : IComponentWithTelemetry, IDisposable
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new("NotFound");
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(NotFound));
 
     protected override void OnInitialized()
     {

@@ -117,5 +117,5 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.LoginBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(Login));
 }
