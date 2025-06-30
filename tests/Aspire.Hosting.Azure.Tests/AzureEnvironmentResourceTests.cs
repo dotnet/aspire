@@ -183,6 +183,49 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         public LaunchSettings? LaunchSettings { get; set; }
     }
 
+    [Fact]
+    public async Task AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
+    {
+        // Arrange
+        var tempDir = Directory.CreateTempSubdirectory(".azure-ignore-annotation-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
+            publisher: "default",
+            outputPath: tempDir.FullName);
+
+        // Add Azure container app environment to enable Azure publishing context
+        builder.AddAzureContainerAppEnvironment("acaEnv");
+
+        // Add an Azure storage resource that will be included
+        var includedStorage = builder.AddAzureStorage("included-storage");
+        
+        // Add an Azure storage resource that will be excluded
+        var excludedStorage = builder.AddAzureStorage("excluded-storage")
+            .ExcludeFromManifest(); // This should be ignored during publishing
+
+        // Act
+        using var app = builder.Build();
+        app.Run();
+
+        // Assert - Verify the generated bicep files
+        var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
+        Assert.True(File.Exists(mainBicepPath));
+        var mainBicep = File.ReadAllText(mainBicepPath);
+
+        // Check if included-storage bicep file was generated
+        var includedStorageBicepPath = Path.Combine(tempDir.FullName, "included-storage", "included-storage.bicep");
+        var includedStorageBicep = File.Exists(includedStorageBicepPath) ? File.ReadAllText(includedStorageBicepPath) : "";
+
+        // Verify that excluded-storage bicep file was NOT generated
+        var excludedStorageBicepPath = Path.Combine(tempDir.FullName, "excluded-storage", "excluded-storage.bicep");
+        Assert.False(File.Exists(excludedStorageBicepPath), "Excluded storage should not have a bicep file generated");
+
+        await Verify(mainBicep, "bicep")
+            .AppendContentAsFile(includedStorageBicep, "bicep");
+
+        tempDir.Delete(recursive: true);
+    }
+
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
     {
         public IDictionary<string, object?> Parameters { get; } = new Dictionary<string, object?>();
