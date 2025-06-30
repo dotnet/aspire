@@ -3,10 +3,12 @@
 
 using System.CommandLine.Parsing;
 using System.Globalization;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
@@ -32,8 +34,8 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry)
-        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotififier updateNotifier)
+        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;
