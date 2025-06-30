@@ -61,6 +61,19 @@ public class AllocatedEndpoint
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="AllocatedEndpoint"/> class.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="address">The IP address of the endpoint.</param>
+    /// <param name="containerHostAddress">The address of the container host.</param>
+    /// <param name="port">The port number of the endpoint.</param>
+    /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null)
+        : this(endpoint, address, port, containerHostAddress, targetPortExpression, EndpointBindingMode.SingleAddress)
+    {
+    }
+
+    /// <summary>
     /// Gets the endpoint which this allocation is associated with.
     /// </summary>
     public EndpointAnnotation Endpoint { get; }
