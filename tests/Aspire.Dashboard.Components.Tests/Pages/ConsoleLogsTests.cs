@@ -611,7 +611,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
 
         logger.LogInformation("Adding filtered logs during pause.");
-        // Add a new logs while paused and assert that the log viewer shows correct filtered count
+        // Add new logs while paused and assert that the log viewer shows correct filtered count
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
