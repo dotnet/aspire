@@ -87,11 +87,25 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     private Task PublishAsync(PublishingContext context)
     {
+        var outputPath = GetOutputPath(context);
+
         var kubernetesContext = new KubernetesPublishingContext(
             context.ExecutionContext,
-            context.OutputPath,
+            outputPath,
             context.Logger,
             context.CancellationToken);
         return kubernetesContext.WriteModelAsync(context.Model, this);
+    }
+
+    private string GetOutputPath(PublishingContext context)
+    {
+        if (context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1)
+        {
+            // If there are multiple compute environments, append the environment name to the output path
+            return Path.Combine(context.OutputPath, Name);
+        }
+
+        // If there is only one compute environment, use the root output path
+        return context.OutputPath;
     }
 }

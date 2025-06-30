@@ -1,0 +1,19 @@
+﻿---
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "servicea-service"
+spec:
+  type: "ClusterIP"
+  selector:
+    app: "aspire"
+    component: "ServiceA"
+  ports:
+    - name: "http"
+      protocol: "TCP"
+      port: "{{ .Values.parameters.ServiceA.port_http }}"
+      targetPort: "{{ .Values.parameters.ServiceA.port_http }}"
+    - name: "https"
+      protocol: "TCP"
+      port: "{{ .Values.parameters.ServiceA.port_https }}"
+      targetPort: "{{ .Values.parameters.ServiceA.port_https }}"

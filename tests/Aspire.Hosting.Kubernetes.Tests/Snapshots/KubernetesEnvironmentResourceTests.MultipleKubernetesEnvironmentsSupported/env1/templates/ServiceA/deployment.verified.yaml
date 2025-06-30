@@ -1,0 +1,37 @@
+﻿---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "servicea-deployment"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "aspire"
+        component: "ServiceA"
+    spec:
+      containers:
+        - image: "{{ .Values.parameters.ServiceA.ServiceA_image }}"
+          name: "ServiceA"
+          envFrom:
+            - configMapRef:
+                name: "servicea-config"
+          ports:
+            - name: "http"
+              protocol: "TCP"
+              containerPort: "{{ .Values.parameters.ServiceA.port_http }}"
+            - name: "https"
+              protocol: "TCP"
+              containerPort: "{{ .Values.parameters.ServiceA.port_https }}"
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app: "aspire"
+      component: "ServiceA"
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: "RollingUpdate"

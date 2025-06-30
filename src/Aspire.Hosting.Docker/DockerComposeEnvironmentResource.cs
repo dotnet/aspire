@@ -62,16 +62,29 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PublishingContext context)
     {
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var outputPath = GetOutputPath(context);
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
             imageBuilder,
-            context.OutputPath,
+            outputPath,
             context.Logger,
             context.ProgressReporter,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);
+    }
+
+    private string GetOutputPath(PublishingContext context)
+    {
+        if (context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1)
+        {
+            // If there are multiple compute environments, append the environment name to the output path
+            return Path.Combine(context.OutputPath, Name);
+        }
+
+        // If there is only one compute environment, use the root output path
+        return context.OutputPath;
     }
 
     internal string AddEnvironmentVariable(string name, string? description = null, string? defaultValue = null, object? source = null)

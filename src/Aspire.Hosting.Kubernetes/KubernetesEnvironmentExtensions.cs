@@ -12,6 +12,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KubernetesEnvironmentExtensions
 {
+    internal static IDistributedApplicationBuilder AddKubernetesInfrastructureCore(this IDistributedApplicationBuilder builder)
+    {
+        builder.Services.TryAddLifecycleHook<KubernetesInfrastructure>();
+
+        return builder;
+    }
+
     /// <summary>
     /// Adds a Kubernetes environment to the application model.
     /// </summary>
@@ -25,8 +32,9 @@ public static class KubernetesEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        builder.AddKubernetesInfrastructureCore();
+
         var resource = new KubernetesEnvironmentResource(name);
-        builder.Services.TryAddLifecycleHook<KubernetesInfrastructure>();
         if (builder.ExecutionContext.IsRunMode)
         {
 

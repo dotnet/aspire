@@ -42,6 +42,8 @@ public static class AzureAppServiceComputeResourceExtensions
             return builder;
         }
 
+        builder.ApplicationBuilder.AddAzureAppServiceInfrastructureCore();
+
         return builder.WithAnnotation(new AzureAppServiceWebsiteCustomizationAnnotation(configure));
     }
 }
