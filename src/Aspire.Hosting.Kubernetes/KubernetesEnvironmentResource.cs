@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Kubernetes;
 
@@ -87,7 +88,7 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     private Task PublishAsync(PublishingContext context)
     {
-        var outputPath = GetOutputPath(context);
+        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
 
         var kubernetesContext = new KubernetesPublishingContext(
             context.ExecutionContext,
@@ -95,17 +96,5 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
             context.Logger,
             context.CancellationToken);
         return kubernetesContext.WriteModelAsync(context.Model, this);
-    }
-
-    private string GetOutputPath(PublishingContext context)
-    {
-        if (context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1)
-        {
-            // If there are multiple compute environments, append the environment name to the output path
-            return Path.Combine(context.OutputPath, Name);
-        }
-
-        // If there is only one compute environment, use the root output path
-        return context.OutputPath;
     }
 }
