@@ -65,15 +65,16 @@ public class ExecTests(ITestOutputHelper output)
     {
         var migrationName = "AddVersion";
 
-        var apiModelProjectDir = @$"{MSBuildUtils.GetRepoRoot()}\playground\DatabaseMigration\DatabaseMigration.ApiModel";
-        var apiModelProjectObj = @$"{MSBuildUtils.GetRepoRoot()}\artifacts\obj\DatabaseMigration.ApiModel";
+        var apiModelProjectDir = @$"{MSBuildUtils.GetRepoRoot()}\playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj";
+        // var apiModelProjectObj = @$"{MSBuildUtils.GetRepoRoot()}\artifacts\obj\DatabaseMigration.ApiModel";
         DeleteMigrations(apiModelProjectDir, migrationName);
 
         string[] args = [
             "--operation", "exec",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
-            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir} --msbuildprojectextensionspath {apiModelProjectObj}\"",
+            // "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir} --msbuildprojectextensionspath {apiModelProjectObj}\"",
+            "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\"",
             "--postgres"
         ];
 
