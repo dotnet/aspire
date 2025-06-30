@@ -167,14 +167,6 @@ jobs:
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
-            # build playground projects for E2E tests
-      - name: Build DatabaseMigration playground projects
-        if: ${{ ! inputs.requiresNugets && inputs.testShortName == 'Cli' }}
-        env:
-          CI: false
-        run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ github.workspace }}/playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj
-
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
         if: inputs.testShortName == 'Playground'
@@ -268,6 +260,14 @@ jobs:
           --results-directory ${{ github.workspace }}/testresults
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
+
+      - name: List obj folder contents
+        if: ${{ always() && inputs.testShortName == 'Cli' }}
+        run: |
+          echo "Listing artifacts/obj contents:"
+          ls -la ${{ github.workspace }}/artifacts/obj/ || echo "artifacts/obj directory not found"
+          echo "Listing DatabaseMigration.ApiModel obj contents:"
+          ls -la ${{ github.workspace }}/artifacts/obj/DatabaseMigration.ApiModel/ || echo "DatabaseMigration.ApiModel obj directory not found"
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}

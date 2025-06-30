@@ -74,7 +74,6 @@ public class ExecTests(ITestOutputHelper output)
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir} --msbuildprojectextensionspath {apiModelProjectObj}\"",
-            // "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\"",
             "--postgres"
         ];
 
