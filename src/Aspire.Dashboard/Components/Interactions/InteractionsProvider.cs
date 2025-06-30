@@ -201,6 +201,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     };
 
                     var dialogParameters = CreateDialogParameters(item, intent: null);
+                    dialogParameters.Id = "interactions-input-dialog";
                     dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                     {
                         // Only send notification of completion if the dialog was cancelled.
