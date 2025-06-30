@@ -53,4 +53,9 @@ internal static class KnownProperties
     {
         public const string Path = "project.path";
     }
+
+    public static class Parameter
+    {
+        public const string Value = "Value";
+    }
 }

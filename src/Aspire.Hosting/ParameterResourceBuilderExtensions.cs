@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -160,13 +161,14 @@ public static class ParameterResourceBuilderExtensions
     {
         var state = new CustomResourceSnapshot
         {
-            ResourceType = "Parameter",
+            ResourceType = KnownResourceTypes.Parameter,
             // hide parameters by default
             IsHidden = true,
             Properties = [
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
-            ]
+            ],
+            State = KnownResourceStates.Waiting
         };
 
         return builder.AddResource(resource)

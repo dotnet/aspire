@@ -142,6 +142,11 @@
         <target state="translated">运行状况状态</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">项目路径</target>

@@ -313,6 +313,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Value.
+        /// </summary>
+        public static string ResourcesDetailsParameterValueProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsParameterValueProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Project path.
         /// </summary>
         public static string ResourcesDetailsProjectPathProperty {

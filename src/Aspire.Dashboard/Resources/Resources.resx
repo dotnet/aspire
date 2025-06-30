@@ -277,4 +277,7 @@
   <data name="ResourcesShowTypes" xml:space="preserve">
     <value>Show resource types</value>
   </data>
+  <data name="ResourcesDetailsParameterValueProperty" xml:space="preserve">
+    <value>Value</value>
+  </data>
 </root>
