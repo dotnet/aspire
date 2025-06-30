@@ -435,7 +435,7 @@ internal abstract class PublishCommandBase : BaseCommand
             // For multiple inputs, indent the prompt with the label
             // For single input, use the activity status text as the prompt
             var promptText = activity.Data.Inputs.Count > 1
-                ? $"\t{input.Label}: "
+                ? $"    {input.Label}: "
                 : $"[bold]{activity.Data.StatusText}[/]";
 
             var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
