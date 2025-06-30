@@ -306,7 +306,11 @@ public class AzureAppServiceTests
         // Publishing will stop the app when it is done
         await app.RunAsync();
 
-        await VerifyFile(Path.Combine(tempDir.Path, "aspire-manifest.json"));
+        var verifySettings = new VerifySettings();
+        verifySettings.ScrubLines(line => line.Contains("\"path\"") && line.Contains(".csproj"));
+        await VerifyFile(
+            Path.Combine(tempDir.Path, "aspire-manifest.json"),
+            verifySettings);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

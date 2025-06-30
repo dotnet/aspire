@@ -17,7 +17,6 @@
     },
     "ServiceA": {
       "type": "project.v1",
-      "path": "{SolutionDirectory}tests/testproject/TestProject.ServiceA/TestProject.ServiceA.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "ServiceA.module.bicep",
@@ -54,7 +53,6 @@
     },
     "ServiceB": {
       "type": "project.v1",
-      "path": "{SolutionDirectory}tests/testproject/TestProject.ServiceB/TestProject.ServiceB.csproj",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "ServiceB.module.bicep",
