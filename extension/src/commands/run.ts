@@ -9,6 +9,6 @@ export async function runCommand() {
 
     const terminal = getAspireTerminal();
 
-    terminal.sendText(`aspire run`);
+    terminal.sendText('aspire run');
     terminal.show();
 };

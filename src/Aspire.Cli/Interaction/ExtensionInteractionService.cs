@@ -59,7 +59,7 @@ internal class ExtensionInteractionService : IInteractionService
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
-        CancellationToken cancellationToken = default)
+        bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -69,7 +69,7 @@ internal class ExtensionInteractionService : IInteractionService
             {
                 try
                 {
-                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
                     if (result is null)
                     {
                         throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
@@ -87,7 +87,7 @@ internal class ExtensionInteractionService : IInteractionService
         }
         else
         {
-            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, cancellationToken).ConfigureAwait(false);
+            return await _consoleInteractionService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken).ConfigureAwait(false);
         }
     }
 
