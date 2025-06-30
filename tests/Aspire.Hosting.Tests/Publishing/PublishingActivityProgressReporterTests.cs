@@ -28,17 +28,17 @@ public class PublishingActivityProgressReporterTests
 
         // Assert
         Assert.NotNull(step);
-        Assert.NotNull(step.Id);
-        Assert.NotEmpty(step.Id);
-        Assert.Equal(title, step.Title);
-        Assert.Equal(CompletionState.InProgress, step.CompletionState);
-        Assert.Equal(string.Empty, step.CompletionText);
+        Assert.NotNull(step.GetId());
+        Assert.NotEmpty(step.GetId());
+        Assert.Equal(title, step.GetTitle());
+        Assert.Equal(CompletionState.InProgress, step.GetCompletionState());
+        Assert.Equal(string.Empty, step.GetCompletionText());
 
         // Verify activity was emitted
         var activityReader = reporter.ActivityItemUpdated.Reader;
         Assert.True(activityReader.TryRead(out var activity));
         Assert.Equal(PublishingActivityTypes.Step, activity.Type);
-        Assert.Equal(step.Id, activity.Data.Id);
+        Assert.Equal(step.GetId(), activity.Data.Id);
         Assert.Equal(title, activity.Data.StatusText);
         Assert.False(activity.Data.IsComplete);
         Assert.False(activity.Data.IsError);
@@ -672,4 +672,32 @@ public class PublishingActivityProgressReporterTests
         var logger = provider.GetRequiredService<ILogger<InteractionService>>();
         return new InteractionService(logger, new DistributedApplicationOptions(), provider);
     }
+}
+
+// Test helper extensions to access internal properties and methods
+internal static class PublishingTestExtensions
+{
+    public static string GetId(this IPublishingStep step) => ((PublishingStep)step).Id;
+    public static string GetTitle(this IPublishingStep step) => ((PublishingStep)step).Title;
+    public static CompletionState GetCompletionState(this IPublishingStep step) => ((PublishingStep)step).CompletionState;
+    public static string GetCompletionText(this IPublishingStep step) => ((PublishingStep)step).CompletionText;
+    public static CompletionState CalculateAggregatedState(this IPublishingStep step) => ((PublishingStep)step).CalculateAggregatedState();
+
+    public static string GetId(this IPublishingTask task) => ((PublishingTask)task).Id;
+    public static string GetStepId(this IPublishingTask task) => ((PublishingTask)task).StepId;
+    public static string GetStatusText(this IPublishingTask task) => ((PublishingTask)task).StatusText;
+    public static CompletionState GetCompletionState(this IPublishingTask task) => ((PublishingTask)task).CompletionState;
+    public static string GetCompletionMessage(this IPublishingTask task) => ((PublishingTask)task).CompletionMessage;
+
+    public static Task<PublishingTask> CreateTaskAsync(this PublishingActivityProgressReporter reporter, IPublishingStep step, string statusText, CancellationToken cancellationToken = default) =>
+        ((IInternalPublishingActivityProgressReporter)reporter).CreateTaskAsync((PublishingStep)step, statusText, cancellationToken);
+    
+    public static Task UpdateTaskAsync(this PublishingActivityProgressReporter reporter, IPublishingTask task, string statusText, CancellationToken cancellationToken = default) =>
+        ((IInternalPublishingActivityProgressReporter)reporter).UpdateTaskAsync((PublishingTask)task, statusText, cancellationToken);
+    
+    public static Task CompleteTaskAsync(this PublishingActivityProgressReporter reporter, IPublishingTask task, CompletionState completionState, string? completionMessage = null, CancellationToken cancellationToken = default) =>
+        ((IInternalPublishingActivityProgressReporter)reporter).CompleteTaskAsync((PublishingTask)task, completionState, completionMessage, cancellationToken);
+    
+    public static Task CompleteStepAsync(this PublishingActivityProgressReporter reporter, IPublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken = default) =>
+        ((IInternalPublishingActivityProgressReporter)reporter).CompleteStepAsync((PublishingStep)step, completionText, completionState, cancellationToken);
 }

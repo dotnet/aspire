@@ -105,7 +105,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -267,12 +267,14 @@ public sealed class AzurePublishingContext(
         };
 
         // Report the completion of the compute environment task.
-        await ProgressReporter.CompleteTaskAsync(
-            computeEnvironmentTask,
-            state,
-            message,
-            cancellationToken: cancellationToken
-        ).ConfigureAwait(false);
+        if (state == CompletionState.CompletedWithWarning)
+        {
+            await computeEnvironmentTask.WarnAsync(message, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await computeEnvironmentTask.SucceedAsync(message, cancellationToken).ConfigureAwait(false);
+        }
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
@@ -298,8 +300,7 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
-                var task = await ProgressReporter.CreateTaskAsync(
-                    step,
+                var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default
                 )
