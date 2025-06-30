@@ -167,13 +167,13 @@ jobs:
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
 
-      # build playground projects for E2E tests
+            # build playground projects for E2E tests
       - name: Build DatabaseMigration playground projects
         if: ${{ ! inputs.requiresNugets && inputs.testShortName == 'Cli' }}
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ github.workspace }}/playground/DatabaseMigration/**/*.csproj
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ github.workspace }}/playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
