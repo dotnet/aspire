@@ -18,6 +18,7 @@ internal static class StringComparers
     public static StringComparer ResourceOwnerUid => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
+    public static StringComparer Url => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
     public static StringComparer HtmlAttribute => StringComparer.Ordinal;
