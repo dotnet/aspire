@@ -166,8 +166,4 @@ internal class ConsoleInteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
     }
-
-    public void OpenNewProject(string projectPath)
-    {
-    }
 }

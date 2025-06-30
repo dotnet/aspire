@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getAspireTerminal } from '../utils/terminal';
+import { sendToAspireTerminal } from '../utils/terminal';
 import { isWorkspaceOpen } from '../utils/vsc';
 
 export async function addCommand() {
@@ -7,8 +7,5 @@ export async function addCommand() {
         return;
     }
 
-    const terminal = getAspireTerminal();
-    
-    terminal.sendText('aspire add');
-    terminal.show();
+    sendToAspireTerminal("aspire add");
 }

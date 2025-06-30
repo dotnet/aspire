@@ -169,7 +169,7 @@ suite('InteractionService endpoints', () => {
 			codespacesUrlWithLoginToken: codespacesUrl
 		});
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		const outputLines = appendLineStub.getCalls().map(call => call.args[0]);
+		const outputLines = appendLineStub.getCalls().map(call => call.args[1]);
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		showInfoMessageStub.restore();
@@ -184,8 +184,8 @@ suite('InteractionService endpoints', () => {
 		]);
 		assert.ok(showInformationMessageSpy.called);
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		assert.ok(appendLineStub.calledWith('line1'));
-		assert.ok(appendLineStub.calledWith('line2'));
+		assert.ok(appendLineStub.calledWith('interaction', 'line1'));
+		assert.ok(appendLineStub.calledWith('interaction', 'line2'));
 		showInformationMessageSpy.restore();
 	});
 
