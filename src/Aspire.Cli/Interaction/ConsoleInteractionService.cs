@@ -33,10 +33,14 @@ internal class ConsoleInteractionService : IInteractionService
             .Start(statusText, (context) => action());
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
-        var prompt = new TextPrompt<string>(promptText);
+        var prompt = new TextPrompt<string>(promptText)
+        {
+            IsSecret = isSecret,
+            AllowEmpty = !required
+        };
 
         if (defaultValue is not null)
         {
@@ -96,6 +100,11 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayMessage(string emoji, string message)
     {
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
+    }
+
+    public void DisplayPlainText(string message)
+    {
+        _ansiConsole.WriteLine(message);
     }
 
     public void DisplaySuccess(string message)

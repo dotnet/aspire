@@ -8,20 +8,20 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Interface to build a configuration file for YARP
 /// </summary>
-public interface IYarpJsonConfigurationBuilder
+public interface IYarpJsonConfigGeneratorBuilder
 {
     /// <summary>
     /// Add a RouteConfig to the YARP resource
     /// </summary>
-    public IYarpJsonConfigurationBuilder AddRoute(RouteConfig route);
+    public IYarpJsonConfigGeneratorBuilder AddRoute(RouteConfig route);
 
     /// <summary>
     /// Add a ClusterConfig to the YARP resource
     /// </summary>
-    public IYarpJsonConfigurationBuilder AddCluster(ClusterConfig cluster);
+    public IYarpJsonConfigGeneratorBuilder AddCluster(ClusterConfig cluster);
 
     /// <summary>
     /// Add a YARP config to the YARP resource
     /// </summary>
-    public IYarpJsonConfigurationBuilder WithConfigFile(string configFilePath);
+    public IYarpJsonConfigGeneratorBuilder WithConfigFile(string configFilePath);
 }

@@ -112,6 +112,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10086")]
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");

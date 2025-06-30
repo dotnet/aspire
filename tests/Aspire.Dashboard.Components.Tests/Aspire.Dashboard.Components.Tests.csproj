@@ -20,10 +20,11 @@
     <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
+    <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />
+    <Using Include="Aspire.Dashboard.ServiceClient" />
   </ItemGroup>
 
 </Project>

@@ -26,58 +26,55 @@ internal sealed class DockerComposeInfrastructure(
         // Find Docker Compose environment resources
         var dockerComposeEnvironments = appModel.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
 
-        if (dockerComposeEnvironments.Length > 1)
+        if (dockerComposeEnvironments.Length == 0)
         {
-            throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
-        }
-
-        var environment = dockerComposeEnvironments.FirstOrDefault();
-
-        if (environment == null)
-        {
+            EnsureNoPublishAsDockerComposeServiceAnnotations(appModel);
             return;
         }
 
-        var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
-
-        if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
+        foreach (var environment in dockerComposeEnvironments)
         {
-            // Ensure the dashboard resource is created (even though it's not part of the main application model)
-            var dashboardService = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(dashboard, executionContext, cancellationToken).ConfigureAwait(false);
+            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
 
-            dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
+            if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
             {
-                ComputeEnvironment = environment
-            });
+                // Ensure the dashboard resource is created (even though it's not part of the main application model)
+                var dashboardService = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(dashboard, executionContext, cancellationToken).ConfigureAwait(false);
+
+                dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
+                {
+                    ComputeEnvironment = environment
+                });
+            }
+
+            foreach (var r in appModel.GetComputeResources())
+            {
+                // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
+                if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
+                {
+                    ConfigureOtlp(r, otlpGrpcEndpoint);
+                }
+
+                // Create a Docker Compose compute resource for the resource
+                var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+
+                // Add deployment target annotation to the resource
+                r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
+                {
+                    ComputeEnvironment = environment
+                });
+            }
         }
+    }
 
-        foreach (var r in appModel.Resources)
+    private static void EnsureNoPublishAsDockerComposeServiceAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
         {
-            if (r.IsExcludedFromPublish())
+            if (r.HasAnnotationOfType<DockerComposeServiceCustomizationAnnotation>())
             {
-                continue;
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as a Docker Compose service, but there are no '{nameof(DockerComposeEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}'.");
             }
-
-            // Skip resources that are not containers or projects
-            if (!r.IsContainer() && r is not ProjectResource)
-            {
-                continue;
-            }
-            
-            // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
-            if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
-            {
-                ConfigureOtlp(r, otlpGrpcEndpoint);
-            }
-
-            // Create a Docker Compose compute resource for the resource
-            var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
-
-            // Add deployment target annotation to the resource
-            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
-            {
-                ComputeEnvironment = environment
-            });
         }
     }
 
@@ -95,6 +92,5 @@ internal sealed class DockerComposeInfrastructure(
                 return Task.CompletedTask;
             }));
         }
-
     }
 }

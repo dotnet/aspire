@@ -25,43 +25,40 @@ internal sealed class KubernetesInfrastructure(
         // Find Kubernetes environment resources
         var kubernetesEnvironments = appModel.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
 
-        if (kubernetesEnvironments.Length > 1)
+        if (kubernetesEnvironments.Length == 0)
         {
-            throw new NotSupportedException("Multiple Kubernetes environments are not supported.");
-        }
-
-        var environment = kubernetesEnvironments.FirstOrDefault();
-
-        if (environment == null)
-        {
+            EnsureNoPublishAsKubernetesServiceAnnotations(appModel);
             return;
         }
 
-        var environmentContext = new KubernetesEnvironmentContext(environment, logger);
-
-        foreach (var r in appModel.Resources)
+        foreach (var environment in kubernetesEnvironments)
         {
-            if (r.IsExcludedFromPublish())
+            var environmentContext = new KubernetesEnvironmentContext(environment, logger);
+
+            foreach (var r in appModel.GetComputeResources())
             {
-                continue;
-            }
+                // Create a Kubernetes compute resource for the resource
+                var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 
-            // Skip resources that are not containers or projects
-            if (!r.IsContainer() && r is not ProjectResource)
-            {
-                continue;
-            }
-
-            // Create a Kubernetes compute resource for the resource
-            var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
-
-            // Add deployment target annotation to the resource
+                // Add deployment target annotation to the resource
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
-            {
-                ComputeEnvironment = environment
-            });
+                r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
+                {
+                    ComputeEnvironment = environment
+                });
 #pragma warning restore ASPIRECOMPUTE001
+            }
+        }
+    }
+
+    private static void EnsureNoPublishAsKubernetesServiceAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
+        {
+            if (r.HasAnnotationOfType<KubernetesServiceCustomizationAnnotation>())
+            {
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as a Kubernetes service, but there are no '{nameof(KubernetesEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}'.");
+            }
         }
     }
 }

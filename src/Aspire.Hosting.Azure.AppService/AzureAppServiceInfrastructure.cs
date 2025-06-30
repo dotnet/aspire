@@ -21,36 +21,50 @@ internal sealed class AzureAppServiceInfrastructure(
             return;
         }
 
-        var appServiceEnvironment = appModel.Resources.OfType<AzureAppServiceEnvironmentResource>().FirstOrDefault()
-            ?? throw new InvalidOperationException("AppServiceEnvironmentResource not found.");
+        var appServiceEnvironments = appModel.Resources.OfType<AzureAppServiceEnvironmentResource>().ToArray();
 
-        var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
-            logger,
-            executionContext,
-            appServiceEnvironment);
-
-        foreach (var resource in appModel.Resources)
+        if (appServiceEnvironments.Length == 0)
         {
-            if (resource.IsExcludedFromPublish())
-            {
-                continue;
-            }
+            EnsureNoPublishAsAzureAppServiceWebsiteAnnotations(appModel);
+            return;
+        }
 
-            // Support project resources and containers with Dockerfile
-            if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
-            {
-                continue;
-            }
+        foreach (var appServiceEnvironment in appServiceEnvironments)
+        {
+            var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
+                logger,
+                executionContext,
+                appServiceEnvironment);
 
-            var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
+            foreach (var resource in appModel.GetComputeResources())
+            {
+                // Support project resources and containers with Dockerfile
+                if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
+                {
+                    continue;
+                }
+
+                var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            resource.Annotations.Add(new DeploymentTargetAnnotation(website)
-            {
-                ContainerRegistry = appServiceEnvironment,
-                ComputeEnvironment = appServiceEnvironment
-            });
+                resource.Annotations.Add(new DeploymentTargetAnnotation(website)
+                {
+                    ContainerRegistry = appServiceEnvironment,
+                    ComputeEnvironment = appServiceEnvironment
+                });
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+            }
+        }
+    }
+
+    private static void EnsureNoPublishAsAzureAppServiceWebsiteAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
+        {
+            if (r.HasAnnotationOfType<AzureAppServiceWebsiteCustomizationAnnotation>())
+            {
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure AppService Website, but there are no '{nameof(AzureAppServiceEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureAppServiceEnvironmentExtensions.AddAzureAppServiceEnvironment)}'.");
+            }
         }
     }
 }
