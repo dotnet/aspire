@@ -432,10 +432,10 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var input = activity.Data.Inputs[i];
 
-            // For multiple inputs, indent the prompt with the label
+            // For multiple inputs, use the input label as the prompt
             // For single input, use the activity status text as the prompt
             var promptText = activity.Data.Inputs.Count > 1
-                ? $"\t{input.Label}: "
+                ? $"{input.Label}: "
                 : $"[bold]{activity.Data.StatusText}[/]";
 
             var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
@@ -493,6 +493,8 @@ internal abstract class PublishCommandBase : BaseCommand
             input.Options,
             choice => choice.Value,
             cancellationToken);
+
+        AnsiConsole.MarkupLine($"{promptText.EscapeMarkup()} {selectedChoice.Value.EscapeMarkup()}");
 
         return selectedChoice.Key;
     }
