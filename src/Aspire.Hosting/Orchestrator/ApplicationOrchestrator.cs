@@ -290,7 +290,7 @@ internal sealed class ApplicationOrchestrator
                 {
                     return s with
                     {
-                        Properties = s.Properties.SetResourceProperty("Value", parameterResource.Value ?? "", parameterResource.Secret),
+                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, parameterResource.Value ?? "", parameterResource.Secret),
                         State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info)
                     };
                 })
@@ -303,7 +303,7 @@ internal sealed class ApplicationOrchestrator
                     return s with
                     {
                         State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = s.Properties.SetResourceProperty("Value", ex.Message),
+                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
                         IsHidden = false
                     };
                 })
