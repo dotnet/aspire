@@ -79,8 +79,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
                               .RunAsEmulator()
                               .WithHealthCheck("blocking_check");
 
-        var blobs = storage.AddBlobs("blobs");
-        var blobContainer = blobs.AddBlobContainer("testblobcontainer");
+        var blobContainer = storage.AddBlobContainer("testblobcontainer");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(blobContainer);
@@ -114,8 +113,9 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         var blobContainerName = "my-container";
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        var blobs = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs(blobsResourceName);
-        var container = blobs.AddBlobContainer(blobContainerName);
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        var blobs = storage.AddBlobs(blobsResourceName);
+        var container = storage.AddBlobContainer(blobContainerName);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -150,7 +150,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
         var blobs = storage.AddBlobs("BlobConnection");
-        var blobContainer = blobs.AddBlobContainer("testblobcontainer");
+        var blobContainer = storage.AddBlobContainer("testblobcontainer");
 
         using var app = builder.Build();
         await app.StartAsync();
