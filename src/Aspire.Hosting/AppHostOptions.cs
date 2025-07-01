@@ -6,6 +6,10 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Configuration options for the Aspire application host.
 /// </summary>
+/// <remarks>
+/// Should be used only for AppHost services configuration purposes,
+/// there is a more convenient API to use in the flow at <see cref="DistributedApplicationExecutionContext"/>
+/// </remarks>
 internal class AppHostOptions
 {
     /// <summary>

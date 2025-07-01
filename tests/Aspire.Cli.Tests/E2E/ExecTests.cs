@@ -64,6 +64,8 @@ public class ExecTests(ITestOutputHelper output)
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/10138")]
     public async Task Exec_InitializeMigrations_ShouldCreateMigrationsInWebApp()
     {
+        // note: should also install dotnet-ef tool locally\globally
+
         var migrationName = "AddVersion";
 
         var apiModelProjectDir = @$"{MSBuildUtils.GetRepoRoot()}\playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj";
