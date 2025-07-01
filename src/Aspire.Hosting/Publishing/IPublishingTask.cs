@@ -22,6 +22,7 @@ public interface IPublishingTask : IAsyncDisposable
     /// Completes the task with the specified completion message.
     /// </summary>
     /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
+    /// <param name="completionState">The completion state of the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default);
+    Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default);
 }

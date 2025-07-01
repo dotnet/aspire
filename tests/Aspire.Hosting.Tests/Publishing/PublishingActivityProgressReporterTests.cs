@@ -237,7 +237,7 @@ public class PublishingActivityProgressReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act - Use the public API which only supports successful completion
-        await task.CompleteAsync(completionMessage, CancellationToken.None);
+        await task.CompleteAsync(completionMessage, cancellationToken: CancellationToken.None);
 
         // Assert
         var taskInternal = Assert.IsType<PublishingTask>(task);
@@ -270,7 +270,7 @@ public class PublishingActivityProgressReporterTests
 
         // Act & Assert - Step is completed, so completing tasks should fail
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.CompleteAsync(null, CancellationToken.None));
+            () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
 
         var taskInternal = Assert.IsType<PublishingTask>(task);
         Assert.Contains($"Cannot complete task '{taskInternal.Id}' because its parent step", exception.Message);
@@ -311,15 +311,15 @@ public class PublishingActivityProgressReporterTests
         var step3 = await reporter.CreateStepAsync("Step 3", CancellationToken.None);
 
         var task1 = await step1.CreateTaskAsync("Task 1", CancellationToken.None);
-        await task1.CompleteAsync(null, CancellationToken.None);
+        await task1.CompleteAsync(null, cancellationToken: CancellationToken.None);
         await step1.CompleteAsync("Step 1 completed", CompletionState.Completed, CancellationToken.None);
 
         var task2 = await step2.CreateTaskAsync("Task 2", CancellationToken.None);
-        await task2.CompleteAsync(null, CancellationToken.None);
+        await task2.CompleteAsync(null, cancellationToken: CancellationToken.None);
         await step2.CompleteAsync("Step 2 completed with warning", CompletionState.CompletedWithWarning, CancellationToken.None);
 
         var task3 = await step3.CreateTaskAsync("Task 3", CancellationToken.None);
-        await task3.CompleteAsync(null, CancellationToken.None);
+        await task3.CompleteAsync(null, cancellationToken: CancellationToken.None);
         await step3.CompleteAsync("Step 3 failed", CompletionState.CompletedWithError, CancellationToken.None);
 
         // Clear previous activities
@@ -347,7 +347,7 @@ public class PublishingActivityProgressReporterTests
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
 
         // Act
-        await task.CompleteAsync(null, CancellationToken.None);
+        await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Assert
         var taskInternal = Assert.IsType<PublishingTask>(task);
@@ -364,11 +364,11 @@ public class PublishingActivityProgressReporterTests
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
 
         // Complete the task first time
-        await task.CompleteAsync(null, CancellationToken.None);
+        await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Act & Assert - Try to complete the same task again
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.CompleteAsync(null, CancellationToken.None));
+            () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
 
         var taskInternal = Assert.IsType<PublishingTask>(task);
         Assert.Contains($"Cannot complete task '{taskInternal.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
@@ -384,7 +384,7 @@ public class PublishingActivityProgressReporterTests
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
 
         // Complete the task first
-        await task.CompleteAsync(null, CancellationToken.None);
+        await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Act - Complete the step
         await step.CompleteAsync("Step completed", CompletionState.Completed, CancellationToken.None);
@@ -398,7 +398,7 @@ public class PublishingActivityProgressReporterTests
 
         // For CompleteTaskAsync, it will first check if the task is already completed, so we expect that error instead
         var completeException = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.CompleteAsync(null, CancellationToken.None));
+            () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
         Assert.Contains($"Cannot complete task '{taskInternal.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", completeException.Message);
 
         // Creating new tasks for the completed step should also fail because the step is complete
@@ -507,8 +507,8 @@ public class PublishingActivityProgressReporterTests
         var task2 = await step.CreateTaskAsync("Task 2", CancellationToken.None);
 
         // Complete all tasks successfully
-        await task1.CompleteAsync(null, CancellationToken.None);
-        await task2.CompleteAsync(null, CancellationToken.None);
+        await task1.SucceedAsync(null, CancellationToken.None);
+        await task2.SucceedAsync(null, CancellationToken.None);
 
         // Clear previous activities
         while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
@@ -570,7 +570,7 @@ public class PublishingActivityProgressReporterTests
 
         // Act
         var taskInternal = Assert.IsType<PublishingTask>(task);
-        await taskInternal.CompleteWithWarningAsync(completionMessage, CancellationToken.None);
+        await taskInternal.WarnAsync(completionMessage, CancellationToken.None);
 
         // Assert
         var stepInternal = Assert.IsType<PublishingStep>(step);

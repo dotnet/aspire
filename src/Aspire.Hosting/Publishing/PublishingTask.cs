@@ -65,10 +65,11 @@ internal sealed class PublishingTask : IPublishingTask
     /// Completes the task with the specified completion message.
     /// </summary>
     /// <param name="completionMessage">Optional completion message that will appear as a dimmed child message.</param>
+    /// <param name="completionState">The completion state of the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
+    public async Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
     {
-        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.Completed, completionMessage, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -76,7 +77,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// </summary>
     /// <param name="completionMessage">Optional completion message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task CompleteWithWarningAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
+    public async Task WarnAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
     {
         await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithWarning, completionMessage, cancellationToken).ConfigureAwait(false);
     }

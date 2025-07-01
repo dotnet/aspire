@@ -92,7 +92,7 @@ public sealed class AzurePublishingContext(
 
                     await SaveToDiskAsync(outputPath).ConfigureAwait(false);
 
-                    await writeTask.CompleteAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
+                    await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -267,14 +267,7 @@ public sealed class AzurePublishingContext(
         };
 
         // Report the completion of the compute environment task.
-        if (state == CompletionState.CompletedWithWarning)
-        {
-            await computeEnvironmentTask.WarnAsync(message, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await computeEnvironmentTask.SucceedAsync(message, cancellationToken).ConfigureAwait(false);
-        }
+        await computeEnvironmentTask.CompleteAsync(message, state, cancellationToken).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 

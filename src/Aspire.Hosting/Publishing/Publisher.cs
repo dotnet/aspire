@@ -75,6 +75,7 @@ internal class Publisher(
 
         await task.CompleteAsync(
                     taskInfo.Message,
+                    taskInfo.State,
                     cancellationToken)
                     .ConfigureAwait(false);
 
