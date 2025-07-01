@@ -80,19 +80,17 @@ public class YarpCluster
 
     private static string GetAddressFromExternalService(ExternalServiceResource externalService)
     {
-        // Get the URL from the UrlExpression property
-        var urlExpression = externalService.UrlExpression;
-        
-        // If it's a literal value, return it directly
-        if (urlExpression.ValueExpression != null)
+        if (externalService.Uri is not null)
         {
-            return urlExpression.ValueExpression;
+            return externalService.Uri.ToString();
         }
-        
-        // If it's a parameter reference, try to get the value
-        // BUG: If we're in publish mode we shouldn't be accessing the parameter value.
-        // For now, this maintains the existing behavior but should be addressed separately.
-        throw new InvalidOperationException("External service URL from parameter is not supported in YARP configuration.");
+        if (externalService.UrlParameter is not null)
+        {
+            // BUG: If we're in publish mode we shouldn't be accessing the parameter value.
+            return externalService.UrlParameter.Value;
+        }
+        // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
+        throw new InvalidOperationException("External service must have either a URI or a URL parameter defined.");
     }
 }
 

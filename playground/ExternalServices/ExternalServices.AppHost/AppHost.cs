@@ -6,7 +6,7 @@ using Aspire.Hosting.Yarp.Transforms;
 var builder = DistributedApplication.CreateBuilder(args);
 
 // URL value is in appsettings.json, or can be overridden by environment variable
-var externalService = builder.AddExternalService("external-service-url");
+var externalService = builder.AddExternalService("external-service", builder.AddParameter("external-service-url"));
 
 var nuget = builder.AddExternalService("nuget", "https://api.nuget.org/")
     .WithHttpHealthCheck(path: "/v3/index.json");
