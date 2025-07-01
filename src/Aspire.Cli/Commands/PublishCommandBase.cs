@@ -494,7 +494,7 @@ internal abstract class PublishCommandBase : BaseCommand
             choice => choice.Value,
             cancellationToken);
 
-        AnsiConsole.MarkupLine($"{promptText.EscapeMarkup()} {selectedChoice.Value.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
 
         return selectedChoice.Key;
     }
