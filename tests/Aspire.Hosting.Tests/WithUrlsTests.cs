@@ -50,23 +50,23 @@ public class WithUrlsTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var called = false;
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithUrls(c => called = true);
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(projectA.Resource, (e, ct) =>
-        {
-            // Should not be called at this point
-            Assert.False(called);
-            return Task.CompletedTask;
-        });
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            // Should be called by the time resource is started
-            Assert.True(called);
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+
+        builder.AddProject<ProjectA>("projecta")
+            .WithUrls(c => called = true)
+            .OnResourceEndpointsAllocated((_, _, _) =>
+            {
+                // Should not be called at this point
+                Assert.False(called);
+                return Task.CompletedTask;
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                // Should be called by the time resource is started
+                Assert.True(called);
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -82,15 +82,14 @@ public class WithUrlsTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         ILogger logger = NullLogger.Instance;
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithUrls(c => logger = c.Logger);
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithUrls(c => logger = c.Logger)
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -137,15 +136,14 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithUrls(c => c.Urls.Add(new() { Url = "https://example.com", DisplayText = "Example" }));
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithUrls(c => c.Urls.Add(new() { Url = "https://example.com", DisplayText = "Example" }))
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -162,11 +160,10 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithUrl("https://example.com", "Example");
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithUrl("https://example.com", "Example")
+            .OnBeforeResourceStarted((_, _, _) =>
         {
             tcs.SetResult();
             return Task.CompletedTask;
@@ -189,14 +186,14 @@ public class WithUrlsTests
 
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpsEndpoint();
-        projectA.WithUrl($"{projectA.Resource.GetEndpoint("https")}/test", "Example");
 
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        projectA.WithUrl($"{projectA.Resource.GetEndpoint("https")}/test", "Example")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -217,15 +214,14 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithHttpEndpoint(name: "test");
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -242,14 +238,13 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectA = builder.AddProject<ProjectB>("projectb");
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        var projectA = builder.AddProject<ProjectB>("projectb")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -266,14 +261,13 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectA = builder.AddProject<ProjectB>("projectb", launchProfileName: "custom");
-
         var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
+        var projectA = builder.AddProject<ProjectB>("projectb", launchProfileName: "custom")
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -290,6 +284,7 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("test", u =>
@@ -297,14 +292,12 @@ public class WithUrlsTests
                 u.Url = "https://example.com";
                 u.DisplayText = "Link Text";
                 u.DisplayOrder = 1000;
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -413,40 +406,39 @@ public class WithUrlsTests
                 CreationTimeStamp = DateTime.UtcNow,
                 State = KnownResourceStates.NotStarted,
                 Properties = []
-            });
-
-        builder.Eventing.Subscribe<InitializeResourceEvent>(custom.Resource, async (e, ct) =>
-        {
-            // Mark all the endpoints on custom resource as allocated so that the URLs are initialized
-            if (custom.Resource.TryGetEndpoints(out var endpoints))
+            })
+            .OnInitializeResource(async (custom, e, ct) =>
             {
-                var startingPort = 1234;
-                foreach (var endpoint in endpoints)
+                // Mark all the endpoints on custom resource as allocated so that the URLs are initialized
+                if (custom.TryGetEndpoints(out var endpoints))
                 {
-                    endpoint.AllocatedEndpoint = new(endpoint, endpoint.TargetHost, endpoint.Port ?? endpoint.TargetPort ?? startingPort++);
+                    var startingPort = 1234;
+                    foreach (var endpoint in endpoints)
+                    {
+                        endpoint.AllocatedEndpoint = new(endpoint, endpoint.TargetHost, endpoint.Port ?? endpoint.TargetPort ?? startingPort++);
+                    }
                 }
-            }
 
-            // Publish the ResourceEndpointsAllocatedEvent for the resource
-            await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(custom.Resource, e.Services), EventDispatchBehavior.BlockingConcurrent, ct);
+                // Publish the ResourceEndpointsAllocatedEvent for the resource
+                await e.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(custom, e.Services), EventDispatchBehavior.BlockingConcurrent, ct);
 
-            // Publish the BeforeResourceStartedEvent for the resource
-            await e.Eventing.PublishAsync(new BeforeResourceStartedEvent(custom.Resource, e.Services), EventDispatchBehavior.BlockingSequential, ct);
+                // Publish the BeforeResourceStartedEvent for the resource
+                await e.Eventing.PublishAsync(new BeforeResourceStartedEvent(custom, e.Services), EventDispatchBehavior.BlockingSequential, ct);
 
-            // Mark all the endpoint URLs as active (this makes them visible in the dashboard)
-            await e.Notifications.PublishUpdateAsync(custom.Resource, s => s with
-            {
-                Urls = [.. s.Urls.Select(u => u with { IsInactive = false })]
-            });
-
-            // Move resource to the running state
-            await e.Services.GetRequiredService<ResourceNotificationService>()
-                .PublishUpdateAsync(e.Resource, s => s with
+                // Mark all the endpoint URLs as active (this makes them visible in the dashboard)
+                await e.Notifications.PublishUpdateAsync(custom, s => s with
                 {
-                    StartTimeStamp = DateTime.UtcNow,
-                    State = KnownResourceStates.Running
+                    Urls = [.. s.Urls.Select(u => u with { IsInactive = false })]
                 });
-        });
+
+                // Move resource to the running state
+                await e.Services.GetRequiredService<ResourceNotificationService>()
+                    .PublishUpdateAsync(e.Resource, s => s with
+                    {
+                        StartTimeStamp = DateTime.UtcNow,
+                        State = KnownResourceStates.Running
+                    });
+            });
 
         var app = await builder.BuildAsync();
 
@@ -616,19 +608,18 @@ public class WithUrlsTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var called = false;
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("non-existant", u =>
             {
                 called = true;
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -645,20 +636,19 @@ public class WithUrlsTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var called = false;
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("non-existant", ep =>
             {
                 called = true;
                 return new() { Url = "https://example.com" };
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -674,19 +664,18 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("test", url =>
             {
                 url.Url = "/sub-path";
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -705,19 +694,18 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("test", ep =>
             {
                 return new() { Url = "/sub-path" };
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();
@@ -736,19 +724,18 @@ public class WithUrlsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var tcs = new TaskCompletionSource();
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrls(c =>
             {
                 c.Urls.Add(new() { Endpoint = c.GetEndpoint("test"), Url = "/sub-path" });
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
             });
-
-        var tcs = new TaskCompletionSource();
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(projectA.Resource, (e, ct) =>
-        {
-            tcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         var app = await builder.BuildAsync();
         await app.StartAsync();

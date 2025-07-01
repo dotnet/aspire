@@ -124,7 +124,7 @@ public class ApplicationOrchestratorTests
 
         var initResourceTcs = new TaskCompletionSource();
         InitializeResourceEvent? initEvent = null;
-        applicationEventing.Subscribe<InitializeResourceEvent>(resource.Resource, (@event, ct) =>
+        resource.OnInitializeResource((_, @event, _) =>
         {
             initEvent = @event;
             initResourceTcs.SetResult();
