@@ -3,8 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddGitHubModel("chat", "gpt-4o-mini")
-    .WithApiKey("GITHUB_TOKEN");
+var apiKeyParameter = builder.AddParameter("github-api-key", secret: true);
+
+var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
+    .WithApiKey(apiKeyParameter);
 
 builder.AddProject<Projects.GitHubModelsEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

@@ -69,9 +69,6 @@ public static class GitHubModelsExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(apiKey);
 
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
-        {
-            context.EnvironmentVariables["GITHUB_TOKEN"] = apiKey.Resource;
-        }));
+        return WithApiKey(builder, apiKey.Resource.Value);
     }
 }

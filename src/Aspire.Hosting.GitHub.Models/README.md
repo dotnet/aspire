@@ -26,7 +26,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var apiKey = builder.AddParameter("github-api-key", secret: true);
 
-var chat = builder.AddGitHubModel("chat", "gpt-4o-mini")
+var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
                   .WithApiKey(apiKey);
 
 var myService = builder.AddProject<Projects.MyService>()
@@ -53,37 +53,36 @@ The API key can be configured using a parameter:
 
 ```csharp
 var apiKey = builder.AddParameter("github-api-key", secret: true);
-var chat = builder.AddGitHubModel("chat", "gpt-4o-mini")
+var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
                   .WithApiKey(apiKey);
+```
+
+The in user secrets:
+
+```json
+{
+    "Parameters": 
+    {
+        "github-api-key": "YOUR_GITHUB_TOKEN_HERE"
+    }
+}
 ```
 
 Or directly as a string (not recommended for production):
 
 ```csharp
-var chat = builder.AddGitHubModel("chat", "gpt-4o-mini")
+var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
                   .WithApiKey("your-api-key-here");
-```
-
-### Custom Endpoint
-
-You can customize the endpoint if needed:
-
-```csharp
-var chat = builder.AddGitHubModel("chat", "gpt-4o-mini")
-                  .WithEndpoint("https://custom-endpoint.example.com")
-                  .WithApiKey(apiKey);
 ```
 
 ## Available Models
 
 GitHub Models supports various AI models. Some popular options include:
 
-- `gpt-4o-mini`
-- `gpt-4o`
-- `claude-3-5-sonnet`
-- `llama-3.1-405b-instruct`
-- `llama-3.1-70b-instruct`
-- `llama-3.1-8b-instruct`
+- `openai/gpt-4o-mini`
+- `openai/gpt-4o`
+- `deepseek/DeepSeek-V3-0324`
+- `microsoft/Phi-4-mini-instruct`
 
 Check the [GitHub Models documentation](https://docs.github.com/en/github-models) for the most up-to-date list of available models.
 

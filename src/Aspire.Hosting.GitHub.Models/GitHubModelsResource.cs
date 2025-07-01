@@ -27,12 +27,12 @@ public class GitHubModelsResource : Resource, IResourceWithConnectionString
     }
 
     /// <summary>
-    /// Gets or sets the endpoint URL for the GitHub Models service.
+    /// Gets or sets the endpoint URL for the GitHub Models service, e.g., "https://models.github.ai/inference".
     /// </summary>
     public string Endpoint { get; set; }
 
     /// <summary>
-    /// Gets or sets the model name.
+    /// Gets or sets the model name, e.g., "openai/gpt-4o-mini".
     /// </summary>
     public string Model { get; set; }
 
