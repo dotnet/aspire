@@ -152,7 +152,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var content = new MessageBoxContent
                     {
                         Title = item.Title,
-                        MarkupMessage = new MarkupString(item.Message),
+                        MarkupMessage = new MarkupString(WebUtility.HtmlEncode(item.Message)),
                     };
                     switch (messageBox.Intent)
                     {
@@ -313,7 +313,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             message = await MessageService.ShowMessageBarAsync(options =>
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
-                                options.Body = item.Message; // Message is already HTML encoded depending on options.
+                                options.Body = WebUtility.HtmlEncode(item.Message);
                                 options.Intent = MapMessageIntent(messageBar.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;

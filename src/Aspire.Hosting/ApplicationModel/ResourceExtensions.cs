@@ -380,6 +380,13 @@ public static class ResourceExtensions
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the resource is excluded from being published.
+    /// </summary>
+    /// <param name="resource">The resource to determine if it should be excluded from being published.</param>
+    public static bool IsExcludedFromPublish(this IResource resource) =>
+        resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore;
+
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
         Action<string?, Exception?> processValue,

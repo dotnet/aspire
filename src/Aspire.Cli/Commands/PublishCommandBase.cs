@@ -7,6 +7,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -34,8 +35,8 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
-        : base(name, description)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -432,10 +433,10 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var input = activity.Data.Inputs[i];
 
-            // For multiple inputs, indent the prompt with the label
+            // For multiple inputs, use the input label as the prompt
             // For single input, use the activity status text as the prompt
             var promptText = activity.Data.Inputs.Count > 1
-                ? $"\t{input.Label}: "
+                ? $"{input.Label}: "
                 : $"[bold]{activity.Data.StatusText}[/]";
 
             var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
@@ -493,6 +494,8 @@ internal abstract class PublishCommandBase : BaseCommand
             input.Options,
             choice => choice.Value,
             cancellationToken);
+
+        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
 
         return selectedChoice.Key;
     }

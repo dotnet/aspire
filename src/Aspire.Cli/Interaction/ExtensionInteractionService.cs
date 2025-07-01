@@ -222,6 +222,11 @@ internal class ExtensionInteractionService : IInteractionService
         _consoleInteractionService.DisplayPlainText(text);
     }
 
+    public void DisplayVersionUpdateNotification(string newerVersion)
+    {
+        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);

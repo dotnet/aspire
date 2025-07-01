@@ -688,6 +688,8 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void OpenNewProject(string projectPath) { }
     public void DisplayPlainText(string text) { }
 
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";
