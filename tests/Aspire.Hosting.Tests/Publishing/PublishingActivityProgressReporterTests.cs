@@ -375,6 +375,25 @@ public class PublishingActivityProgressReporterTests
     }
 
     [Fact]
+    public async Task CompleteStepAsync_ThrowsWhenStepAlreadyCompleted()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Complete the step first time
+        await step.CompleteAsync("Complete", cancellationToken: CancellationToken.None);
+
+        // Act & Assert - Try to complete the same step again
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => step.CompleteAsync("Complete again", cancellationToken: CancellationToken.None));
+
+        var stepInternal = Assert.IsType<PublishingStep>(step);
+        Assert.Contains($"Cannot complete step '{stepInternal.Id}' with state 'Completed'. Only 'InProgress' steps can be completed.", exception.Message);
+    }
+
+    [Fact]
     public async Task CompleteStepAsync_KeepsStepInDictionaryForAggregation()
     {
         // Arrange

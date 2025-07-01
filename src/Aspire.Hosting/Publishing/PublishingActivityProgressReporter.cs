@@ -95,6 +95,12 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
     {
         lock (step)
         {
+            // Prevent double completion if the step is already complete
+            if (step.CompletionState != CompletionState.InProgress)
+            {
+                throw new InvalidOperationException($"Cannot complete step '{step.Id}' with state '{step.CompletionState}'. Only 'InProgress' steps can be completed.");
+            }
+
             step.CompletionState = completionState;
             step.CompletionText = completionText;
         }
