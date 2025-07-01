@@ -107,24 +107,23 @@ public static class KafkaBuilderExtensions
                 .WithImage(KafkaContainerImageTags.KafkaUiImage, KafkaContainerImageTags.KafkaUiTag)
                 .WithImageRegistry(KafkaContainerImageTags.Registry)
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
-                .ExcludeFromManifest();
-
-            kafkaUiBuilder.OnBeforeResourceStarted((_, e, ct) =>
-            {
-                var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
-
-                int i = 0;
-                foreach (var kafkaResource in kafkaResources)
+                .ExcludeFromManifest()
+                .OnBeforeResourceStarted(static (kafkaUiBuilder, e, ct) =>
                 {
-                    var endpoint = kafkaResource.InternalEndpoint;
-                    int index = i;
-                    kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
+                    var kafkaResources = kafkaUiBuilder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
 
-                    i++;
-                }
+                    int i = 0;
+                    foreach (var kafkaResource in kafkaResources)
+                    {
+                        var endpoint = kafkaResource.InternalEndpoint;
+                        int index = i;
+                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
 
-                return Task.CompletedTask;
-            });
+                        i++;
+                    }
+
+                    return Task.CompletedTask;
+                });
 
             configureContainer?.Invoke(kafkaUiBuilder);
 

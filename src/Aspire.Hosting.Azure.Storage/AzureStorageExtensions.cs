@@ -139,7 +139,7 @@ public static class AzureStorageExtensions
                 // We can't use ConnectionStringAvailableEvent here because the resource doesn't have a connection string, so
                 // we use BeforeResourceStartedEvent
 
-                var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+                var connectionString = await storage.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
                 blobServiceClient = CreateBlobServiceClient(connectionString);
             })
             .OnResourceReady(async (storage, @event, ct) =>

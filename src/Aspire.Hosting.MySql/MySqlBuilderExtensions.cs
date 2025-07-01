@@ -200,67 +200,66 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                                .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
-                                                .WithImageRegistry(MySqlContainerImageTags.Registry)
-                                                .WithHttpEndpoint(targetPort: 80, name: "http")
-                                                .ExcludeFromManifest();
-
-        phpMyAdminContainerBuilder.OnBeforeResourceStarted((_, e, ct) =>
-        {
-            var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
-
-            if (!mySqlInstances.Any())
+            .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
+            .WithImageRegistry(MySqlContainerImageTags.Registry)
+            .WithHttpEndpoint(targetPort: 80, name: "http")
+            .ExcludeFromManifest()
+            .OnBeforeResourceStarted((phpMyAdminContainerBuilder, e, ct) =>
             {
-                // No-op if there are no MySql resources present.
-                return Task.CompletedTask;
-            }
+                var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
 
-            if (mySqlInstances.Count() == 1)
-            {
-                var singleInstance = mySqlInstances.Single();
-                var endpoint = singleInstance.PrimaryEndpoint;
-                phpMyAdminContainerBuilder.WithEnvironment(context =>
+                if (!mySqlInstances.Any())
                 {
-                    // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
-                    // This will need to be refactored once updated service discovery APIs are available
-                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
-                    context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
-                });
-            }
-            else
-            {
-                var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
-
-                try
-                {
-                    var aspireStore = e.Services.GetRequiredService<IAspireStore>();
-
-                    // Deterministic file path for the configuration file based on its content
-                    var configStoreFilename = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-config.user.inc.php", tempConfigFile);
-
-                    // Need to grant read access to the config file on unix like systems.
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(configStoreFilename, FileMode644);
-                    }
-
-                    phpMyAdminContainerBuilder.WithBindMount(configStoreFilename, "/etc/phpmyadmin/config.user.inc.php");
+                    // No-op if there are no MySql resources present.
+                    return Task.CompletedTask;
                 }
-                finally
+
+                if (mySqlInstances.Count() == 1)
                 {
+                    var singleInstance = mySqlInstances.Single();
+                    var endpoint = singleInstance.PrimaryEndpoint;
+                    phpMyAdminContainerBuilder.WithEnvironment(context =>
+                    {
+                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
+                        context.EnvironmentVariables.Add("PMA_USER", "root");
+                        context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    });
+                }
+                else
+                {
+                    var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
+
                     try
                     {
-                        File.Delete(tempConfigFile);
+                        var aspireStore = e.Services.GetRequiredService<IAspireStore>();
+
+                        // Deterministic file path for the configuration file based on its content
+                        var configStoreFilename = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-config.user.inc.php", tempConfigFile);
+
+                        // Need to grant read access to the config file on unix like systems.
+                        if (!OperatingSystem.IsWindows())
+                        {
+                            File.SetUnixFileMode(configStoreFilename, FileMode644);
+                        }
+
+                        phpMyAdminContainerBuilder.WithBindMount(configStoreFilename, "/etc/phpmyadmin/config.user.inc.php");
                     }
-                    catch
+                    finally
                     {
+                        try
+                        {
+                            File.Delete(tempConfigFile);
+                        }
+                        catch
+                        {
+                        }
                     }
                 }
-            }
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
 

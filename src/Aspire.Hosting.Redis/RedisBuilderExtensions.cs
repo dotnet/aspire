@@ -153,39 +153,38 @@ public static class RedisBuilderExtensions
 
             var resource = new RedisCommanderResource(containerName);
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
-                                      .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
-                                      .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
-                                      .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                      .ExcludeFromManifest();
-
-            resourceBuilder.OnBeforeResourceStarted((_, e, ct) =>
-            {
-                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
-
-                if (!redisInstances.Any())
+                .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
+                .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
+                .WithHttpEndpoint(targetPort: 8081, name: "http")
+                .ExcludeFromManifest()
+                .OnBeforeResourceStarted(static (resourceBuilder, e, ct) =>
                 {
-                    // No-op if there are no Redis resources present.
-                    return Task.CompletedTask;
-                }
+                    var redisInstances = resourceBuilder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
-                var hostsVariableBuilder = new StringBuilder();
-
-                foreach (var redisInstance in redisInstances)
-                {
-                    // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                    // This will need to be refactored once updated service discovery APIs are available
-                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
-                    if (redisInstance.PasswordParameter is not null)
+                    if (!redisInstances.Any())
                     {
-                        hostString += $":{redisInstance.PasswordParameter.Value}";
+                        // No-op if there are no Redis resources present.
+                        return Task.CompletedTask;
                     }
-                    hostsVariableBuilder.Append(hostString);
-                }
 
-                resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
+                    var hostsVariableBuilder = new StringBuilder();
 
-                return Task.CompletedTask;
-            });
+                    foreach (var redisInstance in redisInstances)
+                    {
+                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                        if (redisInstance.PasswordParameter is not null)
+                        {
+                            hostString += $":{redisInstance.PasswordParameter.Value}";
+                        }
+                        hostsVariableBuilder.Append(hostString);
+                    }
+
+                    resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
+
+                    return Task.CompletedTask;
+                });
 
             configureContainer?.Invoke(resourceBuilder);
 
