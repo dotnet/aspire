@@ -22,7 +22,8 @@ public interface IPublishingActivityProgressReporter
     /// <summary>
     /// Signals that the entire publishing process has completed.
     /// </summary>
+    /// <param name="completionMessage">The completion message of the publishing process.</param>
     /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default);
+    Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default);
 }

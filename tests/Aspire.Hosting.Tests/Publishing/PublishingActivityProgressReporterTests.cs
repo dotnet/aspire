@@ -286,7 +286,7 @@ public class PublishingActivityProgressReporterTests
         var reporter = new PublishingActivityProgressReporter(_interactionService);
 
         // Act
-        await reporter.CompletePublishAsync(completionState, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -297,6 +297,26 @@ public class PublishingActivityProgressReporterTests
         Assert.True(activity.Data.IsComplete);
         Assert.Equal(expectedIsError, activity.Data.IsError);
         Assert.Equal(completionState == CompletionState.CompletedWithWarning, activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task CompletePublishAsync_EmitsCorrectActivity_WithCompletionMessage()
+    {
+        // Arrange
+        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var expectedStatusText = "Some error occurred";
+
+        // Act
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Data.Id);
+        Assert.Equal(expectedStatusText, activity.Data.StatusText);
+        Assert.True(activity.Data.IsComplete);
+        Assert.True(activity.Data.IsError);
     }
 
     [Fact]

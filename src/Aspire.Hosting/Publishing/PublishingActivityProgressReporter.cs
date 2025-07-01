@@ -191,7 +191,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
@@ -202,7 +202,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             Data = new PublishingActivityData
             {
                 Id = PublishingActivityTypes.PublishComplete,
-                StatusText = finalState switch
+                StatusText = completionMessage ?? finalState switch
                 {
                     CompletionState.Completed => "Publishing completed successfully",
                     CompletionState.CompletedWithWarning => "Publishing completed with warnings",
