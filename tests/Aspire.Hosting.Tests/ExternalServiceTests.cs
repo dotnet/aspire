@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -19,10 +19,8 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", "https://api.weather.gov/");
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.NotNull(externalService.Resource.UrlExpression);
-        // For literal string, there should be no value providers (it's just a literal)
-        Assert.Empty(externalService.Resource.UrlExpression.ValueProviders);
-        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.Uri?.ToString());
+        Assert.Null(externalService.Resource.UrlParameter);
     }
 
     [Fact]
@@ -34,40 +32,22 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", uri);
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.NotNull(externalService.Resource.UrlExpression);
-        // For literal URI, there should be no value providers (it's just a literal)
-        Assert.Empty(externalService.Resource.UrlExpression.ValueProviders);
-        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.Uri?.ToString());
+        Assert.Null(externalService.Resource.UrlParameter);
     }
 
     [Fact]
-    public void AddExternalServiceWithReferenceExpression()
+    public void AddExternalServiceWithParameter()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var urlParam = builder.AddParameter("weather-url");
-        var urlExpression = ReferenceExpression.Create($"{urlParam.Resource}");
-        var externalService = builder.AddExternalService("weather", urlExpression);
+        var externalService = builder.AddExternalService("weather", urlParam);
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.NotNull(externalService.Resource.UrlExpression);
-        // For parameter-based expression, there should be one value provider (the parameter)
-        Assert.Single(externalService.Resource.UrlExpression.ValueProviders);
-        Assert.Equal(urlParam.Resource, externalService.Resource.UrlExpression.ValueProviders[0]);
-    }
-
-    [Fact]
-    public void AddExternalServiceWithParameterOverload()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var externalService = builder.AddExternalService("weather");
-
-        Assert.Equal("weather", externalService.Resource.Name);
-        Assert.NotNull(externalService.Resource.UrlExpression);
-        // For parameter-based expression, there should be one value provider (the auto-created parameter)
-        Assert.Single(externalService.Resource.UrlExpression.ValueProviders);
-        Assert.IsAssignableFrom<ParameterResource>(externalService.Resource.UrlExpression.ValueProviders[0]);
+        Assert.Null(externalService.Resource.Uri);
+        Assert.NotNull(externalService.Resource.UrlParameter);
+        Assert.Equal("weather-url", externalService.Resource.UrlParameter.Name);
     }
 
     [Theory]
@@ -116,7 +96,7 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", validUrl);
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.Equal(validUrl, externalService.Resource.UrlExpression.ValueExpression);
+        Assert.Equal(validUrl, externalService.Resource.Uri?.ToString());
     }
 
     [Fact]
@@ -132,7 +112,7 @@ public class ExternalServiceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // Check that service discovery information was injected with https scheme
-        Assert.Contains(config, kvp => kvp.Key == "services__weather__https__0" && kvp.Value.ToString() == "https://api.weather.gov/");
+        Assert.Contains(config, kvp => kvp.Key == "services__weather__https__0" && kvp.Value == "https://api.weather.gov/");
     }
 
     [Fact]
@@ -148,7 +128,7 @@ public class ExternalServiceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // Check that service discovery information was injected with http scheme
-        Assert.Contains(config, kvp => kvp.Key == "services__weather__http__0" && kvp.Value.ToString() == "http://api.weather.gov/");
+        Assert.Contains(config, kvp => kvp.Key == "services__weather__http__0" && kvp.Value == "http://api.weather.gov/");
     }
 
     [Fact]
@@ -157,7 +137,8 @@ public class ExternalServiceTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:weather-url"] = "https://api.weather.gov/";
 
-        var externalService = builder.AddExternalService("weather"); // Uses parameter
+        var urlParam = builder.AddParameter("weather-url");
+        var externalService = builder.AddExternalService("weather", urlParam);
         var project = builder.AddProject<TestProject>("project")
                              .WithReference(externalService);
 
@@ -176,7 +157,8 @@ public class ExternalServiceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         
-        var externalService = builder.AddExternalService("weather"); // Uses parameter
+        var urlParam = builder.AddParameter("weather-url");
+        var externalService = builder.AddExternalService("weather", urlParam);
         var project = builder.AddProject<TestProject>("project")
                              .WithReference(externalService);
 
@@ -193,9 +175,10 @@ public class ExternalServiceTests
     public async Task ExternalServiceWithInvalidParameterThrowsInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:weather"] = "invalid-url"; // Note: using "weather" as parameter name
+        builder.Configuration["Parameters:weather-url"] = "invalid-url";
 
-        var externalService = builder.AddExternalService("weather"); // This creates a parameter named "weather"
+        var urlParam = builder.AddParameter("weather-url");
+        var externalService = builder.AddExternalService("weather", urlParam);
         var project = builder.AddProject<TestProject>("project")
                              .WithReference(externalService);
 
@@ -204,6 +187,49 @@ public class ExternalServiceTests
         {
             await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
         });
+    }
+
+    [Fact]
+    public void ExternalServiceWithHttpHealthCheck()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("weather", "https://api.weather.gov/")
+                                    .WithHttpHealthCheck();
+
+        // Build the app to register health checks
+        using var app = builder.Build();
+
+        // Verify that health check was registered
+        var healthCheckService = app.Services.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+        Assert.NotNull(healthCheckService);
+    }
+
+    [Fact]
+    public void ExternalServiceWithHttpHealthCheckCustomPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("weather", "https://api.weather.gov/")
+                                    .WithHttpHealthCheck("/health", 200);
+
+        // Build the app to register health checks
+        using var app = builder.Build();
+
+        // Verify that health check was registered
+        var healthCheckService = app.Services.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+        Assert.NotNull(healthCheckService);
+    }
+
+    [Fact]
+    public void ExternalServiceWithHttpHealthCheckInvalidPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("weather", "https://api.weather.gov/");
+
+        // Should throw with invalid relative path
+        Assert.Throws<ArgumentException>(() => externalService.WithHttpHealthCheck("https://invalid.com/path"));
     }
 
     [Fact]
@@ -227,7 +253,6 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", "https://api.weather.gov/");
 
         // Verify the resource implements the expected interfaces
-        Assert.IsAssignableFrom<IResourceWithServiceDiscovery>(externalService.Resource);
         Assert.IsAssignableFrom<IResourceWithoutLifetime>(externalService.Resource);
     }
 

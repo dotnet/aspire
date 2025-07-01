@@ -9,22 +9,54 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Represents an external service resource with service discovery capabilities.
 /// </summary>
-public sealed class ExternalServiceResource : Resource, IResourceWithServiceDiscovery, IResourceWithoutLifetime
+public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
 {
+    private readonly Uri? _uri;
+    private readonly ParameterResource? _urlParameter;
+
     /// <summary>
-    /// Creates a new instance of <see cref="ExternalServiceResource"/> with a specified name and URL expression.
+    /// Creates a new instance of <see cref="ExternalServiceResource"/> with a specified name and URI.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="urlExpression">The URL expression for the external service.</param>
-    public ExternalServiceResource(string name, ReferenceExpression urlExpression) : base(name)
+    /// <param name="uri">The URI for the external service.</param>
+    /// <remarks>
+    /// The URI must be an absolute URI with the absolute path set to "/".
+    /// </remarks>
+    public ExternalServiceResource(string name, Uri uri) : base(name)
     {
-        UrlExpression = urlExpression ?? throw new ArgumentNullException(nameof(urlExpression), "The URL expression for the external service cannot be null.");
+        _uri = uri ?? throw new ArgumentNullException(nameof(uri), "The URI for the external service cannot be null.");
+
+        if (GetUriValidationException(_uri) is { } exception)
+        {
+            throw exception;
+        }
     }
 
     /// <summary>
-    /// Gets the URL expression for the external service.
+    /// Creates a new instance of <see cref="ExternalServiceResource"/> with a specified name and URL parameter.
     /// </summary>
-    public ReferenceExpression UrlExpression { get; }
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="urlParameter">The parameter to use for the URL of the external service.</param>
+    public ExternalServiceResource(string name, ParameterResource urlParameter) : base(name)
+    {
+        _urlParameter = urlParameter ?? throw new ArgumentNullException(nameof(urlParameter), "The URL parameter for the external service cannot be null.");
+    }
+
+    /// <summary>
+    /// Gets the URI for the external service, if defined.
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="Uri"/> is <c>null</c>, the external service URL is parameterized and can be accessed via <see cref="UrlParameter"/>."/>
+    /// </remarks>
+    public Uri? Uri => _uri;
+
+    /// <summary>
+    /// Gets the URL parameter for the external service, if defined.
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="UrlParameter"/> is <c>null</c>, the external service URL is not parameterized and can be accessed directly via <see cref="Uri"/>.
+    /// </remarks>
+    public ParameterResource? UrlParameter => _urlParameter;
 
     internal static bool UrlIsValidForExternalService(string? url, [NotNullWhen(true)] out Uri? uri, [NotNullWhen(false)] out string? message)
     {
