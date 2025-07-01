@@ -198,9 +198,11 @@ public class Program
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                var logger = provider.GetRequiredService<ILogger<ExtensionInteractionService>>();
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
-                    extensionPromptEnabled);
+                    extensionPromptEnabled,
+                    logger);
             });
         }
         else
