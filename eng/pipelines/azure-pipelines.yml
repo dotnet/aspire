@@ -187,6 +187,12 @@ extends:
               - script: $(Build.SourcesDirectory)/build.sh --ci --sign --build --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl:$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/Build.binlog -p:_DryRun=false
                 displayName: Build os-specific packages
 
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: Publish Artifacts
+                inputs:
+                  PathtoPublish: '$(Build.ArtifactStagingDirectory)/artifacts/packages/'
+                  ArtifactName: Signed_Archives_linux
+
               #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
                 #parameters:
                   #args:
@@ -210,6 +216,12 @@ extends:
             steps:
               - script: $(Build.SourcesDirectory)/build.sh --ci --sign --build --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl:$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/Build.binlog -p:_DryRun=false
                 displayName: Build os-specific packages
+
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: Publish Artifacts
+                inputs:
+                  PathtoPublish: '$(Build.ArtifactStagingDirectory)/artifacts/packages/'
+                  ArtifactName: Signed_Archives_macos
 
               #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
                 #parameters:
