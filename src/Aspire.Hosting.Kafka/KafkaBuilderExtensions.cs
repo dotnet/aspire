@@ -109,7 +109,7 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(kafkaUi, (e, ct) =>
+            kafkaUiBuilder.OnBeforeResourceStarted((_, e, ct) =>
             {
                 var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
 

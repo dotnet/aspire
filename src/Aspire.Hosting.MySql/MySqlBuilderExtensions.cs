@@ -205,7 +205,7 @@ public static class MySqlBuilderExtensions
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .ExcludeFromManifest();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, (e, ct) =>
+        phpMyAdminContainerBuilder.OnBeforeResourceStarted((_, e, ct) =>
         {
             var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
 
