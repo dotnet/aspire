@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -24,8 +25,16 @@ internal class ExecCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
 
-    public ExecCommand(IDotNetCliRunner runner, IInteractionService interactionService, ICertificateService certificateService, IProjectLocator projectLocator, IAnsiConsole ansiConsole, AspireCliTelemetry telemetry)
-        : base("exec", ExecCommandStrings.Description)
+    public ExecCommand(
+        IDotNetCliRunner runner,
+        IInteractionService interactionService,
+        ICertificateService certificateService,
+        IProjectLocator projectLocator,
+        IAnsiConsole ansiConsole,
+        AspireCliTelemetry telemetry,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier)
+        : base("exec", ExecCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -52,10 +61,6 @@ internal class ExecCommand : BaseCommand
         var startResourceOption = new Option<string>("--start-resource", "-s");
         startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
         Options.Add(startResourceOption);
-
-        var appHostKeepAliveOption = new Option<bool>("--apphost-keepalive", "-k");
-        appHostKeepAliveOption.Description = ExecCommandStrings.AppHostKeepAliveArgumentDescription;
-        Options.Add(appHostKeepAliveOption);
 
         TreatUnmatchedTokensAsErrors = false;
     }
@@ -97,8 +102,6 @@ internal class ExecCommand : BaseCommand
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
             };
-
-            var keepAliveAppHost = parseResult.GetValue<bool>("--apphost-keepalive");
 
             var targetResourceMode = "--resource";
             var targetResource = parseResult.GetValue<string>("--resource");
@@ -178,16 +181,13 @@ internal class ExecCommand : BaseCommand
                     return ExitCodeConstants.Success;
                 });
 
-            if (!keepAliveAppHost)
-            {
-                _ = await _interactionService.ShowStatusAsync<int>(
-                    ":linked_paperclips: Stopping app host...",
-                    async () =>
-                    {
-                        await backchannel.RequestStopAsync(cancellationToken);
-                        return ExitCodeConstants.Success;
-                    });
-            }
+            _ = await _interactionService.ShowStatusAsync<int>(
+                ":linked_paperclips: Stopping app host...",
+                async () =>
+                {
+                    await backchannel.RequestStopAsync(cancellationToken);
+                    return ExitCodeConstants.Success;
+                });
 
             var result = await pendingRun;
             if (result != 0)
