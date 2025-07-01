@@ -233,7 +233,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.True(storage.Resource.IsContainer());
 
         var blobs = storage.AddBlobs("blob");
-        var blobContainer = blobs.AddBlobContainer(name: "myContainer", blobContainerName);
+        var blobContainer = storage.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobConnectionString = await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default);
         string? blobContainerConnectionString = await ((IResourceWithConnectionString)blobContainer.Resource).ConnectionStringExpression.GetValueAsync(default);
@@ -255,7 +255,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
 
         var blobs = storage.AddBlobs("blob");
-        var blobContainer = blobs.AddBlobContainer(name: "myContainer", blobContainerName);
+        var blobContainer = storage.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobsConnectionString = await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default);
         string expected = $"Endpoint={blobsConnectionString};ContainerName={blobContainerName}";
@@ -269,8 +269,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobs("blob");
-        var blobContainer = blobs.AddBlobContainer(name: "myContainer");
+        var blobContainer = storage.AddBlobContainer(name: "myContainer");
 
         Assert.Equal("Endpoint={storage.outputs.blobEndpoint};ContainerName=myContainer", blobContainer.Resource.ConnectionStringExpression.ValueExpression);
     }
@@ -281,8 +280,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage");
 
-        var blobs = storage.AddBlobs("myblobs");
-        var blob = blobs.AddBlobContainer(name: "myContainer", blobContainerName: "my-blob-container");
+        var blob = storage.AddBlobContainer(name: "myContainer", blobContainerName: "my-blob-container");
         var queues = storage.AddQueues("myqueues");
         var tables = storage.AddTables("mytables");
 
