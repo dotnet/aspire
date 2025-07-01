@@ -184,7 +184,7 @@ extends:
                 clean: true
 
             steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
+              - script: $(Build.SourcesDirectory)/build.sh --ci --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
                 displayName: Build os-specific packages
 
               #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
@@ -208,7 +208,7 @@ extends:
                 clean: true
 
             steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
+              - script: $(Build.SourcesDirectory)/build.sh --ci --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl -sign
                 displayName: Build os-specific packages
 
               #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
