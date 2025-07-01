@@ -79,7 +79,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Deploy an Aspire app host project to its supported deployment targets..
+        ///   Looks up a localized string similar to Deploy an Aspire app host project to its supported deployment targets. (Preview).
         /// </summary>
         public static string Description {
             get {

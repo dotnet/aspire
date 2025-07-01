@@ -7,6 +7,5 @@ namespace Aspire.Cli;
 internal static class KnownFeatures
 {
     public static string FeaturePrefix => "features";
-    public static string DeployCommandEnabled => "deployCommandEnabled";
     public static string UpdateNotificationsEnabled => "updateNotificationsEnabled";
 }

@@ -88,12 +88,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
+        Subcommands.Add(deployCommand);
         Subcommands.Add(execCommand);
-
-        // Only add deploy command if the feature flag is enabled
-        if (featureFlags.IsFeatureEnabled(KnownFeatures.DeployCommandEnabled, false))
-        {
-            Subcommands.Add(deployCommand);
-        }
     }
 }
