@@ -108,9 +108,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     // values in various callbacks and is a central location to access useful services like IServiceProvider.
     private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
 
-    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions(out string? configurationOperation)
+    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions(AppHostOptions appHostOptions)
     {
-        configurationOperation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant();
+        var configurationOperation = appHostOptions.Operation?.ToLowerInvariant();
         if (configurationOperation is null)
         {
             return _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -195,8 +195,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
         // Set configuration
+        var appHostOptions = ConfigureAppHostOptions(options);
         ConfigurePublishingOptions(options);
-        ConfigureExecOptions(options);
+        ConfigureExecOptions(options, appHostOptions);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -205,10 +206,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = BuildExecutionContextOptions(out var configurationOperation);
+        _executionContextOptions = BuildExecutionContextOptions(appHostOptions);
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
-
-        bool IsExecMode() => configurationOperation is "exec";
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
@@ -231,7 +230,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         });
 
         // exec
-        if (IsExecMode())
+        if (appHostOptions.IsExecMode())
         {
             _innerBuilder.Services.AddSingleton<ExecResourceManager>();
             _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ExecResourceManager>());
@@ -283,7 +282,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigureHealthChecks();
 
-        if (ExecutionContext.IsRunMode && !IsExecMode())
+        if (ExecutionContext.IsRunMode && !appHostOptions.IsExecMode())
         {
             // Dashboard
             if (!options.DisableDashboard)
@@ -492,11 +491,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
-    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
+    private AppHostOptions ConfigureAppHostOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
             { "--operation", "AppHost:Operation" },
+        };
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
+
+        var configurationSection = _innerBuilder.Configuration.GetSection(AppHostOptions.Section);
+        _innerBuilder.Services.Configure<AppHostOptions>(configurationSection);
+
+        AppHostOptions appHostOptions = new();
+        configurationSection.Bind(appHostOptions);
+        return appHostOptions;
+    }
+
+    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--deploy", "Publishing:Deploy" },
@@ -509,11 +523,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
     }
 
-    private void ConfigureExecOptions(DistributedApplicationOptions options)
+    private void ConfigureExecOptions(DistributedApplicationOptions options, AppHostOptions appHostOptions)
     {
         var switchMappings = new Dictionary<string, string>()
         {
-            { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--start-resource", "Exec:ResourceName" },
             { "--command", "Exec:Command" }
@@ -529,7 +542,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 return;
             }
 
-            if (_innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() == "exec")
+            if (appHostOptions.IsExecMode())
             {
                 execOptions.Enabled = true;
             }
