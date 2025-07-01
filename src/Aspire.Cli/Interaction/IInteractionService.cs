@@ -24,4 +24,6 @@ internal interface IInteractionService
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
     void OpenNewProject(string projectPath);
+
+    void DisplayVersionUpdateNotification(string newerVersion);
 }

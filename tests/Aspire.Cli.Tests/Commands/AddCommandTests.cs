@@ -494,6 +494,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+
+            // Makes it easier to isolate behavior in test case by disabling one
+            // of the concurrent calls to the NuGetCache from the prefetcher.
+            options.DisabledFeatures = [KnownFeatures.UpdateNotificationsEnabled];
+
             options.AddCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();

@@ -4,11 +4,13 @@
 using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Utils;
 using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
@@ -22,8 +24,17 @@ internal sealed class NewCommand : BaseCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
 
-    public NewCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter, IInteractionService interactionService, ICertificateService certificateService, ITemplateProvider templateProvider, AspireCliTelemetry telemetry)
-        : base("new", NewCommandStrings.Description)
+    public NewCommand(
+        IDotNetCliRunner runner,
+        INuGetPackageCache nuGetPackageCache,
+        INewCommandPrompter prompter,
+        IInteractionService interactionService,
+        ICertificateService certificateService,
+        ITemplateProvider templateProvider,
+        AspireCliTelemetry telemetry,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier)
+        : base("new", NewCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
@@ -64,7 +75,7 @@ internal sealed class NewCommand : BaseCommand
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, features, updateNotifier);
             Subcommands.Add(templateCommand);
         }
     }

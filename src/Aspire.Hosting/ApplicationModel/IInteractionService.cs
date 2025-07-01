@@ -321,11 +321,6 @@ public class InteractionOptions
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
     public bool? ShowDismiss { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to escape HTML in the message content. Defaults to <c>true</c>.
-    /// </summary>
-    public bool? EscapeMessageHtml { get; set; } = true;
 }
 
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

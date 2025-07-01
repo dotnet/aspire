@@ -7,6 +7,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -34,8 +35,8 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
-        : base(name, description)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -494,7 +495,7 @@ internal abstract class PublishCommandBase : BaseCommand
             choice => choice.Value,
             cancellationToken);
 
-        AnsiConsole.MarkupLine($"{promptText.EscapeMarkup()} {selectedChoice.Value.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
 
         return selectedChoice.Key;
     }
