@@ -37,7 +37,7 @@ internal sealed class RunCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
         IFeatures features,
-        ICliUpdateNotififier updateNotifier
+        ICliUpdateNotifier updateNotifier
         )
         : base("run", RunCommandStrings.Description, features, updateNotifier)
     {

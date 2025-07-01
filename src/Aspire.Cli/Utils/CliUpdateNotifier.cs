@@ -1,24 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Microsoft.Extensions.Logging;
 using Semver;
-using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
 
-internal interface ICliUpdateNotififier
+internal interface ICliUpdateNotifier
 {
     Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default);
 }
 
-internal sealed class CliUpdateNotififier(
-    ILogger<CliUpdateNotififier> logger,
+internal class CliUpdateNotifier(
+    ILogger<CliUpdateNotifier> logger,
     INuGetPackageCache nuGetPackageCache,
-    IAnsiConsole console) : ICliUpdateNotififier
+    IInteractionService interactionService) : ICliUpdateNotifier
 {
-    private const string UpdateUrl = "https://aka.ms/aspire/update";
 
     public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default)
     {
@@ -36,7 +35,7 @@ internal sealed class CliUpdateNotififier(
 
             if (newerVersion is not null)
             {
-                DisplayUpdateNotification(newerVersion);
+                interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
             }
         }
         catch (Exception ex)
@@ -45,7 +44,7 @@ internal sealed class CliUpdateNotififier(
         }
     }
 
-    private static SemVersion? GetCurrentVersion()
+    protected virtual SemVersion? GetCurrentVersion()
     {
         try
         {
@@ -105,13 +104,5 @@ internal sealed class CliUpdateNotififier(
         }
 
         return null;
-    }
-
-    private void DisplayUpdateNotification(SemVersion newerVersion)
-    {
-        console.WriteLine();
-        console.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
-        console.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
-        console.WriteLine();
     }
 }

@@ -33,7 +33,7 @@ internal sealed class NewCommand : BaseCommand
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
         IFeatures features,
-        ICliUpdateNotififier updateNotifier)
+        ICliUpdateNotifier updateNotifier)
         : base("new", NewCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);

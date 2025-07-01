@@ -221,4 +221,9 @@ internal class ExtensionInteractionService : IInteractionService
     {
         _consoleInteractionService.DisplayPlainText(text);
     }
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
+    {
+        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
+    }
 }

@@ -105,7 +105,7 @@ public class Program
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
-        builder.Services.AddSingleton<ICliUpdateNotififier, CliUpdateNotififier>();
+        builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddMemoryCache();
 
         // Template factories.

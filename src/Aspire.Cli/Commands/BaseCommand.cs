@@ -11,7 +11,7 @@ internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
 
-    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotififier updateNotifier) : base(name, description)
+    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier) : base(name, description)
     {
         SetAction(async (parseResult, cancellationToken) =>
         {

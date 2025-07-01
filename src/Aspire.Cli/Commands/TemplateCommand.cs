@@ -12,7 +12,7 @@ internal sealed class TemplateCommand : BaseCommand
 {
     private readonly Func<ParseResult, CancellationToken, Task<int>> _executeCallback;
 
-    public TemplateCommand(ITemplate template, Func<ParseResult, CancellationToken, Task<int>> executeCallback, IFeatures features, ICliUpdateNotififier updateNotifier)
+    public TemplateCommand(ITemplate template, Func<ParseResult, CancellationToken, Task<int>> executeCallback, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(template.Name, template.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(template);
