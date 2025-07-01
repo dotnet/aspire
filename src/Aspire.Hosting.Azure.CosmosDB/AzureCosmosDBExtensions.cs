@@ -88,17 +88,18 @@ public static class AzureCosmosExtensions
                });
 
         CosmosClient? cosmosClient = null;
-        builder.OnConnectionStringAvailable(async (cosmosDb, @event, ct) =>{
-                var connectionString = await cosmosDb.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+        builder.OnConnectionStringAvailable(async (cosmosDb, @event, ct) =>
+        {
+            var connectionString = await cosmosDb.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
-                if (connectionString == null)
-                {
-                    throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-                }
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
 
-                cosmosClient = CreateCosmosClient(connectionString);
-            })
-            .OnResourceReady(async (cosmosDb, @event, ct) =>
+            cosmosClient = CreateCosmosClient(connectionString);
+        })
+        .OnResourceReady(async (cosmosDb, @event, ct) =>
         {
             if (cosmosClient is null)
             {

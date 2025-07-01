@@ -12,7 +12,7 @@ namespace Aspire.Hosting;
 public static class EventingExtensions
 {
     /// <summary>
-    /// Subscribes a callback to the <see cref="BeforeResourceStartedEvent"/> event within the AppHost."/>
+    /// Subscribes a callback to the <see cref="BeforeResourceStartedEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -23,7 +23,7 @@ public static class EventingExtensions
         => builder.OnEvent(callback);
 
     /// <summary>
-    /// Subscribes a callback to the <see cref="ConnectionStringAvailableEvent"/> event within the AppHost."/>
+    /// Subscribes a callback to the <see cref="ConnectionStringAvailableEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -34,7 +34,7 @@ public static class EventingExtensions
         => builder.OnEvent(callback);
 
     /// <summary>
-    /// Subscribes a callback to the <see cref="InitializeResourceEvent"/> event within the AppHost."/>
+    /// Subscribes a callback to the <see cref="InitializeResourceEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -45,7 +45,7 @@ public static class EventingExtensions
         => builder.OnEvent(callback);
 
     /// <summary>
-    /// Subscribes a callback to the <see cref="ResourceEndpointsAllocatedEvent"/> event within the AppHost."/>
+    /// Subscribes a callback to the <see cref="ResourceEndpointsAllocatedEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -56,7 +56,7 @@ public static class EventingExtensions
         => builder.OnEvent(callback);
 
     /// <summary>
-    /// Subscribes a callback to the <see cref="ResourceReadyEvent"/> event within the AppHost."/>
+    /// Subscribes a callback to the <see cref="ResourceReadyEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
