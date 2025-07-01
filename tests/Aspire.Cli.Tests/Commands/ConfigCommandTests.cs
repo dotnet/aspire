@@ -285,37 +285,37 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(
             workspace,
             outputHelper,
-            options => options.EnabledFeatures = new[] { KnownFeatures.TestFeature }
+            options => options.EnabledFeatures = new[] { "testFeature" }
             );
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to true
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.TestFeature} true");
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature true");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatures>();
-        Assert.True(featureFlags.IsFeatureEnabled(KnownFeatures.TestFeature, defaultValue: false));
+        Assert.True(featureFlags.IsFeatureEnabled("testFeature", defaultValue: false));
     }
 
     [Fact]
     public async Task FeatureFlags_WhenSetToFalse_ReturnsFalse()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => options.DisabledFeatures = new[] { KnownFeatures.TestFeature });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => options.DisabledFeatures = new[] { "testFeature" });
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to false
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.TestFeature} false");
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature false");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatures>();
-        Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.TestFeature, defaultValue: true));
+        Assert.False(featureFlags.IsFeatureEnabled("testFeature", defaultValue: true));
     }
 
     [Fact]
@@ -327,19 +327,19 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
             outputHelper,
             options => options.ConfigurationCallback += confing =>
             {
-                confing[$"{KnownFeatures.FeaturePrefix}:{KnownFeatures.TestFeature}"] = "invalid"; // Set an invalid value
+                confing[$"{KnownFeatures.FeaturePrefix}:testFeature"] = "invalid"; // Set an invalid value
             });
         var provider = services.BuildServiceProvider();
 
         // Set the feature flag to an invalid value
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.TestFeature} invalid");
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature invalid");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatures>();
-        Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.TestFeature, defaultValue: true));
+        Assert.False(featureFlags.IsFeatureEnabled("testFeature", defaultValue: true));
     }
 
     [Fact]
