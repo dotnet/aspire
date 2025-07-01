@@ -73,26 +73,6 @@ internal sealed class PublishingTask : IPublishingTask
     }
 
     /// <summary>
-    /// Marks the task as completed with warnings.
-    /// </summary>
-    /// <param name="completionMessage">Optional completion message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task WarnAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
-    {
-        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithWarning, completionMessage, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Marks the task as failed with an error.
-    /// </summary>
-    /// <param name="completionMessage">Optional completion message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task FailAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
-    {
-        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithError, completionMessage, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Disposes the task, completing it successfully if not already completed.
     /// </summary>
     public async ValueTask DisposeAsync()

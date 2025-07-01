@@ -108,15 +108,7 @@ public static class PublishingExtensions
         string? message = null,
         CancellationToken cancellationToken = default)
     {
-        if (task is PublishingTask concreteTask)
-        {
-            await concreteTask.WarnAsync(message, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // For other implementations, fall back to normal completion
-            await task.CompleteAsync(message, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
-        }
+        await task.CompleteAsync(message, CompletionState.CompletedWithWarning, cancellationToken).ConfigureAwait(false);
         return task;
     }
 
@@ -132,15 +124,7 @@ public static class PublishingExtensions
         string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {
-        if (task is PublishingTask concreteTask)
-        {
-            await concreteTask.FailAsync(errorMessage, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // For other implementations, fall back to normal completion
-            await task.CompleteAsync(errorMessage, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
-        }
+        await task.CompleteAsync(errorMessage, CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
         return task;
     }
 }
