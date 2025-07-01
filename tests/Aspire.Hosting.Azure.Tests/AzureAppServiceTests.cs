@@ -280,8 +280,7 @@ public class AzureAppServiceTests
         var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .UseMethodName("AzureAppServiceEnvironmentCanReferenceExistingAppServicePlan");
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
