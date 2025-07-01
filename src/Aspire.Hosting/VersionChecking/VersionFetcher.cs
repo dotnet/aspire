@@ -63,14 +63,7 @@ internal sealed class VersionFetcher : IVersionFetcher
         var versions = new List<SemVersion>();
         foreach (var package in packages)
         {
-            // Filter packages to only consider "Aspire.Hosting.AppHost".
-            // Although the CLI command 'dotnet package search Aspire.Hosting.AppHost --format json' 
-            // should already limit results according to NuGet search syntax 
-            // (https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages#search-syntax),
-            // we add this extra check for robustness in case the CLI output includes unexpected packages.
-            if (package.Id == "Aspire.Hosting.AppHost" && 
-                SemVersion.TryParse(package.LatestVersion, out var version) && 
-                !version.IsPrerelease)
+            if (SemVersion.TryParse(package.LatestVersion, out var version) && !version.IsPrerelease)
             {
                 versions.Add(version);
             }
