@@ -4,7 +4,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -331,7 +330,7 @@ internal class Interaction
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
-        Message = options.EscapeMessageHtml == false ? message : WebUtility.HtmlEncode(message);
+        Message = message;
         Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;

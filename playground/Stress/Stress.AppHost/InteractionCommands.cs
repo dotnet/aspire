@@ -47,13 +47,13 @@ internal static class InteractionCommands
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
                _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, /*EscapeMessageHtml = false*/ });
 
                _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EscapeMessageHtml = false });
+               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, /*EscapeMessageHtml = false*/ });
 
                _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
-               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { EscapeMessageHtml = false });
+               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions {  /*EscapeMessageHtml = false*/ });
 
                return CommandResults.Success();
            })
