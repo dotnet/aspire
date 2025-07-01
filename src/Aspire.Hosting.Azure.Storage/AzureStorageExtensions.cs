@@ -8,6 +8,7 @@ using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -329,7 +330,12 @@ public static class AzureStorageExtensions
 
         // Create the blob storage resource implicitly
         var blobsName = $"{builder.Resource.Name}-blobs";
-        var blobsResource = new AzureBlobStorageResource(blobsName, builder.Resource);
+
+        if (builder.ApplicationBuilder.Resources.FirstOrDefault(x => string.Equals(x.Name, blobsName, StringComparisons.ResourceName)) is not AzureBlobStorageResource blobsResource)
+        {
+            blobsResource = new AzureBlobStorageResource(blobsName, builder.Resource);
+            builder.ApplicationBuilder.AddResource(blobsResource);
+        }
 
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, blobsResource);
         builder.Resource.BlobContainers.Add(resource);
@@ -416,7 +422,69 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(resource);
+
+        string? connectionString = null;
+
+        var healthCheckKey = $"{resource.Name}_check";
+
+        QueueServiceClient? queueServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureQueueStorage(sp =>
+        {
+            return queueServiceClient ??= CreateQueueServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+        }, name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (blobs, @event, ct) =>
+            {
+                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureQueueResource"/> which can be referenced to get the Azure Storage queue endpoint for the storage account.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="queueName">The name of the queue.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueResource"/>.</returns>
+    public static IResourceBuilder<AzureQueueResource> AddQueue(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? queueName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        queueName ??= name;
+
+        // Create the storage queue resource implicitly
+        var queueStorageName = $"{builder.Resource.Name}-queues";
+
+        if (builder.ApplicationBuilder.Resources.FirstOrDefault(x => string.Equals(x.Name, queueName, StringComparisons.ResourceName)) is not AzureQueueStorageResource storageQueueResource)
+        {
+            storageQueueResource = new AzureQueueStorageResource(queueName, builder.Resource);
+            builder.ApplicationBuilder.AddResource(storageQueueResource);
+        }
+
+        AzureQueueResource resource = new(name, queueName, storageQueueResource);
+        builder.Resource.Queues.Add(resource);
+
+        string? connectionString = null;
+
+        var healthCheckKey = $"{resource.Name}_check";
+
+        QueueServiceClient? queueServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureQueueStorage(
+            sp => queueServiceClient ??= CreateQueueServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized.")),
+            optionsFactory: sp => new HealthChecks.Azure.Storage.Queues.AzureQueueStorageHealthCheckOptions { QueueName = queueName },
+            name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (containerResource, @event, ct) =>
+            {
+                connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
     }
 
     private static BlobServiceClient CreateBlobServiceClient(string connectionString)
@@ -428,6 +496,18 @@ public static class AzureStorageExtensions
         else
         {
             return new BlobServiceClient(connectionString);
+        }
+    }
+
+    private static QueueServiceClient CreateQueueServiceClient(string connectionString)
+    {
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            return new QueueServiceClient(uri, new DefaultAzureCredential());
+        }
+        else
+        {
+            return new QueueServiceClient(connectionString);
         }
     }
 
