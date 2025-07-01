@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -21,7 +20,9 @@ public class ExternalServiceTests
 
         Assert.Equal("weather", externalService.Resource.Name);
         Assert.NotNull(externalService.Resource.UrlExpression);
-        Assert.IsType<LiteralExpression>(externalService.Resource.UrlExpression);
+        // For literal string, there should be no value providers (it's just a literal)
+        Assert.Empty(externalService.Resource.UrlExpression.ValueProviders);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
     }
 
     [Fact]
@@ -34,7 +35,9 @@ public class ExternalServiceTests
 
         Assert.Equal("weather", externalService.Resource.Name);
         Assert.NotNull(externalService.Resource.UrlExpression);
-        Assert.IsType<LiteralExpression>(externalService.Resource.UrlExpression);
+        // For literal URI, there should be no value providers (it's just a literal)
+        Assert.Empty(externalService.Resource.UrlExpression.ValueProviders);
+        Assert.Equal("https://api.weather.gov/", externalService.Resource.UrlExpression.ValueExpression);
     }
 
     [Fact]
@@ -48,7 +51,9 @@ public class ExternalServiceTests
 
         Assert.Equal("weather", externalService.Resource.Name);
         Assert.NotNull(externalService.Resource.UrlExpression);
-        Assert.IsType<ParameterExpression>(externalService.Resource.UrlExpression);
+        // For parameter-based expression, there should be one value provider (the parameter)
+        Assert.Single(externalService.Resource.UrlExpression.ValueProviders);
+        Assert.Equal(urlParam.Resource, externalService.Resource.UrlExpression.ValueProviders[0]);
     }
 
     [Fact]
@@ -60,7 +65,9 @@ public class ExternalServiceTests
 
         Assert.Equal("weather", externalService.Resource.Name);
         Assert.NotNull(externalService.Resource.UrlExpression);
-        Assert.IsType<ParameterExpression>(externalService.Resource.UrlExpression);
+        // For parameter-based expression, there should be one value provider (the auto-created parameter)
+        Assert.Single(externalService.Resource.UrlExpression.ValueProviders);
+        Assert.IsAssignableFrom<ParameterResource>(externalService.Resource.UrlExpression.ValueProviders[0]);
     }
 
     [Theory]
@@ -109,7 +116,7 @@ public class ExternalServiceTests
         var externalService = builder.AddExternalService("weather", validUrl);
 
         Assert.Equal("weather", externalService.Resource.Name);
-        Assert.Equal(validUrl, externalService.Resource.Uri?.ToString());
+        Assert.Equal(validUrl, externalService.Resource.UrlExpression.ValueExpression);
     }
 
     [Fact]
