@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="pl" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project.</source>
-        <target state="translated">Generuje artefakty wdrażania dla projektu hosta aplikacji platformy Aspire.</target>
+        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
+        <target state="needs-review-translation">Generuje artefakty wdrażania dla projektu hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">
