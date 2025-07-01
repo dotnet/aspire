@@ -681,6 +681,8 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayEmptyLine() { }
     public void OpenNewProject(string projectPath) { }
     public void DisplayPlainText(string text) { }
+
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
 }
 
 internal enum ResponseType
