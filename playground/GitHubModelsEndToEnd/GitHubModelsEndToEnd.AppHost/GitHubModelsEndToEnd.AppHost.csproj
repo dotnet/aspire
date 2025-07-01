@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>b8e8b8c7-4a45-4b2e-8c7d-9e8f7a6b5c4d</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.GitHub.Models\Aspire.Hosting.GitHub.Models.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\GitHubModelsEndToEnd.WebStory\GitHubModelsEndToEnd.WebStory.csproj" />
+  </ItemGroup>
+
+</Project>
