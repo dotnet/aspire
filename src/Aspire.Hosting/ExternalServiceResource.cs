@@ -89,6 +89,10 @@ public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
         {
             return new ArgumentException("The URI absolute path must be \"/\".", nameof(uri));
         }
+        if (!string.IsNullOrEmpty(uri.Fragment))
+        {
+            return new ArgumentException("The URI cannot contain a fragment.", nameof(uri));
+        }
         return null;
     }
 }
