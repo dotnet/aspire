@@ -24,17 +24,17 @@ internal sealed class PublishingTask : IPublishingTask
     /// <summary>
     /// Unique Id of the task.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; }
 
     /// <summary>
     /// The identifier of the step this task belongs to.
     /// </summary>
-    public string StepId { get; private set; }
+    public string StepId { get; }
 
     /// <summary>
     /// Reference to the parent step this task belongs to.
     /// </summary>
-    public PublishingStep ParentStep { get; internal set; }
+    public PublishingStep ParentStep { get; }
 
     /// <summary>
     /// The current status text of the task.
@@ -52,23 +52,13 @@ internal sealed class PublishingTask : IPublishingTask
     public string CompletionMessage { get; internal set; } = string.Empty;
 
     /// <summary>
-    /// The progress reporter that created this task.
-    /// </summary>
-    internal PublishingActivityProgressReporter? Reporter { get; set; }
-
-    /// <summary>
     /// Updates the status text of this task.
     /// </summary>
     /// <param name="statusText">The new status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
     {
-        if (Reporter is null)
-        {
-            throw new InvalidOperationException("Cannot update task: Reporter is not set.");
-        }
-
-        await Reporter.UpdateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.UpdateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -78,12 +68,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task CompleteAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
     {
-        if (Reporter is null)
-        {
-            throw new InvalidOperationException("Cannot complete task: Reporter is not set.");
-        }
-
-        await Reporter.CompleteTaskAsync(this, CompletionState.Completed, completionMessage, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.Completed, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -93,12 +78,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task CompleteWithWarningAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
     {
-        if (Reporter is null)
-        {
-            throw new InvalidOperationException("Cannot complete task: Reporter is not set.");
-        }
-
-        await Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithWarning, completionMessage, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithWarning, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -108,12 +88,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task FailAsync(string? completionMessage = null, CancellationToken cancellationToken = default)
     {
-        if (Reporter is null)
-        {
-            throw new InvalidOperationException("Cannot fail task: Reporter is not set.");
-        }
-
-        await Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithError, completionMessage, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, CompletionState.CompletedWithError, completionMessage, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -121,7 +96,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (Reporter is null || CompletionState != CompletionState.InProgress)
+        if (CompletionState != CompletionState.InProgress)
         {
             return;
         }

@@ -32,18 +32,6 @@ public class PublishingExtensionsTests
     }
 
     [Fact]
-    public async Task PublishingStepExtensions_CreateTask_ThrowsWhenNoReporter()
-    {
-        // Arrange
-        await using var step = new PublishingStep("test-id", "Test Step");
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => step.CreateTaskAsync("Initial status", CancellationToken.None));
-        Assert.Equal("Cannot create task: Reporter is not set.", exception.Message);
-    }
-
-    [Fact]
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange

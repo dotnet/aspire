@@ -91,13 +91,13 @@ public class PublishingActivityProgressReporterTests
     {
         // Arrange
         var reporter = new PublishingActivityProgressReporter(_interactionService);
-        var nonExistentStep = new PublishingStep("non-existent-step", "Non-existent Step");
+        var nonExistentStep = new PublishingStep(reporter, "non-existent-step", "Non-existent Step");
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => nonExistentStep.CreateTaskAsync("Test Task", CancellationToken.None));
 
-        Assert.Contains("Cannot create task: Reporter is not set.", exception.Message);
+        Assert.Contains("Step with ID 'non-existent-step' does not exist", exception.Message);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class PublishingActivityProgressReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => invalidTask.UpdateAsync("New status", CancellationToken.None));
 
-        Assert.Contains("Cannot update task: Reporter is not set.", exception.Message);
+        Assert.Contains("Parent step with ID 'non-existent-step' does not exist", exception.Message);
     }
 
     [Fact]

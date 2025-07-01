@@ -36,10 +36,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
 
     public async Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
-        var step = new PublishingStep(Guid.NewGuid().ToString(), title)
-        {
-            Reporter = this
-        };
+        var step = new PublishingStep(this, Guid.NewGuid().ToString(), title);
         _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
@@ -73,10 +70,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
             }
         }
 
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep)
-        {
-            Reporter = this
-        };
+        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
 
         // Add task to parent step
         parentStep.AddTask(task);
