@@ -115,16 +115,18 @@ extends:
     - stage: archive_and_sign
       displayName: Archive, and Sign non-nuget packages
       jobs:
-
-        - template: /eng/pipelines/templates/sign_archives.yml@self
+        - template: /eng/common/templates-official/jobs/jobs.yml@self
           parameters:
-            os: windows
-        - template: /eng/pipelines/templates/sign_archives.yml@self
-          parameters:
-            os: linux
-        - template: /eng/pipelines/templates/sign_archives.yml@self
-          parameters:
-            os: macos
+            jobs:
+              - template: /eng/pipelines/templates/sign_archives.yml@self
+                parameters:
+                  os: windows
+              - template: /eng/pipelines/templates/sign_archives.yml@self
+                parameters:
+                  os: linux
+              - template: /eng/pipelines/templates/sign_archives.yml@self
+                parameters:
+                  os: macos
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
