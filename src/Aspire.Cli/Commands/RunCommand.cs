@@ -172,6 +172,8 @@ internal sealed class RunCommand : BaseCommand
             {
                 grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
+            grid.AddRow(new Text(string.Empty), new Text(string.Empty));
+            grid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
             grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
 
             _ansiConsole.Write(grid);
