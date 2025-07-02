@@ -115,49 +115,49 @@ extends:
     - stage: archive_and_sign
       displayName: Archive, and Sign non-nuget packages
       jobs:
-      - template: /eng/common/templates-official/jobs/jobs.yml@self
-        parameters:
-          jobs:
-          - template: /eng/pipelines/templates/sign_archives.yml@self
-            parameters:
-              os: macos
-          - template: /eng/pipelines/templates/sign_archives.yml@self
-            parameters:
-              os: linux
-          - template: /eng/pipelines/templates/sign_archives.yml@self
-            parameters:
-              os: windows
+      #- template: /eng/common/templates-official/jobs/jobs.yml@self
+        #parameters:
+          #jobs:
+          #- template: /eng/pipelines/templates/sign_archives.yml@self
+            #parameters:
+              #os: macos
+          #- template: /eng/pipelines/templates/sign_archives.yml@self
+            #parameters:
+              #os: linux
+          #- template: /eng/pipelines/templates/sign_archives.yml@self
+            #parameters:
+              #os: windows
 
-          #- job: macos
+          - job: macos
 
-            #pool:
-              #name: Azure Pipelines
-              #vmImage: macOS-latest-internal
-              #os: macOS
+            pool:
+              name: Azure Pipelines
+              vmImage: macOS-latest-internal
+              os: macOS
 
-            #preSteps:
-              #- checkout: self
-                #fetchDepth: 1
-                #clean: true
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
 
-            #steps:
-              #- script: >-
-                  #$(Build.SourcesDirectory)/build.sh
-                  #--ci
-                  #--sign
-                  #--build
-                  #--restore
-                  #-p:PreparePackagesForPublishingOnly=true
-                  #-p:Configuration=$(_BuildConfig)
-                  #-bl:$(Build.Arcade.LogsPath)Build.binlog
-                  #-p:_DryRun=false
-                #displayName: Build os-specific packages
+            steps:
+              - script: >-
+                  $(Build.SourcesDirectory)/build.sh
+                  --ci
+                  --sign
+                  --build
+                  --restore
+                  -p:PreparePackagesForPublishingOnly=true
+                  -p:Configuration=$(_BuildConfig)
+                  -bl:$(Build.Arcade.LogsPath)Build.binlog
+                  -p:_DryRun=false
+                displayName: Build os-specific packages
 
-              #- task: 1ES.PublishBuildArtifacts@1
-                #displayName: Publish Artifacts
-                #inputs:
-                  #PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  #ArtifactName: Signed_Archives_macos
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: Publish Artifacts
+                inputs:
+                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                  ArtifactName: Signed_Archives_macos
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
