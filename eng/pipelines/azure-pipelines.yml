@@ -124,13 +124,12 @@ extends:
           #- template: /eng/pipelines/templates/sign_archives.yml@self
             #parameters:
               #os: linux
-          - job:
-            - template: /eng/pipelines/templates/sign_archives.yml@self
-              parameters:
-                os: windows
+          #- job:
+            #- template: /eng/pipelines/templates/sign_archives.yml@self
+              #parameters:
+                #os: windows
 
           - job: macos
-
             pool:
               name: Azure Pipelines
               vmImage: macOS-latest-internal
