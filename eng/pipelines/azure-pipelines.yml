@@ -198,10 +198,10 @@ extends:
             steps:
               - script: >-
                   $(Build.SourcesDirectory)/build.cmd
-                  --ci
-                  --build
-                  --restore
-                  --sign
+                  -ci
+                  -build
+                  -restore
+                  -sign
                   /p:PreparePackagesForPublishingOnly=true
                   /p:Configuration=$(_BuildConfig)
                   $(_SignArgs)
