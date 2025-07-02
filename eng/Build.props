@@ -1,9 +1,11 @@
 <Project>
   <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true' and '$(PreparePackagesForPublishingOnly)' != 'true'">
-    <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
+    <!--<ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />-->
+    <!--<ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />-->
+    <!--<ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />-->
+    <!--<ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />-->
+
+    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <!-- FIXME: condition/naming -->
     <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true' and $([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />

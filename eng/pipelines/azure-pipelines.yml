@@ -252,6 +252,7 @@ extends:
                 displayName: Download Archives macos
                 inputs:
                   artifactName: Signed_Archives_macos
+                  itemPattern: $(_BuildConfig)/**
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - template: /eng/pipelines/templates/BuildAndTest.yml
