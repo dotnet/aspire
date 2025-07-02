@@ -19,6 +19,7 @@ export interface IInteractionService {
     displayEmptyLine: () => void;
     displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
+    displayPlainText: (message: string) => void;
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: string, message: string) => void;
@@ -30,8 +31,8 @@ type DashboardUrls = {
 };
 
 type ConsoleLine = {
-    stream: 'stdout' | 'stderr';
-    line: string;
+    Stream: 'stdout' | 'stderr';
+    Line: string;
 };
 
 export class InteractionService implements IInteractionService {
@@ -163,6 +164,11 @@ export class InteractionService implements IInteractionService {
         vscode.window.setStatusBarMessage(formatText(message), 5000);
     }
 
+    displayPlainText(message: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying plain text: ${message}`);
+        vscode.window.showInformationMessage(formatText(message));
+    }
+
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
     displayEmptyLine() {
         this._outputChannelWriter.append('\n');
@@ -198,10 +204,13 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    displayLines(lines: ConsoleLine[]) {
-        const displayText = lines.map(line => line.line).join('\n');
-        vscode.window.showInformationMessage(formatText(displayText));
-        lines.forEach(line => this._outputChannelWriter.appendLine('interaction', formatText(line.line)));
+    async displayLines(lines: ConsoleLine[]) {
+        const displayText = lines.map(line => line.Line).join('\n');
+        lines.forEach(line => this._outputChannelWriter.appendLine('interaction', formatText(line.Line)));
+
+        // Open a new temp file with the displayText
+        const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });
+        await vscode.window.showTextDocument(doc, { preview: false });
     }
 
     displayCancellationMessage(message: string) {
@@ -239,6 +248,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
     connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayPlainText", withAuthentication(interactionService.displayPlainText.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));

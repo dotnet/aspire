@@ -179,8 +179,8 @@ suite('InteractionService endpoints', () => {
 		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displayLines([
-			{ stream: 'stdout', line: 'line1' },
-			{ stream: 'stderr', line: 'line2' }
+			{ Stream: 'stdout', Line: 'line1' },
+			{ Stream: 'stderr', Line: 'line2' }
 		]);
 		assert.ok(showInformationMessageSpy.called);
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
