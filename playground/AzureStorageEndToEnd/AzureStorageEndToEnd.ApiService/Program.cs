@@ -8,16 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobClient("blobs");
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
-builder.AddAzureQueueServiceClient("queues");
+builder.AddKeyedAzureQueue("myqueue");
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient1) =>
+app.MapGet("/", async (BlobServiceClient bsc, [FromKeyedServices("myqueue")] QueueClient queue, [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient1) =>
 {
     var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
@@ -30,8 +29,6 @@ app.MapGet("/", async (BlobServiceClient bsc, QueueServiceClient qsc, [FromKeyed
     await ReadBlobsAsync(directContainerClient, blobNames);
     await ReadBlobsAsync(keyedContainerClient1, blobNames);
 
-    var queue = qsc.GetQueueClient("myqueue");
-    await queue.CreateIfNotExistsAsync();
     await queue.SendMessageAsync("Hello, world!");
 
     return blobNames;
