@@ -24,14 +24,16 @@ internal class YarpEnvConfigGenerator
         foreach (var route in routes)
         {
             FlattenToEnvVars(environmentVariables, route, $"{Prefix}ROUTES__{route.RouteId}");
-            // hack
+            // Hack: YARP throws if RouteConfig.RouterId is populated in the config.
+            // YARP will get the RouteId from the config key and populate the value in the RouteConfig itself.
             environmentVariables.Remove($"{Prefix}ROUTES__{route.RouteId}__ROUTEID");
         }
 
         foreach (var cluster in clusters)
         {
             FlattenToEnvVars(environmentVariables, cluster, $"{Prefix}CLUSTERS__{cluster.ClusterId}");
-            // hack
+            // Hack: YARP throws if ClusterConfig.ClusterId is populated in the config.
+            // YARP will get the ClusterId from the config key and populate the value in the ClusterConfig itself.
             environmentVariables.Remove($"{Prefix}CLUSTERS__{cluster.ClusterId}__CLUSTERID");
         }
     }

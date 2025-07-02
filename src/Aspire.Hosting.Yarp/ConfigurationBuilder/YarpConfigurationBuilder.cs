@@ -51,6 +51,8 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
 
     internal void BuildAndPopulateEnvironment()
     {
+        // Check if the configuration was already built or not.
+        // If it was already, we don't want to run it again.
         if (_hasBeenBuilt == false)
         {
             foreach (var configurator in _parent.Resource.ConfigurationBuilderDelegates)
