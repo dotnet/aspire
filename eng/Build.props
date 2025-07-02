@@ -12,9 +12,9 @@
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <!-- FIXME: condition/naming -->
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
+    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
+    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
+    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
 
     <!-- `$(SkipTestProjects)` allows skipping test projects from being
           included in the build at all. This is useful for cases like when we are
