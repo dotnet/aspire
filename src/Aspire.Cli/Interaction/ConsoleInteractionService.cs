@@ -94,7 +94,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+        DisplayMessage("cross_mark", $"[red bold]{errorMessage}[/]");
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -109,7 +109,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySuccess(string message)
     {
-        DisplayMessage("thumbs_up", message);
+        DisplayMessage("check_mark", message);
     }
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
