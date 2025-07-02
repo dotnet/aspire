@@ -22,7 +22,6 @@ export interface IInteractionService {
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: string, message: string) => void;
-    clearStatusBar: () => void;
 }
 
 type DashboardUrls = {
