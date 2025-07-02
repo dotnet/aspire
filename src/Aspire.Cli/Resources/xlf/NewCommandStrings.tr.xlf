@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
-        <target state="needs-review-translation">Yeni bir Aspire örnek projesi oluşturun.</target>
+        <target state="new">Create a new Aspire project.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
