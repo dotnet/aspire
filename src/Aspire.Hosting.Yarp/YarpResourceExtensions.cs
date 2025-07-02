@@ -63,31 +63,6 @@ public static class YarpResourceExtensions
         return yarpBuilder;
     }
 
-    // TODO: File configuration disabled for now
-    ///// <summary>
-    ///// Set explicitly the config file to use for YARP.
-    ///// </summary>
-    ///// <param name="builder">The YARP resource to configure.</param>
-    ///// <param name="configFilePath">The path to the YARP config file.</param>
-    ///// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    //public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
-    //{
-    //    builder.Resource.JsonConfigGenerator.WithConfigFile(configFilePath);
-    //    return builder;
-    //}
-
-    ///// <summary>
-    ///// Configure the YARP resource.
-    ///// </summary>
-    ///// <param name="builder">The YARP resource to configure.</param>
-    ///// <param name="configurationBuilder">The delegate to configure YARP.</param>
-    ///// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    //internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigGeneratorBuilder> configurationBuilder)
-    //{
-    //    configurationBuilder(builder.Resource.JsonConfigGenerator);
-    //    return builder;
-    //}
-
     /// <summary>
     /// Configure the YARP resource.
     /// </summary>
