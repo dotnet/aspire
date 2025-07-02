@@ -9,7 +9,7 @@
     <!-- Publish native AOT if running on the target platfrom -->
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
-    <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
+    <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">false</PublishNativeAot>
   </PropertyGroup>
 
   <ItemGroup>
