@@ -191,7 +191,7 @@ extends:
 
             steps:
               - script: >-
-                  $(Build.SourcesDirectory)/build.sh
+                  $(Build.SourcesDirectory)/build.cmd
                   --ci
                   --build
                   --restore
