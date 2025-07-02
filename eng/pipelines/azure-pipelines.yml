@@ -117,6 +117,11 @@ extends:
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
+          enablePublishUsingPipelines: true
+          enablePublishBuildAssets: true
+          enableTelemetry: true
+          # Publish build logs
+          enablePublishBuildArtifacts: true
           jobs:
           #- template: /eng/pipelines/templates/sign_archives.yml@self
             #parameters:
