@@ -122,9 +122,10 @@ internal class InteractionService : IInteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Complete
+        var promptState = completion.State as bool?;
+        return promptState == null
             ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok((bool)completion.State!);
+            : InteractionResultFactory.Ok(promptState.Value);
     }
 
     // For testing.

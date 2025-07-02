@@ -23,7 +23,6 @@ internal interface IInteractionService
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
-    void OpenNewProject(string projectPath);
 
     void DisplayVersionUpdateNotification(string newerVersion);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);

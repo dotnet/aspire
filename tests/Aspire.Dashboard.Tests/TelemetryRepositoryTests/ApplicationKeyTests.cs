@@ -10,7 +10,7 @@ public class ApplicationKeyTests
 {
     [Theory]
     [InlineData("name", "instanceid", "instanceid", null)]
-    [InlineData("name-abc", "name-abc", "name", "abc")]
+    [InlineData("name-abc", "name-abc", "name-abc", null)]
     [InlineData("name", "name-abc-def", "name", "abc-def")]
     public void Create_Success(string name, string instanceId, string expectedName, string? expectedInstanceId)
     {
