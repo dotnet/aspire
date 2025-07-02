@@ -234,6 +234,8 @@ internal class ExtensionInteractionService : IInteractionService
 
     public void DisplayPlainText(string text)
     {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayPlainTextAsync(text, _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayPlainText(text);
     }
 

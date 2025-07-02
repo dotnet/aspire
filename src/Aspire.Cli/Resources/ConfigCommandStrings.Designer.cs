@@ -140,5 +140,47 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ConfigurationKeyDeletedGlobally", resourceCulture);
             }
         }
+        
+        public static string ExtensionActionPrompt {
+            get {
+                return ResourceManager.GetString("ExtensionActionPrompt", resourceCulture);
+            }
+        }
+        
+        public static string GetCommand_PromptForKey {
+            get {
+                return ResourceManager.GetString("GetCommand_PromptForKey", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_PromptForKey {
+            get {
+                return ResourceManager.GetString("SetCommand_PromptForKey", resourceCulture);
+            }
+        }
+        
+        public static string DeleteCommand_PromptForKey {
+            get {
+                return ResourceManager.GetString("DeleteCommand_PromptForKey", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_PromptForValue {
+            get {
+                return ResourceManager.GetString("SetCommand_PromptForValue", resourceCulture);
+            }
+        }
+        
+        public static string SetCommand_PromptForGlobal {
+            get {
+                return ResourceManager.GetString("SetCommand_PromptForGlobal", resourceCulture);
+            }
+        }
+        
+        public static string DeleteCommand_PromptForGlobal {
+            get {
+                return ResourceManager.GetString("DeleteCommand_PromptForGlobal", resourceCulture);
+            }
+        }
     }
 }

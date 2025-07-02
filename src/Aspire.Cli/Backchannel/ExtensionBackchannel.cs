@@ -36,6 +36,7 @@ internal interface IExtensionBackchannel
     Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
+    Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
@@ -492,6 +493,22 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
             [_token, logLevel.ToString(), message],
+            cancellationToken);
+    }
+
+    public async Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        logger.LogDebug("Sent plain text message {Message}", text);
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayPlainText",
+            [_token, text],
             cancellationToken);
     }
 
