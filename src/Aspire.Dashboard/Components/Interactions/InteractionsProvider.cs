@@ -8,6 +8,7 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
+using Markdig;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -30,6 +31,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private MarkdownPipeline _markdownPipeline = default!;
 
     // Internal for testing.
     internal bool? _enabled;
@@ -63,6 +65,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         {
             _enabled = true;
         }
+
+        _markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
 
         _dialogDisplayTask = Task.Run(async () =>
         {
@@ -152,7 +156,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var content = new MessageBoxContent
                     {
                         Title = item.Title,
-                        MarkupMessage = new MarkupString(WebUtility.HtmlEncode(item.Message)),
+                        MarkupMessage = new MarkupString(GetMessageHtml(item)),
                     };
                     switch (messageBox.Intent)
                     {
@@ -188,6 +192,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var vm = new InteractionsInputsDialogViewModel
                     {
                         Interaction = item,
+                        Message = GetMessageHtml(item),
                         OnSubmitCallback = async savedInteraction =>
                         {
                             var request = new WatchInteractionsRequestUpdate
@@ -266,6 +271,16 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         }
     }
 
+    private string GetMessageHtml(WatchInteractionsResponseUpdate item)
+    {
+        if (!item.MessageAsMarkdown)
+        {
+            return WebUtility.HtmlEncode(item.Message);
+        }
+
+        return MarkdownHelpers.ToHtml(item.Message, _markdownPipeline);
+    }
+
     private async Task WatchInteractionsAsync()
     {
         var interactions = DashboardClient.SubscribeInteractionsAsync(_cts.Token);
@@ -313,7 +328,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             message = await MessageService.ShowMessageBarAsync(options =>
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
-                                options.Body = WebUtility.HtmlEncode(item.Message);
+                                options.Body = GetMessageHtml(item);
                                 options.Intent = MapMessageIntent(messageBar.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;

@@ -321,6 +321,12 @@ public class InteractionOptions
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
     public bool? ShowDismiss { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the message is rendered as Markdown.
+    /// Setting this to <c>true</c> allows a message to contain Markdown elements such as links, text decoration and lists.
+    /// </summary>
+    public bool? MessageAsMarkdown { get; set; }
 }
 
 /// <summary>

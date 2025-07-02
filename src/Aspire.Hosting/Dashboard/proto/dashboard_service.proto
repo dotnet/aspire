@@ -337,6 +337,7 @@ message WatchInteractionsResponseUpdate {
     string secondary_button_text = 5;
     bool show_secondary_button = 6;
     bool show_dismiss = 7;
+    bool message_as_markdown = 8;
 
     oneof kind {
         InteractionComplete complete = 16;
