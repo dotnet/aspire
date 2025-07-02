@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="it" original="../RunCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Esegui un host dell'app Aspire in modalità di sviluppo.</target>
+        <source>Run an Aspire Apphost in development mode.</source>
+        <target state="needs-review-translation">Esegui un host dell'app Aspire in modalità di sviluppo.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Premi [bold]CTRL+C[/] per arrestare l'host dell'app e uscire.</target>
+        <source>Press [bold]Ctrl+C[/] to stop the Apphost and exit.</source>
+        <target state="needs-review-translation">Premi [bold]CTRL+C[/] per arrestare l'host dell'app e uscire.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Percorso del file di un progetto host dell'app Aspire.</target>
+        <source>The path to the Aspire Apphost project file</source>
+        <target state="needs-review-translation">Percorso del file di un progetto host dell'app Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -43,8 +43,8 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Avvio dell'host dell'app Aspire in corso...</target>
+        <source>Starting Aspire Apphost...</source>
+        <target state="needs-review-translation">Avvio dell'host dell'app Aspire in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -63,8 +63,8 @@
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Avvia le risorse del progetto in modalità di monitoraggio.</target>
+        <source>Start project resources in watch mode</source>
+        <target state="needs-review-translation">Avvia le risorse del progetto in modalità di monitoraggio.</target>
         <note />
       </trans-unit>
     </body>

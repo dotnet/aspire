@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">要新增的整合名稱 (例如 redis、postgres)。</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">要新增的整合名稱 (例如 redis、postgres)。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">要新增整合的專案檔路徑。</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">要新增整合的專案檔路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">用於整合的 NuGet 來源。</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">用於整合的 NuGet 來源。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">要新增的整合版本。</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">要新增的整合版本。</target>
         <note />
       </trans-unit>
     </body>

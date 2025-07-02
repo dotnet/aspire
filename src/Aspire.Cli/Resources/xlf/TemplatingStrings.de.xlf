@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="de" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire-App-Host</target>
+        <source>Aspire Apphost</source>
+        <target state="needs-review-translation">Aspire-App-Host</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">

@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../RunCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">在开发模式下运行 Aspire 应用主机。</target>
+        <source>Run an Aspire Apphost in development mode.</source>
+        <target state="needs-review-translation">在开发模式下运行 Aspire 应用主机。</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
+        <source>Press [bold]Ctrl+C[/] to stop the Apphost and exit.</source>
+        <target state="needs-review-translation">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire 应用主机项目文件的路径。</target>
+        <source>The path to the Aspire Apphost project file</source>
+        <target state="needs-review-translation">Aspire 应用主机项目文件的路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -43,8 +43,8 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">正在启动 Aspire 应用主机...</target>
+        <source>Starting Aspire Apphost...</source>
+        <target state="needs-review-translation">正在启动 Aspire 应用主机...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -63,8 +63,8 @@
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">在监视模式下启动项目资源。</target>
+        <source>Start project resources in watch mode</source>
+        <target state="needs-review-translation">在监视模式下启动项目资源。</target>
         <note />
       </trans-unit>
     </body>

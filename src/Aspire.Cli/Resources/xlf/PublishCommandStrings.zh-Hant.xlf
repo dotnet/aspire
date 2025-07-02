@@ -3,7 +3,7 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
+        <source>Generates deployment artifacts for an Aspire Apphost project. (Preview)</source>
         <target state="needs-review-translation">為 Aspire 應用程式主機專案產生部署成品。</target>
         <note />
       </trans-unit>
@@ -18,13 +18,13 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">產生成品的輸出路徑。</target>
+        <source>The output path for the generated artifacts</source>
+        <target state="needs-review-translation">產生成品的輸出路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire 應用程式主機專案檔案的路徑。</target>
+        <source>The path to the Aspire Apphost project file</source>
+        <target state="needs-review-translation">Aspire 應用程式主機專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

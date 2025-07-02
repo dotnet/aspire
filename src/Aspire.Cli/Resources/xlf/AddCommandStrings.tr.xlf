@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">Eklenecek tümleştirmenin adı (ör. redis, postgres).</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">Eklenecek tümleştirmenin adı (ör. redis, postgres).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">Tümleştirmenin ekleneceği proje dosyasının yolu.</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">Tümleştirmenin ekleneceği proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">Tümleştirme için kullanılacak NuGet kaynağı.</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">Tümleştirme için kullanılacak NuGet kaynağı.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">Eklenecek tümleştirmenin sürümü.</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">Eklenecek tümleştirmenin sürümü.</target>
         <note />
       </trans-unit>
     </body>

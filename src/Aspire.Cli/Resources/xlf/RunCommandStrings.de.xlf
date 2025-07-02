@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="de" original="../RunCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Führen Sie einen Aspire-App-Host im Entwicklungsmodus aus.</target>
+        <source>Run an Aspire Apphost in development mode.</source>
+        <target state="needs-review-translation">Führen Sie einen Aspire-App-Host im Entwicklungsmodus aus.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Drücken Sie [bold]STRG+C[/], um den App-Host zu beenden und zu verlassen.</target>
+        <source>Press [bold]Ctrl+C[/] to stop the Apphost and exit.</source>
+        <target state="needs-review-translation">Drücken Sie [bold]STRG+C[/], um den App-Host zu beenden und zu verlassen.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Der Pfad zur Hostprojektdatei der Aspire-App.</target>
+        <source>The path to the Aspire Apphost project file</source>
+        <target state="needs-review-translation">Der Pfad zur Hostprojektdatei der Aspire-App.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -43,8 +43,8 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire-App-Host wird gestartet...</target>
+        <source>Starting Aspire Apphost...</source>
+        <target state="needs-review-translation">Aspire-App-Host wird gestartet...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -63,8 +63,8 @@
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Starten Sie Projektressourcen im Überwachungsmodus.</target>
+        <source>Start project resources in watch mode</source>
+        <target state="needs-review-translation">Starten Sie Projektressourcen im Überwachungsmodus.</target>
         <note />
       </trans-unit>
     </body>

@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ru" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">Включает журналирование отладки в консоли.</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">Включает журналирование отладки в консоли.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Дождитесь подключения отладчика, прежде чем выполнять команду.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

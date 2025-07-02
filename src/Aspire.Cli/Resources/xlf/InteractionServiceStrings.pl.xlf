@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="pl" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">Host aplikacji jest niezgodny. Rozważ uaktualnienie hosta aplikacji lub interfejsu wiersza polecenia platformy Aspire.</target>
+        <source>The Apphost is not compatible. Consider upgrading the Apphost or Aspire CLI.</source>
+        <target state="needs-review-translation">Host aplikacji jest niezgodny. Rozważ uaktualnienie hosta aplikacji lub interfejsu wiersza polecenia platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Trwa tworzenie hosta aplikacji...</target>
+        <source>Building Apphost...</source>
+        <target state="needs-review-translation">Trwa tworzenie hosta aplikacji...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -53,13 +53,13 @@
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
-        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="translated">Wystąpił błąd podczas nawiązywania połączenia z hostem aplikacji. Host aplikacji prawdopodobnie uległ awarii, zanim był dostępny: {0}.</target>
+        <source>An error occurred while connecting to the Apphost. The Apphost possibly crashed before it was available: {0}.</source>
+        <target state="needs-review-translation">Wystąpił błąd podczas nawiązywania połączenia z hostem aplikacji. Host aplikacji prawdopodobnie uległ awarii, zanim był dostępny: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">Trwa znajdowanie hostów aplikacji...</target>
+        <source>Finding Apphosts...</source>
+        <target state="needs-review-translation">Trwa znajdowanie hostów aplikacji...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -83,8 +83,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">Nie określono opcji --project i wykryto wiele plików projektu hosta aplikacji.</target>
+        <source>The --project option was not specified and multiple Apphost project files were detected.</source>
+        <target state="needs-review-translation">Nie określono opcji --project i wykryto wiele plików projektu hosta aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -103,13 +103,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Wybierz hosta aplikacji do uruchomienia</target>
+        <source>Select Apphost to run</source>
+        <target state="needs-review-translation">Wybierz hosta aplikacji do uruchomienia</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Określony plik projektu nie jest projektem hosta aplikacji platformy Aspire.</target>
+        <source>The specified project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">Określony plik projektu nie jest projektem hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -128,8 +128,8 @@
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
-        <source>Waiting for debugger to attach to app host process</source>
-        <target state="translated">Oczekiwanie na dołączenie debugera do procesu hosta aplikacji</target>
+        <source>Waiting for debugger to attach to Apphost process</source>
+        <target state="needs-review-translation">Oczekiwanie na dołączenie debugera do procesu hosta aplikacji</target>
         <note />
       </trans-unit>
     </body>

@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">추가할 통합의 이름(예: redis, postgres)입니다.</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">추가할 통합의 이름(예: redis, postgres)입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">통합을 추가할 프로젝트 파일의 경로입니다.</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">통합을 추가할 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">통합에 사용할 NuGet 원본입니다.</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">통합에 사용할 NuGet 원본입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">추가할 통합의 버전입니다.</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">추가할 통합의 버전입니다.</target>
         <note />
       </trans-unit>
     </body>

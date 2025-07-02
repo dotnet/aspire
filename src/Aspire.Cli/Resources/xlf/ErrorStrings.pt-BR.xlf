@@ -128,13 +128,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">O arquivo de projeto não é um projeto do host de aplicativo do Aspire.</target>
+        <source>Project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">O arquivo de projeto não é um projeto do host de aplicativo do Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">O projeto não é um projeto de host de aplicativo do Aspire.</target>
+        <source>The project is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">O projeto não é um projeto de host de aplicativo do Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

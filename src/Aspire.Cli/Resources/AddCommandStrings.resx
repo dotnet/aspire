@@ -110,16 +110,16 @@
     <value>Add an integration to the Aspire project.</value>
   </data>
   <data name="IntegrationArgumentDescription" xml:space="preserve">
-    <value>The name of the integration to add (e.g. redis, postgres).</value>
+    <value>The name of the integration to add (e.g. redis, postgres)</value>
   </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
-    <value>The path to the project file to add the integration to.</value>
+    <value>The path to the project file to add the integration to</value>
   </data>
   <data name="VersionArgumentDescription" xml:space="preserve">
-    <value>The version of the integration to add.</value>
+    <value>The version of the integration to add</value>
   </data>
   <data name="SourceArgumentDescription" xml:space="preserve">
-    <value>The NuGet source to use for the integration.</value>
+    <value>The NuGet source to use for the integration</value>
   </data>
   <data name="SearchingForAspirePackages" xml:space="preserve">
     <value>Searching for Aspire packages...</value>

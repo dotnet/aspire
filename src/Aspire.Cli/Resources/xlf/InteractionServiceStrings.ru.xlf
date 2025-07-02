@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ru" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">Хост приложения несовместим. Рассмотрите возможность перевода хоста приложения или Aspire CLI на более высокий уровень.</target>
+        <source>The Apphost is not compatible. Consider upgrading the Apphost or Aspire CLI.</source>
+        <target state="needs-review-translation">Хост приложения несовместим. Рассмотрите возможность перевода хоста приложения или Aspire CLI на более высокий уровень.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Выполняется сборка хоста приложения...</target>
+        <source>Building Apphost...</source>
+        <target state="needs-review-translation">Выполняется сборка хоста приложения...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -53,13 +53,13 @@
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
-        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="translated">При подключении к хосту приложений возникла ошибка. Возможно, хост приложения аварийно завершил работу до того, как стал доступен: {0}.</target>
+        <source>An error occurred while connecting to the Apphost. The Apphost possibly crashed before it was available: {0}.</source>
+        <target state="needs-review-translation">При подключении к хосту приложений возникла ошибка. Возможно, хост приложения аварийно завершил работу до того, как стал доступен: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">Производится поиск хостов приложения...</target>
+        <source>Finding Apphosts...</source>
+        <target state="needs-review-translation">Производится поиск хостов приложения...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -83,8 +83,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">Параметр --project не был указан, и было обнаружено несколько файлов проекта хоста приложений.</target>
+        <source>The --project option was not specified and multiple Apphost project files were detected.</source>
+        <target state="needs-review-translation">Параметр --project не был указан, и было обнаружено несколько файлов проекта хоста приложений.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -103,13 +103,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Выберите хост приложения для запуска</target>
+        <source>Select Apphost to run</source>
+        <target state="needs-review-translation">Выберите хост приложения для запуска</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Указанный файл проекта не является проектом хоста приложений Aspire.</target>
+        <source>The specified project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">Указанный файл проекта не является проектом хоста приложений Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -128,8 +128,8 @@
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
-        <source>Waiting for debugger to attach to app host process</source>
-        <target state="translated">Ожидание подключения отладчика к процессу хоста приложения</target>
+        <source>Waiting for debugger to attach to Apphost process</source>
+        <target state="needs-review-translation">Ожидание подключения отладчика к процессу хоста приложения</target>
         <note />
       </trans-unit>
     </body>

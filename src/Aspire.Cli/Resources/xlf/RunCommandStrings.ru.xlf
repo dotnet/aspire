@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ru" original="../RunCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Запустите хост приложений Aspire в режиме разработки.</target>
+        <source>Run an Aspire Apphost in development mode.</source>
+        <target state="needs-review-translation">Запустите хост приложений Aspire в режиме разработки.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Нажмите [bold]Ctrl+C[/], чтобы остановить хост приложений и выйти.</target>
+        <source>Press [bold]Ctrl+C[/] to stop the Apphost and exit.</source>
+        <target state="needs-review-translation">Нажмите [bold]Ctrl+C[/], чтобы остановить хост приложений и выйти.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Путь к файлу проекта хоста приложений Aspire.</target>
+        <source>The path to the Aspire Apphost project file</source>
+        <target state="needs-review-translation">Путь к файлу проекта хоста приложений Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -43,8 +43,8 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Запускается хост приложений Aspire...</target>
+        <source>Starting Aspire Apphost...</source>
+        <target state="needs-review-translation">Запускается хост приложений Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -63,8 +63,8 @@
         <note>The type of the resource, eg Project</note>
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Запустите ресурсы проекта в режиме наблюдения.</target>
+        <source>Start project resources in watch mode</source>
+        <target state="needs-review-translation">Запустите ресурсы проекта в режиме наблюдения.</target>
         <note />
       </trans-unit>
     </body>

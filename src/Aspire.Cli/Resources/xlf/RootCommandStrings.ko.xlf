@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">명령을 실행하기 전에 디버거가 연결되기를 기다리세요.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">명령을 실행하기 전에 디버거가 연결되기를 기다리세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">콘솔에 디버그 로깅을 활성화하세요.</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">콘솔에 디버그 로깅을 활성화하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">명령을 실행하기 전에 디버거가 연결되기를 기다리세요.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">명령을 실행하기 전에 디버거가 연결되기를 기다리세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

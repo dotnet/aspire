@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <source>Deploy an Aspire Apphost project to its supported deployment targets. (Preview)</source>
         <target state="needs-review-translation">Aspire 앱 호스트 프로젝트를 지원되는 배포 대상으로 배포하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">배포 아티팩트의 출력 경로입니다.</target>
+        <source>The output path for deployment artifacts</source>
+        <target state="needs-review-translation">배포 아티팩트의 출력 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">

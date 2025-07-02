@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">Konsolda hata ayıklama kaydını etkinleştirin.</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">Konsolda hata ayıklama kaydını etkinleştirin.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

@@ -107,19 +107,19 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Run an Aspire app host in development mode.</value>
+    <value>Run an Aspire Apphost in development mode.</value>
   </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
-    <value>The path to the Aspire app host project file.</value>
+    <value>The path to the Aspire Apphost project file</value>
   </data>
   <data name="WatchArgumentDescription" xml:space="preserve">
-    <value>Start project resources in watch mode.</value>
+    <value>Start project resources in watch mode</value>
   </data>
   <data name="IsCompatibleAppHostIsNull" xml:space="preserve">
     <value>IsCompatibleAppHost is null</value>
   </data>
   <data name="StartingAppHost" xml:space="preserve">
-    <value>Starting Aspire app host...</value>
+    <value>Starting Aspire Apphost...</value>
   </data>
   <data name="StartingDashboard" xml:space="preserve">
     <value>Starting Aspire dashboard...</value>
@@ -143,7 +143,7 @@
     <value>Endpoints</value>
   </data>
   <data name="PressCtrlCToStopAppHost" xml:space="preserve">
-    <value>Press [bold]Ctrl+C[/] to stop the app host and exit.</value>
+    <value>Press [bold]Ctrl+C[/] to stop the Apphost and exit.</value>
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">

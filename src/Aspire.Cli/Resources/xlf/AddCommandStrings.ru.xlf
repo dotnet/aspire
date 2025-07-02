@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">Имя интеграции для добавления (например, redis, postgres).</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">Имя интеграции для добавления (например, redis, postgres).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">Путь к файлу проекта, в который необходимо добавить интеграцию.</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">Путь к файлу проекта, в который необходимо добавить интеграцию.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">Источник NuGet, который следует использовать для интеграции.</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">Источник NuGet, который следует использовать для интеграции.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">Версия интеграции для добавления.</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">Версия интеграции для добавления.</target>
         <note />
       </trans-unit>
     </body>

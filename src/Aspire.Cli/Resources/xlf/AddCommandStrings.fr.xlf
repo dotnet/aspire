@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">Nom de l’intégration à ajouter (par exemple, redis, postgres).</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">Nom de l’intégration à ajouter (par exemple, redis, postgres).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">Chemin du fichier projet auquel ajouter l’intégration.</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">Chemin du fichier projet auquel ajouter l’intégration.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">Source NuGet à utiliser pour l’intégration.</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">Source NuGet à utiliser pour l’intégration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">Version de l’intégration à ajouter.</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">Version de l’intégration à ajouter.</target>
         <note />
       </trans-unit>
     </body>

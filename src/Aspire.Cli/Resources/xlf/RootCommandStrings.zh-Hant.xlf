@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">請等候偵錯工具連結後再執行命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">啟用控制台的偵錯記錄。</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">啟用控制台的偵錯記錄。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">請等候偵錯工具連結後再執行命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

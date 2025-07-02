@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
-        <source>The name of the integration to add (e.g. redis, postgres).</source>
-        <target state="translated">Nome dell'integrazione da aggiungere, (ad esempio redis, postgres).</target>
+        <source>The name of the integration to add (e.g. redis, postgres)</source>
+        <target state="needs-review-translation">Nome dell'integrazione da aggiungere, (ad esempio redis, postgres).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">Percorso del file di progetto a cui aggiungere l'integrazione.</target>
+        <source>The path to the project file to add the integration to</source>
+        <target state="needs-review-translation">Percorso del file di progetto a cui aggiungere l'integrazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the integration.</source>
-        <target state="translated">Origine NuGet da usare per l'integrazione.</target>
+        <source>The NuGet source to use for the integration</source>
+        <target state="needs-review-translation">Origine NuGet da usare per l'integrazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the integration to add.</source>
-        <target state="translated">Versione dell'integrazione da aggiungere.</target>
+        <source>The version of the integration to add</source>
+        <target state="needs-review-translation">Versione dell'integrazione da aggiungere.</target>
         <note />
       </trans-unit>
     </body>

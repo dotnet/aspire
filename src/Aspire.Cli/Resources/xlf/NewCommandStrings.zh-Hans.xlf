@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
-        <source>The name of the project to create.</source>
-        <target state="translated">要创建的项目的名称。</target>
+        <source>The name of the project to create</source>
+        <target state="needs-review-translation">要创建的项目的名称。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
-        <source>The output path for the project.</source>
-        <target state="translated">项目的输出路径。</target>
+        <source>The output path for the project</source>
+        <target state="needs-review-translation">项目的输出路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
@@ -43,13 +43,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the project templates.</source>
-        <target state="translated">要用于项目模板的 NuGet 源。</target>
+        <source>The NuGet source to use for the project templates</source>
+        <target state="needs-review-translation">要用于项目模板的 NuGet 源。</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the project templates to use.</source>
-        <target state="translated">要使用的项目模板的版本。</target>
+        <source>The version of the project templates to use</source>
+        <target state="needs-review-translation">要使用的项目模板的版本。</target>
         <note />
       </trans-unit>
     </body>

@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <source>Deploy an Aspire Apphost project to its supported deployment targets. (Preview)</source>
         <target state="needs-review-translation">Stellen Sie ein Aspire-App-Hostprojekt für die unterstützten Bereitstellungsziele bereit.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Der Ausgabepfad für Bereitstellungsartefakte.</target>
+        <source>The output path for deployment artifacts</source>
+        <target state="needs-review-translation">Der Ausgabepfad für Bereitstellungsartefakte.</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">

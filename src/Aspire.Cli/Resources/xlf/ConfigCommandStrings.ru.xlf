@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_KeyArgumentDescription">
-        <source>The configuration key to delete.</source>
-        <target state="translated">Ключ конфигурации, который следует удалить.</target>
+        <source>The configuration key to delete</source>
+        <target state="needs-review-translation">Ключ конфигурации, который следует удалить.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -48,8 +48,8 @@
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_KeyArgumentDescription">
-        <source>The configuration key to retrieve.</source>
-        <target state="translated">Ключ конфигурации, который следует получить.</target>
+        <source>The configuration key to retrieve</source>
+        <target state="needs-review-translation">Ключ конфигурации, который следует получить.</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -73,13 +73,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_KeyArgumentDescription">
-        <source>The configuration key to set.</source>
-        <target state="translated">Ключ конфигурации, для которого следует задать значение.</target>
+        <source>The configuration key to set</source>
+        <target state="needs-review-translation">Ключ конфигурации, для которого следует задать значение.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">
-        <source>The configuration value to set.</source>
-        <target state="translated">Значение конфигурации, которое следует задать.</target>
+        <source>The configuration value to set</source>
+        <target state="needs-review-translation">Значение конфигурации, которое следует задать.</target>
         <note />
       </trans-unit>
     </body>

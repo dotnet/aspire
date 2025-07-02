@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">デバッガーがアタッチされるまで待ってから、コマンドを実行します。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">デバッガーがアタッチされるまで待ってから、コマンドを実行します。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">コンソールへのデバッグ ログを有効にします。</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">コンソールへのデバッグ ログを有効にします。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">デバッガーがアタッチされるまで待ってから、コマンドを実行します。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">デバッガーがアタッチされるまで待ってから、コマンドを実行します。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

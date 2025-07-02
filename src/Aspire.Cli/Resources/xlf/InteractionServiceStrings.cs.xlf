@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">Hostitel aplikací není kompatibilní. Zvažte upgrade hostitele aplikací nebo rozhraní Aspire CLI.</target>
+        <source>The Apphost is not compatible. Consider upgrading the Apphost or Aspire CLI.</source>
+        <target state="needs-review-translation">Hostitel aplikací není kompatibilní. Zvažte upgrade hostitele aplikací nebo rozhraní Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Vytváří se hostitel aplikací...</target>
+        <source>Building Apphost...</source>
+        <target state="needs-review-translation">Vytváří se hostitel aplikací...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -53,13 +53,13 @@
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
-        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="translated">Při připojování k hostiteli aplikací došlo k chybě. Pravděpodobně došlo k chybovému ukončení hostitele aplikací před tím, než byl k dispozici: {0}.</target>
+        <source>An error occurred while connecting to the Apphost. The Apphost possibly crashed before it was available: {0}.</source>
+        <target state="needs-review-translation">Při připojování k hostiteli aplikací došlo k chybě. Pravděpodobně došlo k chybovému ukončení hostitele aplikací před tím, než byl k dispozici: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">Hledají se hostitelé aplikací...</target>
+        <source>Finding Apphosts...</source>
+        <target state="needs-review-translation">Hledají se hostitelé aplikací...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -83,8 +83,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">Nebyl zadán parametr --project a bylo zjištěno více souborů projektu hostitele aplikací.</target>
+        <source>The --project option was not specified and multiple Apphost project files were detected.</source>
+        <target state="needs-review-translation">Nebyl zadán parametr --project a bylo zjištěno více souborů projektu hostitele aplikací.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -103,13 +103,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Vyberte hostitele aplikací, který se má spustit.</target>
+        <source>Select Apphost to run</source>
+        <target state="needs-review-translation">Vyberte hostitele aplikací, který se má spustit.</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Zadaný soubor projektu není projekt hostitele aplikací Aspire.</target>
+        <source>The specified project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">Zadaný soubor projektu není projekt hostitele aplikací Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -128,8 +128,8 @@
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
-        <source>Waiting for debugger to attach to app host process</source>
-        <target state="translated">Čeká se na připojení ladicího programu k procesu hostitele aplikací.</target>
+        <source>Waiting for debugger to attach to Apphost process</source>
+        <target state="needs-review-translation">Čeká se na připojení ladicího programu k procesu hostitele aplikací.</target>
         <note />
       </trans-unit>
     </body>

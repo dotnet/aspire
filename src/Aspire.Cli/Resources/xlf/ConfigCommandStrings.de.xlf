@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_KeyArgumentDescription">
-        <source>The configuration key to delete.</source>
-        <target state="translated">Der zu löschende Konfigurationsschlüssel.</target>
+        <source>The configuration key to delete</source>
+        <target state="needs-review-translation">Der zu löschende Konfigurationsschlüssel.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -48,8 +48,8 @@
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_KeyArgumentDescription">
-        <source>The configuration key to retrieve.</source>
-        <target state="translated">Der abzurufende Konfigurationsschlüssel.</target>
+        <source>The configuration key to retrieve</source>
+        <target state="needs-review-translation">Der abzurufende Konfigurationsschlüssel.</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -73,13 +73,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_KeyArgumentDescription">
-        <source>The configuration key to set.</source>
-        <target state="translated">Der festzulegende Konfigurationsschlüssel.</target>
+        <source>The configuration key to set</source>
+        <target state="needs-review-translation">Der festzulegende Konfigurationsschlüssel.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">
-        <source>The configuration value to set.</source>
-        <target state="translated">Der festzulegende Konfigurationswert.</target>
+        <source>The configuration value to set</source>
+        <target state="needs-review-translation">Der festzulegende Konfigurationswert.</target>
         <note />
       </trans-unit>
     </body>

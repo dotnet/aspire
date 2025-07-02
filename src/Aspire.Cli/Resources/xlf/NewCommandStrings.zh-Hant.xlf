@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
-        <source>The name of the project to create.</source>
-        <target state="new">The name of the project to create.</target>
+        <source>The name of the project to create</source>
+        <target state="new">The name of the project to create</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
-        <source>The output path for the project.</source>
-        <target state="new">The output path for the project.</target>
+        <source>The output path for the project</source>
+        <target state="new">The output path for the project</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
@@ -43,13 +43,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
-        <source>The NuGet source to use for the project templates.</source>
-        <target state="new">The NuGet source to use for the project templates.</target>
+        <source>The NuGet source to use for the project templates</source>
+        <target state="new">The NuGet source to use for the project templates</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
-        <source>The version of the project templates to use.</source>
-        <target state="new">The version of the project templates to use.</target>
+        <source>The version of the project templates to use</source>
+        <target state="new">The version of the project templates to use</target>
         <note />
       </trans-unit>
     </body>
