@@ -3,10 +3,10 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { codespacesLink, directLink } from '../../loc/strings';
-import { RpcServerInformation, setupRpcServer } from '../../server/rpcServer';
-import { IOutputChannelWriter } from '../../utils/vsc';
+import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
+import { IOutputChannelWriter } from '../../utils/logging';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -24,7 +24,7 @@ suite('InteractionService endpoints', () => {
 
 	// showStatus
 	test('Calling showStatus with new status should show that status', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showStub = sinon.stub(statusBarItem, 'show');
 
 		testInfo.interactionService.showStatus('Test status');
@@ -34,7 +34,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("Calling showStatus with existing status but null should hide the status bar item", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const hideStub = sinon.stub(statusBarItem, 'hide');
 		testInfo.interactionService.showStatus("Status to hide");
 		testInfo.interactionService.showStatus(null);
@@ -44,7 +44,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("Calling showStatus with null with no existing status should not throw an error", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const hideStub = sinon.stub(statusBarItem, 'hide');
 		testInfo.interactionService.showStatus(null);
 		assert.strictEqual(statusBarItem.text, '');
@@ -54,7 +54,7 @@ suite('InteractionService endpoints', () => {
 
 	// promptForString
 	test('promptForString calls validateInput and returns valid result', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
 		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
@@ -73,7 +73,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test('promptForString calls validateInput and returns invalid result', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
 		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
@@ -92,7 +92,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test('displayError endpoint', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showErrorMessageSpy = sinon.spy(vscode.window, 'showErrorMessage');
 		testInfo.interactionService.displayError('Test error message');
 		assert.ok(showErrorMessageSpy.calledWith('Test error message'));
@@ -100,7 +100,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test('displayMessage endpoint', async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displayMessage(":test_emoji:", 'Test info message');
 		assert.ok(showInformationMessageSpy.calledWith('Test info message'));
@@ -108,7 +108,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displaySuccess endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displaySuccess('Test success message');
 		assert.ok(showInformationMessageSpy.calledWith('Test success message'));
@@ -116,7 +116,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displaySubtleMessage endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const setStatusBarMessageSpy = sinon.spy(vscode.window, 'setStatusBarMessage');
 		testInfo.interactionService.displaySubtleMessage('Test subtle message');
 		assert.ok(setStatusBarMessageSpy.calledWith('Test subtle message'));
@@ -124,14 +124,14 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayEmptyLine endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		testInfo.interactionService.displayEmptyLine();
 		const appendSpy = testInfo.outputChannelWriter.append as sinon.SinonStub;
 		assert.ok(appendSpy.calledWith('\n'));
 	});
 
 	test("displayDashboardUrls shows correct actions and URLs", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const dashboardMessageItem: vscode.MessageItem = { title: directLink };
 		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(dashboardMessageItem);
 		const openExternalStub = sinon.stub(vscode.env, 'openExternal').resolves(true as any);
@@ -159,7 +159,7 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayDashboardUrls writes URLs to output channel", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(undefined);
 
 		const baseUrl = 'http://localhost';
@@ -169,14 +169,14 @@ suite('InteractionService endpoints', () => {
 			codespacesUrlWithLoginToken: codespacesUrl
 		});
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		const outputLines = appendLineStub.getCalls().map(call => call.args[0]);
+		const outputLines = appendLineStub.getCalls().map(call => call.args[1]);
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		showInfoMessageStub.restore();
 	});
 
 	test("displayLines endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displayLines([
 			{ stream: 'stdout', line: 'line1' },
@@ -184,13 +184,13 @@ suite('InteractionService endpoints', () => {
 		]);
 		assert.ok(showInformationMessageSpy.called);
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		assert.ok(appendLineStub.calledWith('line1'));
-		assert.ok(appendLineStub.calledWith('line2'));
+		assert.ok(appendLineStub.calledWith('interaction', 'line1'));
+		assert.ok(appendLineStub.calledWith('interaction', 'line2'));
 		showInformationMessageSpy.restore();
 	});
 
 	test("displayCancellationMessage endpoint", async () => {
-		const testInfo = await createRpcServer();
+		const testInfo = await createTestRpcServer();
 		const showWarningMessageSpy = sinon.spy(vscode.window, 'showWarningMessage');
 		testInfo.interactionService.displayCancellationMessage('Test cancelled');
 		assert.ok(showWarningMessageSpy.calledWith('Test cancelled'));
@@ -229,12 +229,12 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 }
 
-async function createRpcServer(): Promise<RpcServerTestInfo> {
+async function createTestRpcServer(): Promise<RpcServerTestInfo> {
 	const outputChannel = new TestOutputChannelWriter();
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService(outputChannel);
 
-	const rpcServerInfo = await setupRpcServer(
+	const rpcServerInfo = await createRpcServer(
 		() => interactionService,
 		() => rpcClient,
 		outputChannel

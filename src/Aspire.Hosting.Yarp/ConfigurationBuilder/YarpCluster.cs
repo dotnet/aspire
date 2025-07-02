@@ -30,11 +30,20 @@ public class YarpCluster
     {
     }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="YarpCluster"/> with a specified external service resource.
+    /// </summary>
+    /// <param name="externalService">The external service.</param>
+    public YarpCluster(ExternalServiceResource externalService)
+        : this(externalService.Name, GetAddressFromExternalService(externalService))
+    {
+    }
+
     private YarpCluster(string resourceName, string endpointUri)
     {
         ClusterConfig = new()
         {
-            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid().ToString("N")}",
+            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid():N}",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
             {
                 { "destination1", new DestinationConfig { Address = endpointUri } }
@@ -53,18 +62,35 @@ public class YarpCluster
     {
         var resourceName = resource.Name;
 
+        // NOTE: This should likely fallback to other endpoints with HTTP or HTTPS schemes in cases where they don't
+        //       have the default names.
         var httpsEndpoint = resource.GetEndpoint("https");
         var httpEndpoint = resource.GetEndpoint("http");
 
         var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
         {
-            (true, true)  => "https+http",
+            (true, true) => "https+http",
             (true, false) => "https",
             (false, true) => "http",
             _ => throw new ArgumentException("Cannot find a http or https endpoint for this resource.", nameof(resource))
         };
 
         return $"{scheme}://{resourceName}";
+    }
+
+    private static string GetAddressFromExternalService(ExternalServiceResource externalService)
+    {
+        if (externalService.Uri is not null)
+        {
+            return externalService.Uri.ToString();
+        }
+        if (externalService.UrlParameter is not null)
+        {
+            // BUG: If we're in publish mode we shouldn't be accessing the parameter value.
+            return externalService.UrlParameter.Value;
+        }
+        // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
+        throw new InvalidOperationException("External service must have either a URI or a URL parameter defined.");
     }
 }
 

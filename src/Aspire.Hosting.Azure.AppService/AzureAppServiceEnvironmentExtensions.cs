@@ -101,6 +101,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(plan);
 
+            infra.Add(new ProvisioningOutput("name", typeof(string))
+            {
+                Value = plan.Name
+            });
+
             infra.Add(new ProvisioningOutput("planId", typeof(string))
             {
                 Value = plan.Id
