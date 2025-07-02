@@ -443,13 +443,13 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// Creates a builder for the <see cref="AzureQueueResource"/> which can be referenced to get the Azure Storage queue endpoint for the storage account.
+    /// Creates a builder for the <see cref="AzureQueueStorageQueueResource"/> which can be referenced to get the Azure Storage queue endpoint for the storage account.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="queueName">The name of the queue.</param>
-    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueResource"/>.</returns>
-    public static IResourceBuilder<AzureQueueResource> AddQueue(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? queueName = null)
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageQueueResource"/>.</returns>
+    public static IResourceBuilder<AzureQueueStorageQueueResource> AddQueue(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? queueName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -465,7 +465,7 @@ public static class AzureStorageExtensions
             builder.ApplicationBuilder.AddResource(storageQueueResource);
         }
 
-        AzureQueueResource resource = new(name, queueName, storageQueueResource);
+        AzureQueueStorageQueueResource resource = new(name, queueName, storageQueueResource);
         builder.Resource.Queues.Add(resource);
 
         string? connectionString = null;
