@@ -34,6 +34,7 @@
     <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
 
+    <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="aspire.exe" CertificateName="MicrosoftDotNet500" />
     <FileSignInfo Condition="$([System.OperatingSystem]::IsLinux())" Include="aspire" CertificateName="MicrosoftDotNet500" />
     <FileSignInfo Condition="$([System.OperatingSystem]::IsMacOS())" Include="aspire" CertificateName="MacDeveloperWithNotarization" />
 

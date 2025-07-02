@@ -113,11 +113,11 @@ extends:
     stages:
 
     - stage: archive_and_sign
-      displayName: Archive, and Sign non-nuget packages
+      displayName: Archive, and Sign native packages
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
-          #enableMicrobuild: true
+          enableMicrobuild: true
           enableMicrobuildForMacAndLinux: true
           enableTelemetry: true
           # Publish build logs
@@ -148,7 +148,7 @@ extends:
                   $(_SignArgs)
                   $(_OfficialBuildIdArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
-                displayName: Build os-specific packages
+                displayName: Build native packages
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
@@ -179,7 +179,7 @@ extends:
                   $(_SignArgs)
                   $(_OfficialBuildIdArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
-                displayName: Build os-specific packages
+                displayName: Build native packages
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
@@ -210,7 +210,7 @@ extends:
                   $(_SignArgs)
                   $(_OfficialBuildIdArgs)
                   /bl:$(Build.Arcade.LogsPath)Build.binlog
-                displayName: Build os-specific packages
+                displayName: Build native packages
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
