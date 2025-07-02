@@ -21,7 +21,6 @@ var externalGateway = builder.AddYarp("gateway")
 
 builder.AddProject<Projects.WebFrontEnd>("frontend")
        .WithReference(nuget)
-       .WithReference(externalService)
        .WithEnvironment("EXTERNAL_SERVICE_URL", externalService)
        .WithReference(externalGateway);
 
