@@ -158,39 +158,6 @@ extends:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Archives_macos
 
-          - job: linux
-            pool:
-              name: NetCore1ESPool-Internal
-              image: 1es-mariner-2
-              os: linux
-            variables:
-              - TeamName: $(_TeamName)
-
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
-
-            steps:
-              - script: >-
-                  $(Build.SourcesDirectory)/build.sh
-                  --ci
-                  --build
-                  --restore
-                  --sign
-                  /p:PreparePackagesForPublishingOnly=true
-                  /p:Configuration=$(_BuildConfig)
-                  $(_SignArgs)
-                  $(_OfficialBuildIdArgs)
-                  -bl:$(Build.Arcade.LogsPath)Build.binlog
-                displayName: Build native packages
-
-              - task: 1ES.PublishBuildArtifacts@1
-                displayName: Publish Artifacts
-                inputs:
-                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  ArtifactName: Archives_linux
-
           - job: windows
             pool:
               name: NetCore1ESPool-Internal
@@ -221,6 +188,46 @@ extends:
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Archives_windows
+
+      # Linux only job - without enableMicrobuild
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuildForMacAndLinux: true
+          enableTelemetry: true
+          # Publish build logs
+          enablePublishBuildArtifacts: true
+
+          jobs:
+          - job: linux
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-mariner-2
+              os: linux
+
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+            steps:
+              - script: >-
+                  $(Build.SourcesDirectory)/build.sh
+                  --ci
+                  --build
+                  --restore
+                  --sign
+                  /p:PreparePackagesForPublishingOnly=true
+                  /p:Configuration=$(_BuildConfig)
+                  $(_SignArgs)
+                  $(_OfficialBuildIdArgs)
+                  -bl:$(Build.Arcade.LogsPath)Build.binlog
+                displayName: Build native packages
+
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: Publish Artifacts
+                inputs:
+                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                  ArtifactName: Archives_linux
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
