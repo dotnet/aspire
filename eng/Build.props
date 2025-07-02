@@ -1,5 +1,9 @@
 <Project>
-  <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true' and '$(PreparePackagesForPublishingOnly)' != 'true'">
+  <PropertyGroup>
+    <_AspireOnlyBuild Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">true</_AspireOnlyBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' != 'true'">
     <!--<ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />-->
     <!--<ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />-->
     <!--<ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />-->
@@ -8,17 +12,18 @@
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <!-- FIXME: condition/naming -->
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true' and $([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true' and $([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true' and $([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
+    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
+    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
+    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
 
     <!-- `$(SkipTestProjects)` allows skipping test projects from being
           included in the build at all. This is useful for cases like when we are
           just building the packages, and don't need to build the test projects. -->
-    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />
+    <!--<ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />-->
   </ItemGroup>
 
-  <ItemGroup Condition="'$(PreparePackagesForPublishingOnly)' == 'true'">
+  <!-- packages per-os -->
+  <ItemGroup Condition="$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
