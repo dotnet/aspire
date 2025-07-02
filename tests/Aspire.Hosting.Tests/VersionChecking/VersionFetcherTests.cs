@@ -115,4 +115,51 @@ public class VersionFetcherTests
         // Assert
         Assert.Null(latestVersion);
     }
+
+    [Fact]
+    public void GetLatestVersion_MixedPackageIds_OnlyConsidersAppHostPackages()
+    {
+        // Arrange
+        var json = """
+            {
+              "version": 2,
+              "problems": [],
+              "searchResult": [
+                {
+                  "sourceName": "feed1",
+                  "packages": [
+                    {
+                      "id": "Aspire.Hosting.AppHost",
+                      "latestVersion": "8.0.1"
+                    }
+                  ]
+                },
+                {
+                  "sourceName": "feed2",
+                  "packages": [
+                    {
+                      "id": "SomeOther.Package",
+                      "latestVersion": "99.0.0"
+                    }
+                  ]
+                },
+                {
+                  "sourceName": "feed3",
+                  "packages": [
+                    {
+                      "id": "Aspire.Hosting.AppHost",
+                      "latestVersion": "9.0.0"
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        // Act
+        var latestVersion = VersionFetcher.GetLatestVersion(json);
+
+        // Assert
+        Assert.Equal(new SemVersion(9, 0, 0), latestVersion);
+    }
 }
