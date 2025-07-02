@@ -582,6 +582,12 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
+
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Suppress CS1998
+        yield break;
+    }
 }
 
 // Data structures for tracking prompts
@@ -682,6 +688,12 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayPlainText(string text) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var messageType = isErrorMessage ? "error" : "info";
+        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+    }
 }
 
 internal enum ResponseType
