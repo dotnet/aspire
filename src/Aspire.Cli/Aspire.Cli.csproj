@@ -27,7 +27,6 @@
     <PackageId>Aspire.Cli</PackageId>
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
-    <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <Description>Command line tool for Aspire developers.</Description>
     <PublishAot>false</PublishAot>
   </PropertyGroup>
