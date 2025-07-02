@@ -142,11 +142,19 @@ export class InteractionService implements IInteractionService {
     }
 
     displayError(errorMessage: string) {
+        if (errorMessage.length === 0) {
+            return;
+        }
+
         this._outputChannelWriter.appendLine('interaction', `Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
     }
 
     displayMessage(emoji: string, message: string) {
+        if (message.length === 0) {
+            return;
+        }
+
         this._outputChannelWriter.appendLine('interaction', `Displaying message: ${emoji} ${message}`);
         vscode.window.showInformationMessage(formatText(message));
     }
@@ -154,11 +162,19 @@ export class InteractionService implements IInteractionService {
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
+        if (message.length === 0) {
+            return;
+        }
+
         this._outputChannelWriter.appendLine('interaction', `Displaying success message: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
     }
 
     displaySubtleMessage(message: string) {
+        if (message.length === 0) {
+            return;
+        }
+
         this._outputChannelWriter.appendLine('interaction', `Displaying subtle message: ${message}`);
         vscode.window.setStatusBarMessage(formatText(message), 5000);
     }
