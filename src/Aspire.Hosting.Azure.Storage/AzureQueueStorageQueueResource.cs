@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="queueName">The name of the queue.</param>
 /// <param name="parent">The <see cref="AzureQueueStorageResource"/> that the resource is stored in.</param>
-public class AzureQueueResource(string name, string queueName, AzureQueueStorageResource parent) : Resource(name),
+public class AzureQueueStorageQueueResource(string name, string queueName, AzureQueueStorageResource parent) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureQueueStorageResource>
 {
@@ -29,7 +29,7 @@ public class AzureQueueResource(string name, string queueName, AzureQueueStorage
     public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(QueueName);
 
     /// <summary>
-    /// Gets the parent <see cref="AzureQueueStorageResource"/> of this <see cref="AzureQueueResource"/>.
+    /// Gets the parent <see cref="AzureQueueStorageResource"/> of this <see cref="AzureQueueStorageQueueResource"/>.
     /// </summary>
     public AzureQueueStorageResource Parent => parent ?? throw new ArgumentNullException(nameof(parent));
 
