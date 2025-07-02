@@ -11,7 +11,7 @@ builder.AddServiceDefaults();
 builder.AddAzureBlobClient("blobs");
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
-builder.AddAzureQueueClient("queues");
+builder.AddAzureQueueServiceClient("queues");
 
 var app = builder.Build();
 
