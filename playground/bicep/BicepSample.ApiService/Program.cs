@@ -20,7 +20,7 @@ builder.AddAzureCosmosClient("cosmos");
 builder.AddRedisClient("redis");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureTableClient("table");
-builder.AddAzureQueueClient("queue");
+builder.AddAzureQueueServiceClient("queue");
 builder.AddAzureServiceBusClient("sb");
 
 var app = builder.Build();

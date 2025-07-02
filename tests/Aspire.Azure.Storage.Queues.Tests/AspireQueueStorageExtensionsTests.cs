@@ -25,11 +25,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueClient("queue");
+            builder.AddKeyedAzureQueueServiceClient("queue");
         }
         else
         {
-            builder.AddAzureQueueClient("queue");
+            builder.AddAzureQueueServiceClient("queue");
         }
 
         using var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueClient("queue", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureQueueServiceClient("queue", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureQueueClient("queue", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureQueueServiceClient("queue", settings => settings.ConnectionString = ConnectionString);
         }
 
         using var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueClient("queue");
+            builder.AddKeyedAzureQueueServiceClient("queue");
         }
         else
         {
-            builder.AddAzureQueueClient("queue");
+            builder.AddAzureQueueServiceClient("queue");
         }
 
         using var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueClient("queue");
+            builder.AddKeyedAzureQueueServiceClient("queue");
         }
         else
         {
-            builder.AddAzureQueueClient("queue");
+            builder.AddAzureQueueServiceClient("queue");
         }
 
         using var host = builder.Build();
@@ -135,9 +135,9 @@ public class AspireQueueStorageExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:queue3", "https://aspirestoragetests3.queue.core.windows.net")
         ]);
 
-        builder.AddAzureQueueClient("queue1");
-        builder.AddKeyedAzureQueueClient("queue2");
-        builder.AddKeyedAzureQueueClient("queue3");
+        builder.AddAzureQueueServiceClient("queue1");
+        builder.AddKeyedAzureQueueServiceClient("queue2");
+        builder.AddKeyedAzureQueueServiceClient("queue3");
 
         using var host = builder.Build();
 
