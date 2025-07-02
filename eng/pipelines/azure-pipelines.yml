@@ -117,13 +117,13 @@ extends:
       jobs:
       - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
-        os: windows
+          os: windows
       - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
-        os: linux
+          os: linux
       - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
-        os: macos
+          os: macos
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
