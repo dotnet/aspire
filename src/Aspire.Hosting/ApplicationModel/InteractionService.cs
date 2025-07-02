@@ -268,30 +268,6 @@ internal class InteractionCollection : KeyedCollection<int, Interaction>
     protected override int GetKeyForItem(Interaction item) => item.InteractionId;
 }
 
-/// <summary>
-/// 
-/// </summary>
-[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class InteractionResult<T>
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    public T? Data { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [MemberNotNullWhen(false, nameof(Data))]
-    public bool Canceled { get; }
-
-    internal InteractionResult(T? data, bool canceled)
-    {
-        Data = data;
-        Canceled = canceled;
-    }
-}
-
 internal static class InteractionResultFactory
 {
     internal static InteractionResult<T> Ok<T>(T result)
