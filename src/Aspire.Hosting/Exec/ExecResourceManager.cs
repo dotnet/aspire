@@ -130,7 +130,7 @@ internal class ExecResourceManager : BackgroundService
         {
             var shortId = Guid.NewGuid().ToString("N").Substring(0, 8);
             execResourceName = "exec" + shortId;
-        } while (_model.Resources.Any(x => x.Name.Equals(exe, StringComparisons.ResourceName)));
+        } while (_model.Resources.Any(x => x.Name.Equals(execResourceName, StringComparisons.ResourceName)));
 
         var executable = new ExecutableResource(execResourceName, exe, projectDir);
         if (args is not null && args.Length > 0)

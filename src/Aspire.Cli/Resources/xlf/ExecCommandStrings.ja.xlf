@@ -2,19 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ExecCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostKeepAliveArgumentDescription">
-        <source>Keeps apphost running after the command execution finished.</source>
-        <target state="new">Keeps apphost running after the command execution finished.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host to execute a command against the resource.</source>
         <target state="new">Run an Aspire app host to execute a command against the resource.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
-        <source>Failed to parse command</source>
-        <target state="new">Failed to parse command</target>
+        <source>Failed to parse command.</source>
+        <target state="new">Failed to parse command.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
