@@ -4,6 +4,7 @@ parameters:
     default: windows
 
 jobs:
+
 - job: ArchiveAndSign_${{ parameters.os }}
   timeoutInMinutes: 90
 
@@ -35,7 +36,7 @@ jobs:
         --restore
         -p:PreparePackagesForPublishingOnly=true
         -p:Configuration=$(_BuildConfig)
-        -bl:$(Build.Arcade.LogsPaths)/Build.binlog
+        -bl:$(Build.Arcade.LogsPath)Build.binlog
         -p:_DryRun=false
       displayName: Build os-specific packages
 
