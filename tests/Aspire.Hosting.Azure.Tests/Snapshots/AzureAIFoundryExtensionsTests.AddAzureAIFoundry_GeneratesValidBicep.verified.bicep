@@ -57,3 +57,5 @@ resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2024-10-0
 }
 
 output aiFoundryApiEndpoint string = foundry.properties.endpoints['AI Foundry API']
+
+output endpoint string = foundry.properties.endpoint

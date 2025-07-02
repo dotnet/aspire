@@ -313,12 +313,16 @@ public static class AzureAIFoundryExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-        var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
-            (BicepExpression)cogServicesAccount.Properties.Endpoints!,
-            "AI Foundry API");
         infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
         {
-            Value = inferenceEndpoint
+            Value = (BicepValue<string>)new IndexExpression(
+                (BicepExpression)cogServicesAccount.Properties.Endpoints!,
+                "AI Foundry API")
+        });
+
+        infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
+        {
+            Value = cogServicesAccount.Properties.Endpoint
         });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
