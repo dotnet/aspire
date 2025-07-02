@@ -1,6 +1,6 @@
 # Set up your machine to contribute
 
-## Install prereqs
+## Install Prerequisites
 
 - Node.js (LTS version)
 - Visual Studio Code (latest)
