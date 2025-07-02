@@ -35,8 +35,14 @@
     <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
 
     <!-- cli archives -->
-    <_CliArchivesForMacOS Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-osx*" />
+    <_CliArchivesForMacOS Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-osx-*" />
     <FileSignInfo Include="@(_CliArchivesForMacOS -> '%(FileName)%(Extension)')" CertificateName="MacDeveloperWithNotarization" />
+
+    <_CliArchivesForWindows Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-win-*" />
+    <FileSignInfo Include="@(_CliArchivesForWindows -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />
+
+    <_CliArchivesForLinux Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-linux-*" />
+    <FileSignInfo Include="@(_CliArchivesForLinux -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />
   </ItemGroup>
 
   <PropertyGroup>

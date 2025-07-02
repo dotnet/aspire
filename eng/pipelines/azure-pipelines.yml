@@ -244,14 +244,12 @@ extends:
                 displayName: Download Archives linux
                 inputs:
                   artifactName: Signed_Archives_linux
-                  itemPattern: $(_BuildConfig)/**
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download Archives macos
                 inputs:
                   artifactName: Signed_Archives_macos
-                  itemPattern: $(_BuildConfig)/**
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - template: /eng/pipelines/templates/BuildAndTest.yml
