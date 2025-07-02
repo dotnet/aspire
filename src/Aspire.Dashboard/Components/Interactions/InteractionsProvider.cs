@@ -20,6 +20,8 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
+    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
+
     internal record InteractionMessageBarReference(int InteractionId, Message Message);
     internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog);
 
@@ -31,7 +33,6 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private MarkdownPipeline _markdownPipeline = default!;
 
     // Internal for testing.
     internal bool? _enabled;
@@ -65,8 +66,6 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         {
             _enabled = true;
         }
-
-        _markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
 
         _dialogDisplayTask = Task.Run(async () =>
         {
@@ -271,7 +270,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         }
     }
 
-    private string GetMessageHtml(WatchInteractionsResponseUpdate item)
+    private static string GetMessageHtml(WatchInteractionsResponseUpdate item)
     {
         if (!item.MessageAsMarkdown)
         {
@@ -281,7 +280,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
         var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
 
-        return MarkdownHelpers.ToHtml(item.Message, _markdownPipeline, suppressSurroundingParagraph: !hasNewline);
+        return MarkdownHelpers.ToHtml(item.Message, s_markdownPipeline, suppressSurroundingParagraph: !hasNewline);
     }
 
     private async Task WatchInteractionsAsync()
