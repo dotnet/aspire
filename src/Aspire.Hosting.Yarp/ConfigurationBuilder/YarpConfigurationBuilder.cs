@@ -43,4 +43,13 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
         _parent.WithReference(resource);
         return destination;
     }
+    
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService)
+    {
+        var destination = new YarpCluster(externalService.Resource);
+        Clusters.Add(destination);
+        _parent.WithReference(externalService);
+        return destination;
+    }
 }

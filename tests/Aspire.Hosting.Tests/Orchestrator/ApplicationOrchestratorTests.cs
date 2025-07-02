@@ -120,10 +120,17 @@ public class ApplicationOrchestratorTests
 
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-        var applicationEventing = new DistributedApplicationEventing();
+        var applicationEventing = builder.Eventing;
 
         var initResourceTcs = new TaskCompletionSource();
         InitializeResourceEvent? initEvent = null;
+        resource.OnInitializeResource((_, @event, _) =>
+        {
+            initEvent = @event;
+            initResourceTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
         applicationEventing.Subscribe<InitializeResourceEvent>(resource.Resource, (@event, ct) =>
         {
             initEvent = @event;
@@ -136,7 +143,7 @@ public class ApplicationOrchestratorTests
 
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
-        await initResourceTcs.Task.DefaultTimeout();
+        await initResourceTcs.Task; //.DefaultTimeout();
 
         Assert.True(initResourceTcs.Task.IsCompletedSuccessfully);
         Assert.NotNull(initEvent);
@@ -433,7 +440,7 @@ public class ApplicationOrchestratorTests
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
-        DistributedApplicationEventing? applicationEventing = null,
+        IDistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();

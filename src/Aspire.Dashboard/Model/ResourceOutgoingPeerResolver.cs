@@ -134,7 +134,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             {
                 foreach (var service in resource.Urls)
                 {
-                    var hostAndPort = service.Url.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
+                    var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
 
                     if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {

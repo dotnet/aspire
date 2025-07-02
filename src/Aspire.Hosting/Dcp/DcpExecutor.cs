@@ -120,6 +120,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
         try
         {
+            RefreshModelResources();
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -763,6 +765,20 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     bindingMode,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes sure all application model resources are represented in the resource state.
+    /// </summary>
+    private void RefreshModelResources()
+    {
+        foreach (var res in _model.Resources)
+        {
+            if (!_resourceState.ApplicationModel.ContainsKey(res.Name))
+            {
+                _resourceState.ApplicationModel[res.Name] = res;
             }
         }
     }
