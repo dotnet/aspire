@@ -10,10 +10,7 @@ namespace Aspire.Hosting.GitHub.Models;
 /// </summary>
 public class GitHubModelsResource : Resource, IResourceWithConnectionString
 {
-    /// <summary>
-    /// The default endpoint for GitHub Models.
-    /// </summary>
-    public const string DefaultEndpoint = "https://models.github.ai/inference";
+    internal const string GitHubModelsEndpoint = "https://models.github.ai/inference";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GitHubModelsResource"/> class.
@@ -23,13 +20,7 @@ public class GitHubModelsResource : Resource, IResourceWithConnectionString
     public GitHubModelsResource(string name, string model) : base(name)
     {
         Model = model;
-        Endpoint = DefaultEndpoint;
     }
-
-    /// <summary>
-    /// Gets or sets the endpoint URL for the GitHub Models service, e.g., "https://models.github.ai/inference".
-    /// </summary>
-    public string Endpoint { get; set; }
 
     /// <summary>
     /// Gets or sets the model name, e.g., "openai/gpt-4o-mini".
@@ -39,11 +30,14 @@ public class GitHubModelsResource : Resource, IResourceWithConnectionString
     /// <summary>
     /// Gets or sets the API key for accessing GitHub Models.
     /// </summary>
-    public string? Key { get; set; }
+    /// <remarks>
+    /// If not set, the value will be retrieved from the environment variable GITHUB_TOKEN.
+    /// </remarks>
+    public ParameterResource Key { get; set; } = new ParameterResource("github-api-key", p => Environment.GetEnvironmentVariable("GITHUB_TOKEN") ?? string.Empty, secret: true);
 
     /// <summary>
     /// Gets the connection string expression for the GitHub Models resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint={Endpoint};Key={Key};Model={Model};DeploymentId={Model}");
+        ReferenceExpression.Create($"Endpoint={GitHubModelsEndpoint};Key={Key};Model={Model};DeploymentId={Model}");
 }

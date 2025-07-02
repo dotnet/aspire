@@ -7,7 +7,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 ### Prerequisites
 
 - GitHub account with access to GitHub Models
-- GitHub personal access token with appropriate permissions
+- GitHub [personal access token](https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models#experimenting-with-ai-models-using-the-api) with appropriate permissions
 
 ### Install the package
 

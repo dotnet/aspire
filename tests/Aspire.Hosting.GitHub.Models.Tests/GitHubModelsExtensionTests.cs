@@ -17,31 +17,17 @@ public class GitHubModelsExtensionTests
 
         Assert.Equal("github", github.Resource.Name);
         Assert.Equal("openai/gpt-4o-mini", github.Resource.Model);
-        Assert.Equal(GitHubModelsResource.DefaultEndpoint, github.Resource.Endpoint);
     }
 
     [Fact]
-    public void WithEndpointSetsEndpointCorrectly()
+    public void AddGitHubModelUsesCorrectEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var customEndpoint = "https://custom.endpoint.com";
-        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini")
-                           .WithEndpoint(customEndpoint);
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
-        Assert.Equal(customEndpoint, github.Resource.Endpoint);
-    }
-
-    [Fact]
-    public void WithApiKeySetsKeyCorrectly()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var apiKey = "test-api-key";
-        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini")
-                           .WithApiKey(apiKey);
-
-        Assert.Equal(apiKey, github.Resource.Key);
+        var connectionString = github.Resource.ConnectionStringExpression.ValueExpression;
+        Assert.Contains("Endpoint=https://models.github.ai/inference", connectionString);
     }
 
     [Fact]
@@ -49,15 +35,14 @@ public class GitHubModelsExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini")
-                           .WithApiKey("test-key");
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
         var connectionString = github.Resource.ConnectionStringExpression.ValueExpression;
 
         Assert.Contains("Endpoint=https://models.github.ai/inference", connectionString);
-        Assert.Contains("Key=test-key", connectionString);
         Assert.Contains("Model=openai/gpt-4o-mini", connectionString);
         Assert.Contains("DeploymentId=openai/gpt-4o-mini", connectionString);
+        Assert.Contains("Key=", connectionString);
     }
 
     [Fact]
@@ -65,13 +50,29 @@ public class GitHubModelsExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var randomApiKey = $"test-key";
+        const string apiKey = "randomkey";
+
         var apiKeyParameter = builder.AddParameter("github-api-key", secret: true);
-        builder.Configuration["Parameters:github-api-key"] = randomApiKey;
+        builder.Configuration["Parameters:github-api-key"] = apiKey;
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini")
                            .WithApiKey(apiKeyParameter);
 
-        Assert.Equal(randomApiKey, github.Resource.Key);
+        var connectionString = github.Resource.ConnectionStringExpression.ValueExpression;
+
+        Assert.Equal(apiKeyParameter.Resource, github.Resource.Key);
+        Assert.Contains($"Key={apiKey}", connectionString);
+    }
+
+    [Fact]
+    public void DefaultKeyParameterIsCreated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+
+        Assert.NotNull(github.Resource.Key);
+        Assert.Equal("github-api-key", github.Resource.Key.Name);
+        Assert.True(github.Resource.Key.Secret);
     }
 }

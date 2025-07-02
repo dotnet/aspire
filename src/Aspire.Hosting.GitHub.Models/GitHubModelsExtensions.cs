@@ -29,36 +29,6 @@ public static class GitHubModelsExtensions
     }
 
     /// <summary>
-    /// Configures the endpoint for the GitHub Models resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="endpoint">The endpoint URL.</param>
-    /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<GitHubModelsResource> WithEndpoint(this IResourceBuilder<GitHubModelsResource> builder, string endpoint)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(endpoint);
-
-        builder.Resource.Endpoint = endpoint;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the API key for the GitHub Models resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="key">The API key.</param>
-    /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<GitHubModelsResource> WithApiKey(this IResourceBuilder<GitHubModelsResource> builder, string key)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(key);
-
-        builder.Resource.Key = key;
-        return builder;
-    }
-
-    /// <summary>
     /// Configures the API key for the GitHub Models resource from a parameter.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -69,6 +39,8 @@ public static class GitHubModelsExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(apiKey);
 
-        return WithApiKey(builder, apiKey.Resource.Value);
+        builder.Resource.Key = apiKey.Resource;
+
+        return builder;
     }
 }
