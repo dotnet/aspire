@@ -153,7 +153,7 @@ extends:
                   --restore
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
-                  -bl:$(Build.Arcade.LogsPath)/Build.binlog
+                  -bl:$(Build.Arcade.LogsPath)Build.binlog
                   -p:_DryRun=false
                 displayName: Build os-specific packages
 
