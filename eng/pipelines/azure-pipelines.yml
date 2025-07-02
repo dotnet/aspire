@@ -139,8 +139,10 @@ extends:
                   --ci
                   --build
                   --restore
+                  --sign
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
+                  $(_SignArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
@@ -167,8 +169,10 @@ extends:
                   --ci
                   --build
                   --restore
+                  --sign
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
+                  $(_SignArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
@@ -195,8 +199,10 @@ extends:
                   --ci
                   --build
                   --restore
+                  --sign
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
+                  $(_SignArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
