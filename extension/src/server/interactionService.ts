@@ -1,9 +1,10 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/workspace';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
+import { isWorkspaceOpen } from '../utils/workspace';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
+import { IOutputChannelWriter } from '../utils/logging';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -124,7 +125,7 @@ export class InteractionService implements IInteractionService {
     async displayIncompatibleVersionError(requiredCapabilityStr: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) {
         this._outputChannelWriter.appendLine('interaction', `Displaying incompatible version error`);
 
-        const cliInformationalVersion =  await rpcClient.getCliVersion();
+        const cliInformationalVersion = await rpcClient.getCliVersion();
 
         const errorLines = [
             incompatibleAppHostError,
@@ -234,7 +235,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
     connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
     connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
-    connection.onRequest("displaySubtleMessage", withAuthentication( interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", withAuthentication(interactionService.displaySubtleMessage.bind(interactionService)));
     connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
     connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));

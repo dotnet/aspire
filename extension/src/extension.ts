@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 
 import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
-import { vscOutputChannelWriter } from './utils/workspace';
 import { RpcServerInformation, createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
@@ -11,6 +10,7 @@ import { configCommand } from './commands/config';
 import { deployCommand } from './commands/deploy';
 import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
+import { vscOutputChannelWriter } from './utils/logging';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
 

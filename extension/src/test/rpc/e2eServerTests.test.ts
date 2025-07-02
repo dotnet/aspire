@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import * as net from 'net';
 import waitForExpect from 'wait-for-expect';
 import * as vscode from 'vscode';
 import * as tls from 'tls';

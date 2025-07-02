@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { sendToAspireTerminal } from '../utils/terminal';
 import { isWorkspaceOpen } from '../utils/workspace';
 

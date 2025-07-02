@@ -32,16 +32,16 @@ export class RpcClient implements ICliRpcClient {
     }
 
     validatePromptInputString(input: string): Promise<ValidationResult | null> {
-    return logAsyncOperation(
-        "interaction",
-        `Validating prompt input string`,
-        (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
-        async () => {
-            return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
-                token: this._token,
-                input
-            });
-        }
-    );
-}
+        return logAsyncOperation(
+            "interaction",
+            `Validating prompt input string`,
+            (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
+            async () => {
+                return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
+                    token: this._token,
+                    input
+                });
+            }
+        );
+    }
 }

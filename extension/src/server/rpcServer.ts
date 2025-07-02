@@ -60,7 +60,7 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
         rpcServer.listen(0, () => {
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
-                const fullAddress = (addressInfo.address === "::" ? "localhost" : `${addressInfo.address}`) + ":" + addressInfo.port;
+                const fullAddress = `localhost:${addressInfo.port}`;
                 outputChannelWriter.appendLine(`rpc-server`, `RPC server listening on ${fullAddress}`);
 
                 function disposeRpcServer(rpcServer: net.Server, outputChannelWriter: IOutputChannelWriter) {
