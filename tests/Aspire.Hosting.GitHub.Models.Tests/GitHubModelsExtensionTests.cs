@@ -46,7 +46,7 @@ public class GitHubModelsExtensionTests
     }
 
     [Fact]
-    public void WithApiKeySetFromParameter()
+    public async Task WithApiKeySetFromParameter()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -58,7 +58,7 @@ public class GitHubModelsExtensionTests
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini")
                            .WithApiKey(apiKeyParameter);
 
-        var connectionString = github.Resource.ConnectionStringExpression.ValueExpression;
+        var connectionString = await github.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         Assert.Equal(apiKeyParameter.Resource, github.Resource.Key);
         Assert.Contains($"Key={apiKey}", connectionString);
