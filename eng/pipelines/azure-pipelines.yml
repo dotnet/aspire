@@ -130,6 +130,8 @@ extends:
               name: Azure Pipelines
               vmImage: macOS-latest-internal
               os: macOS
+            variables:
+              TeamName: $(_TeamName)
 
             preSteps:
               - checkout: self
@@ -161,6 +163,8 @@ extends:
               name: NetCore1ESPool-Internal
               image: 1es-mariner-2
               os: linux
+            variables:
+              TeamName: $(_TeamName)
 
             preSteps:
               - checkout: self
