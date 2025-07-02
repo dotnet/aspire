@@ -35,7 +35,7 @@ class VSCOutputChannelWriter implements IOutputChannelWriter {
 
 export const vscOutputChannelWriter: IOutputChannelWriter = new VSCOutputChannelWriter();
 
-export type OutputLogCategory = "lifecycle" | "command" | "interaction" | "rpc-server" | "cli-log";
+export type OutputLogCategory = "lifecycle" | "command" | "interaction" | "rpc-server" | "cli";
 
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;

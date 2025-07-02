@@ -221,7 +221,7 @@ export class InteractionService implements IInteractionService {
 
     logMessage(logLevel: string, message: string) {
         // logLevel currently unused, but can be extended in the future
-        this._outputChannelWriter.appendLine('cli-log', `[${logLevel}] ${formatText(message)}`);
+        this._outputChannelWriter.appendLine('cli', `[${logLevel}] ${formatText(message)}`);
     }
 }
 
