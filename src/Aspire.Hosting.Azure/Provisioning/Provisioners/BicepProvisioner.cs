@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
+using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -212,6 +214,162 @@ internal sealed class BicepProvisioner(
         var az = context.UserSecrets.Prop("Azure");
         az["Tenant"] = context.Tenant.DefaultDomain;
 
+        if (outputObj is not null)
+        {
+            foreach (var item in outputObj.AsObject())
+            {
+                // TODO: Handle complex output types
+                // Populate the resource outputs
+                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+            }
+        }
+
+        // Populate secret outputs from key vault (if any)
+        if (resource is IAzureKeyVaultResource kvr)
+        {
+            ConfigureSecretResolver(kvr);
+        }
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            ImmutableArray<ResourcePropertySnapshot> properties = [
+                .. state.Properties,
+                new(CustomResourceKnownProperties.Source, deployment.Id.Name)
+            ];
+
+            return state with
+            {
+                State = new("Provisioned", KnownResourceStateStyles.Success),
+                CreationTimeStamp = DateTime.UtcNow,
+                Properties = properties
+            };
+        })
+        .ConfigureAwait(false);
+    }
+
+    public async Task DeployWithBicepFileAsync(AzureBicepResource resource, string bicepFilePath, ProvisioningContext context, CancellationToken cancellationToken)
+    {
+        var resourceGroup = context.ResourceGroup;
+        var resourceLogger = loggerService.GetLogger(resource);
+
+        if (BicepUtilities.GetExistingResourceGroup(resource) is { } existingResourceGroup)
+        {
+            var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
+                ? parameterResource.Value
+                : (string)existingResourceGroup;
+            var response = await context.Subscription.GetResourceGroups().GetAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
+            resourceGroup = response.Value;
+        }
+
+        await notificationService.PublishUpdateAsync(resource, state => state with
+        {
+            ResourceType = resource.GetType().Name,
+            State = new("Starting", KnownResourceStateStyles.Info),
+            Properties = state.Properties.SetResourcePropertyRange([
+                new("azure.subscription.id", context.Subscription.Id.Name),
+                new("azure.resource.group", resourceGroup.Id.Name),
+                new("azure.tenant.domain", context.Tenant.DefaultDomain),
+                new("azure.location", context.Location.ToString()),
+            ])
+        }).ConfigureAwait(false);
+
+        // Populate well-known parameters
+        PopulateWellKnownParameters(resource, context);
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Compiling ARM template", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
+
+        // Compile the Bicep file to ARM
+        var armTemplateContents = await bicepCompiler.CompileBicepToArmAsync(bicepFilePath, cancellationToken).ConfigureAwait(false);
+
+        // Convert the parameters to a JSON object
+        var parameters = new JsonObject();
+        await BicepUtilities.SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var scope = new JsonObject();
+        await BicepUtilities.SetScopeAsync(scope, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var sw = Stopwatch.StartNew();
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Creating ARM Deployment", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
+
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
+
+        var deployments = ((DefaultSubscriptionResource)context.Subscription).SubscriptionResource.GetArmDeployments();
+        var deploymentName = resource.Name + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        {
+            Template = BinaryData.FromString(armTemplateContents),
+            Parameters = BinaryData.FromObjectAsJson(parameters),
+            DebugSettingDetailLevel = "ResponseContent"
+        })
+        { Location = context.Location },
+        cancellationToken).ConfigureAwait(false);
+
+        // Resolve the deployment URL before waiting for the operation to complete
+        var url = GetDeploymentUrl(context, resourceGroup, deploymentName);
+
+        resourceLogger.LogInformation("Deployment started: {Url}", url);
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
+                Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
+            };
+        })
+        .ConfigureAwait(false);
+
+        try
+        {
+            await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException e)
+        {
+            var response = e.GetRawResponse();
+            var data = response?.Content.ToObjectFromJson<JsonObject>();
+            var message = data?.ToString();
+            throw new InvalidOperationException(message);
+        }
+
+        sw.Stop();
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, resourceGroup.Name, sw.Elapsed);
+
+        var deployment = operation.Value;
+
+        var outputs = deployment.Data.Properties.Outputs;
+
+        if (deployment.Data.Properties.ProvisioningState == ResourcesProvisioningState.Succeeded)
+        {
+            // No template file to dispose since we're using an existing file
+        }
+        else
+        {
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {resourceGroup.Name} failed with {deployment.Data.Properties.ProvisioningState}");
+        }
+
+        // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
+
+        var outputObj = outputs?.ToObjectFromJson<JsonObject>();
+
+        var az = context.UserSecrets.Prop("Azure");
+        az["Tenant"] = context.Tenant.DefaultDomain;
+
         var resourceConfig = context.UserSecrets
             .Prop("Azure")
             .Prop("Deployments")
@@ -238,8 +396,8 @@ internal sealed class BicepProvisioner(
             resourceConfig["Scope"] = scope.ToJsonString();
         }
 
-        // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+        // Save the checksum to the configuration - use file content for checksum
+        var bicepFileContent = await File.ReadAllTextAsync(bicepFilePath, cancellationToken).ConfigureAwait(false);
 
         if (outputObj is not null)
         {

@@ -28,7 +28,12 @@ internal sealed class DefaultProvisioningContextProvider(
 
     public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        return await CreateProvisioningContextAsync(userSecrets, null, null, null, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, string? subscriptionId = null, string? resourceGroup = null, string? location = null, bool? allowResourceGroupCreation = null, CancellationToken cancellationToken = default)
+    {
+        var actualSubscriptionId = subscriptionId ?? _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = tokenCredentialProvider.TokenCredential;
 
@@ -37,7 +42,7 @@ internal sealed class DefaultProvisioningContextProvider(
             defaultProvider.LogCredentialType();
         }
 
-        var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
+        var armClient = armClientProvider.GetArmClient(credential, actualSubscriptionId);
 
         logger.LogInformation("Getting default subscription and tenant...");
 
@@ -46,7 +51,8 @@ internal sealed class DefaultProvisioningContextProvider(
         logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
         logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
 
-        if (string.IsNullOrEmpty(_options.Location))
+        var actualLocation = location ?? _options.Location;
+        if (string.IsNullOrEmpty(actualLocation))
         {
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
@@ -54,7 +60,8 @@ internal sealed class DefaultProvisioningContextProvider(
         string resourceGroupName;
         bool createIfAbsent;
 
-        if (string.IsNullOrEmpty(_options.ResourceGroup))
+        var actualResourceGroup = resourceGroup ?? _options.ResourceGroup;
+        if (string.IsNullOrEmpty(actualResourceGroup))
         {
             // Generate an resource group name since none was provided
 
@@ -84,21 +91,21 @@ internal sealed class DefaultProvisioningContextProvider(
         }
         else
         {
-            resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+            resourceGroupName = actualResourceGroup;
+            createIfAbsent = allowResourceGroupCreation ?? _options.AllowResourceGroupCreation ?? false;
         }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
-        IResourceGroupResource? resourceGroup;
+        IResourceGroupResource? resourceGroupResource;
 
-        var location = new AzureLocation(_options.Location);
+        var azureLocation = new AzureLocation(actualLocation);
         try
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-            resourceGroup = response.Value;
+            resourceGroupResource = response.Value;
 
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
+            logger.LogInformation("Using existing resource group {rgName}.", resourceGroupResource.Name);
         }
         catch (Exception)
         {
@@ -109,14 +116,14 @@ internal sealed class DefaultProvisioningContextProvider(
 
             // REVIEW: Is it possible to do this without an exception?
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, azureLocation);
 
-            var rgData = new ResourceGroupData(location);
+            var rgData = new ResourceGroupData(azureLocation);
             rgData.Tags.Add("aspire", "true");
             var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-            resourceGroup = operation.Value;
+            resourceGroupResource = operation.Value;
 
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
+            logger.LogInformation("Resource group {rgName} created.", resourceGroupResource.Name);
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
@@ -125,9 +132,9 @@ internal sealed class DefaultProvisioningContextProvider(
                     credential,
                     armClient,
                     subscriptionResource,
-                    resourceGroup,
+                    resourceGroupResource,
                     tenantResource,
-                    location,
+                    azureLocation,
                     principal,
                     userSecrets);
     }

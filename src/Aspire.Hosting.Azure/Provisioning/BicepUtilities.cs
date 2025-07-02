@@ -99,6 +99,25 @@ internal static class BicepUtilities
     }
 
     /// <summary>
+    /// Gets the checksum for a Bicep resource configuration using provided template content.
+    /// </summary>
+    public static string GetChecksumForContent(string bicepContent, JsonObject parameters, JsonObject? scope)
+    {
+        // Combine the parameter values with the bicep template content to create a unique value
+        var input = parameters.ToJsonString() + bicepContent;
+        if (scope is not null)
+        {
+            input += scope.ToJsonString();
+        }
+
+        // Hash the contents
+        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
+
+        // Convert the hash to a string
+        return Convert.ToHexString(hashedContents).ToLowerInvariant();
+    }
+
+    /// <summary>
     /// Gets the current checksum for a Bicep resource from configuration.
     /// </summary>
     public static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
