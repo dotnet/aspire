@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <!-- packages per-os -->
-  <ItemGroup Condition="$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' == 'true'">
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
