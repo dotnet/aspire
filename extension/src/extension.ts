@@ -34,9 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Return exported API for tests or other extensions
 	return {
-		getRpcServerInfo: (): RpcServerInformation | undefined => {
-			return rpcServerInfo;
-		}
+		rpcServerInfo: rpcServerInfo,
 	};
 }
 

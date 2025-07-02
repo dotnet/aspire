@@ -36,10 +36,10 @@ suite('End-to-end RPC server auth tests', () => {
 
 		// Wait for the RPC server to start and get the port
 		await waitForExpect(() => {
-			assert.ok(extension.exports.getRpcServerInfo());
+			assert.ok(extension.exports.rpcServerInfo);
 		}, 2000, 50);
 
-		const rpcServerInfo = extension.exports.getRpcServerInfo() as RpcServerInformation;
+		const rpcServerInfo = extension.exports.rpcServerInfo as RpcServerInformation;
 
 		const port = Number(rpcServerInfo.address.replace('localhost:', ''));
 		const client = tls.connect({
