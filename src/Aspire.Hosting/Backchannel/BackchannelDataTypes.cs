@@ -9,6 +9,8 @@ namespace Aspire.Cli.Backchannel;
 namespace Aspire.Hosting.Backchannel;
 #endif
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Represents the state of a resource reported via RPC.
 /// </summary>
@@ -201,4 +203,13 @@ internal static class CompletionStates
     public const string Completed = "Completed";
     public const string CompletedWithWarning = "CompletedWithWarning";
     public const string CompletedWithError = "CompletedWithError";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
 }

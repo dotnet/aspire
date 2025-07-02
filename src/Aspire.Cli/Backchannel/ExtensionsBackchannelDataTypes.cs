@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Logging;
-
 namespace Aspire.Cli.Backchannel;
 
 /// <summary>
@@ -19,13 +17,4 @@ internal sealed class DisplayLineState(string stream, string line)
     /// Gets the content of the line to be displayed.
     /// </summary>
     public string Line { get; } = line;
-}
-
-internal class BackchannelLogEntry
-{
-    public required EventId EventId { get; set; }
-    public required LogLevel LogLevel { get; set; }
-    public required string Message { get; set; }
-    public required DateTimeOffset Timestamp { get; set; }
-    public required string CategoryName { get; set; }
 }
