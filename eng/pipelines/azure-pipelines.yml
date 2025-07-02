@@ -117,8 +117,6 @@ extends:
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
-          enablePublishUsingPipelines: true
-          enablePublishBuildAssets: true
           enableTelemetry: true
           # Publish build logs
           enablePublishBuildArtifacts: true
@@ -156,6 +154,7 @@ extends:
                   -p:Configuration=$(_BuildConfig)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                   -p:_DryRun=false
+                  -p:OfficialBuildId=$(BUILD.BUILDNUMBER)
                 displayName: Build os-specific packages
 
               - task: 1ES.PublishBuildArtifacts@1
