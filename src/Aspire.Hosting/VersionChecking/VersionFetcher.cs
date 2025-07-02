@@ -11,6 +11,8 @@ namespace Aspire.Hosting.VersionChecking;
 
 internal sealed class VersionFetcher : IVersionFetcher
 {
+    private const string PackageId = "Aspire.Hosting.AppHost";
+
     private readonly ILogger<VersionFetcher> _logger;
 
     public VersionFetcher(ILogger<VersionFetcher> logger)
@@ -23,7 +25,7 @@ internal sealed class VersionFetcher : IVersionFetcher
         var outputJson = new StringBuilder();
         var spec = new ProcessSpec("dotnet")
         {
-            Arguments = "package search Aspire.Hosting.AppHost --format json",
+            Arguments = $"package search {PackageId} --format json",
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true,
             OnOutputData = output =>
@@ -38,7 +40,7 @@ internal sealed class VersionFetcher : IVersionFetcher
             WorkingDirectory = appHostDirectory
         };
 
-        _logger.LogDebug("Running dotnet CLI to check for latest version with arguments: {ArgumentList}", spec.Arguments);
+        _logger.LogDebug("Running dotnet CLI to check for latest version of {PackageId} with arguments: {ArgumentList}", PackageId, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
         await using (processDisposable)
@@ -68,8 +70,8 @@ internal sealed class VersionFetcher : IVersionFetcher
             // should already limit results according to NuGet search syntax 
             // (https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages#search-syntax),
             // we add this extra check for robustness in case the CLI output includes unexpected packages.
-            if (package.Id == "Aspire.Hosting.AppHost" && 
-                SemVersion.TryParse(package.LatestVersion, out var version) && 
+            if (package.Id == PackageId &&
+                SemVersion.TryParse(package.LatestVersion, out var version) &&
                 !version.IsPrerelease)
             {
                 versions.Add(version);
