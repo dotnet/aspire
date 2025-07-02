@@ -164,15 +164,16 @@ internal sealed class RunCommand : BaseCommand
             _ansiConsole.WriteLine();
 
             var grid = new Grid();
+            grid.AddColumn(); // Padding column
             grid.AddColumn();
             grid.AddColumn();
 
-            grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            grid.AddRow(new Text(string.Empty), new Align(new Markup("[bold green]Dashboard[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                grid.AddRow(new Text(string.Empty), new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
-            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
+            grid.AddRow(new Text(string.Empty), new Align(new Markup("[bold green]Logs[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
 
             _ansiConsole.Write(grid);
 
