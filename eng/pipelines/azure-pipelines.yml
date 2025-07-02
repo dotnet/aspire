@@ -117,7 +117,7 @@ extends:
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
-        enablePublishBuildArtifacts: true
+          enablePublishBuildArtifacts: true
           jobs:
           - template: /eng/pipelines/templates/sign_archives.yml@self
             parameters:
