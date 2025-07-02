@@ -118,15 +118,15 @@ extends:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
           jobs:
-            - template: /eng/pipelines/templates/sign_archives.yml@self
-              parameters:
-                os: macos
-            - template: /eng/pipelines/templates/sign_archives.yml@self
-              parameters:
-                os: linux
-            - template: /eng/pipelines/templates/sign_archives.yml@self
-              parameters:
-                os: windows
+          - template: /eng/pipelines/templates/sign_archives.yml@self
+            parameters:
+              os: macos
+          - template: /eng/pipelines/templates/sign_archives.yml@self
+            parameters:
+              os: linux
+          - template: /eng/pipelines/templates/sign_archives.yml@self
+            parameters:
+              os: windows
 
           #- job: macos
 
