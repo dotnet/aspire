@@ -116,13 +116,13 @@ extends:
       displayName: Archive, and Sign non-nuget packages
       jobs:
 
-        - template: /eng/pipelines/templates/sign_archives.yml
+        - template: /eng/pipelines/templates/sign_archives.yml@self
           parameters:
             os: windows
-        - template: /eng/pipelines/templates/sign_archives.yml
+        - template: /eng/pipelines/templates/sign_archives.yml@self
           parameters:
             os: linux
-        - template: /eng/pipelines/templates/sign_archives.yml
+        - template: /eng/pipelines/templates/sign_archives.yml@self
           parameters:
             os: macos
 
