@@ -143,6 +143,7 @@ extends:
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
                   $(_SignArgs)
+                  $(_OfficialBuildIdArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
@@ -173,6 +174,7 @@ extends:
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
                   $(_SignArgs)
+                  $(_OfficialBuildIdArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
@@ -203,6 +205,7 @@ extends:
                   -p:PreparePackagesForPublishingOnly=true
                   -p:Configuration=$(_BuildConfig)
                   $(_SignArgs)
+                  $(_OfficialBuildIdArgs)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                 displayName: Build os-specific packages
 
