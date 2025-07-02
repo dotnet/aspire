@@ -131,7 +131,7 @@ extends:
               vmImage: macOS-latest-internal
               os: macOS
             variables:
-              TeamName: $(_TeamName)
+              - TeamName: $(_TeamName)
 
             preSteps:
               - checkout: self
@@ -164,7 +164,7 @@ extends:
               image: 1es-mariner-2
               os: linux
             variables:
-              TeamName: $(_TeamName)
+              - TeamName: $(_TeamName)
 
             preSteps:
               - checkout: self
