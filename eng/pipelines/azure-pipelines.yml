@@ -115,9 +115,9 @@ extends:
     - stage: archive_and_sign
       displayName: Archive, and Sign non-nuget packages
       jobs:
-      #- template: /eng/common/templates-official/jobs/jobs.yml@self
-        #parameters:
-          #jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          jobs:
           #- template: /eng/pipelines/templates/sign_archives.yml@self
             #parameters:
               #os: macos
