@@ -242,6 +242,13 @@ internal class ExtensionInteractionService : IInteractionService
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
     }
 
+    public void DisplayFormattedJson(string jsonString, string title)
+    {
+        // For extensions, just display the JSON as plain text since we can't guarantee
+        // the extension host supports formatted output
+        _consoleInteractionService.DisplayFormattedJson(jsonString, title);
+    }
+
     public void LogMessage(LogLevel logLevel, string message)
     {
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));

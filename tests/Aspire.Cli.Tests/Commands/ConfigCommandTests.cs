@@ -251,7 +251,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ConfigListCommand_ShowsFlattenedDotNotationKeys()
+    public async Task ConfigShowCommand_ShowsMergedJsonConfiguration()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -272,10 +272,68 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var setExitCode3 = await setResult3.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode3);
 
-        // List all configuration
-        var listResult = command.Parse("config list");
-        var listExitCode = await listResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, listExitCode);
+        // Show all configuration as JSON
+        var showResult = command.Parse("config show");
+        var showExitCode = await showResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, showExitCode);
+    }
+
+    [Fact]
+    public async Task ConfigShowCommand_WithUglyOption_OutputsPlainJson()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set a test value
+        var setResult = command.Parse("config set testkey testvalue");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Show configuration with --ugly option
+        var showResult = command.Parse("config show --ugly");
+        var showExitCode = await showResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, showExitCode);
+    }
+
+    [Fact]
+    public async Task ConfigShowCommand_MergesGlobalAndLocalSettings()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set a local value
+        var setLocalResult = command.Parse("config set local.key localvalue");
+        var setLocalExitCode = await setLocalResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setLocalExitCode);
+
+        // Set a global value
+        var setGlobalResult = command.Parse("config set global.key globalvalue --global");
+        var setGlobalExitCode = await setGlobalResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setGlobalExitCode);
+
+        // Set a value that should be overridden (global overrides local)
+        var setOverrideLocalResult = command.Parse("config set override.key localvalue");
+        var setOverrideLocalExitCode = await setOverrideLocalResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setOverrideLocalExitCode);
+
+        var setOverrideGlobalResult = command.Parse("config set override.key globalvalue --global");
+        var setOverrideGlobalExitCode = await setOverrideGlobalResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setOverrideGlobalExitCode);
+
+        // Verify merged configuration via new API
+        var configService = provider.GetRequiredService<IConfigurationService>();
+        var mergedConfig = await configService.GetMergedConfigurationAsync(CancellationToken.None);
+        
+        Assert.NotNull(mergedConfig);
+        Assert.Equal("localvalue", mergedConfig["local"]?["key"]?.ToString());
+        Assert.Equal("globalvalue", mergedConfig["global"]?["key"]?.ToString());
+        Assert.Equal("globalvalue", mergedConfig["override"]?["key"]?.ToString()); // Global should override local
     }
 
     [Fact]

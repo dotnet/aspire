@@ -25,4 +25,5 @@ internal interface IInteractionService
     void DisplayEmptyLine();
 
     void DisplayVersionUpdateNotification(string newerVersion);
+    void DisplayFormattedJson(string jsonString, string title);
 }

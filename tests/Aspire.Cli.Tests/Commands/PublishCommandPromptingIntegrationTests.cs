@@ -682,6 +682,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayPlainText(string text) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
+    public void DisplayFormattedJson(string jsonString, string title) { }
 }
 
 internal enum ResponseType

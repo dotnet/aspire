@@ -176,4 +176,14 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
         _ansiConsole.WriteLine();
     }
+
+    public void DisplayFormattedJson(string jsonString, string title)
+    {
+        var panel = new Panel(new Text(jsonString))
+            .Header($"[bold cyan]{title}[/]")
+            .Border(BoxBorder.Rounded)
+            .BorderColor(Color.Cyan1);
+        
+        _ansiConsole.Write(panel);
+    }
 }

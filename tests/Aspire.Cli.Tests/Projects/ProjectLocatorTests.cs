@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Projects;
@@ -337,6 +338,12 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         {
             // For test purposes, just return null (not found)
             return Task.FromResult<string?>(null);
+        }
+
+        public Task<JsonObject> GetMergedConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            // For test purposes, just return an empty JsonObject
+            return Task.FromResult(new JsonObject());
         }
     }
 }

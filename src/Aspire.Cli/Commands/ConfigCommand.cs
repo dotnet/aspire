@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -31,12 +32,12 @@ internal sealed class ConfigCommand : BaseCommand
 
         var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
         var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
+        var showCommand = new ShowCommand(configurationService, _interactionService, features, updateNotifier);
         var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
-        Subcommands.Add(listCommand);
+        Subcommands.Add(showCommand);
         Subcommands.Add(deleteCommand);
     }
 
@@ -161,33 +162,48 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand : BaseCommand
+    private sealed class ShowCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
+        public ShowCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+            : base("show", ConfigCommandStrings.ShowCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
+            
+            var uglyOption = new Option<bool>("--ugly")
+            {
+                Description = ConfigCommandStrings.ShowCommand_UglyOptionDescription
+            };
+            Options.Add(uglyOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var allConfig = await _configurationService.GetAllConfigurationAsync(cancellationToken);
+            var mergedConfig = await _configurationService.GetMergedConfigurationAsync(cancellationToken);
+            var isUgly = parseResult.GetValue<bool>("--ugly");
 
-            if (allConfig.Count == 0)
+            if (mergedConfig.Count == 0)
             {
                 _interactionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
-            foreach (var kvp in allConfig)
+            var jsonString = JsonSerializer.Serialize(mergedConfig, JsonSourceGenerationContext.Default.JsonObject);
+
+            if (isUgly)
             {
-                Console.WriteLine($"{kvp.Key}={kvp.Value}");
+                // Output plain JSON without any Spectre formatting
+                Console.WriteLine(jsonString);
+            }
+            else
+            {
+                // Use Spectre.Console for pretty printing with syntax highlighting
+                _interactionService.DisplayFormattedJson(jsonString, "Effective Configuration (merged from local and global settings)");
             }
 
             return ExitCodeConstants.Success;

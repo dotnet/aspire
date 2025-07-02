@@ -250,4 +250,80 @@ internal sealed class ConfigurationService(IConfiguration configuration, Directo
         var configKey = key.Replace('.', ':');
         return Task.FromResult(configuration[configKey]);
     }
+
+    public async Task<JsonObject> GetMergedConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        var localSettings = new JsonObject();
+        var globalSettings = new JsonObject();
+
+        var nearestSettingFilePath = FindNearestSettingsFile();
+        
+        // Load local settings
+        if (File.Exists(nearestSettingFilePath))
+        {
+            try
+            {
+                var localContent = await File.ReadAllTextAsync(nearestSettingFilePath, cancellationToken);
+                localSettings = JsonNode.Parse(localContent)?.AsObject() ?? new JsonObject();
+            }
+            catch
+            {
+                // Ignore errors reading local configuration file
+                localSettings = new JsonObject();
+            }
+        }
+
+        // Load global settings  
+        if (File.Exists(globalSettingsFile.FullName))
+        {
+            try
+            {
+                var globalContent = await File.ReadAllTextAsync(globalSettingsFile.FullName, cancellationToken);
+                globalSettings = JsonNode.Parse(globalContent)?.AsObject() ?? new JsonObject();
+            }
+            catch
+            {
+                // Ignore errors reading global configuration file
+                globalSettings = new JsonObject();
+            }
+        }
+
+        // Merge settings with global overriding local
+        return DeepMergeJsonObjects(localSettings, globalSettings);
+    }
+
+    /// <summary>
+    /// Deep merges two JsonObjects, with the override object taking precedence.
+    /// For objects, merges recursively; for primitives and arrays, override wins.
+    /// </summary>
+    private static JsonObject DeepMergeJsonObjects(JsonObject baseObject, JsonObject overrideObject)
+    {
+        var result = new JsonObject();
+
+        // First, add all properties from the base object
+        foreach (var kvp in baseObject)
+        {
+            result[kvp.Key] = kvp.Value?.DeepClone();
+        }
+
+        // Then, merge or override with properties from the override object
+        foreach (var kvp in overrideObject)
+        {
+            if (result.ContainsKey(kvp.Key) && 
+                result[kvp.Key] is JsonObject existingObject && 
+                kvp.Value is JsonObject newObject)
+            {
+                // Both are objects, merge recursively
+                result[kvp.Key] = DeepMergeJsonObjects(existingObject, newObject);
+            }
+            else
+            {
+                // Either it's a new key, or one of the values is not an object
+                // In this case, override completely
+                result[kvp.Key] = kvp.Value?.DeepClone();
+            }
+        }
+
+        return result;
+    }
 }

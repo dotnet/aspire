@@ -89,4 +89,9 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
+
+    public void DisplayFormattedJson(string jsonString, string title)
+    {
+        // For tests, just ignore formatted output
+    }
 }
