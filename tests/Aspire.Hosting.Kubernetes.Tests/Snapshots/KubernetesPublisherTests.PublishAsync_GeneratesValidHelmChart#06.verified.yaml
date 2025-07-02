@@ -4,8 +4,9 @@ kind: "ConfigMap"
 metadata:
   name: "myapp-config"
   labels:
-    app: "aspire"
-    component: "myapp"
+    app.kubernetes.io/name: "aspire"
+    app.kubernetes.io/component: "myapp"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 data:
   ASPNETCORE_ENVIRONMENT: "{{ .Values.config.myapp.ASPNETCORE_ENVIRONMENT }}"
   param0: "{{ .Values.config.myapp.param0 }}"

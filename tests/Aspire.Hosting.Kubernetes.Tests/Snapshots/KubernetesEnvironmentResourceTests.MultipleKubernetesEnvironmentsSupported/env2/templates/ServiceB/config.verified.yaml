@@ -4,8 +4,9 @@ kind: "ConfigMap"
 metadata:
   name: "serviceb-config"
   labels:
-    app: "aspire"
-    component: "ServiceB"
+    app.kubernetes.io/name: "aspire"
+    app.kubernetes.io/component: "ServiceB"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 data:
   ASPNETCORE_URLS: "{{ .Values.config.ServiceB.ASPNETCORE_URLS }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "{{ .Values.config.ServiceB.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES }}"

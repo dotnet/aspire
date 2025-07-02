@@ -4,15 +4,17 @@ kind: "Rollout"
 metadata:
   name: "myapp-rollout"
   labels:
-    app: "aspire"
-    component: "myapp"
+    app.kubernetes.io/name: "aspire"
+    app.kubernetes.io/component: "myapp"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: "aspire"
-        component: "myapp"
+        app.kubernetes.io/name: "aspire"
+        app.kubernetes.io/component: "myapp"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
     spec:
       containers:
         - image: "mcr.microsoft.com/dotnet/aspnet:8.0"
@@ -27,5 +29,6 @@ spec:
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
-      app: "aspire"
-      component: "myapp"
+      app.kubernetes.io/name: "aspire"
+      app.kubernetes.io/component: "myapp"
+      app.kubernetes.io/instance: "{{.Release.Name}}"

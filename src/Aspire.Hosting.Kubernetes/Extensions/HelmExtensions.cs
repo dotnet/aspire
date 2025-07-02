@@ -27,13 +27,13 @@ internal static class HelmExtensions
         => $"{resourceName.Replace("-", "_")}";
 
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName.ToHelmValuesSectionName()}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 
     public static string ToHelmSecretExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{SecretsKey}.{resourceName.ToHelmValuesSectionName()}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 
     public static string ToHelmConfigExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ConfigKey}.{resourceName.ToHelmValuesSectionName()}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 
     /// <summary>
     /// Converts the specified resource name into a Kubernetes resource name.

@@ -3,12 +3,17 @@ apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
   name: "serviceb-deployment"
+  labels:
+    app.kubernetes.io/name: "aspire"
+    app.kubernetes.io/component: "ServiceB"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 spec:
   template:
     metadata:
       labels:
-        app: "aspire"
-        component: "ServiceB"
+        app.kubernetes.io/name: "aspire"
+        app.kubernetes.io/component: "ServiceB"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
     spec:
       containers:
         - image: "{{ .Values.parameters.ServiceB.ServiceB_image }}"
@@ -26,8 +31,9 @@ spec:
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
-      app: "aspire"
-      component: "ServiceB"
+      app.kubernetes.io/name: "aspire"
+      app.kubernetes.io/component: "ServiceB"
+      app.kubernetes.io/instance: "{{.Release.Name}}"
   replicas: 1
   revisionHistoryLimit: 3
   strategy:
