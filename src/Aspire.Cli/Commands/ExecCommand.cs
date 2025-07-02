@@ -71,6 +71,7 @@ internal class ExecCommand : BaseCommand
         var runOutputCollector = new OutputCollector();
 
         IAppHostBackchannel? backchannel = null;
+        Task<int>? pendingRun = null;
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
@@ -138,69 +139,86 @@ internal class ExecCommand : BaseCommand
                 ..arbitraryFlags,
             ];
 
-            var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-            var pendingRun = _runner.RunAsync(
-                projectFile: effectiveAppHostProjectFile,
-                watch: false,
-                noBuild: true,
-                args: args,
-                env: env,
-                backchannelCompletionSource: backchannelCompletionSource,
-                options: runOptions,
-                cancellationToken: cancellationToken);
-
-            // We wait for the back channel to be created to signal that
-            // the AppHost is ready to accept requests.
-            backchannel = await _interactionService.ShowStatusAsync(
-                $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
-                async () =>
-                {
-                    // If we use the --wait-for-debugger option we print out the process ID
-                    // of the apphost so that the user can attach to it.
-                    if (waitForDebugger)
-                    {
-                        _interactionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
-                    }
-
-                    // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
-                    // before the backchannel is created, therefore waiting on the backchannel is a
-                    // good signal that the debugger was attached (or timed out).
-                    var backchannel = await backchannelCompletionSource.Task.WaitAsync(cancellationToken);
-                    return backchannel;
-                });
-
-            _ = await _interactionService.ShowStatusAsync<int>(
-                ":running_shoe: Running exec...",
-                async () =>
-                {
-                    // execute tool and stream the output
-                    var outputStream = backchannel.ExecAsync(cancellationToken);
-                    await foreach (var output in outputStream)
-                    {
-                        _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
-                    }
-
-                    return ExitCodeConstants.Success;
-                });
-
-            _ = await _interactionService.ShowStatusAsync<int>(
-                ":linked_paperclips: Stopping app host...",
-                async () =>
-                {
-                    await backchannel.RequestStopAsync(cancellationToken);
-                    return ExitCodeConstants.Success;
-                });
-
-            var result = await pendingRun;
-            if (result != 0)
+            try
             {
-                _interactionService.DisplayLines(runOutputCollector.GetLines());
-                _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
-                return result;
+                var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
+                pendingRun = _runner.RunAsync(
+                    projectFile: effectiveAppHostProjectFile,
+                    watch: false,
+                    noBuild: true,
+                    args: args,
+                    env: env,
+                    backchannelCompletionSource: backchannelCompletionSource,
+                    options: runOptions,
+                    cancellationToken: cancellationToken);
+
+                // We wait for the back channel to be created to signal that
+                // the AppHost is ready to accept requests.
+                backchannel = await _interactionService.ShowStatusAsync(
+                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
+                    async () =>
+                    {
+                        // If we use the --wait-for-debugger option we print out the process ID
+                        // of the apphost so that the user can attach to it.
+                        if (waitForDebugger)
+                        {
+                            _interactionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                        }
+
+                        // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
+                        // before the backchannel is created, therefore waiting on the backchannel is a
+                        // good signal that the debugger was attached (or timed out).
+                        var backchannel = await backchannelCompletionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
+
+                _ = await _interactionService.ShowStatusAsync<int>(
+                    ":running_shoe: Running exec...",
+                    async () =>
+                    {
+                        // execute tool and stream the output
+                        var outputStream = backchannel.ExecAsync(cancellationToken);
+                        await foreach (var output in outputStream)
+                        {
+                            _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
+                        }
+
+                        return ExitCodeConstants.Success;
+                    });
+            }
+            finally
+            {
+                if (backchannel is not null)
+                {
+                    _ = await _interactionService.ShowStatusAsync<int>(
+                    ":linked_paperclips: Stopping app host...",
+                    async () =>
+                    {
+                        await backchannel.RequestStopAsync(cancellationToken);
+                        return ExitCodeConstants.Success;
+                    });
+                }
+            }
+
+            if (pendingRun is not null)
+            {
+                var result = await pendingRun;
+                if (result != 0)
+                {
+                    _interactionService.DisplayLines(runOutputCollector.GetLines());
+                    _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                    return result;
+                }
+                else
+                {
+                    return ExitCodeConstants.Success;
+                }
             }
             else
             {
-                return ExitCodeConstants.Success;
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
