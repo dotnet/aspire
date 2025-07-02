@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
-import { vscOutputChannelWriter } from './vsc';
 import { aspireTerminalName } from '../loc/strings';
+import { vscOutputChannelWriter } from './logging';
 
 let hasRunGetAspireTerminal = false;
 export function getAspireTerminal(): vscode.Terminal {

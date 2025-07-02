@@ -1,6 +1,6 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/vsc';
+import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/workspace';
 import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';

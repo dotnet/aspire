@@ -2,14 +2,15 @@ import * as vscode from 'vscode';
 
 import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
-import { tryExecuteCommand, vscOutputChannelWriter } from './utils/vsc';
-import { RpcServerInformation, setupRpcServer } from './server/rpcServer';
+import { vscOutputChannelWriter } from './utils/workspace';
+import { RpcServerInformation, createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
 import { newCommand } from './commands/new';
 import { configCommand } from './commands/config';
 import { deployCommand } from './commands/deploy';
 import { publishCommand } from './commands/publish';
+import { errorMessage } from './loc/strings';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
 
@@ -25,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
 
-	rpcServerInfo = await setupRpcServer(
+	rpcServerInfo = await createRpcServer(
 		connection => new InteractionService(vscOutputChannelWriter),
 		(connection, token: string) => new RpcClient(connection, token),
 		vscOutputChannelWriter
@@ -41,4 +42,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	rpcServerInfo?.dispose();
+}
+
+async function tryExecuteCommand(command: () => Promise<void>): Promise<void> {
+	try {
+		await command();
+	}
+	catch (error) {
+		vscode.window.showErrorMessage(errorMessage(error));
+	}
 }

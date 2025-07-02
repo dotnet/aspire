@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { sendToAspireTerminal } from '../utils/terminal';
-import { isWorkspaceOpen } from '../utils/vsc';
+import { isWorkspaceOpen } from '../utils/workspace';
 
 export async function publishCommand() {
     if (!isWorkspaceOpen()) {

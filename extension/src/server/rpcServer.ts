@@ -3,12 +3,11 @@ import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { rpcServerAddressError, rpcServerError } from '../loc/strings';
-import * as crypto from 'crypto';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
-import { IOutputChannelWriter } from '../utils/vsc';
 import * as tls from 'tls';
-import { generateSelfSignedCert } from './cert-util';
+import { generateSelfSignedCert, generateToken } from '../utils/security';
+import { IOutputChannelWriter } from '../utils/logging';
 
 export type RpcServerInformation = {
     address: string;
@@ -18,7 +17,7 @@ export type RpcServerInformation = {
     cert: string;
 };
 
-export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
+export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
     const token = generateToken();
     const { key, cert } = generateSelfSignedCert();
 
@@ -63,6 +62,12 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 const fullAddress = (addressInfo.address === "::" ? "localhost" : `${addressInfo.address}`) + ":" + addressInfo.port;
                 outputChannelWriter.appendLine(`rpc-server`, `RPC server listening on ${fullAddress}`);
+
+                function disposeRpcServer(rpcServer: net.Server, outputChannelWriter: IOutputChannelWriter) {
+                    outputChannelWriter.appendLine("rpc-server", `Disposing RPC server`);
+                    rpcServer.close();
+                }
+
                 resolve({
                     token: token,
                     server: rpcServer,
@@ -83,14 +88,4 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             reject(err);
         });
     });
-}
-
-function disposeRpcServer(rpcServer: net.Server, outputChannelWriter: IOutputChannelWriter) {
-    outputChannelWriter.appendLine("rpc-server", `Disposing RPC server`);
-    rpcServer.close();
-}
-
-function generateToken(): string {
-    const key = crypto.randomBytes(16);
-    return key.toString('base64');
 }

@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { codespacesLink, directLink } from '../../loc/strings';
-import { RpcServerInformation, setupRpcServer } from '../../server/rpcServer';
-import { IOutputChannelWriter } from '../../utils/vsc';
+import { RpcServerInformation, createRpcServer } from '../../server/rpcServer';
+import { IOutputChannelWriter } from '../../utils/workspace';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 
@@ -234,7 +234,7 @@ async function createRpcServer(): Promise<RpcServerTestInfo> {
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService(outputChannel);
 
-	const rpcServerInfo = await setupRpcServer(
+	const rpcServerInfo = await createRpcServer(
 		() => interactionService,
 		() => rpcClient,
 		outputChannel
