@@ -112,6 +112,20 @@ extends:
 
     stages:
 
+    - stage: archive_and_sign
+      displayName: Archive, and Sign non-nuget packages
+      jobs:
+
+        - template: /eng/pipelines/templates/sign_archives.yml
+          parameters:
+            os: windows
+        - template: /eng/pipelines/templates/sign_archives.yml
+          parameters:
+            os: linux
+        - template: /eng/pipelines/templates/sign_archives.yml
+          parameters:
+            os: macos
+
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
     # ----------------------------------------------------------------
@@ -170,65 +184,6 @@ extends:
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
 
-          - job: Linux
-            timeoutInMinutes: 90
-
-            pool:
-              name: NetCore1ESPool-Internal
-              image: 1es-mariner-2
-              os: linux
-
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
-
-            steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci --sign --build --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl:$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/Build.binlog -p:_DryRun=false
-                displayName: Build os-specific packages
-
-              - task: 1ES.PublishBuildArtifacts@1
-                displayName: Publish Artifacts
-                inputs:
-                  PathtoPublish: '$(Build.ArtifactStagingDirectory)/artifacts/packages/'
-                  ArtifactName: Signed_Archives_linux
-
-              #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
-                #parameters:
-                  #args:
-                    #displayName: Publish CLI packages for the Windows job
-                    #targetPath: $(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping/aspire-cli*
-                    #artifactName: aspire-cli-archives
-
-          - job: MacOS
-            timeoutInMinutes: 90
-
-            pool:
-              name: Azure Pipelines
-              vmImage: macOS-latest-internal
-              os: macOS
-
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
-
-            steps:
-              - script: $(Build.SourcesDirectory)/build.sh --ci --sign --build --restore -p:PreparePackagesForPublishingOnly=true -p:Configuration=$(_BuildConfig) -bl:$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/Build.binlog -p:_DryRun=false
-                displayName: Build os-specific packages
-
-              - task: 1ES.PublishBuildArtifacts@1
-                displayName: Publish Artifacts
-                inputs:
-                  PathtoPublish: '$(Build.ArtifactStagingDirectory)/artifacts/packages/'
-                  ArtifactName: Signed_Archives_macos
-
-              #- template: /eng/common/templates/steps/publish-pipeline-artifacts.yml
-                #parameters:
-                  #args:
-                    #displayName: Publish CLI packages for the Windows job
-                    #targetPath: $(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping/aspire-cli*
-                    #artifactName: aspire-cli-archives
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self

@@ -1,0 +1,46 @@
+parameters:
+  - name: os
+    type: string
+    default: windows
+
+jobs:
+- job: ArchiveAndSign_${{ parameters.os }}
+  timeoutInMinutes: 90
+
+  pool:
+    - ${{ if eq(parameters.os, 'windows') }}:
+      - name: NetCore1ESPool-Internal
+        image: windows.vs2022preview.amd64
+        os: windows
+    - ${{ if eq(parameters.os, 'linux') }}:
+      - name: NetCore1ESPool-Internal
+        image: 1es-mariner-2
+        os: linux
+    - ${{ if eq(parameters.os, 'macos') }}:
+      - name: Azure Pipelines
+        vmImage: macOS-latest-internal
+        os: macOS
+
+  preSteps:
+    - checkout: self
+      fetchDepth: 1
+      clean: true
+
+  steps:
+    - script: >-
+        $(Build.SourcesDirectory)/build.sh
+        --ci
+        --sign
+        --build
+        --restore
+        -p:PreparePackagesForPublishingOnly=true
+        -p:Configuration=$(_BuildConfig)
+        -bl:$(Build.Arcade.LogsPaths)/Build.binlog
+        -p:_DryRun=false
+      displayName: Build os-specific packages
+
+    - task: 1ES.PublishBuildArtifacts@1
+      displayName: Publish Artifacts
+      inputs:
+        PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+        ArtifactName: Signed_Archives_${{ parameters.os }}
