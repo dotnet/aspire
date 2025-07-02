@@ -117,11 +117,12 @@ extends:
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
-          enableMicrobuild: true
+          #enableMicrobuild: true
           enableMicrobuildForMacAndLinux: true
           enableTelemetry: true
           # Publish build logs
           enablePublishBuildArtifacts: true
+
           jobs:
 
           - job: macos
