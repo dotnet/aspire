@@ -154,7 +154,6 @@ extends:
                   -p:Configuration=$(_BuildConfig)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                   -p:_DryRun=false
-                  -p:OfficialBuildId=$(BUILD.BUILDNUMBER)
                 displayName: Build os-specific packages
 
               - task: 1ES.PublishBuildArtifacts@1
@@ -185,7 +184,6 @@ extends:
                   -p:Configuration=$(_BuildConfig)
                   -bl:$(Build.Arcade.LogsPath)Build.binlog
                   -p:_DryRun=false
-                  -p:OfficialBuildId=$(BUILD.BUILDNUMBER)
                 displayName: Build os-specific packages
 
               - task: 1ES.PublishBuildArtifacts@1
