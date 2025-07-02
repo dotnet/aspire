@@ -34,15 +34,18 @@
     <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
 
+    <FileSignInfo Condition="$([System.OperatingSystem]::IsLinux())" Include="aspire" CertificateName="MicrosoftDotNet500" />
+    <FileSignInfo Condition="$([System.OperatingSystem]::IsMacOS())" Include="aspire" CertificateName="MacDeveloperWithNotarization" />
+
     <!-- cli archives -->
-    <_CliArchivesForMacOS Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-osx-*" />
-    <FileSignInfo Include="@(_CliArchivesForMacOS -> '%(FileName)%(Extension)')" CertificateName="MacDeveloperWithNotarization" />
+    <!--<_CliArchivesForMacOS Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-osx-*" />-->
+    <!--<FileSignInfo Include="@(_CliArchivesForMacOS -> '%(FileName)%(Extension)')" CertificateName="MacDeveloperWithNotarization" />-->
 
-    <_CliArchivesForWindows Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-win-*" />
-    <FileSignInfo Include="@(_CliArchivesForWindows -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />
+    <!--<_CliArchivesForWindows Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-win-*" />-->
+    <!--<FileSignInfo Include="@(_CliArchivesForWindows -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />-->
 
-    <_CliArchivesForLinux Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-linux-*" />
-    <FileSignInfo Include="@(_CliArchivesForLinux -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />
+    <!--<_CliArchivesForLinux Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-linux-*" />-->
+    <!--<FileSignInfo Include="@(_CliArchivesForLinux -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />-->
   </ItemGroup>
 
   <PropertyGroup>
