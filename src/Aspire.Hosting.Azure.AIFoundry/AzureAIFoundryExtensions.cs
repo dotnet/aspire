@@ -152,7 +152,7 @@ public static class AzureAIFoundryExtensions
                 }
                 catch (Exception e)
                 {
-                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started. Error: {Error}", e.Message);
+                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started (Error: {Error}).", e.Message);
                 }
 
                 if (manager.IsServiceRunning)

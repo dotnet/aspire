@@ -679,7 +679,6 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
-    public void OpenNewProject(string projectPath) { }
     public void DisplayPlainText(string text) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
