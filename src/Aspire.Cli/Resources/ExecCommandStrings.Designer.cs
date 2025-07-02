@@ -61,15 +61,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Keeps apphost running after the command execution finished..
-        /// </summary>
-        internal static string AppHostKeepAliveArgumentDescription {
-            get {
-                return ResourceManager.GetString("AppHostKeepAliveArgumentDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Run an Aspire app host to execute a command against the resource..
         /// </summary>
         internal static string Description {
@@ -79,7 +70,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to parse command.
+        ///   Looks up a localized string similar to Failed to parse command..
         /// </summary>
         internal static string FailedToParseCommand {
             get {

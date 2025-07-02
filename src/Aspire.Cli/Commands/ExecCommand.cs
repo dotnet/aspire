@@ -183,6 +183,14 @@ internal class ExecCommand : BaseCommand
                     return ExitCodeConstants.Success;
                 });
 
+            _ = await _interactionService.ShowStatusAsync<int>(
+                ":linked_paperclips: Stopping app host...",
+                async () =>
+                {
+                    await backchannel.RequestStopAsync(cancellationToken);
+                    return ExitCodeConstants.Success;
+                });
+
             var result = await pendingRun;
             if (result != 0)
             {
@@ -238,19 +246,6 @@ internal class ExecCommand : BaseCommand
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-        finally
-        {
-            if (backchannel is not null)
-            {
-                _ = await _interactionService.ShowStatusAsync<int>(
-                ":linked_paperclips: Stopping app host...",
-                async () =>
-                {
-                    await backchannel.RequestStopAsync(cancellationToken);
-                    return ExitCodeConstants.Success;
-                });
-            }
         }
     }
 

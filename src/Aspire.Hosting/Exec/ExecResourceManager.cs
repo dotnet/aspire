@@ -51,7 +51,7 @@ internal class ExecResourceManager : BackgroundService
         if (_execResource is null || string.IsNullOrEmpty(_dcpExecResourceName))
         {
             _logger.LogInformation("Exec resource can't be determined.");
-            yield break;
+            throw new ArgumentException($"Exec resource can't be determined.");
         }
 
         string type = "waiting";
@@ -96,7 +96,7 @@ internal class ExecResourceManager : BackgroundService
         if (targetResource is not IResourceSupportsExec targetExecResource)
         {
             _logger.LogWarning("Target resource '{ResourceName}' does not support exec.", _execOptions.ResourceName);
-            return Task.CompletedTask;
+            throw new ArgumentException($"Target resource '{_execOptions.ResourceName}' does not support exec");
         }
 
         var (execResource, dcpResourceName) = BuildResource(targetExecResource);

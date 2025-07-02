@@ -126,9 +126,6 @@
   <data name="StartTargetResourceArgumentDescription" xml:space="preserve">
     <value>The name of the target resource to start and execute the command against.</value>
   </data>
-  <data name="AppHostKeepAliveArgumentDescription" xml:space="preserve">
-    <value>Keeps apphost running after the command execution finished.</value>
-  </data>
   <data name="TargetResourceArgumentDescription" xml:space="preserve">
     <value>The name of the target resource to execute the command against.</value>
   </data>
@@ -136,6 +133,6 @@
     <value>Target resource is not specified.</value>
   </data>
   <data name="FailedToParseCommand" xml:space="preserve">
-    <value>Failed to parse command</value>
+    <value>Failed to parse command.</value>
   </data>
 </root>
