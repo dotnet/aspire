@@ -120,7 +120,7 @@ extends:
           enableTelemetry: true
           # Publish build logs
           enablePublishBuildArtifacts: true
-          #jobs:
+          jobs:
           ##- template: /eng/pipelines/templates/sign_archives.yml@self
             ##parameters:
               ##os: macos
