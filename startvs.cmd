@@ -15,8 +15,8 @@ if NOT [%ERRORLEVEL%] == [0] (
 set /p dotnetPath=<%~dp0artifacts\toolset\sdk.txt
 
 :: This tells .NET Core to use the same dotnet.exe that build scripts use
-SET DOTNET_ROOT="%dotnetPath%"
-SET DOTNET_ROOT(x86)="%dotnetPath%\x86"
+SET "DOTNET_ROOT=%dotnetPath%"
+SET "DOTNET_ROOT(x86)=%dotnetPath%\x86"
 
 
 :: This tells .NET Core not to go looking for .NET Core in other places
