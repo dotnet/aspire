@@ -39,6 +39,7 @@ steps:
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
               /p:SkipTestProjects=true
+              /p:ExcludePackagesForPublishing=true
       displayName: Build
 
     - script: ${{ parameters.dotnetScript }}

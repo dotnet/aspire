@@ -162,35 +162,35 @@ extends:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Signed_Archives_macos
 
-          - job: linux
-            pool:
-              name: NetCore1ESPool-Internal
-              image: 1es-mariner-2
-              os: linux
+          #- job: linux
+            #pool:
+              #name: NetCore1ESPool-Internal
+              #image: 1es-mariner-2
+              #os: linux
 
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
+            #preSteps:
+              #- checkout: self
+                #fetchDepth: 1
+                #clean: true
 
-            steps:
-              - script: >-
-                  $(Build.SourcesDirectory)/build.sh
-                  --ci
-                  --sign
-                  --build
-                  --restore
-                  -p:PreparePackagesForPublishingOnly=true
-                  -p:Configuration=$(_BuildConfig)
-                  -bl:$(Build.Arcade.LogsPath)Build.binlog
-                  -p:_DryRun=false
-                displayName: Build os-specific packages
+            #steps:
+              #- script: >-
+                  #$(Build.SourcesDirectory)/build.sh
+                  #--ci
+                  #--sign
+                  #--build
+                  #--restore
+                  #-p:PreparePackagesForPublishingOnly=true
+                  #-p:Configuration=$(_BuildConfig)
+                  #-bl:$(Build.Arcade.LogsPath)Build.binlog
+                  #-p:_DryRun=false
+                #displayName: Build os-specific packages
 
-              - task: 1ES.PublishBuildArtifacts@1
-                displayName: Publish Artifacts
-                inputs:
-                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  ArtifactName: Signed_Archives_linux
+              #- task: 1ES.PublishBuildArtifacts@1
+                #displayName: Publish Artifacts
+                #inputs:
+                  #PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                  #ArtifactName: Signed_Archives_linux
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
@@ -242,6 +242,18 @@ extends:
                 clean: true
 
             steps:
+              #- task: DownloadPipelineArtifact@2
+                #displayName: Download Archives linux
+                #inputs:
+                  #artifactName: Signed_Archives_linux
+                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+
+              - task: DownloadPipelineArtifact@2
+                displayName: Download Archives macos
+                inputs:
+                  artifactName: Signed_Archives_macos
+                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
                   dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
