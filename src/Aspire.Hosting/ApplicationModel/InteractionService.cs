@@ -4,7 +4,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -123,9 +122,10 @@ internal class InteractionService : IInteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Complete
+        var promptState = completion.State as bool?;
+        return promptState == null
             ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok((bool)completion.State!);
+            : InteractionResultFactory.Ok(promptState.Value);
     }
 
     // For testing.
@@ -331,7 +331,7 @@ internal class Interaction
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
-        Message = options.EscapeMessageHtml == false ? message : WebUtility.HtmlEncode(message);
+        Message = message;
         Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;

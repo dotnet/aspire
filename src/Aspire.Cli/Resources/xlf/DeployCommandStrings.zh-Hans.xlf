@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。</target>
+        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <target state="needs-review-translation">将 Aspire 应用主机项目部署到其支持的部署目标。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

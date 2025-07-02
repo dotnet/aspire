@@ -19,6 +19,7 @@ internal static class ResourceIconHelpers
             KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, IconVariant.Filled),
             KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, IconVariant.Filled),
             KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("CloudArrowUp", desiredSize, IconVariant.Filled),
             string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, IconVariant.Filled),
             _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
         };

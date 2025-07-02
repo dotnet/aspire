@@ -83,6 +83,7 @@ jobs:
           dotnet-version: |
             8.x
             9.x
+            10.x
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'

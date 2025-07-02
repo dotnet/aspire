@@ -33,10 +33,14 @@ internal class ConsoleInteractionService : IInteractionService
             .Start(statusText, (context) => action());
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
-        var prompt = new TextPrompt<string>(promptText);
+        var prompt = new TextPrompt<string>(promptText)
+        {
+            IsSecret = isSecret,
+            AllowEmpty = !required
+        };
 
         if (defaultValue is not null)
         {
@@ -163,7 +167,13 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
     }
 
-    public void OpenNewProject(string projectPath)
+    private const string UpdateUrl = "https://aka.ms/aspire/update";
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
     {
+        _ansiConsole.WriteLine();
+        _ansiConsole.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
+        _ansiConsole.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
+        _ansiConsole.WriteLine();
     }
 }

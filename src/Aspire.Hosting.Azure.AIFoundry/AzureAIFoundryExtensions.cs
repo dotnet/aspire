@@ -132,10 +132,9 @@ public static class AzureAIFoundryExtensions
 
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<InitializeResourceEvent>(builder.Resource, (@event, ct)
+        return builder.OnInitializeResource((resource, @event, ct)
             => Task.Run(async () =>
             {
-                var resource = (AzureAIFoundryResource)@event.Resource;
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
                 var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
@@ -153,7 +152,7 @@ public static class AzureAIFoundryExtensions
                 }
                 catch (Exception e)
                 {
-                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started. Error: {Error}", e.Message);
+                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started (Error: {Error}).", e.Message);
                 }
 
                 if (manager.IsServiceRunning)
@@ -176,8 +175,6 @@ public static class AzureAIFoundryExtensions
                 }
 
             }, ct));
-
-        return builder;
     }
 
     /// <summary>
@@ -187,9 +184,7 @@ public static class AzureAIFoundryExtensions
     {
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
-        var foundryResource = builder.Resource.Parent;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
+        builder.OnResourceReady((foundryResource, @event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = @event.Services.GetRequiredService<ResourceLoggerService>();

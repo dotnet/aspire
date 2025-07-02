@@ -101,5 +101,8 @@
     "ts-node": "^10.9.2",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-nls": "5.2.0"
+  },
+  "resolutions": {
+    "braces": "^3.0.3"
   }
 }
