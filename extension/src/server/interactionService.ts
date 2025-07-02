@@ -144,6 +144,7 @@ export class InteractionService implements IInteractionService {
     displayError(errorMessage: string) {
         this._outputChannelWriter.appendLine('interaction', `Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
+        this.clearStatusBar();
     }
 
     displayMessage(emoji: string, message: string) {
@@ -223,6 +224,14 @@ export class InteractionService implements IInteractionService {
     logMessage(logLevel: string, message: string) {
         // logLevel currently unused, but can be extended in the future
         this._outputChannelWriter.appendLine('cli', `[${logLevel}] ${formatText(message)}`);
+    }
+
+    clearStatusBar() {
+        if (this._statusBarItem) {
+            this._statusBarItem.hide();
+            this._statusBarItem.dispose();
+            this._statusBarItem = undefined;
+        }
     }
 }
 

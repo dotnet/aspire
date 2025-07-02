@@ -43,6 +43,8 @@ resource infra_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   }
 }
 
+output name string = infra_asplan.name
+
 output planId string = infra_asplan.id
 
 output AZURE_CONTAINER_REGISTRY_NAME string = infra_acr.name

@@ -14,9 +14,7 @@
       "type": "container.v0",
       "image": "mcr.microsoft.com/dotnet/nightly/yarp:latest",
       "env": {
-        "ASPNETCORE_ENVIRONMENT": "Production",
-        "services__nuget__https__0": "https://api.nuget.org",
-        "services__external-service__default__0": "{external-service-url.value}"
+        "ASPNETCORE_ENVIRONMENT": "Production"
       },
       "bindings": {
         "http": {
@@ -36,7 +34,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
-        "services__nuget__https__0": "https://api.nuget.org",
+        "services__nuget__https__0": "https://api.nuget.org/",
         "EXTERNAL_SERVICE_URL": "{external-service-url.value}",
         "services__gateway__http__0": "{gateway.bindings.http.url}"
       },

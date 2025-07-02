@@ -1,7 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// These types are source shared between the CLI and the Aspire.Hosting projects.
+// The CLI sets the types in its own namespace.
+#if CLI
+namespace Aspire.Cli.Backchannel;
+#else
 namespace Aspire.Hosting.Backchannel;
+#endif
+
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -168,6 +176,15 @@ internal static class CompletionStates
     public const string Completed = "Completed";
     public const string CompletedWithWarning = "CompletedWithWarning";
     public const string CompletedWithError = "CompletedWithError";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
 }
 
 internal struct CommandOutput
