@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
@@ -171,6 +172,7 @@ internal class ExecResourceManager : BackgroundService
             // to keep the command as a single argument
             var command = _execOptions.Command;
             var commandUnwrapped = command.AsSpan(1, command.Length - 2).ToString();
+            Debug.Assert(command[0] == '"' && command[^1] == '"');
 
             var split = commandUnwrapped.Split(' ', count: 2);
             var exe = split[0];
