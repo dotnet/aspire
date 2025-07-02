@@ -8,15 +8,15 @@ jobs:
   timeoutInMinutes: 90
 
   pool:
-    - ${{ if eq(parameters.os, 'windows') }}:
+    ${{ if eq(parameters.os, 'windows') }}:
       - name: NetCore1ESPool-Internal
         image: windows.vs2022preview.amd64
         os: windows
-    - ${{ if eq(parameters.os, 'linux') }}:
+    ${{ if eq(parameters.os, 'linux') }}:
       - name: NetCore1ESPool-Internal
         image: 1es-mariner-2
         os: linux
-    - ${{ if eq(parameters.os, 'macos') }}:
+    ${{ if eq(parameters.os, 'macos') }}:
       - name: Azure Pipelines
         vmImage: macOS-latest-internal
         os: macOS
