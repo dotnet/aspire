@@ -57,8 +57,8 @@
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\*.zip" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\*.tar.gz" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\*.zip" Condition="'$(PreparePackagesForPublishingOnly)' == 'true'" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\*.tar.gz" Condition="'$(PreparePackagesForPublishingOnly)' == 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>
