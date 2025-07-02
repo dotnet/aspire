@@ -7,6 +7,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -34,8 +35,8 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry)
-        : base(name, description)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -432,10 +433,10 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var input = activity.Data.Inputs[i];
 
-            // For multiple inputs, indent the prompt with the label
+            // For multiple inputs, use the input label as the prompt
             // For single input, use the activity status text as the prompt
             var promptText = activity.Data.Inputs.Count > 1
-                ? $"\t{input.Label}: "
+                ? $"{input.Label}: "
                 : $"[bold]{activity.Data.StatusText}[/]";
 
             var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
@@ -458,24 +459,24 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             InputType.Text => await _interactionService.PromptForStringAsync(
                 promptText,
-                defaultValue: null,
-                validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
+                defaultValue: input.Value,
+                required: input.Required,
                 cancellationToken: cancellationToken),
 
             InputType.SecretText => await _interactionService.PromptForStringAsync(
                 promptText,
-                defaultValue: null,
-                validator: input.Required ? (value => string.IsNullOrWhiteSpace(value) ? ValidationResult.Error("This field is required.") : ValidationResult.Success()) : null,
+                defaultValue: input.Value,
                 isSecret: true,
+                required: input.Required,
                 cancellationToken: cancellationToken),
 
             InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
 
-            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: false, cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
+            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await _interactionService.PromptForStringAsync(promptText, cancellationToken: cancellationToken)
+            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
         };
     }
 
@@ -483,27 +484,26 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await _interactionService.PromptForStringAsync(promptText, cancellationToken: cancellationToken);
+            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
+        // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
+        // but we can reorder the options to put the default first or use a different approach
         var selectedChoice = await _interactionService.PromptForSelectionAsync(
             promptText,
             input.Options,
             choice => choice.Value,
             cancellationToken);
 
+        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
+
         return selectedChoice.Key;
     }
 
     private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
-        ValidationResult Validator(string value)
+        static ValidationResult Validator(string value)
         {
-            if (input.Required && string.IsNullOrWhiteSpace(value))
-            {
-                return ValidationResult.Error("This field is required.");
-            }
-
             if (!string.IsNullOrWhiteSpace(value) && !double.TryParse(value, out _))
             {
                 return ValidationResult.Error("Please enter a valid number.");
@@ -514,8 +514,15 @@ internal abstract class PublishCommandBase : BaseCommand
 
         return await _interactionService.PromptForStringAsync(
             promptText,
+            defaultValue: input.Value,
             validator: Validator,
+            required: input.Required,
             cancellationToken: cancellationToken);
+    }
+
+    private static bool ParseBooleanValue(string? value)
+    {
+        return bool.TryParse(value, out var result) && result;
     }
 
     private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)

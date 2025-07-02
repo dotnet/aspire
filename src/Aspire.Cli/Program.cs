@@ -105,6 +105,7 @@ public class Program
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -136,7 +137,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
         var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory, features);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)

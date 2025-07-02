@@ -29,3 +29,4 @@ export const aspireCliVersion = (version: string) => localize('aspire-vscode.str
 export const requiredCapability = (capability: string) => localize('aspire-vscode.strings.requiredCapability', 'Required Capability: {0}', capability);
 export const aspireTerminalName = localize('aspire-vscode.strings.aspireTerminalName', 'Aspire Terminal');
 export const aspireOutputChannelName = localize('aspire-vscode.strings.aspireOutputChannelName', 'Aspire Extension');
+export const fieldRequired = localize('aspire-vscode.strings.fieldRequired', 'This field is required');

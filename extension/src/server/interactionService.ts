@@ -1,13 +1,13 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/vsc';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability } from '../loc/strings';
+import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
-    promptForString: (promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
@@ -56,7 +56,7 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    async promptForString(promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient): Promise<string | null> {
+    async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
             this._outputChannelWriter.appendLine('interaction', failedToShowPromptEmpty);
@@ -68,6 +68,12 @@ export class InteractionService implements IInteractionService {
             prompt: formatText(promptText),
             value: formatText(defaultValue ?? ''),
             validateInput: async (value: string) => {
+                // Check required field validation first
+                if (required && (!value || value.trim() === '')) {
+                    return fieldRequired;
+                }
+
+                // Then check RPC validation
                 const validationResult = await rpcClient.validatePromptInputString(value);
                 if (validationResult) {
                     return validationResult.successful ? null : validationResult.message;
@@ -221,7 +227,7 @@ export class InteractionService implements IInteractionService {
 
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
     connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
-    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null) => interactionService.promptForString(promptText, defaultValue, rpcClient)));
+    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
     connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", withAuthentication((requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));

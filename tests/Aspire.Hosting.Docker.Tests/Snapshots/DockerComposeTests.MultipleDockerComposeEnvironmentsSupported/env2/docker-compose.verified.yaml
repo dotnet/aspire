@@ -1,0 +1,16 @@
+﻿services:
+  env2-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+  api2:
+    image: "myimage:latest"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"

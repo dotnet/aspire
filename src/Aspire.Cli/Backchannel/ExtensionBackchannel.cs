@@ -33,7 +33,7 @@ internal interface IExtensionBackchannel
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
     Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
-    Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, CancellationToken cancellationToken);
+    Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
 }
@@ -443,7 +443,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     }
 
     public async Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator,
-        CancellationToken cancellationToken)
+        bool required, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -453,11 +453,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Prompting for string with text: {PromptText}, default value: {DefaultValue}", promptText, defaultValue);
+        logger.LogDebug("Prompting for string with text: {PromptText}, default value: {DefaultValue}, required: {Required}", promptText, defaultValue, required);
 
         var result = await rpc.InvokeWithCancellationAsync<string?>(
             "promptForString",
-            [_token, promptText, defaultValue],
+            [_token, promptText, defaultValue, required],
             cancellationToken);
 
         return result;

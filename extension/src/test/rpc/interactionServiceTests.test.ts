@@ -66,7 +66,7 @@ suite('InteractionService endpoints', () => {
 			return 'valid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'valid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();
@@ -85,7 +85,7 @@ suite('InteractionService endpoints', () => {
 			return 'invalid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'invalid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();

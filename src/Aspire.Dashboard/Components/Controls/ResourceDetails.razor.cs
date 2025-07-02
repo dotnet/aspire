@@ -279,7 +279,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new("ResourceDetails");
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, nameof(ResourceDetails));
 
     public void UpdateTelemetryProperties()
     {
