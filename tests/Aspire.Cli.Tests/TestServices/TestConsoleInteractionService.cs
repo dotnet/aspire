@@ -88,10 +88,6 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         Console.WriteLine($"[{(isErrorMessage ? "Error" : type ?? "Info")}] {message} (Line: {lineNumber})");
     }
 
-    public void OpenNewProject(string projectPath)
-    {
-    }
-
     public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
 
     public void DisplayVersionUpdateNotification(string newerVersion)
