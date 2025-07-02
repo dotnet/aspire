@@ -1,9 +1,10 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { IOutputChannelWriter, isWorkspaceOpen } from '../utils/vsc';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
+import { isFolderOpenInWorkspace } from '../utils/workspace';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
+import { IOutputChannelWriter } from '../utils/logging';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -20,6 +21,7 @@ export interface IInteractionService {
     displayLines: (lines: ConsoleLine[]) => void;
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
+    logMessage: (logLevel: string, message: string) => void;
 }
 
 type DashboardUrls = {
@@ -41,6 +43,8 @@ export class InteractionService implements IInteractionService {
     }
 
     showStatus(statusText: string | null) {
+        this._outputChannelWriter.appendLine('interaction', `Setting status bar text: ${statusText ?? 'null'}`);
+
         if (!this._statusBarItem) {
             this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         }
@@ -56,10 +60,11 @@ export class InteractionService implements IInteractionService {
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
-            this._outputChannelWriter.appendLine(failedToShowPromptEmpty);
+            this._outputChannelWriter.appendLine('interaction', failedToShowPromptEmpty);
             return null;
         }
 
+        this._outputChannelWriter.appendLine('interaction', `Prompting for string: ${promptText} with default value: ${defaultValue ?? 'null'}`);
         const input = await vscode.window.showInputBox({
             prompt: formatText(promptText),
             value: formatText(defaultValue ?? ''),
@@ -83,6 +88,7 @@ export class InteractionService implements IInteractionService {
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
+        this._outputChannelWriter.appendLine('interaction', `Confirming: ${promptText} with default value: ${defaultValue}`);
         const yes = yesLabel;
         const no = noLabel;
 
@@ -105,6 +111,8 @@ export class InteractionService implements IInteractionService {
     }
 
     async promptForSelection(promptText: string, choices: string[]): Promise<string | null> {
+        this._outputChannelWriter.appendLine('interaction', `Prompting for selection: ${promptText}`);
+
         const selected = await vscode.window.showQuickPick(choices, {
             placeHolder: formatText(promptText),
             canPickMany: false,
@@ -115,7 +123,9 @@ export class InteractionService implements IInteractionService {
     }
 
     async displayIncompatibleVersionError(requiredCapabilityStr: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) {
-        const cliInformationalVersion =  await rpcClient.getCliVersion();
+        this._outputChannelWriter.appendLine('interaction', `Displaying incompatible version error`);
+
+        const cliInformationalVersion = await rpcClient.getCliVersion();
 
         const errorLines = [
             incompatibleAppHostError,
@@ -127,30 +137,31 @@ export class InteractionService implements IInteractionService {
         vscode.window.showErrorMessage(formatText(errorLines.join('. ')));
 
         errorLines.forEach(line => {
-            this._outputChannelWriter.appendLine(formatText(line));
+            this._outputChannelWriter.appendLine("interaction", formatText(line));
         });
     }
 
     displayError(errorMessage: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
-        this._outputChannelWriter.appendLine(formatText(errorMessage));
+        this.clearStatusBar();
     }
 
     displayMessage(emoji: string, message: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying message: ${emoji} ${message}`);
         vscode.window.showInformationMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying success message: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     displaySubtleMessage(message: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying subtle message: ${message}`);
         vscode.window.setStatusBarMessage(formatText(message), 5000);
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
@@ -159,14 +170,7 @@ export class InteractionService implements IInteractionService {
     }
 
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
-        this._outputChannelWriter.appendLine('Dashboard:');
-        if (dashboardUrls.codespacesUrlWithLoginToken) {
-            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
-            this._outputChannelWriter.appendLine(`📈 ${codespacesUrl(dashboardUrls.codespacesUrlWithLoginToken)}`);
-        }
-        else {
-            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
-        }
+        this._outputChannelWriter.appendLine('interaction', `Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
         const actions: vscode.MessageItem[] = [
             { title: directLink }
@@ -185,6 +189,8 @@ export class InteractionService implements IInteractionService {
             return;
         }
 
+        this._outputChannelWriter.appendLine('interaction', `Selected action: ${selected.title}`);
+
         if (selected.title === directLink) {
             vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.baseUrlWithLoginToken));
         }
@@ -196,21 +202,36 @@ export class InteractionService implements IInteractionService {
     displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.line).join('\n');
         vscode.window.showInformationMessage(formatText(displayText));
-        lines.forEach(line => this._outputChannelWriter.appendLine(formatText(line.line)));
+        lines.forEach(line => this._outputChannelWriter.appendLine('interaction', formatText(line.line)));
     }
 
     displayCancellationMessage(message: string) {
+        this._outputChannelWriter.appendLine('interaction', `Displaying cancellation message: ${message}`);
         vscode.window.showWarningMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     openProject(projectPath: string) {
-        if (isWorkspaceOpen(false)) {
+        this._outputChannelWriter.appendLine('interaction', `Opening project at path: ${projectPath}`);
+
+        if (isFolderOpenInWorkspace(projectPath)) {
             return;
         }
 
         const uri = vscode.Uri.file(projectPath);
         vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+    }
+
+    logMessage(logLevel: string, message: string) {
+        // logLevel currently unused, but can be extended in the future
+        this._outputChannelWriter.appendLine('cli', `[${logLevel}] ${formatText(message)}`);
+    }
+
+    clearStatusBar() {
+        if (this._statusBarItem) {
+            this._statusBarItem.hide();
+            this._statusBarItem.dispose();
+            this._statusBarItem = undefined;
+        }
     }
 }
 
@@ -223,10 +244,11 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
     connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
     connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
-    connection.onRequest("displaySubtleMessage", withAuthentication( interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", withAuthentication(interactionService.displaySubtleMessage.bind(interactionService)));
     connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
     connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
+    connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
 }

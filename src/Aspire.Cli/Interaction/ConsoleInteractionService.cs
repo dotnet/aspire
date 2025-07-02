@@ -167,10 +167,6 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
     }
 
-    public void OpenNewProject(string projectPath)
-    {
-    }
-
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
     public void DisplayVersionUpdateNotification(string newerVersion)

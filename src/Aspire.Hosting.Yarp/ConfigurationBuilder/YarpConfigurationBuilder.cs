@@ -49,6 +49,16 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
         return destination;
     }
 
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService)
+    {
+        ThrowIfHasBeenBuilt();
+        var destination = new YarpCluster(externalService.Resource);
+        Clusters.Add(destination);
+        _parent.WithReference(externalService);
+        return destination;
+    }
+
     internal void BuildAndPopulateEnvironment()
     {
         // Check if the configuration was already built or not.

@@ -1,13 +1,26 @@
 {
   "name": "aspire-vscode",
-  "displayName": "aspire",
-  "description": "vscode extension for aspire",
-  "version": "0.0.1",
+  "displayName": "Aspire",
+  "description": "%extension.description%",
+  "publisher": "microsoft-aspire",
+  "version": "0.1.0",
+  "icon": "dotnet-aspire-logo-128.png",
+  "license": "SEE LICENSE IN LICENSE.TXT",
+  "bugs": {
+    "url": "https://github.com/dotnet/aspire/issues"
+  },
   "engines": {
     "vscode": "^1.98.0"
   },
   "categories": [
+    "Programming Languages",
+    "Debuggers",
     "Other"
+  ],
+  "keywords": [
+    "dotnet",
+    "orchestrator",
+    "apphost"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -47,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://dev.azure.com/devdiv/DevDiv/_git/aspire-vscode",
+    "url": "https://github.com/dotnet/aspire",
     "branch": "main"
   },
   "scripts": {
@@ -101,5 +114,8 @@
     "ts-node": "^10.9.2",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-nls": "5.2.0"
+  },
+  "resolutions": {
+    "braces": "^3.0.3"
   }
 }
