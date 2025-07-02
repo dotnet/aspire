@@ -9,3 +9,8 @@ export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
 
     return isOpen;
 }
+
+export function isFolderOpenInWorkspace(folderPath: string): boolean {
+    const uri = vscode.Uri.file(folderPath);
+    return !!vscode.workspace.getWorkspaceFolder(uri);
+}

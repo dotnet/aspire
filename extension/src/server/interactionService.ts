@@ -1,6 +1,6 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { isWorkspaceOpen } from '../utils/workspace';
+import { isFolderOpenInWorkspace } from '../utils/workspace';
 import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
@@ -212,7 +212,7 @@ export class InteractionService implements IInteractionService {
     openProject(projectPath: string) {
         this._outputChannelWriter.appendLine('interaction', `Opening project at path: ${projectPath}`);
 
-        if (isWorkspaceOpen(false)) {
+        if (isFolderOpenInWorkspace(projectPath)) {
             return;
         }
 
