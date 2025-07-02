@@ -124,9 +124,10 @@ extends:
           #- template: /eng/pipelines/templates/sign_archives.yml@self
             #parameters:
               #os: linux
-          #- template: /eng/pipelines/templates/sign_archives.yml@self
-            #parameters:
-              #os: windows
+          - job:
+            - template: /eng/pipelines/templates/sign_archives.yml@self
+              parameters:
+                os: windows
 
           - job: macos
 
