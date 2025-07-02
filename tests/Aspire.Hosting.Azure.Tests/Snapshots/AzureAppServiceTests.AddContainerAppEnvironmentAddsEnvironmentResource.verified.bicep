@@ -43,6 +43,8 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   }
 }
 
+output name string = env_asplan.name
+
 output planId string = env_asplan.id
 
 output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
