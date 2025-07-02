@@ -21,7 +21,6 @@ public static class DistributedApplicationTestingBuilderExtensions
     {
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
-        builder.Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting.Dcp", LogLevel.Trace));
         return builder;
     }
 

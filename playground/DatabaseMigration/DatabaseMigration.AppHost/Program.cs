@@ -3,23 +3,14 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-IResourceBuilder<IResourceWithConnectionString> database;
-
-if (args.Contains("--postgres"))
-{
-    database = builder.AddPostgres("sql1").AddDatabase("db1");
-}
-else
-{
-    database = builder.AddSqlServer("sql1").AddDatabase("db1");
-}
+var db1 = builder.AddSqlServer("sql1").AddDatabase("db1");
 
 builder.AddProject<Projects.DatabaseMigration_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(database);
+       .WithReference(db1);
 
 builder.AddProject<Projects.DatabaseMigration_MigrationService>("migration")
-       .WithReference(database);
+       .WithReference(db1);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

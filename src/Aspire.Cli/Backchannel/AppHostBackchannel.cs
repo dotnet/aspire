@@ -22,7 +22,6 @@ internal interface IAppHostBackchannel
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken);
-    IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -33,7 +32,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
 
@@ -52,7 +52,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         // which will allow the CLI to await the pending run.
 
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting stop");
 
@@ -65,7 +66,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting dashboard URL");
 
@@ -80,7 +82,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting AppHost log entries");
 
@@ -100,7 +103,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting resource states");
 
@@ -166,7 +170,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task;
 
         logger.LogDebug("Requesting publishing activities.");
 
@@ -186,7 +191,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
 
         logger.LogDebug("Requesting capabilities");
 
@@ -201,7 +207,8 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
     public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var rpc = await _rpcTaskCompletionSource.Task.ConfigureAwait(false);
 
         logger.LogDebug("Providing prompt responses for prompt ID {PromptId}", promptId);
 
@@ -209,24 +216,6 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             "CompletePromptResponseAsync",
             [promptId, answers],
             cancellationToken).ConfigureAwait(false);
-    }
-
-    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        logger.LogDebug("Requesting execution.");
-        var commandOutputs = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<CommandOutput>>(
-            "ExecAsync",
-            Array.Empty<object>(),
-            cancellationToken);
-
-        logger.LogDebug("Requested execution.");
-        await foreach (var commandOutput in commandOutputs.WithCancellation(cancellationToken))
-        {
-            yield return commandOutput;
-        }
     }
 }
 
