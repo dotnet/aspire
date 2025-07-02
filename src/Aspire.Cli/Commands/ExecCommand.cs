@@ -70,6 +70,8 @@ internal class ExecCommand : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
+        IAppHostBackchannel? backchannel = null;
+
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
         {
@@ -140,7 +142,7 @@ internal class ExecCommand : BaseCommand
             var pendingRun = _runner.RunAsync(
                 projectFile: effectiveAppHostProjectFile,
                 watch: false,
-                noBuild: !false,
+                noBuild: true,
                 args: args,
                 env: env,
                 backchannelCompletionSource: backchannelCompletionSource,
@@ -149,7 +151,7 @@ internal class ExecCommand : BaseCommand
 
             // We wait for the back channel to be created to signal that
             // the AppHost is ready to accept requests.
-            var backchannel = await _interactionService.ShowStatusAsync(
+            backchannel = await _interactionService.ShowStatusAsync(
                 $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
                 async () =>
                 {
@@ -178,14 +180,6 @@ internal class ExecCommand : BaseCommand
                         _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
                     }
 
-                    return ExitCodeConstants.Success;
-                });
-
-            _ = await _interactionService.ShowStatusAsync<int>(
-                ":linked_paperclips: Stopping app host...",
-                async () =>
-                {
-                    await backchannel.RequestStopAsync(cancellationToken);
                     return ExitCodeConstants.Success;
                 });
 
@@ -244,6 +238,19 @@ internal class ExecCommand : BaseCommand
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        finally
+        {
+            if (backchannel is not null)
+            {
+                _ = await _interactionService.ShowStatusAsync<int>(
+                ":linked_paperclips: Stopping app host...",
+                async () =>
+                {
+                    await backchannel.RequestStopAsync(cancellationToken);
+                    return ExitCodeConstants.Success;
+                });
+            }
         }
     }
 

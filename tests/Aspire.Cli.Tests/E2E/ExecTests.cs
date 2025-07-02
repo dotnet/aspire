@@ -42,6 +42,33 @@ public class ExecTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    public async Task Exec_EchoWithQuotedString_ShouldProduceLogs()
+    {
+        string[] args = [
+            "--operation", "exec",
+            "--project", DatabaseMigrationsAppHostProjectPath,
+            "--resource", "api",
+                         // not existing csproj, but we dont care if that succeeds or not - we are expecting
+                         // whatever log output from the command
+            "--command", "\"dotnet build \"MyRandom.csproj\"\"",
+            "--postgres"
+        ];
+
+        /* Expected output:
+                dotnet build "MyRandom.csproj"
+                MSBUILD : error MSB1009: Project file does not exist.
+                Switch: MyRandom.csproj
+        */
+
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Contains("Project file does not exist"));
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Exec_DotnetHelp_ShouldProduceLogs()
     {
         string[] args = [

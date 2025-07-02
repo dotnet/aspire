@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in exec mode.</source>
-        <target state="new">Run an Aspire app host in exec mode.</target>
+        <source>Run an Aspire app host to execute a command against the resource.</source>
+        <target state="new">Run an Aspire app host to execute a command against the resource.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
