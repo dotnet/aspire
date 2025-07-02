@@ -3,6 +3,7 @@
   "displayName": "aspire",
   "description": "vscode extension for aspire",
   "version": "0.0.1",
+  "publisher": "microsoft-aspire",
   "engines": {
     "vscode": "^1.98.0"
   },
