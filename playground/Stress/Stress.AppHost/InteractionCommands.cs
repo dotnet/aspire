@@ -48,12 +48,15 @@ internal static class InteractionCommands
 
                _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
                _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, MessageAsMarkdown = true });
+               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new MessageBarInteractionOptions { Intent = MessageIntent.Success, MessageAsMarkdown = true });
 
                _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
                _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, MessageAsMarkdown = true });
+               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, MessageAsMarkdown = true });
 
                _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide **your** name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
                _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide **your** name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { MessageAsMarkdown = true });
+               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Multiline 1\r\n\r\nMultiline 2", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { MessageAsMarkdown = true });
 
                return CommandResults.Success();
            })

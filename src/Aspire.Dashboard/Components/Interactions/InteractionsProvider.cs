@@ -278,7 +278,10 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        return MarkdownHelpers.ToHtml(item.Message, _markdownPipeline);
+        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
+        var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
+
+        return MarkdownHelpers.ToHtml(item.Message, _markdownPipeline, suppressSurroundingParagraph: !hasNewline);
     }
 
     private async Task WatchInteractionsAsync()

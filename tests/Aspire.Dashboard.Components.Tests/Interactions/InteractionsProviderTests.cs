@@ -278,6 +278,64 @@ public partial class InteractionsProviderTests : DashboardTestContext
         await instance.DisposeAsync().DefaultTimeout();
     }
 
+    [Theory]
+    [InlineData(true, "**Hello** _World_! <b>Bold</b>", "<strong>Hello</strong> <em>World</em>! &lt;b&gt;Bold&lt;/b&gt;")]
+    [InlineData(false, "**Hello** _World_! <b>Bold</b>", "**Hello** _World_! &lt;b&gt;Bold&lt;/b&gt;")]
+    [InlineData(true, "Para1\r\n\r\nPara2", "<p>Para1</p>\r\n<p>Para2</p>\r\n")]
+    public async Task ReceiveData_InputDialogWithMarkdownMessage_ExpectedResolvedMessage(bool markdownSupported, string message, string expectedMessage)
+    {
+        // Arrange
+        var interactionsChannel = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var sendInteractionUpdatesChannel = Channel.CreateUnbounded<WatchInteractionsRequestUpdate>();
+
+        InteractionsInputsDialogViewModel? vm = null;
+        DialogParameters? dialogParameters = null;
+        var dialogReference = new DialogReference("abc", null!);
+        var dashboardClient = new TestDashboardClient(isEnabled: true,
+            interactionChannelProvider: () => interactionsChannel,
+            sendInteractionUpdateChannel: sendInteractionUpdatesChannel);
+        var dialogService = new TestDialogService(onShowDialog: (data, parameters) =>
+        {
+            vm = (InteractionsInputsDialogViewModel)data;
+            dialogParameters = parameters;
+            return Task.FromResult<IDialogReference>(dialogReference);
+        });
+
+        SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
+
+        // Act
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+
+        var instance = cut.Instance;
+
+        var response = new WatchInteractionsResponseUpdate
+        {
+            InteractionId = 1,
+            Message = message,
+            MessageAsMarkdown = markdownSupported,
+            InputsDialog = new InteractionInputsDialog()
+        };
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var reference = instance._interactionDialogReference;
+            if (reference == null)
+            {
+                return false;
+            }
+
+            return dialogReference == reference.Dialog && reference.InteractionId == 1;
+        }, "Wait for dialog reference created.");
+
+        Assert.NotNull(vm);
+
+        Assert.Equal(expectedMessage, vm.Message);
+
+        await instance.DisposeAsync().DefaultTimeout();
+    }
+
     private void SetupInteractionProviderServices(TestDashboardClient? dashboardClient = null, TestDialogService? dialogService = null)
     {
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
