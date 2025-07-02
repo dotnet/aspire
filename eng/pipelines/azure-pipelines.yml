@@ -115,6 +115,8 @@ extends:
     - stage: archive_and_sign
       displayName: Archive, and Sign non-nuget packages
       jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
       #- template: /eng/common/templates-official/jobs/jobs.yml@self
         #parameters:
           #enablePublishBuildArtifacts: true
@@ -129,36 +131,39 @@ extends:
             #parameters:
               #os: macos
 
-        - job: macos
+          jobs:
+          - template: /eng/common/templates-official/jobs/jobs.yml@self
+            parameters:
+            - job: macos
 
-          pool:
-            name: Azure Pipelines
-            vmImage: macOS-latest-internal
-            os: macOS
+              pool:
+                name: Azure Pipelines
+                vmImage: macOS-latest-internal
+                os: macOS
 
-          preSteps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+              preSteps:
+                - checkout: self
+                  fetchDepth: 1
+                  clean: true
 
-          steps:
-            - script: >-
-                $(Build.SourcesDirectory)/build.sh
-                --ci
-                --sign
-                --build
-                --restore
-                -p:PreparePackagesForPublishingOnly=true
-                -p:Configuration=$(_BuildConfig)
-                -bl:$(Build.Arcade.LogsPaths)/Build.binlog
-                -p:_DryRun=false
-              displayName: Build os-specific packages
+              steps:
+                - script: >-
+                    $(Build.SourcesDirectory)/build.sh
+                    --ci
+                    --sign
+                    --build
+                    --restore
+                    -p:PreparePackagesForPublishingOnly=true
+                    -p:Configuration=$(_BuildConfig)
+                    -bl:$(Build.Arcade.LogsPaths)/Build.binlog
+                    -p:_DryRun=false
+                  displayName: Build os-specific packages
 
-            - task: 1ES.PublishBuildArtifacts@1
-              displayName: Publish Artifacts
-              inputs:
-                PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                ArtifactName: Signed_Archives_macos
+                - task: 1ES.PublishBuildArtifacts@1
+                  displayName: Publish Artifacts
+                  inputs:
+                    PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                    ArtifactName: Signed_Archives_macos
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
