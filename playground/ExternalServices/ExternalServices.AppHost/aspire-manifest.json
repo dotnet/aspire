@@ -35,6 +35,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
         "services__nuget__https__0": "https://api.nuget.org/",
+        "services__external-service__default__0": "{external-service-url.value}",
         "EXTERNAL_SERVICE_URL": "{external-service-url.value}",
         "services__gateway__http__0": "{gateway.bindings.http.url}"
       },
