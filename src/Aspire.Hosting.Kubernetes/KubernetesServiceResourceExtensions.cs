@@ -95,15 +95,15 @@ internal static class KubernetesServiceResourceExtensions
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
-        var (scheme, host, port, _, _) = mapping;
+        var (scheme, host, port, targetPort, _, _) = mapping;
 
         return property switch
         {
             EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{port}"),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port,
+            EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => port,
+            EndpointProperty.TargetPort => targetPort.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.Scheme => scheme,
             _ => throw new NotSupportedException(),
         };

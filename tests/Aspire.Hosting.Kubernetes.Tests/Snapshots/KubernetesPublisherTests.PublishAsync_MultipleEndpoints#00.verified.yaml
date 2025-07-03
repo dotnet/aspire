@@ -1,15 +1,18 @@
 ﻿parameters:
-  ServiceB:
-    ServiceB_image: "ServiceB:latest"
+  myapp:
+    myapp_image: "myapp:latest"
 secrets: {}
 config:
-  ServiceB:
+  myapp:
     ASPNETCORE_Kestrel__Endpoints__http__Url: "http://+:$8080"
     ASPNETCORE_Kestrel__Endpoints__http__Protocols: "Http1"
-    ASPNETCORE_Kestrel__Endpoints__https__Url: "https://+:$8081"
+    ASPNETCORE_Kestrel__Endpoints__grpc__Url: "http://+:$8081"
+    ASPNETCORE_Kestrel__Endpoints__grpc__Protocols: "Http2"
+    ASPNETCORE_Kestrel__Endpoints__https__Url: "https://+:$8082"
     ASPNETCORE_Kestrel__Endpoints__https__Protocols: "Http1AndHttp2"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
     ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-    HTTP_PORTS: "8080"
+    HTTP_PORTS: "8080;8081"
+    HTTPS_PORTS: "8082"
