@@ -13,12 +13,12 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     public string Name => "Docker";
     private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var arguments = $"build --file {dockerfilePath} --tag {imageName}";
+        var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
         if (!string.IsNullOrEmpty(options?.TargetPlatform))
         {
-            arguments += $" --platform {options.TargetPlatform}";
+            arguments += $" --platform \"{options.TargetPlatform}\"";
         }
 
         // Add output format support if specified
@@ -35,13 +35,13 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
             if (!string.IsNullOrEmpty(options?.OutputPath))
             {
-                outputType += $",dest={options.OutputPath}";
+                outputType += $",dest=\"{options.OutputPath}\"";
             }
 
-            arguments += $" --output {outputType}";
+            arguments += $" --output \"{outputType}\"";
         }
 
-        arguments += $" {contextPath}";
+        arguments += $" \"{contextPath}\"";
 
         var spec = new ProcessSpec("docker")
         {
@@ -97,14 +97,14 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     {
         var spec = new ProcessSpec("docker")
         {
-            Arguments = "info",
+            Arguments = "buildx version",
             OnOutputData = output =>
             {
-                logger.LogInformation("docker info (stdout): {Output}", output);
+                logger.LogInformation("docker buildx version (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("docker info (stderr): {Error}", error);
+                logger.LogInformation("docker buildx version (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -113,9 +113,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        return CheckDockerInfoAsync(pendingProcessResult, processDisposable, cancellationToken);
+        return CheckDockerBuildxAsync(pendingProcessResult, processDisposable, cancellationToken);
 
-        async Task<bool> CheckDockerInfoAsync(Task<ProcessResult> pendingResult, IAsyncDisposable processDisposable, CancellationToken ct)
+        async Task<bool> CheckDockerBuildxAsync(Task<ProcessResult> pendingResult, IAsyncDisposable processDisposable, CancellationToken ct)
         {
             await using (processDisposable)
             {
@@ -123,12 +123,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
                 if (processResult.ExitCode != 0)
                 {
-                    logger.LogError("Docker info failed with exit code {ExitCode}.", processResult.ExitCode);
+                    logger.LogError("Docker buildx version failed with exit code {ExitCode}.", processResult.ExitCode);
                     return false;
                 }
 
-                // Optionally, parse output for health, but exit code 0 is usually sufficient.
-                logger.LogInformation("Docker is running and healthy.");
+                logger.LogInformation("Docker buildx is available and running.");
                 return true;
             }
         }
