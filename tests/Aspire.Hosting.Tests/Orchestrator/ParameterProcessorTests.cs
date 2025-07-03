@@ -161,7 +161,7 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task HandleUnresolvedParametersAsync_WithMultipleUnresolvedParameters_CreatesInteractions()
+    public void HandleUnresolvedParametersAsync_WithMultipleUnresolvedParameters_CreatesInteractions()
     {
         // Arrange
         var interactionService = CreateInteractionService();
@@ -170,8 +170,16 @@ public class ParameterProcessorTests
         var param2 = CreateParameterWithMissingValue("param2");
         var secretParam = CreateParameterWithMissingValue("secretParam");
 
+        ParameterResource[] parameters = [param1, param2, secretParam];
+
+        foreach (var param in parameters)
+        {
+            // Initialize the parameters' WaitForValueTcs
+            param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
         // Act - Initialize parameters to add them to unresolved list
-        await parameterProcessor.HandleUnresolvedParametersAsync([param1, param2, secretParam]);
+        var task = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
 
         // Assert - All parameters should be unresolved and interaction should be created
         Assert.NotNull(param1.WaitForValueTcs);
