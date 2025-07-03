@@ -89,7 +89,7 @@ public class YarpCluster
     {
         if (externalService.Uri is not null)
         {
-            return externalService.Uri;
+            return externalService.Uri.ToString();
         }
         if (externalService.UrlParameter is not null)
         {
