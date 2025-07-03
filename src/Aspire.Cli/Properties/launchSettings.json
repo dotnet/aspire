@@ -38,6 +38,7 @@
       "environmentVariables": {
         "Deployment:Target": "publish-test"
       }
+    },
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,
@@ -58,6 +59,22 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet ef database update",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-dotnet-listsdks": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet --list-sdks",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-dotnet-info": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet info",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }

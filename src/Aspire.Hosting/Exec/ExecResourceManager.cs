@@ -83,8 +83,7 @@ internal class ExecResourceManager
         }
 
         // we need to make sure resource is starting to be launched, and then we fetch the DCP name
-        await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
-        var dcpExecResourceName = execResource.GetResolvedResourceName();
+        var dcpExecResourceName = execResource!.GetResolvedResourceName();
 
         yield return new CommandOutput
         {
@@ -95,14 +94,14 @@ internal class ExecResourceManager
         // in the background wait for the exec resource to be running to change log type
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetState: KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
+            await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetState: KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
             type = "running";
         }, cancellationToken);
 
         // in the background wait for the exec resource to reach terminal state. Once done we can complete logging
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+            await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
             _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
         }, cancellationToken);
 
