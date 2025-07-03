@@ -18,8 +18,6 @@ internal sealed class ParameterProcessor(
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger)
 {
-    private readonly ResourceNotificationService _notificationService = notificationService;
-    private readonly ResourceLoggerService _loggerService = loggerService;
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
     public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources)
@@ -51,7 +49,7 @@ internal sealed class ParameterProcessor(
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Failed to handle unresolved parameters");
+                        logger.LogError(ex, "Failed to handle unresolved parameters.");
                     }
                 });
             }
@@ -64,7 +62,7 @@ internal sealed class ParameterProcessor(
         {
             var value = parameterResource.Value ?? "";
 
-            await _notificationService.PublishUpdateAsync(parameterResource, s =>
+            await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
@@ -74,7 +72,7 @@ internal sealed class ParameterProcessor(
             })
             .ConfigureAwait(false);
 
-            parameterResource.WaitForValueTcs?.SetResult(value);
+            parameterResource.WaitForValueTcs?.TrySetResult(value);
         }
         catch (Exception ex)
         {
@@ -85,23 +83,23 @@ internal sealed class ParameterProcessor(
                 // Add the parameter to unresolved parameters list.
                 _unresolvedParameters.Add(parameterResource);
 
-                _loggerService.GetLogger(parameterResource)
+                loggerService.GetLogger(parameterResource)
                     .LogWarning(ex, "Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
             }
             else
             {
                 // If interaction service is not available, we log the error and set the state to error.
-                parameterResource.WaitForValueTcs?.SetException(ex);
+                parameterResource.WaitForValueTcs?.TrySetException(ex);
 
-                _loggerService.GetLogger(parameterResource)
-                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
+                loggerService.GetLogger(parameterResource)
+                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}.", parameterResource.Name);
             }
 
             var stateText = ex is MissingParameterValueException ?
                 "Value missing" :
                 "Error initializing parameter";
 
-            await _notificationService.PublishUpdateAsync(parameterResource, s =>
+            await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
@@ -128,12 +126,12 @@ internal sealed class ParameterProcessor(
         {
             // First we show a notification that there are unresolved parameters.
             var result = await interactionService.PromptMessageBarAsync(
-                 "Unresolved Parameters",
+                 "Unresolved parameters",
                  "There are unresolved parameters that need to be set. Please provide values for them.",
                  new MessageBarInteractionOptions
                  {
                      Intent = MessageIntent.Warning,
-                     PrimaryButtonText = "Enter Values"
+                     PrimaryButtonText = "Enter values"
                  })
                  .ConfigureAwait(false);
 
@@ -155,9 +153,9 @@ internal sealed class ParameterProcessor(
                 }
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
-                    "Set Unresolved Parameters",
+                    "Set unresolved parameters",
                     "Please provide values for the unresolved parameters.",
-                    [.. inputs],
+                    inputs,
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = "Submit",
@@ -182,7 +180,7 @@ internal sealed class ParameterProcessor(
                         parameter.WaitForValueTcs?.TrySetResult(inputValue);
 
                         // Update the parameter resource state to active with the provided value.
-                        await _notificationService.PublishUpdateAsync(parameter, s =>
+                        await notificationService.PublishUpdateAsync(parameter, s =>
                         {
                             return s with
                             {
