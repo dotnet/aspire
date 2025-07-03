@@ -308,7 +308,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             var isGlobal = await _interactionService.PromptForSelectionAsync(
                 ConfigCommandStrings.DeleteCommand_PromptForGlobal,
-                [true, false],
+                [false, true],
                 g => g ? TemplatingStrings.Yes : TemplatingStrings.No,
                 cancellationToken: cancellationToken);
 
