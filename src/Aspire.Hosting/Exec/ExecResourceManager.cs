@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -15,7 +14,6 @@ internal class ExecResourceManager
 {
     private readonly ILogger _logger;
     private readonly ExecOptions _execOptions;
-    private readonly DcpNameGenerator _dcpNameGenerator;
     private readonly DistributedApplicationModel _model;
 
     private readonly ResourceLoggerService _resourceLoggerService;
@@ -26,16 +24,13 @@ internal class ExecResourceManager
     public ExecResourceManager(
         ILogger<ExecResourceManager> logger,
         IOptions<ExecOptions> execOptions,
-        DcpNameGenerator dcpNameGenerator,
         DistributedApplicationModel model,
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _execOptions = execOptions.Value;
-
-        _dcpNameGenerator = dcpNameGenerator ?? throw new ArgumentNullException(nameof(dcpNameGenerator));
         _model = model ?? throw new ArgumentNullException(nameof(model));
+        _execOptions = execOptions.Value;
 
         _resourceLoggerService = resourceLoggerService ?? throw new ArgumentNullException(nameof(resourceLoggerService));
         _resourceNotificationService = resourceNotificationService ?? throw new ArgumentNullException(nameof(resourceNotificationService));
