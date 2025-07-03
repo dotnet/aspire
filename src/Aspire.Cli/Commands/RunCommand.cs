@@ -167,7 +167,7 @@ internal sealed class RunCommand : BaseCommand
             grid.AddColumn();
             grid.AddColumn();
 
-            var padder = new Padder(grid, new Padding(1, 0));
+            var padder = new Padder(grid, new Padding(3, 0));
 
             var dashboardsLocalizedString = RunCommandStrings.Dashboard;
             var logsLocalizedString = RunCommandStrings.Logs;
