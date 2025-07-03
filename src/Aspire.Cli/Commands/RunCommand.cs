@@ -163,40 +163,64 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.WriteLine();
 
-            var grid = new Grid();
-            grid.AddColumn();
-            grid.AddColumn();
+            var topGrid = new Grid();
+            topGrid.AddColumn();
+            topGrid.AddColumn();
 
-            var padder = new Padder(grid, new Padding(3, 0));
+            var topPadder = new Padder(topGrid, new Padding(3, 0));
 
             var dashboardsLocalizedString = RunCommandStrings.Dashboard;
             var logsLocalizedString = RunCommandStrings.Logs;
-            var longestLocalizedLength = Math.Max(dashboardsLocalizedString.Length, logsLocalizedString.Length);
-            grid.Columns[0].Width = longestLocalizedLength + 1;
+            var endpointsLocalizedString = RunCommandStrings.Endpoints;
 
-            grid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString }
+                .Max(s => s.Length);
+
+            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
-            grid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
+            topGrid.AddRow(Text.Empty, Text.Empty);
+            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
 
-            _ansiConsole.Write(padder);
+            _ansiConsole.Write(topPadder);
 
             var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
 
             if (isCodespaces || isRemoteContainers)
             {
-                _ansiConsole.WriteLine();
-                _ansiConsole.Write(new Rule(RunCommandStrings.Endpoints));
+                bool firstEndpoint = true;
 
                 try
                 {
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
                     await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                     {
-                        ProcessResourceState(resourceState);
+                        ProcessResourceState(resourceState, (resource, endpoint) =>
+                        {
+                            var endpointsGrid = new Grid();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+                            if (firstEndpoint)
+                            {
+                                endpointsGrid.AddRow(Text.Empty, Text.Empty);
+                            }
+
+                            endpointsGrid.AddRow(
+                                firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
+                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                                );
+
+                            var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
+                            _ansiConsole.Write(endpointsPadder);
+                            firstEndpoint = false;
+                        });
                     }
                 }
                 catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
@@ -300,7 +324,7 @@ internal sealed class RunCommand : BaseCommand
 
     private readonly Dictionary<string, RpcResourceState> _resourceStates = new();
 
-    public void ProcessResourceState(RpcResourceState resourceState)
+    public void ProcessResourceState(RpcResourceState resourceState, Action<string, string> endpointWriter)
     {
         if (_resourceStates.TryGetValue(resourceState.Resource, out var existingResourceState))
         {
@@ -308,7 +332,7 @@ internal sealed class RunCommand : BaseCommand
             {
                 foreach (var endpoint in endpoints)
                 {
-                    DisplayEndpoint(resourceState.Resource, endpoint);
+                    endpointWriter(resourceState.Resource, endpoint);
                 }
             }
 
@@ -320,16 +344,11 @@ internal sealed class RunCommand : BaseCommand
             {
                 foreach (var endpoint in endpoints)
                 {
-                    DisplayEndpoint(resourceState.Resource, endpoint);
+                    endpointWriter(resourceState.Resource, endpoint);
                 }
             }
 
             _resourceStates[resourceState.Resource] = resourceState;
-        }
-
-        void DisplayEndpoint(string resourceName, string endpoint)
-        {
-            _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]");
         }
     }
 }
