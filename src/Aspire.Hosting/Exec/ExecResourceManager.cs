@@ -48,10 +48,12 @@ internal class ExecResourceManager
             yield break;
         }
 
+        string type = "waiting";
+
         yield return new CommandOutput
         {
             Text = $"Waiting for resources to be initialized...",
-            Type = "waiting"
+            Type = type
         };
 
         // wait until AppHost eventing fires ConfigureExecResource()
@@ -74,10 +76,8 @@ internal class ExecResourceManager
         yield return new CommandOutput
         {
             Text = $"Aspire exec starting...",
-            Type = "waiting"
+            Type = type
         };
-
-        string type = "waiting";
 
         // in the background wait for the exec resource to be running to change log type
         _ = Task.Run(async () =>
