@@ -26,7 +26,7 @@ public sealed class DeployingContext(
     CancellationToken cancellationToken,
     string outputPath)
 {
-    private IPublishingActivityProgressReporter? _progressReporter;
+    private IPublishingActivityReporter? _progressReporter;
     
     /// <summary>
     /// Gets the distributed application model to be deployed.
@@ -46,8 +46,8 @@ public sealed class DeployingContext(
     /// <summary>
     /// Gets the progress reporter for deploying activities.
     /// </summary>
-    public IPublishingActivityProgressReporter ProgressReporter => _progressReporter ??=
-        Services.GetRequiredService<IPublishingActivityProgressReporter>();
+    public IPublishingActivityReporter ProgressReporter => _progressReporter ??=
+        Services.GetRequiredService<IPublishingActivityReporter>();
 
     /// <summary>
     /// Gets the logger for deploying operations.

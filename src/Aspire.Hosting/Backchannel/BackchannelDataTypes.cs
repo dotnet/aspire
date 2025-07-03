@@ -10,6 +10,7 @@ namespace Aspire.Hosting.Backchannel;
 #endif
 
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -61,6 +62,10 @@ internal sealed class DashboardUrlsState
 /// <summary>
 /// Envelope for publishing activities sent over the backchannel.
 /// </summary>
+[JsonDerivedType(typeof(PublishingActivity), typeDiscriminator: PublishingActivityTypes.Step)]
+[JsonDerivedType(typeof(PublishingActivity), typeDiscriminator: PublishingActivityTypes.Task)]
+[JsonDerivedType(typeof(PublishingActivity), typeDiscriminator: PublishingActivityTypes.PublishComplete)]
+[JsonDerivedType(typeof(PublishingActivity), typeDiscriminator: PublishingActivityTypes.Prompt)]
 internal sealed class PublishingActivity
 {
     /// <summary>
