@@ -114,10 +114,17 @@ internal sealed class ParameterProcessor(
         }
     }
 
-    public async Task HandleUnresolvedParametersAsync()
+    // Internal for testing purposes.
+    private async Task HandleUnresolvedParametersAsync()
+    {
+        await HandleUnresolvedParametersAsync(_unresolvedParameters).ConfigureAwait(false);
+    }
+
+    // Internal for testing purposes - allows passing specific parameters to test.
+    internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
         // This method will continue in a loop until all unresolved parameters are resolved.
-        while (_unresolvedParameters.Count > 0)
+        while (unresolvedParameters.Count > 0)
         {
             // First we show a notification that there are unresolved parameters.
             var result = await interactionService.PromptMessageBarAsync(
@@ -135,7 +142,7 @@ internal sealed class ParameterProcessor(
                 // Now we build up a new form base on the unresolved parameters.
                 var inputs = new List<InteractionInput>();
 
-                foreach (var parameter in _unresolvedParameters)
+                foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
                     inputs.Add(new InteractionInput
@@ -161,9 +168,9 @@ internal sealed class ParameterProcessor(
                 if (!valuesPrompt.Canceled)
                 {
                     // Iterate through the unresolved parameters and set their values based on user input.
-                    for (var i = _unresolvedParameters.Count - 1; i >= 0; i--)
+                    for (var i = unresolvedParameters.Count - 1; i >= 0; i--)
                     {
-                        var parameter = _unresolvedParameters[i];
+                        var parameter = unresolvedParameters[i];
                         var inputValue = valuesPrompt.Data[i].Value;
 
                         if (inputValue is null)
@@ -186,7 +193,7 @@ internal sealed class ParameterProcessor(
                         .ConfigureAwait(false);
 
                         // Remove the parameter from unresolved parameters list.
-                        _unresolvedParameters.RemoveAt(i);
+                        unresolvedParameters.RemoveAt(i);
                     }
                 }
             }
