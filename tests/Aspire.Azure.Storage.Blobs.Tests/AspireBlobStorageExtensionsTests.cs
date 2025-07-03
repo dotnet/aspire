@@ -29,7 +29,7 @@ public class AspireBlobStorageExtensionsTests
         }
         else
         {
-            builder.AddAzureBlobClient("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         using var host = builder.Build();
@@ -56,7 +56,7 @@ public class AspireBlobStorageExtensionsTests
         }
         else
         {
-            builder.AddAzureBlobClient("blob", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureBlobServiceClient("blob", settings => settings.ConnectionString = ConnectionString);
         }
 
         using var host = builder.Build();
@@ -86,7 +86,7 @@ public class AspireBlobStorageExtensionsTests
         }
         else
         {
-            builder.AddAzureBlobClient("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         using var host = builder.Build();
@@ -114,7 +114,7 @@ public class AspireBlobStorageExtensionsTests
         }
         else
         {
-            builder.AddAzureBlobClient("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         using var host = builder.Build();
@@ -135,7 +135,7 @@ public class AspireBlobStorageExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:blob3", "https://aspirestoragetests3.blob.core.windows.net/")
         ]);
 
-        builder.AddAzureBlobClient("blob1");
+        builder.AddAzureBlobServiceClient("blob1");
         builder.AddKeyedAzureBlobClient("blob2");
         builder.AddKeyedAzureBlobClient("blob3");
 

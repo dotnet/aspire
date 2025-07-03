@@ -22,7 +22,7 @@ var storage = builder.AddAzureStorage("storage")
         account.Location = locationOverride.AsProvisioningParameter(infrastructure);
     });
 
-var blobs = storage.AddBlobs("blobs");
+var blobs = storage.AddBlobService("blobs");
 
 var sqldb = builder.AddAzureSqlServer("sql").AddDatabase("sqldb");
 

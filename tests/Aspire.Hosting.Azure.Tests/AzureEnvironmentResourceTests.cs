@@ -109,7 +109,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
                 };
                 c.Add(output);
             })
-            .AddBlobs("blobs");
+            .AddBlobService("blobs");
         builder.AddAzureInfrastructure("mod", infra => { })
             .WithParameter("pgdb", pgdb.Resource.ConnectionStringExpression);
         builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
@@ -152,7 +152,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
                 };
                 c.Add(output);
             })
-            .AddBlobs("blobs");
+            .AddBlobService("blobs");
         builder.AddProject<TestProject>("fe", launchProfileName: null)
             .WithEnvironment("BLOB_CONTAINER_URL", $"{blobs}/container")
             .WithReference(cosmos);

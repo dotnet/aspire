@@ -18,7 +18,7 @@ builder.AddSqlServerDbContext<MyDbContext>("db");
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
 builder.AddAzureCosmosClient("cosmos");
 builder.AddRedisClient("redis");
-builder.AddAzureBlobClient("blob");
+builder.AddAzureBlobServiceClient("blob");
 builder.AddAzureTableClient("table");
 builder.AddAzureQueueServiceClient("queue");
 builder.AddAzureServiceBusClient("sb");
