@@ -154,6 +154,7 @@ extends:
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
+                condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Archives_macos
@@ -185,6 +186,7 @@ extends:
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
+                condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Archives_windows
@@ -225,6 +227,7 @@ extends:
 
               - task: 1ES.PublishBuildArtifacts@1
                 displayName: Publish Artifacts
+                condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: Archives_linux
