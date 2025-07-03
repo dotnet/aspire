@@ -237,8 +237,8 @@ extends:
     # ----------------------------------------------------------------
     - stage: build
       displayName: Build
-      #dependsOn:
-      #- archive_and_sign
+      dependsOn:
+      - archive_and_sign
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
