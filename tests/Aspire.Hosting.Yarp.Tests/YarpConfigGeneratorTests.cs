@@ -3,8 +3,6 @@
 
 using System.Security.Authentication;
 using System.Text;
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Yarp.Transforms;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -260,9 +258,9 @@ public class YarpConfigGeneratorTests()
                                          .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
 
                 yarp.AddRoute(frontend.GetEndpoint("http"))
-                    .WithTransformRequestHeader("X-Custom-Fowarded", "yes");
+                    .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
 
-                yarp.AddRoute(" /api/{**catch-all}", backendCluster)
+                yarp.AddRoute("/api/{**catch-all}", backendCluster)
                     .WithTransformPathRemovePrefix("/api");
             });
 
