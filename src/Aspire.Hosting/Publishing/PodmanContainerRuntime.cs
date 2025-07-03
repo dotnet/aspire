@@ -13,12 +13,12 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
     public string Name => "Podman";
     private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var arguments = $"build --file {dockerfilePath} --tag {imageName}";
+        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
         if (!string.IsNullOrEmpty(options?.TargetPlatform))
         {
-            arguments += $" --platform {options.TargetPlatform}";
+            arguments += $" --platform \"{options.TargetPlatform}\"";
         }
 
         // Add format support if specified 
@@ -31,10 +31,10 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
                 ContainerImageFormat.Docker => "docker",
                 _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
             };
-            arguments += $" --format {format}";
+            arguments += $" --format \"{format}\"";
         }
 
-        arguments += $" {contextPath}";
+        arguments += $" \"{contextPath}\"";
 
         // Note: Podman doesn't support --output like Docker buildx, so OutputPath is not directly supported
         // For Podman, users would need to save/export the image separately after building
