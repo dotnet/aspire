@@ -26,7 +26,7 @@ public static class YarpResourceExtensions
         var resource = new YarpResource(name);
 
         var yarpBuilder = builder.AddResource(resource)
-                      .WithHttpEndpoint(targetPort: Port)
+                      .WithHttpEndpoint(name: "http", targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
                       .WithImageTag(YarpContainerImageTags.Tag)
@@ -61,5 +61,20 @@ public static class YarpResourceExtensions
         var configBuilder = new YarpConfigurationBuilder(builder);
         configurationBuilder(configBuilder);
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    public static IResourceBuilder<YarpResource> WithHostPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 }

@@ -251,22 +251,25 @@ public class YarpConfigGeneratorTests()
         {
             using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
 
-            builder.AddDockerComposeEnvironment("docker-compose");
+            builder.AddDockerComposeEnvironment("docker-compose").WithDashboard(db => db.WithHostPort(18888));
 
-            var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint();
-            var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint();
+            var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
+            var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
 
-            builder.AddYarp("gateway").WithConfiguration(yarp =>
-            {
-                var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
-                                         .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
+            builder.AddYarp("gateway")
+                   .WithHostPort(5000)
+                   .WithExternalHttpEndpoints()
+                   .WithConfiguration(yarp =>
+                    {
+                        var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
+                                                 .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
 
-                yarp.AddRoute(frontend.GetEndpoint("http"))
-                    .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
+                        yarp.AddRoute(frontend.GetEndpoint("http"))
+                            .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
 
-                yarp.AddRoute("/api/{**catch-all}", backendCluster)
-                    .WithTransformPathRemovePrefix("/api");
-            });
+                        yarp.AddRoute("/api/{**catch-all}", backendCluster)
+                            .WithTransformPathRemovePrefix("/api");
+                    });
 
             var app = builder.Build();
             app.Run();
