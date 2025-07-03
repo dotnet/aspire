@@ -164,18 +164,24 @@ internal sealed class RunCommand : BaseCommand
             _ansiConsole.WriteLine();
 
             var grid = new Grid();
-            grid.AddColumn(); // Padding column
             grid.AddColumn();
             grid.AddColumn();
 
-            grid.AddRow(new Text(string.Empty), new Align(new Markup("[bold green]Dashboard[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            var padder = new Padder(grid, new Padding(1, 0));
+
+            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
+            var logsLocalizedString = RunCommandStrings.Logs;
+            var longestLocalizedLength = Math.Max(dashboardsLocalizedString.Length, logsLocalizedString.Length);
+            grid.Columns[0].Width = longestLocalizedLength + 1;
+
+            grid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                grid.AddRow(new Text(string.Empty), new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
-            grid.AddRow(new Text(string.Empty), new Align(new Markup("[bold green]Logs[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
+            grid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
 
-            _ansiConsole.Write(grid);
+            _ansiConsole.Write(padder);
 
             var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
@@ -183,7 +189,7 @@ internal sealed class RunCommand : BaseCommand
             if (isCodespaces || isRemoteContainers)
             {
                 _ansiConsole.WriteLine();
-                _ansiConsole.MarkupLine("[bold green]Endpoints:[/]");
+                _ansiConsole.Write(new Rule(RunCommandStrings.Endpoints));
 
                 try
                 {
