@@ -179,12 +179,8 @@ public static class ResourceBuilderExtensions
         {
             builder.WithEnvironment(context =>
             {
-                if (context.ExecutionContext.IsPublishMode)
-                {
-                    // In publish mode we can't validate the parameter value so we'll log a warning.
-                    LogExternalServiceParameterPublishWarning(externalService, context);
-                }
-                else if (!ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var _, out var message))
+                // In publish mode we can't validate the parameter value so we'll just use it without validating.
+                if (!context.ExecutionContext.IsPublishMode && !ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var _, out var message))
                 {
                     throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
                 }
@@ -537,9 +533,6 @@ public static class ResourceBuilderExtensions
                 string envVarName;
                 if (context.ExecutionContext.IsPublishMode)
                 {
-                    // In publish mode we can't validate the parameter value so we'll log a warning.
-                    LogExternalServiceParameterPublishWarning(externalService, context);
-
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
                     envVarName = $"services__{externalService.Resource.Name}__default__0";
                 }
@@ -556,19 +549,6 @@ public static class ResourceBuilderExtensions
         }
 
         return builder;
-    }
-
-    private static void LogExternalServiceParameterPublishWarning(IResourceBuilder<ExternalServiceResource> externalService, EnvironmentCallbackContext context)
-    {
-        // In publish mode we can't validate the parameter value so we'll log a warning and use the default scheme.
-        var logger = context.ExecutionContext.ServiceProvider.GetRequiredService<ILogger<DistributedApplication>>();
-        if (logger.IsEnabled(LogLevel.Warning))
-        {
-            logger.LogWarning(
-                "The URL parameter '{UrlParameterName}' for the external service '{ServiceName}' cannot be validated in publish mode. When deploying, ensure the parameter value is a valid URI with an absolute path of '/'.",
-                externalService.Resource.UrlParameter?.Name,
-                externalService.Resource.Name);
-        }
     }
 
     /// <summary>

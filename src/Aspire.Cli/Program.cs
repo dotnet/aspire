@@ -119,7 +119,6 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<DeployCommand>();
-        builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();

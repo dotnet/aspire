@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -152,7 +153,7 @@ public static class ParameterResourceBuilderExtensions
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
-            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
+            ?? throw new MissingParameterValueException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
 
     internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder, T resource)
@@ -160,13 +161,14 @@ public static class ParameterResourceBuilderExtensions
     {
         var state = new CustomResourceSnapshot
         {
-            ResourceType = "Parameter",
+            ResourceType = KnownResourceTypes.Parameter,
             // hide parameters by default
             IsHidden = true,
             Properties = [
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
-            ]
+            ],
+            State = KnownResourceStates.Waiting
         };
 
         return builder.AddResource(resource)
@@ -189,7 +191,7 @@ public static class ParameterResourceBuilderExtensions
                 new ConnectionStringParameterResource(
                     name,
                     _ => builder.Configuration.GetConnectionString(name) ??
-                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                        throw new MissingParameterValueException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
                     environmentVariableName)
                 );
     }

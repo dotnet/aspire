@@ -184,7 +184,8 @@ public static class AzureAIFoundryExtensions
     {
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
-        builder.OnResourceReady((foundryResource, @event, ct) =>
+        var foundryResource = builder.Resource.Parent;
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = @event.Services.GetRequiredService<ResourceLoggerService>();

@@ -30,29 +30,13 @@
       "environmentVariables": {
       }
     },
-    "run-testapphost": {
+    "publishers": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
+      "commandLineArgs": "publish",
+      "workingDirectory": "../../playground/publishers/Publishers.AppHost",
       "environmentVariables": {
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+        "Deployment:Target": "publish-test"
       }
-    },
-    "exec-add-migration": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api --postgres -- dotnet ef migrations add AddVersion --project ../DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj",
-      "environmentVariables": {
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
-      }
-    },
-    "exec-database-update": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet ef database update",
-      "environmentVariables": {
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
-      }
-    }
   }
 }

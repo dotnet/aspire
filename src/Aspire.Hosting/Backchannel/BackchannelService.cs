@@ -11,13 +11,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(
-    ILogger<BackchannelService> logger,
-    IConfiguration configuration,
-    AppHostRpcTarget appHostRpcTarget,
-    IDistributedApplicationEventing eventing,
-    IServiceProvider serviceProvider)
-    : BackgroundService
+internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
 {
     private JsonRpc? _rpc;
     

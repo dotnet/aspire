@@ -277,11 +277,11 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 {
                     // Complete the interaction with an error state
                     interaction.CompletionTcs.TrySetException(new InvalidOperationException("Cannot prompt interaction while steps are in progress."));
-                    return Task.FromResult(new InteractionCompletionState
+                    return new InteractionCompletionState
                     {
-                        Complete = false,
+                        Complete = true,
                         State = "Cannot prompt interaction while steps are in progress."
-                    });
+                    };
                 }, cancellationToken).ConfigureAwait(false);
                 return;
             }
@@ -292,7 +292,8 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 InputType = input.InputType.ToString(),
                 Required = input.Required,
                 Options = input.Options,
-                Value = input.Value
+                Value = input.Value,
+                ValidationErrors = input.ValidationErrors
             }).ToList();
 
             var activity = new PublishingActivity
@@ -329,18 +330,18 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                             }
                         }
 
-                        return Task.FromResult(new InteractionCompletionState
+                        return new InteractionCompletionState
                         {
                             Complete = true,
                             State = inputsInfo.Inputs
-                        });
+                        };
                     }
 
-                    return Task.FromResult(new InteractionCompletionState
+                    return new InteractionCompletionState
                     {
                         Complete = true,
                         State = null
-                    });
+                    };
                 },
                 cancellationToken).ConfigureAwait(false);
         }

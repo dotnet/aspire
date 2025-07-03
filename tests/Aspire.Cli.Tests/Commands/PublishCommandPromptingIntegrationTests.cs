@@ -467,6 +467,61 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Equal("development", promptCalls[0].DefaultValue); // This verifies that our change works
     }
 
+    [Fact]
+    public async Task PublishCommand_TextInputWithValidationErrors_UsesValidationErrorsCorrectly()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt with a default value
+        promptBackchannel.AddPrompt("text-prompt-1", "Environment Name", InputTypes.Text, "Enter environment name:", isRequired: true, defaultValue: "de", validationErrors: ["Environment name must be at least 3 characters long."]);
+
+        // Set up the expected user response (they accept the default by providing the same value)
+        consoleService.SetupStringPromptResponse("development");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was handled correctly and includes the default value
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+        var receivedPrompt = promptBackchannel.ReceivedPrompts[0];
+        Assert.Equal("text-prompt-1", receivedPrompt.PromptId);
+        Assert.Equal("Environment Name", receivedPrompt.Inputs[0].Label);
+        Assert.Equal(InputTypes.Text, receivedPrompt.Inputs[0].InputType);
+        Assert.Equal("de", receivedPrompt.Inputs[0].Value); // Check that the previous value is present
+        Assert.Collection(receivedPrompt.Inputs[0].ValidationErrors ?? [],
+            e => Assert.Equal("Environment name must be at least 3 characters long.", e)); // Check that validations errors are present
+
+        // Verify the correct response was sent back
+        Assert.Single(promptBackchannel.CompletedPrompts);
+        var completedPrompt = promptBackchannel.CompletedPrompts[0];
+        Assert.Equal("text-prompt-1", completedPrompt.PromptId);
+        Assert.Equal("development", completedPrompt.Answers[0]);
+
+        // Verify that the PromptForStringAsync was called with the default value
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var displayedError = Assert.Single(consoleService.DisplayedErrors);
+        Assert.Equal("Environment name must be at least 3 characters long.", displayedError);
+    }
+
     private static TestDotNetCliRunner CreateTestRunnerWithPromptBackchannel(TestPromptBackchannel promptBackchannel)
     {
         var runner = new TestDotNetCliRunner();
@@ -502,9 +557,9 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     public List<PromptData> ReceivedPrompts { get; } = [];
     public List<PromptCompletion> CompletedPrompts { get; } = [];
 
-    public void AddPrompt(string promptId, string label, string inputType, string message, bool isRequired, IReadOnlyList<KeyValuePair<string, string>>? options = null, string? defaultValue = null)
+    public void AddPrompt(string promptId, string label, string inputType, string message, bool isRequired, IReadOnlyList<KeyValuePair<string, string>>? options = null, string? defaultValue = null, IReadOnlyList<string>? validationErrors = null)
     {
-        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(label, inputType, isRequired, options, defaultValue)], message));
+        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(label, inputType, isRequired, options, defaultValue, validationErrors)], message));
     }
 
     public void AddMultiInputPrompt(string promptId, string title, string message, IReadOnlyList<PromptInputData> inputs)
@@ -529,7 +584,8 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                 InputType = input.InputType,
                 Required = input.IsRequired,
                 Options = input.Options,
-                Value = input.Value
+                Value = input.Value,
+                ValidationErrors = input.ValidationErrors
             }).ToList();
 
             yield return new PublishingActivity
@@ -582,16 +638,10 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
-
-    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        await Task.CompletedTask; // Suppress CS1998
-        yield break;
-    }
 }
 
 // Data structures for tracking prompts
-internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null);
+internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
 internal sealed record PromptCompletion(string PromptId, string?[] Answers);
 
@@ -605,6 +655,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
+    public List<string> DisplayedErrors { get; } = [];
     
     public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
     public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
@@ -677,7 +728,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
     public void ShowStatus(string statusText, Action action) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
-    public void DisplayError(string errorMessage) { }
+    public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message) { }
@@ -688,12 +739,6 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayPlainText(string text) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
-
-    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
-    {
-        var messageType = isErrorMessage ? "error" : "info";
-        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
-    }
 }
 
 internal enum ResponseType

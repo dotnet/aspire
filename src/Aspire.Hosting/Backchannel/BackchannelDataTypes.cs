@@ -154,6 +154,11 @@ internal sealed class PublishingPromptInput
     /// Gets the default value for the input.
     /// </summary>
     public string? Value { get; init; }
+
+    /// <summary>
+    /// Gets the validation errors for the input.
+    /// </summary>
+    public IReadOnlyList<string>? ValidationErrors { get; init; }
 }
 
 /// <summary>
@@ -185,16 +190,4 @@ internal class BackchannelLogEntry
     public required string Message { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required string CategoryName { get; set; }
-}
-
-internal struct CommandOutput
-{
-    public required string Text { get; init; }
-    public bool IsErrorMessage { get; init; }
-    public int? LineNumber { get; init; }
-    /// <summary>
-    /// Additional info about type of the message.
-    /// Should be used for controlling the display style.
-    /// </summary>
-    public string? Type { get; init; }
 }

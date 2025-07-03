@@ -3,7 +3,6 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -180,7 +179,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, Task<InteractionCompletionState>> createResult, CancellationToken cancellationToken)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, InteractionCompletionState> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 
@@ -193,7 +192,41 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        var result = await createResult(interactionState, _serviceProvider, cancellationToken).ConfigureAwait(false);
+        var result = createResult(interactionState, _serviceProvider, cancellationToken);
+
+        // Run validation for inputs interaction.
+        if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+        {
+            if (result.State is IReadOnlyList<InteractionInput> inputs)
+            {
+                var options = (InputsDialogInteractionOptions)interactionState.Options;
+
+                if (options.ValidationCallback is { } validationCallback)
+                {
+                    foreach (var input in inputs)
+                    {
+                        input.ValidationErrors.Clear();
+                    }
+
+                    var context = new InputsDialogValidationContext
+                    {
+                        CancellationToken = cancellationToken,
+                        ServiceProvider = _serviceProvider,
+                        Inputs = inputsInfo.Inputs
+                    };
+                    await validationCallback(context).ConfigureAwait(false);
+
+                    if (context.HasErrors)
+                    {
+                        result = new InteractionCompletionState { Complete = false, State = inputs };
+                    }
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"Expected state of {typeof(IReadOnlyList<InteractionInput>).FullName} for completed inputs interaction.");
+            }
+        }
 
         lock (_onInteractionUpdatedLock)
         {
@@ -266,30 +299,6 @@ internal class InteractionService : IInteractionService
 internal class InteractionCollection : KeyedCollection<int, Interaction>
 {
     protected override int GetKeyForItem(Interaction item) => item.InteractionId;
-}
-
-/// <summary>
-/// 
-/// </summary>
-[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class InteractionResult<T>
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    public T? Data { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [MemberNotNullWhen(false, nameof(Data))]
-    public bool Canceled { get; }
-
-    internal InteractionResult(T? data, bool canceled)
-    {
-        Data = data;
-        Canceled = canceled;
-    }
 }
 
 internal static class InteractionResultFactory
