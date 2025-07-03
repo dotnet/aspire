@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// The exception that is thrown when a parameter resource cannot be initialized because its value is missing or cannot be resolved.
