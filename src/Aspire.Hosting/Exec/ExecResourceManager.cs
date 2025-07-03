@@ -111,25 +111,25 @@ internal class ExecResourceManager
         }
 
         var targetResource = _model.Resources.FirstOrDefault(x => x.Name.Equals(_execOptions.ResourceName, StringComparisons.ResourceName));
-        if (targetResource is not IResourceSupportsExec targetExecResource)
+        if (targetResource is null)
         {
-            _logger.LogWarning("Target resource '{ResourceName}' does not support exec.", _execOptions.ResourceName);
-            throw new ArgumentException($"Target resource '{_execOptions.ResourceName}' does not support exec");
+            _logger.LogError("Exec resource with name '{ResourceName}' not found in the model resources.", _execOptions.ResourceName);
+            throw new InvalidOperationException($"Exec resource with name '{_execOptions.ResourceName}' not found in the model resources.");
         }
 
-        var execResource = BuildResource(targetExecResource);
+        var execResource = BuildResource(targetResource);
 
         _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", execResource.Name);
         _execResourceInitialized.SetResult(execResource);
         return execResource;
     }
 
-    IResource BuildResource(IResourceSupportsExec targetExecResource)
+    IResource BuildResource(IResource targetExecResource)
     {
         return targetExecResource switch
         {
             ProjectResource prj => BuildAgainstProjectResource(prj),
-            _ => throw new NotImplementedException(nameof(targetExecResource))
+            _ => throw new InvalidOperationException($"Target resource does not support exec mode.")
         };
     }
 
