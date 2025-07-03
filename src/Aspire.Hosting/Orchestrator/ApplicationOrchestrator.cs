@@ -24,6 +24,7 @@ internal sealed class ApplicationOrchestrator
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly DistributedApplicationExecutionContext _executionContext;
+    private readonly ParameterProcessor _parameterProcessor;
     private readonly CancellationTokenSource _shutdownCancellation = new();
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
@@ -34,7 +35,8 @@ internal sealed class ApplicationOrchestrator
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
                                    IServiceProvider serviceProvider,
-                                   DistributedApplicationExecutionContext executionContext)
+                                   DistributedApplicationExecutionContext executionContext,
+                                   ParameterProcessor parameterProcessor)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -45,6 +47,7 @@ internal sealed class ApplicationOrchestrator
         _eventing = eventing;
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
+        _parameterProcessor = parameterProcessor;
 
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
@@ -269,49 +272,13 @@ internal sealed class ApplicationOrchestrator
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
+    private Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
     {
         var resource = @event.Resource;
 
-        if (resource is ParameterResource parameterResource)
-        {
-            await InitializeParameter(parameterResource).ConfigureAwait(false);
-        }
-        else if (resource is ConnectionStringResource connectionStringResource)
+        if (resource is ConnectionStringResource connectionStringResource)
         {
             InitializeConnectionString(connectionStringResource);
-        }
-
-        async Task InitializeParameter(ParameterResource parameterResource)
-        {
-            try
-            {
-                await _notificationService.PublishUpdateAsync(parameterResource, s =>
-                {
-                    return s with
-                    {
-                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, parameterResource.Value ?? "", parameterResource.Secret),
-                        State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-                    };
-                })
-                .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await _notificationService.PublishUpdateAsync(parameterResource, s =>
-                {
-                    return s with
-                    {
-                        State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                        IsHidden = false
-                    };
-                })
-                .ConfigureAwait(false);
-
-                _loggerService.GetLogger(parameterResource)
-                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
-            }
         }
 
         void InitializeConnectionString(ConnectionStringResource connectionStringResource)
@@ -349,7 +316,7 @@ internal sealed class ApplicationOrchestrator
                         tcs.SetResult();
                         return Task.CompletedTask;
                     });
-                    
+
                     waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
                 }
             }
@@ -364,6 +331,8 @@ internal sealed class ApplicationOrchestrator
                 }).ConfigureAwait(false);
             }, cancellationToken);
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
@@ -467,6 +436,9 @@ internal sealed class ApplicationOrchestrator
 
     private async Task PublishResourcesInitialStateAsync(CancellationToken cancellationToken)
     {
+        // Initialize all parameter resources up front
+        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>()).ConfigureAwait(false);
+
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)
         {

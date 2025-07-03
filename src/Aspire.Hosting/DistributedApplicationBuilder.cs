@@ -350,6 +350,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+            _innerBuilder.Services.AddSingleton<ParameterProcessor>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff
