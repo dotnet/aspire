@@ -46,7 +46,8 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// The value expression for the format string.
     /// </summary>
     public string ValueExpression =>
-        string.Format(CultureInfo.InvariantCulture, Format, _manifestExpressions);
+        // Double escape double braces in the format string so that string.Format doesn't turn `{{` into `{`
+        string.Format(CultureInfo.InvariantCulture, DoubleEscapeDoubleBraces(Format), _manifestExpressions);
 
     /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
@@ -190,10 +191,40 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             }
             return sb.ToString();
 
-            static bool IsBrace(char ch) => ch == '{' || ch == '}';
-            static bool IsNextCharSame(string s, int idx) =>
-                idx + 1 < s.Length && s[idx + 1] == s[idx];
         }
+    }
+
+    private static bool IsBrace(char ch) => ch == '{' || ch == '}';
+    private static bool IsNextCharSame(string s, int idx) =>
+        idx + 1 < s.Length && s[idx + 1] == s[idx];
+
+    /// <summary>
+    /// Double escapes double braces in the input string. So that `{{` becomes `{{{{` and `}}` becomes `}}}}`.
+    /// </summary>
+    private static string DoubleEscapeDoubleBraces(string input)
+    {
+        // Fast path: nothing to escape
+        if (!input.Contains("{{") && !input.Contains("}}"))
+        {
+            return input;
+        }
+
+        // Allocate a bit of extra space in case we need to escape a few braces.
+        var sb = new StringBuilder(input.Length + 4);
+        for (var i = 0; i < input.Length; i++)
+        {
+            var c = input[i];
+            if (IsBrace(c) && IsNextCharSame(input, i))
+            {
+                sb.Append(c).Append(c).Append(c).Append(c);
+                i++; // skip the character too
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
     }
 }
 

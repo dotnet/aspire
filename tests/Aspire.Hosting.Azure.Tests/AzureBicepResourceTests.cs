@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
@@ -208,5 +209,41 @@ public class AzureBicepResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task SetParametersWithExpressionContainingBrackets()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("foo", "image")
+            .WithHttpEndpoint()
+            .WithEndpoint("http", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", 1023);
+            });
+
+        var suffixContainingBrackets = "{bracketwrapped}";
+        var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
+               .WithParameter("endpointExpr", ReferenceExpression.Create($"{container.GetEndpoint("http")}/{suffixContainingBrackets}"));
+
+        var parameters = new JsonObject();
+        await BicepUtilities.SetParametersAsync(parameters, bicep0.Resource);
+
+        // local value is successfully evaluated with endpoint value replaced
+        Assert.Equal("http://localhost:1023/{bracketwrapped}", parameters["endpointExpr"]?["value"]?.ToString());
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(bicep0.Resource);
+        // the generated manifest needs to `{bracketwrapped}` as `{{bracketwrapped}}` to avoid it being interpreted as a parameter
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "bicep0.module.bicep",
+              "params": {
+                "endpointExpr": "{foo.bindings.http.url}/{{bracketwrapped}}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
     }
 }
