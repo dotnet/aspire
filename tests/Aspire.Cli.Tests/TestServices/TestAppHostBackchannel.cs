@@ -241,10 +241,4 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     {
         return Task.CompletedTask;
     }
-
-    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-        yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
-    }
 }

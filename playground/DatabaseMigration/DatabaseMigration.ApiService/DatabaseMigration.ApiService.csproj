@@ -5,15 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj" />
   </ItemGroup>
 
 </Project>
