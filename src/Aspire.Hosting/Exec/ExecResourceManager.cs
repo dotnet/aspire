@@ -66,7 +66,7 @@ internal class ExecResourceManager
 
         // we need to make sure resource is starting to be launched, and then we fetch the DCP name
         await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
-        var dcpExecResourceName = GetDcpExecResourceName(execResource);
+        var dcpExecResourceName = execResource.GetResolvedResourceName();
 
         yield return new CommandOutput
         {
@@ -195,19 +195,5 @@ internal class ExecResourceManager
 
             return (exe, args);
         }
-    }
-
-    private static string GetDcpExecResourceName(IResource resource)
-    {
-        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstances))
-        {
-            throw new InvalidOperationException($"Resource '{resource.Name}' does not have DCP instances annotation.");
-        }
-        if (dcpInstances.Instances.Length > 1)
-        {
-            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple DCP instances, expected only one. Instances: {string.Join(", ", dcpInstances.Instances.Select(i => i.Name))}");
-        }
-
-        return dcpInstances.Instances[0].Name;
     }
 }
