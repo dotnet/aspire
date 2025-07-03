@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Authentication;
+using System.Text;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -228,5 +229,19 @@ public class YarpConfigGeneratorTests()
         var content = await config.Build(CancellationToken.None);
         Assert.NotEmpty(content);
         await Verify(content, "json");
+    }
+
+    [Fact]
+    public async Task GenerateEnvVariablesConfiguration()
+    {
+        var variables = new Dictionary<string, object>();
+        YarpEnvConfigGenerator.PopulateEnvVariables(variables, _validRoutes, _validClusters);
+        var sb = new StringBuilder();
+        foreach (var variable in variables)
+        {
+            sb.AppendLine($"{variable.Key}={variable.Value}");
+        }
+        var content = sb.ToString();
+        await Verify(content, "env");
     }
 }
