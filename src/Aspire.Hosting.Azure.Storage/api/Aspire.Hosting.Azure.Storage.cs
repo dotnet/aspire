@@ -12,13 +12,27 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [System.Obsolete("Use AddBlobContainer on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageContainerResource> AddBlobContainer(this ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> builder, string name, string? blobContainerName = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageContainerResource> AddBlobContainer(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name, string? blobContainerName = null) { throw null; }
+
+        [System.Obsolete("Use AddBlobService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobs(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageQueueResource> AddQueue(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name, string? queueName = null) { throw null; }
+
+        [System.Obsolete("Use AddQueueService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueues(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueueService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+
+        [System.Obsolete("Use AddTableService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureTableStorageResource> AddTables(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureTableStorageResource> AddTableService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource>>? configureContainer = null) { throw null; }
 
@@ -61,6 +75,17 @@ namespace Aspire.Hosting.Azure
         public AzureStorageResource Parent { get { throw null; } }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
+    }
+
+    public partial class AzureQueueStorageQueueResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureQueueStorageResource>, ApplicationModel.IResourceWithParent
+    {
+        public AzureQueueStorageQueueResource(string name, string queueName, AzureQueueStorageResource parent) : base(default!) { }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public AzureQueueStorageResource Parent { get { throw null; } }
+
+        public string QueueName { get { throw null; } }
     }
 
     public partial class AzureQueueStorageResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureStorageResource>, ApplicationModel.IResourceWithParent, IResourceWithAzureFunctionsConfig
