@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# get-aspire-cli-url.sh - Download the Aspire CLI for the current platform
+# get-aspire-cli.sh - Download the Aspire CLI for the current platform
 # Usage: ./get-aspire-cli.sh
 
 set -euo pipefail
