@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -76,6 +77,7 @@ public sealed class AzureEnvironmentResource : Resource
     {
         var azureProvisionerOptions = context.Services.GetRequiredService<IOptions<AzureProvisionerOptions>>();
         var bicepProvisioner = context.Services.GetRequiredService<BicepProvisioner>();
+        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var progressReporter = context.ProgressReporter;
 
         Debug.Assert(PublishingContext != null, "PublishingContext should be initialized before deployment.");
@@ -252,6 +254,123 @@ public sealed class AzureEnvironmentResource : Resource
                 await mainDeploymentStep.SucceedAsync(
                     "Azure deployment completed successfully using consolidated Bicep template",
                     context.CancellationToken).ConfigureAwait(false);
+            }
+
+            // Build and push container images for compute resources
+            if (PublishingContext.ComputeResources.Count > 0)
+            {
+                var computeResources = PublishingContext.ComputeResources.Values.ToList();
+                var containerRegistryEndpoint = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
+
+                // Build container images first
+                await imageBuilder.BuildImagesAsync(computeResources, context.CancellationToken).ConfigureAwait(false);
+
+                var imagePushStep = await progressReporter.CreateStepAsync(
+                    "Pushing images to Azure Container Registry",
+                    context.CancellationToken).ConfigureAwait(false);
+
+                await using (imagePushStep.ConfigureAwait(false))
+                {
+                    try
+                    {
+                        // Sign in to ACR using managed identity
+                        var acrLoginTask = await imagePushStep.CreateTaskAsync(
+                            "Authenticating to Azure Container Registry",
+                            context.CancellationToken).ConfigureAwait(false);
+
+                        await using (acrLoginTask.ConfigureAwait(false))
+                        {
+                            var acrLoginProcess = new ProcessSpec("az")
+                            {
+                                Arguments = $"acr login --name {containerRegistryEndpoint}"
+                            };
+
+                            var (acrLoginResultTask, acrLoginDisposable) = ProcessUtil.Run(acrLoginProcess);
+                            await using (acrLoginDisposable)
+                            {
+                                var acrLoginResult = await acrLoginResultTask.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                                if (acrLoginResult.ExitCode != 0)
+                                {
+                                    throw new InvalidOperationException($"Failed to authenticate to Azure Container Registry");
+                                }
+                            }
+
+                            await acrLoginTask.SucceedAsync(
+                                "Successfully authenticated to Azure Container Registry",
+                                context.CancellationToken).ConfigureAwait(false);
+                        }
+
+                        foreach (var computeResource in computeResources)
+                        {
+                            if (computeResource is not ProjectResource &&
+    (!computeResource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation) ||
+     !computeResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation)))
+                            {
+                                continue;
+                            }
+                            var resourceName = computeResource.Name.ToLowerInvariant();
+                            var localImageName = resourceName;
+                            var remoteImageName = $"{containerRegistryEndpoint}/{resourceName}:latest";
+
+                            var pushTask = await imagePushStep.CreateTaskAsync(
+                                $"Pushing image for {computeResource.Name}",
+                                context.CancellationToken).ConfigureAwait(false);
+
+                            await using (pushTask.ConfigureAwait(false))
+                            {
+                                // Tag the local image for ACR
+                                var tagProcess = new ProcessSpec("docker")
+                                {
+                                    Arguments = $"tag {localImageName} {remoteImageName}"
+                                };
+
+                                var (tagResultTask, tagDisposable) = ProcessUtil.Run(tagProcess);
+                                await using (tagDisposable)
+                                {
+                                    var tagResult = await tagResultTask.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                                    if (tagResult.ExitCode != 0)
+                                    {
+                                        throw new InvalidOperationException($"Failed to tag image {localImageName}");
+                                    }
+                                }
+
+                                // Push the image to ACR
+                                var pushProcess = new ProcessSpec("docker")
+                                {
+                                    Arguments = $"push {remoteImageName}"
+                                };
+
+                                var (pushResultTask, pushDisposable) = ProcessUtil.Run(pushProcess);
+                                await using (pushDisposable)
+                                {
+                                    var pushResult = await pushResultTask.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                                    if (pushResult.ExitCode != 0)
+                                    {
+                                        throw new InvalidOperationException($"Failed to push image {remoteImageName}");
+                                    }
+                                }
+
+                                await pushTask.SucceedAsync(
+                                    $"Successfully pushed {remoteImageName}",
+                                    context.CancellationToken).ConfigureAwait(false);
+                            }
+                        }
+
+                        await imagePushStep.SucceedAsync(
+                            $"Successfully pushed {computeResources.Count} image(s) to Azure Container Registry",
+                            context.CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.Logger.LogError(ex, "Container image pushing failed");
+
+                        await imagePushStep.FailAsync(
+                            $"Container image pushing failed: {ex.Message}",
+                            context.CancellationToken).ConfigureAwait(false);
+
+                        throw;
+                    }
+                }
             }
 
             // Deploy compute resources
