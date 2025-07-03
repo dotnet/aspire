@@ -188,7 +188,7 @@ public class ParameterProcessorTests
 
         // Assert - Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved Parameters", messageBarInteraction.Title);
+        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
         Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
@@ -196,7 +196,7 @@ public class ParameterProcessorTests
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Set Unresolved Parameters", inputsInteraction.Title);
+        Assert.Equal("Set unresolved parameters", inputsInteraction.Title);
         Assert.Equal("Please provide values for the unresolved parameters.", inputsInteraction.Message);
 
         Assert.Collection(inputsInteraction.Inputs,
@@ -264,14 +264,14 @@ public class ParameterProcessorTests
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved Parameters", messageBarInteraction.Title);
+        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
         messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(false, false)); // Data = false (user dismissed/cancelled)
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved Parameters", nextMessageBarInteraction.Title);
+        Assert.Equal("Unresolved parameters", nextMessageBarInteraction.Title);
 
         // Assert - Parameter should remain unresolved since user cancelled
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
