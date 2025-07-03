@@ -20,10 +20,10 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
         var httpsEndpoint = resource.GetEndpoint("anotherendpoint");
 
         var httpCluster = new YarpCluster(httpEndpoint);
-        Assert.Equal(httpEndpoint, httpCluster.Target);
+        Assert.Equal("http://_testendpoint.ServiceA", httpCluster.Target);
 
         var httpsCluster = new YarpCluster(httpsEndpoint);
-        Assert.Equal(httpsEndpoint, httpsCluster.Target);
+        Assert.Equal("https://_anotherendpoint.ServiceA", httpsCluster.Target);
     }
 
     [Fact]
@@ -38,10 +38,10 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
         var httpsEndpoint = resource.GetEndpoint("https");
 
         var httpCluster = new YarpCluster(httpEndpoint);
-        Assert.Equal(httpEndpoint, httpCluster.Target);
+        Assert.Equal("http://_http.ServiceC", httpCluster.Target);
 
         var httpsCluster = new YarpCluster(httpsEndpoint);
-        Assert.Equal(httpsEndpoint, httpsCluster.Target);
+        Assert.Equal("https://_https.ServiceC", httpsCluster.Target);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ public class YarpCluster
     /// </summary>
     /// <param name="endpoint">The endpoint to target.</param>
     internal YarpCluster(EndpointReference endpoint)
-        : this(endpoint.Resource.Name, endpoint)
+        : this(endpoint.Resource.Name, $"{endpoint.Scheme}://_{endpoint.EndpointName}.{endpoint.Resource.Name}")
     {
     }
 
