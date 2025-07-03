@@ -37,7 +37,9 @@ public class ExecTests(ITestOutputHelper output)
         var logs = await ExecAndCollectLogsAsync(app);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains("Target resource randomnonexistingresource not found in the model resources"));
+        Assert.Contains(logs,
+            x => x.Text.Contains("Target resource randomnonexistingresource not found in the model resources")
+                && x.IsErrorMessage == true);
     }
 
     [Fact]
@@ -56,7 +58,7 @@ public class ExecTests(ITestOutputHelper output)
         var logs = await ExecAndCollectLogsAsync(app);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains(".NET SDKs installed"));
+        Assert.Contains(logs, x => x.Text.Contains(".NET SDKs installed"));
     }
 
     [Fact]
@@ -83,7 +85,7 @@ public class ExecTests(ITestOutputHelper output)
         var logs = await ExecAndCollectLogsAsync(app);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains("Project file does not exist"));
+        Assert.Contains(logs, x => x.Text.Contains("Project file does not exist"));
     }
 
     [Fact]
@@ -102,7 +104,7 @@ public class ExecTests(ITestOutputHelper output)
         var logs = await ExecAndCollectLogsAsync(app);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains("Usage: dotnet [sdk-options] [command] [command-options] [arguments]"));
+        Assert.Contains(logs, x => x.Text.Contains("Usage: dotnet [sdk-options] [command] [command-options] [arguments]"));
     }
 
     [Fact]
@@ -129,28 +131,28 @@ public class ExecTests(ITestOutputHelper output)
         var logs = await ExecAndCollectLogsAsync(app, timeoutSec: 60);
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
-        Assert.Contains(logs, x => x.Contains("Build started"));
-        Assert.Contains(logs, x => x.Contains("Build succeeded"));
+        Assert.Contains(logs, x => x.Text.Contains("Build started"));
+        Assert.Contains(logs, x => x.Text.Contains("Build succeeded"));
 
         AssertMigrationsCreated(apiModelProjectDir, migrationName);
         DeleteMigrations(apiModelProjectDir, migrationName);
     }
 
-    private async Task<List<string>> ExecAndCollectLogsAsync(DistributedApplication app, int timeoutSec = 30)
+    private async Task<List<CommandOutput>> ExecAndCollectLogsAsync(DistributedApplication app, int timeoutSec = 30)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
 
         var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
         var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
 
-        var logs = new List<string>();
+        var logs = new List<CommandOutput>();
         var startTask = app.StartAsync(cts.Token);
         await foreach (var message in outputStream)
         {
             var logLevel = message.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
             var log = $"Received output: #{message.LineNumber} [level={logLevel}] [type={message.Type}] {message.Text}";
 
-            logs.Add(log);
+            logs.Add(message);
             output.WriteLine(log);
         }
 
