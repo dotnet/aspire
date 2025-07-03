@@ -10,6 +10,9 @@
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
+
+    <CliProjectDirectory>$([MSBuild]::NormalizeDirectory($(RepoRoot), 'src', 'Aspire.Cli'))</CliProjectDirectory>
+    <EntitlementsFile>$(CliProjectDirectory)entitlements.plist</EntitlementsFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,10 +46,14 @@
 
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
-        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
+        Projects="$(CliProjectDirectory)Aspire.Cli.csproj"
         Targets="Publish"
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
+
+    <!-- Codesign on macos -->
+    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(PreparePackagesForPublishingOnly)' == 'true'"
+          Command="codesign -s - -f --entitlements $(EntitlementsFile) $(OutputPath)/aspire" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
