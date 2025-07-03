@@ -4,7 +4,7 @@ kind: "ConfigMap"
 metadata:
   name: "servicea-config"
   labels:
-    app.kubernetes.io/name: "aspire"
+    app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "ServiceA"
     app.kubernetes.io/instance: "{{.Release.Name}}"
 data:
