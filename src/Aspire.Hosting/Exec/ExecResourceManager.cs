@@ -6,13 +6,12 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Exec;
 
-internal class ExecResourceManager : BackgroundService
+internal class ExecResourceManager
 {
     private readonly ILogger _logger;
     private readonly ExecOptions _execOptions;
@@ -22,8 +21,7 @@ internal class ExecResourceManager : BackgroundService
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly ResourceNotificationService _resourceNotificationService;
 
-    private string? _dcpExecResourceName;
-    private IResource? _execResource;
+    private readonly TaskCompletionSource<IResource> _execResourceInitialized = new();
 
     public ExecResourceManager(
         ILogger<ExecResourceManager> logger,
@@ -49,29 +47,53 @@ internal class ExecResourceManager : BackgroundService
         {
             yield break;
         }
-        if (_execResource is null || string.IsNullOrEmpty(_dcpExecResourceName))
+
+        yield return new CommandOutput
         {
-            _logger.LogInformation("Exec resource can't be determined.");
-            throw new ArgumentException($"Exec resource can't be determined.");
+            Text = $"Waiting for resources to be initialized...",
+            Type = "waiting"
+        };
+
+        // wait until AppHost eventing fires ConfigureExecResource()
+        // and execResource is initialized
+        IResource execResource;
+        try
+        {
+            execResource = await _execResourceInitialized.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Cancelled before exec resource was initialized.");
+            yield break;
+        }
+
+        // we need to make sure resource is starting to be launched, and then we fetch the DCP name
+        await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
+        var dcpExecResourceName = GetDcpExecResourceName(execResource);
+
+        yield return new CommandOutput
+        {
+            Text = $"Aspire exec starting...",
+            Type = "waiting"
+        };
 
         string type = "waiting";
 
-        // wait for the exec resource to be running
+        // in the background wait for the exec resource to be running to change log type
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetState: KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
+            await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetState: KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
             type = "running";
         }, cancellationToken);
 
-        // wait for the exec resource to reach terminal state
+        // in the background wait for the exec resource to reach terminal state. Once done we can complete logging
         _ = Task.Run(async () =>
         {
-            await _resourceNotificationService.WaitForResourceAsync(_execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
-            _resourceLoggerService.Complete(_dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
+            await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+            _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
         }, cancellationToken);
-        
-        await foreach (var logs in _resourceLoggerService.WatchAsync(_dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
+
+        await foreach (var logs in _resourceLoggerService.WatchAsync(dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             foreach (var log in logs)
             {
@@ -86,11 +108,11 @@ internal class ExecResourceManager : BackgroundService
         }
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    public IResource? ConfigureExecResource()
     {
         if (!_execOptions.Enabled)
         {
-            return Task.CompletedTask;
+            return null;
         }
 
         var targetResource = _model.Resources.FirstOrDefault(x => x.Name.Equals(_execOptions.ResourceName, StringComparisons.ResourceName));
@@ -100,17 +122,14 @@ internal class ExecResourceManager : BackgroundService
             throw new ArgumentException($"Target resource '{_execOptions.ResourceName}' does not support exec");
         }
 
-        var (execResource, dcpResourceName) = BuildResource(targetExecResource);
-        _model.Resources.Add(execResource);
+        var execResource = BuildResource(targetExecResource);
 
-        _execResource = execResource;
-        _dcpExecResourceName = dcpResourceName;
-        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", _execResource.Name);
-
-        return Task.CompletedTask;
+        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", execResource.Name);
+        _execResourceInitialized.SetResult(execResource);
+        return execResource;
     }
 
-    (IResource resource, string dcpResourceName) BuildResource(IResourceSupportsExec targetExecResource)
+    IResource BuildResource(IResourceSupportsExec targetExecResource)
     {
         return targetExecResource switch
         {
@@ -119,7 +138,7 @@ internal class ExecResourceManager : BackgroundService
         };
     }
 
-    private (IResource resource, string dcpResourceName) BuildAgainstProjectResource(ProjectResource project)
+    private IResource BuildAgainstProjectResource(ProjectResource project)
     {
         var projectMetadata = project.GetProjectMetadata();
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? throw new InvalidOperationException("Project path is invalid.");
@@ -157,14 +176,9 @@ internal class ExecResourceManager : BackgroundService
             executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
         }
 
-        // in order to properly watch logs of the resource we need a dcp name, not the app-host model name,
-        // so we need to prepare the DCP instances annotation as is done for any resource added to the DistributedApplicationBuilder
-        var (dcpResourceName, suffix) = _dcpNameGenerator.GetExecutableName(executable);
-        executable.Annotations.Add(new DcpInstancesAnnotation([new DcpInstance(dcpResourceName, suffix, 0)]));
+        _logger.LogInformation("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
 
-        _logger.LogInformation("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", dcpResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
-
-        return (executable, dcpResourceName);
+        return executable;
 
         (string exe, string[] args) ParseCommand()
         {
@@ -186,5 +200,19 @@ internal class ExecResourceManager : BackgroundService
 
             return (exe, args);
         }
+    }
+
+    private static string GetDcpExecResourceName(IResource resource)
+    {
+        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstances))
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' does not have DCP instances annotation.");
+        }
+        if (dcpInstances.Instances.Length > 1)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple DCP instances, expected only one. Instances: {string.Join(", ", dcpInstances.Instances.Select(i => i.Name))}");
+        }
+
+        return dcpInstances.Instances[0].Name;
     }
 }

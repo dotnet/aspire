@@ -230,13 +230,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Sha256"] = appHostSha
         });
 
-        // exec
-        if (appHostOptions.IsExecMode())
-        {
-            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
-            _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ExecResourceManager>());
-        }
-
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
@@ -365,8 +358,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
-
-            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         if (ExecutionContext.IsRunMode)
@@ -385,6 +376,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // We need a unique path per application instance
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
+        }
+
+        // exec
+        if (appHostOptions.IsExecMode())
+        {
+            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+            Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
         }
 
         // Publishing support
