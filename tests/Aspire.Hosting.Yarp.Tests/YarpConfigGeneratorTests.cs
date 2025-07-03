@@ -5,6 +5,7 @@ using System.Security.Authentication;
 using System.Text;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Yarp.Transforms;
+using Aspire.TestUtilities;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -242,6 +243,7 @@ public class YarpConfigGeneratorTests()
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task GenerateEnvVariablesConfigurationDockerCompose()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
