@@ -162,15 +162,14 @@ public sealed class AzureEnvironmentResource : Resource
         }
 
         // Create step for deployment process
-        var deploymentStep = await progressReporter.CreateStepAsync(
+        var mainDeploymentStep = await progressReporter.CreateStepAsync(
             "Deploying Azure resources",
             context.CancellationToken).ConfigureAwait(false);
 
         try
         {
             // Create task for locating saved Bicep template
-            var locateTemplateTask = await progressReporter.CreateTaskAsync(
-                deploymentStep,
+            var locateTemplateTask = await mainDeploymentStep.CreateTaskAsync(
                 "Locating saved Bicep template for deployment",
                 context.CancellationToken).ConfigureAwait(false);
 
@@ -181,15 +180,12 @@ public sealed class AzureEnvironmentResource : Resource
                 throw new FileNotFoundException($"Main Bicep template not found at {mainBicepPath}. Ensure the publishing step has completed successfully.");
             }
 
-            await progressReporter.CompleteTaskAsync(
-                locateTemplateTask,
-                CompletionState.Completed,
+            await locateTemplateTask.SucceedAsync(
                 $"Bicep template located at {mainBicepPath}",
                 context.CancellationToken).ConfigureAwait(false);
 
             // Create task for setting up deployment context
-            var setupTask = await progressReporter.CreateTaskAsync(
-                deploymentStep,
+            var setupTask = await mainDeploymentStep.CreateTaskAsync(
                 "Setting up Azure deployment context",
                 context.CancellationToken).ConfigureAwait(false);
 
@@ -205,22 +201,18 @@ public sealed class AzureEnvironmentResource : Resource
                 allowResourceGroupCreation: true,
                 context.CancellationToken).ConfigureAwait(false);
 
-            await progressReporter.CompleteTaskAsync(
-                setupTask,
-                CompletionState.Completed,
+            await setupTask.SucceedAsync(
                 "Deployment context configured",
                 context.CancellationToken).ConfigureAwait(false);
 
             // Create task for deploying main template
-            var deploymentTask = await progressReporter.CreateTaskAsync(
-                deploymentStep,
+            var deploymentTask = await mainDeploymentStep.CreateTaskAsync(
                 "Deploying main Bicep template to Azure",
                 context.CancellationToken).ConfigureAwait(false);
+            // Create a temporary AzureBicepResource to represent the main deployment
+            var mainResource = new AzureBicepResource(this.Name + "-main");
             await using (deploymentTask.ConfigureAwait(false))
             {
-                // Create a temporary AzureBicepResource to represent the main deployment
-                var mainResource = new AzureBicepResource(this.Name + "-main");
-
                 // Copy over parameters from the environment resource
                 mainResource.Parameters[AzureBicepResource.KnownParameters.Location] = this.Location;
 
@@ -250,29 +242,104 @@ public sealed class AzureEnvironmentResource : Resource
                     mainResource,
                     mainBicepPath,
                     provisioningContext,
+                    useResourceScope: false,
                     context.CancellationToken).ConfigureAwait(false);
 
-                await progressReporter.CompleteTaskAsync(
-                    deploymentTask,
-                    CompletionState.Completed,
+                await deploymentTask.SucceedAsync(
                     "Main Bicep template deployed successfully",
                     context.CancellationToken).ConfigureAwait(false);
 
-                await progressReporter.CompleteStepAsync(
-                    deploymentStep,
+                await mainDeploymentStep.SucceedAsync(
                     "Azure deployment completed successfully using consolidated Bicep template",
-                    CompletionState.Completed,
                     context.CancellationToken).ConfigureAwait(false);
+            }
+
+            // Deploy compute resources
+            if (PublishingContext.ComputeResources.Count > 0)
+            {
+                var computeDeploymentStep = await progressReporter.CreateStepAsync(
+                    "Deploying compute resources",
+                    context.CancellationToken).ConfigureAwait(false);
+
+                await using (computeDeploymentStep.ConfigureAwait(false))
+                {
+                    try
+                    {
+                        foreach (var (computeResourcePath, computeResource) in PublishingContext.ComputeResources)
+                        {
+                            var computeResourceName = computeResource.Name;
+
+                            var computeDeploymentTask = await computeDeploymentStep.CreateTaskAsync(
+                                $"Deploying compute resource: {computeResourceName}",
+                                context.CancellationToken).ConfigureAwait(false);
+
+                            await using (computeDeploymentTask.ConfigureAwait(false))
+                            {
+                                // Deploy the compute resource using its Bicep file
+                                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation();
+                                var targetResource = (AzureBicepResource)deploymentTarget!.DeploymentTarget;
+                                // Hack -- figure me out: need to set outputs on the underlying resources within each module
+                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_apps_environment_default_domain"))
+                                {
+                                    targetResource.Parameters["infra_outputs_azure_container_apps_environment_default_domain"] = mainResource.Outputs["infra_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"];
+                                }
+                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_registry_endpoint"))
+                                {
+                                    targetResource.Parameters["infra_outputs_azure_container_registry_endpoint"] = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
+                                }
+                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_apps_environment_id"))
+                                {
+                                    targetResource.Parameters["infra_outputs_azure_container_apps_environment_id"] = mainResource.Outputs["infra_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"];
+                                }
+                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_registry_managed_identity_id"))
+                                {
+                                    targetResource.Parameters["infra_outputs_azure_container_registry_managed_identity_id"] = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"];
+                                }
+                                if (targetResource.Parameters.ContainsKey($"{targetResource.Name}_containerimage"))
+                                {
+                                    var endpoint = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
+                                    targetResource.Parameters[$"{targetResource.Name}_containerimage"] = $"{endpoint}/{targetResource.Name.ToLowerInvariant()}:latest";
+                                }
+                                if (targetResource.Parameters.ContainsKey($"{targetResource.Name}_containerport"))
+                                {
+                                    targetResource.Parameters[$"{targetResource.Name}_containerport"] = "8080";
+                                }
+                                await bicepProvisioner.DeployWithBicepFileAsync(
+                                            targetResource,
+                                            computeResourcePath,
+                                            provisioningContext,
+                                            useResourceScope: true,
+                                            context.CancellationToken).ConfigureAwait(false);
+
+                                await computeDeploymentTask.SucceedAsync(
+                                    $"Compute resource {computeResourceName} deployed successfully",
+                                    context.CancellationToken).ConfigureAwait(false);
+                            }
+                        }
+
+                        await computeDeploymentStep.SucceedAsync(
+                            $"Successfully deployed {PublishingContext.ComputeResources.Count} compute resource(s)",
+                            context.CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.Logger.LogError(ex, "Compute resource deployment failed");
+
+                        await computeDeploymentStep.FailAsync(
+                            $"Compute resource deployment failed: {ex.Message}",
+                            context.CancellationToken).ConfigureAwait(false);
+
+                        throw;
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
             context.Logger.LogError(ex, "Azure deployment failed");
 
-            await progressReporter.CompleteStepAsync(
-                deploymentStep,
+            await mainDeploymentStep.FailAsync(
                 $"Azure deployment failed: {ex.Message}",
-                CompletionState.CompletedWithError,
                 context.CancellationToken).ConfigureAwait(false);
 
             throw;

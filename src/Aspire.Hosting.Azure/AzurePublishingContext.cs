@@ -59,6 +59,8 @@ public sealed class AzurePublishingContext(
 
     internal string? MainBicepPath { get; private set; }
 
+    internal Dictionary<string, IResource> ComputeResources { get; } = [];
+
     /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
@@ -326,6 +328,8 @@ public sealed class AzurePublishingContext(
                 }
 
                 CaptureBicepOutputsFromParameters(br);
+
+                ComputeResources.Add(modulePath, resource);
 
                 await task.SucceedAsync(
                     $"Wrote bicep module for deployment target {resource.Name} to {modulePath}",

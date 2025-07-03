@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
+using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
@@ -247,7 +248,7 @@ internal sealed class BicepProvisioner(
         .ConfigureAwait(false);
     }
 
-    public async Task DeployWithBicepFileAsync(AzureBicepResource resource, string bicepFilePath, ProvisioningContext context, CancellationToken cancellationToken)
+    public async Task DeployWithBicepFileAsync(AzureBicepResource resource, string bicepFilePath, ProvisioningContext context, bool useResourceScope = false, CancellationToken cancellationToken = default)
     {
         var resourceGroup = context.ResourceGroup;
         var resourceLogger = loggerService.GetLogger(resource);
@@ -308,17 +309,32 @@ internal sealed class BicepProvisioner(
 
         resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
 
-        var deployments = ((DefaultSubscriptionResource)context.Subscription).SubscriptionResource.GetArmDeployments();
         var deploymentName = resource.Name + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        ArmOperation<ArmDeploymentResource> operation;
+        if (useResourceScope)
         {
-            Template = BinaryData.FromString(armTemplateContents),
-            Parameters = BinaryData.FromObjectAsJson(parameters),
-            DebugSettingDetailLevel = "ResponseContent"
-        })
-        { Location = context.Location },
+            var deployments = resourceGroup.GetArmDeployments();
+            operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+            {
+                Template = BinaryData.FromString(armTemplateContents),
+                Parameters = BinaryData.FromObjectAsJson(parameters),
+                DebugSettingDetailLevel = "ResponseContent"
+            }),
         cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            var deployments = ((DefaultSubscriptionResource)context.Subscription).SubscriptionResource.GetArmDeployments();
+            operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+            {
+                Template = BinaryData.FromString(armTemplateContents),
+                Parameters = BinaryData.FromObjectAsJson(parameters),
+                DebugSettingDetailLevel = "ResponseContent"
+            })
+            { Location = context.Location },
+            cancellationToken).ConfigureAwait(false);
+        }
 
         // Resolve the deployment URL before waiting for the operation to complete
         var url = GetDeploymentUrl(context, resourceGroup, deploymentName);
