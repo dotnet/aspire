@@ -177,16 +177,18 @@ suite('InteractionService endpoints', () => {
 
 	test("displayLines endpoint", async () => {
 		const testInfo = await createTestRpcServer();
-		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
+
 		testInfo.interactionService.displayLines([
 			{ Stream: 'stdout', Line: 'line1' },
 			{ Stream: 'stderr', Line: 'line2' }
 		]);
-		assert.ok(showInformationMessageSpy.called);
+
+		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
 		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
 		assert.ok(appendLineStub.calledWith('interaction', 'line1'));
 		assert.ok(appendLineStub.calledWith('interaction', 'line2'));
-		showInformationMessageSpy.restore();
+		openTextDocumentStub.restore();
 	});
 
 	test("displayCancellationMessage endpoint", async () => {
