@@ -154,7 +154,7 @@ internal sealed class DashboardServiceData : IDisposable
     {
         await _interactionService.CompleteInteractionAsync(
             request.InteractionId,
-            async (interaction, serviceProvider, cancellationToken) =>
+            (interaction, serviceProvider, cancellationToken) =>
             {
                 switch (request.KindCase)
                 {
@@ -180,24 +180,9 @@ internal sealed class DashboardServiceData : IDisposable
                             }
 
                             modelInput.SetValue(incomingValue);
-                            modelInput.ValidationErrors.Clear();
                         }
 
-                        var hasErrors = false;
-                        if (options.ValidationCallback is { } validationCallback)
-                        {
-                            var context = new InputsDialogValidationContext
-                            {
-                                CancellationToken = cancellationToken,
-                                ServiceProvider = serviceProvider,
-                                Inputs = inputsInfo.Inputs
-                            };
-                            await validationCallback(context).ConfigureAwait(false);
-
-                            hasErrors = context.HasErrors;
-                        }
-
-                        return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                        return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };
                     default:
                         return new InteractionCompletionState { Complete = true };
                 }

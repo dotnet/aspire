@@ -5,58 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Yarp.Transforms;
 using Aspire.TestUtilities;
-using Yarp.ReverseProxy.Configuration;
 
 namespace Aspire.Hosting.Yarp.Tests;
 public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact]
-    [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
-    public async Task VerifyYarpResourceConfigFile()
-    {
-        await VerifyYarpResource((yarp, endpoint) => yarp.WithReference(endpoint).WithConfigFile("yarp.json"));
-    }
-
-    [Fact]
-    [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
-    public async Task VerifyYarpResourceProgrammaticConfig()
-    {
-        await VerifyYarpResource((yarp, endpoint) =>
-        {
-            yarp.WithReference(endpoint)
-                .WithConfiguration(configuration =>
-                {
-                    configuration
-                        .AddRoute(new RouteConfig()
-                        {
-                            RouteId = "route1",
-                            ClusterId = "cluster1",
-                            Match = new RouteMatch()
-                            {
-                                Path = "/aspnetapp/{**catch-all}"
-                            },
-                            Transforms = new[]
-                            {
-                                new Dictionary<string, string>
-                                {
-                                    { "PathRemovePrefix", "/aspnetapp" },
-                                }
-                            }
-                        })
-                        .AddCluster(new ClusterConfig()
-                        {
-                            ClusterId = "cluster1",
-                            Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
-                            {
-                                { "destination1", new DestinationConfig { Address = $"{endpoint.Scheme}://{endpoint.Resource.Name}" } },
-                            }
-                        });
-                });
-        });
-    }
-
     [Fact]
     [RequiresDocker]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]

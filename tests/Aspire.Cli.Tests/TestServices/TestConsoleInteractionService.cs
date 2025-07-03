@@ -10,6 +10,7 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestConsoleInteractionService : IInteractionService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
+    public Action<string>? DisplaySubtleMessageCallback { get; set; }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
@@ -73,6 +74,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
+        DisplaySubtleMessageCallback?.Invoke(message);
     }
 
     public void DisplayEmptyLine()

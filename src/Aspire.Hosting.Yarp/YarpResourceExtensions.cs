@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Yarp;
 
 namespace Aspire.Hosting;
@@ -12,10 +13,6 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
-
-    private const string ConfigDirectory = "/etc";
-
-    private const string ConfigFileName = "yarp.config";
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -33,8 +30,13 @@ public static class YarpResourceExtensions
                       .WithHttpEndpoint(targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
+                      .WithImageTag(YarpContainerImageTags.Tag)
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+                      .WithEntrypoint("dotnet")
+                      .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter();
+
+        var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -42,63 +44,23 @@ public static class YarpResourceExtensions
             // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
             // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+
+            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (ctx, ct) =>
+            {
+                configBuilder.BuildAndPopulateEnvironment();
+                return Task.CompletedTask;
+            });
+        }
+        else
+        {
+            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforePublishEvent>((ctx, ct) =>
+            {
+                configBuilder.BuildAndPopulateEnvironment();
+                return Task.CompletedTask;
+            });
         }
 
-        // Map the configuration file
-        yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
-        {
-            // Call all the config delegates
-            var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
-            foreach (var configurator in yarpBuilder.Resource.ConfigurationBuilderDelegates)
-            {
-                configurator(configBuilder);
-            }
-            // Add all routes and cluster to the json config generator
-            foreach (var route in configBuilder.Routes)
-            {
-                yarpBuilder.Resource.JsonConfigGenerator.AddRoute(route.RouteConfig);
-            }
-            foreach (var destination in configBuilder.Clusters)
-            {
-                yarpBuilder.Resource.JsonConfigGenerator.AddCluster(destination.ClusterConfig);
-            }
-            // Generate the json content
-            var contents = await yarpBuilder.Resource.JsonConfigGenerator.Build(ct).ConfigureAwait(false);
-
-            var configFile = new ContainerFile
-            {
-                Name = ConfigFileName,
-                Contents = contents
-            };
-
-            return [configFile];
-        });
-
         return yarpBuilder;
-    }
-
-    /// <summary>
-    /// Set explicitly the config file to use for YARP.
-    /// </summary>
-    /// <param name="builder">The YARP resource to configure.</param>
-    /// <param name="configFilePath">The path to the YARP config file.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
-    {
-        builder.Resource.JsonConfigGenerator.WithConfigFile(configFilePath);
-        return builder;
-    }
-
-    /// <summary>
-    /// Configure the YARP resource.
-    /// </summary>
-    /// <param name="builder">The YARP resource to configure.</param>
-    /// <param name="configurationBuilder">The delegate to configure YARP.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigGeneratorBuilder> configurationBuilder)
-    {
-        configurationBuilder(builder.Resource.JsonConfigGenerator);
-        return builder;
     }
 
     /// <summary>

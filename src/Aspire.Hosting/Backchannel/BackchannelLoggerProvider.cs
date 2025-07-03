@@ -88,12 +88,3 @@ internal class BackchannelLogger(string categoryName, Channel<BackchannelLogEntr
         }
     }
 }
-
-internal class BackchannelLogEntry
-{
-    public required EventId EventId { get; set; }
-    public required LogLevel LogLevel { get; set; }
-    public required string Message { get; set; }
-    public required DateTimeOffset Timestamp { get; set; }
-    public required string CategoryName { get; set; }
-}
