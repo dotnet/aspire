@@ -24,10 +24,10 @@ spec:
           ports:
             - name: "http"
               protocol: "TCP"
-              containerPort: "{{ .Values.parameters.ServiceB.port_http }}"
+              containerPort: 8080
             - name: "https"
               protocol: "TCP"
-              containerPort: "{{ .Values.parameters.ServiceB.port_https }}"
+              containerPort: 8081
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:

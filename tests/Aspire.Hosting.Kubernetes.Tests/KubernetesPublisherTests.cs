@@ -185,6 +185,7 @@ public class KubernetesPublisherTests()
 
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
         builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
+            .WithHttpEndpoint()
             .WithEnvironment("param3", param3)
             .WithReference(cs);
 
@@ -199,7 +200,54 @@ public class KubernetesPublisherTests()
             "values.yaml",
             "templates/SpeciaL-ApP/deployment.yaml",
             "templates/SpeciaL-ApP/config.yaml",
-            "templates/SpeciaL-ApP/secrets.yaml"
+            "templates/SpeciaL-ApP/secrets.yaml",
+            "templates/SpeciaL-ApP/service.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    [Fact]
+    public async Task PublishAsync_MultipleEndpoints()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        builder.AddProject<TestProject>("myapp", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithHttpEndpoint(name: "grpc", transport: "http2")
+            .WithHttpsEndpoint();
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "values.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/config.yaml",
+            "templates/myapp/service.yaml"
         };
 
         SettingsTask settingsTask = default!;

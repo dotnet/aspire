@@ -143,7 +143,7 @@ internal static class ResourceExtensions
                 {
                     Name = mapping.Name,
                     Port = new(mapping.Port),
-                    TargetPort = new(mapping.Port),
+                    TargetPort = new(mapping.Name),
                     Protocol = "TCP",
                 });
         }
@@ -269,7 +269,7 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.Port),
+                    ContainerPort = new(mapping.TargetPort),
                     Protocol = "TCP",
                 });
         }

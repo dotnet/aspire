@@ -8,6 +8,10 @@ metadata:
     app.kubernetes.io/component: "SpeciaL-ApP"
     app.kubernetes.io/instance: "{{.Release.Name}}"
 data:
+  ASPNETCORE_Kestrel__Endpoints__http__Url: "{{ .Values.config.SpeciaL_ApP.ASPNETCORE_Kestrel__Endpoints__http__Url }}"
+  ASPNETCORE_Kestrel__Endpoints__http__Protocols: "{{ .Values.config.SpeciaL_ApP.ASPNETCORE_Kestrel__Endpoints__http__Protocols }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY }}"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "{{ .Values.config.SpeciaL_ApP.ASPNETCORE_FORWARDEDHEADERS_ENABLED }}"
+  HTTP_PORTS: "{{ .Values.config.SpeciaL_ApP.HTTP_PORTS }}"

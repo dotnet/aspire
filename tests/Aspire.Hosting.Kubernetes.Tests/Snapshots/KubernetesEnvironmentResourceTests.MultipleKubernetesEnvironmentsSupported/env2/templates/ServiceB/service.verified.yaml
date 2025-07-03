@@ -16,9 +16,9 @@ spec:
   ports:
     - name: "http"
       protocol: "TCP"
-      port: "{{ .Values.parameters.ServiceB.port_http }}"
-      targetPort: "{{ .Values.parameters.ServiceB.port_http }}"
+      port: 80
+      targetPort: "http"
     - name: "https"
       protocol: "TCP"
-      port: "{{ .Values.parameters.ServiceB.port_https }}"
-      targetPort: "{{ .Values.parameters.ServiceB.port_https }}"
+      port: 81
+      targetPort: "https"

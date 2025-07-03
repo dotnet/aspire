@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
@@ -16,7 +15,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Host, int Port, int TargetPort, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
@@ -165,31 +164,44 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         foreach (var endpoint in endpoints)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            var targetPort = endpoint.TargetPort;
+            var port = endpoint.Port ?? 80 + EndpointMappings.Count;
+
+            if (resource is ProjectResource)
             {
-                GenerateDefaultProjectEndpointMapping(endpoint);
-                continue;
+                targetPort ??= 8080 + EndpointMappings.Count; // Default target port for project resources
+                ProcessEndpointForProjectResoruce(endpoint, targetPort.Value);
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
+            if (targetPort == null)
+            {
+                throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
+            }
+
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), port, targetPort ?? 8080, endpoint.Name);
         }
     }
 
-    private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
+    private void ProcessEndpointForProjectResoruce(EndpointAnnotation endpoint, int targetPort)
     {
-        const string defaultPort = "8080";
+        var urlKey = $"ASPNETCORE_Kestrel__Endpoints__{endpoint.Name}__Url";
+        var aspNetCoreUrlsExpression = urlKey.ToHelmConfigExpression(resource.Name);
+        EnvironmentVariables[urlKey] = new(aspNetCoreUrlsExpression, $"{endpoint.UriScheme}://+:${targetPort}");
 
-        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
+        var protocolKey = $"ASPNETCORE_Kestrel__Endpoints__{endpoint.Name}__Protocols";
+        var aspNetCoreProtocolsExpression = protocolKey.ToHelmConfigExpression(resource.Name);
 
-        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
-        Parameters[paramName] = new(helmExpression, defaultPort);
-
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
-
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
+        // If the endpoint is without TLS, we cannot negotiate HTTP version. This means a default protocol has to be selected.
+        var defaultProcotol = String.Equals(endpoint.Name, "http", StringComparison.CurrentCultureIgnoreCase) ? "Http1" : "Http1AndHttp2";
+        var protocol = endpoint.Transport.ToLowerInvariant() switch
+        {
+            "http" => defaultProcotol,
+            "http1" => "Http1",
+            "http2" => "Http2",
+            "http3" => "Http3",
+            _ => defaultProcotol
+        };
+        EnvironmentVariables[protocolKey] = new(aspNetCoreProtocolsExpression, protocol);
     }
 
     private void ProcessVolumes()
