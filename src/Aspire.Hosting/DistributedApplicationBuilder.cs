@@ -229,6 +229,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Sha256"] = appHostSha
         });
 
+        // exec
+        if (isExecMode)
+        {
+            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+            Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
+        }
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
@@ -377,13 +384,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
-        }
-
-        // exec
-        if (isExecMode)
-        {
-            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
-            Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
         }
 
         // Publishing support

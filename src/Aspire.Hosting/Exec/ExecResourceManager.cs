@@ -82,7 +82,7 @@ internal class ExecResourceManager
             yield break;
         }
 
-        // we need to make sure resource is starting to be launched, and then we fetch the DCP name
+        // dcp annotation is populated by other handler of BeforeStartEvent
         var dcpExecResourceName = execResource!.GetResolvedResourceName();
 
         yield return new CommandOutput
@@ -102,6 +102,7 @@ internal class ExecResourceManager
         _ = Task.Run(async () =>
         {
             await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(10000, CancellationToken.None).ConfigureAwait(false);
             _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
         }, cancellationToken);
 
