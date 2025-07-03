@@ -121,7 +121,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var createTestProject = await interactionService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFMOptions_Prompt,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
+                [TemplatingStrings.No, TemplatingStrings.Yes],
                 choice => choice,
                 cancellationToken);
 
