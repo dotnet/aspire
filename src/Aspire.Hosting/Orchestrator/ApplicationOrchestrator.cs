@@ -56,6 +56,7 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+        _eventing.Subscribe<InitializeResourceEvent>(OnResourceInitialized);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -265,44 +266,103 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        await ProcessResourceWithoutLifetime(@event.Resource, cancellationToken).ConfigureAwait(false);
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessResourceWithoutLifetime(IResource resource, CancellationToken cancellationToken)
+    private async Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
     {
-        if (resource is not IResourceWithoutLifetime resourceWithoutLifetime
-            || resourceWithoutLifetime is not IValueProvider valueProvider)
+        var resource = @event.Resource;
+
+        if (resource is ParameterResource parameterResource)
         {
-            return;
+            await InitializeParameter(parameterResource).ConfigureAwait(false);
+        }
+        else if (resource is ConnectionStringResource connectionStringResource)
+        {
+            InitializeConnectionString(connectionStringResource);
         }
 
-        try
+        async Task InitializeParameter(ParameterResource parameterResource)
         {
-            var value = await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-            await _notificationService.PublishUpdateAsync(resourceWithoutLifetime, s =>
+            try
             {
-                return s with
+                await _notificationService.PublishUpdateAsync(parameterResource, s =>
                 {
-                    Properties = s.Properties.SetResourceProperty("Value", value ?? "", resourceWithoutLifetime is ParameterResource p && p.Secret)
-                };
-            })
-            .ConfigureAwait(false);
+                    return s with
+                    {
+                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, parameterResource.Value ?? "", parameterResource.Secret),
+                        State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+                    };
+                })
+                .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await _notificationService.PublishUpdateAsync(parameterResource, s =>
+                {
+                    return s with
+                    {
+                        State = new("Value missing", KnownResourceStateStyles.Error),
+                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
+                        IsHidden = false
+                    };
+                })
+                .ConfigureAwait(false);
+
+                _loggerService.GetLogger(parameterResource)
+                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
+            }
         }
-        catch (Exception ex)
-        {
-            await _notificationService.PublishUpdateAsync(resourceWithoutLifetime, s =>
-            {
-                return s with
-                {
-                    State = new("Value missing", KnownResourceStateStyles.Error),
-                    Properties = s.Properties.SetResourceProperty("Value", ex.Message)
-                };
-            })
-            .ConfigureAwait(false);
 
-            _loggerService.GetLogger(resourceWithoutLifetime.Name).LogError("{Message}", ex.Message);
+        void InitializeConnectionString(ConnectionStringResource connectionStringResource)
+        {
+            var logger = _loggerService.GetLogger(resource);
+            var waitFor = new List<Task>();
+
+            var references = connectionStringResource.Annotations.OfType<ResourceRelationshipAnnotation>()
+                .Where(x => x.Type == KnownRelationshipTypes.Reference)
+                .Select(x => x.Resource);
+
+            foreach (var reference in references)
+            {
+                if (reference is IResourceWithEndpoints)
+                {
+                    var tcs = new TaskCompletionSource();
+                    logger.LogInformation("Waiting for endpoints to be allocated for resource {ResourceName}", reference.Name);
+                    _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(reference, (_, _) =>
+                    {
+                        logger.LogInformation("Endpoints allocated for resource {ResourceName}", reference.Name);
+                        tcs.SetResult();
+                        return Task.CompletedTask;
+                    });
+
+                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
+                }
+
+                if (reference is IResourceWithConnectionString)
+                {
+                    var tcs = new TaskCompletionSource();
+                    logger.LogInformation("Waiting for connection string to be available for resource {ResourceName}", reference.Name);
+                    _eventing.Subscribe<ConnectionStringAvailableEvent>(reference, (_, _) =>
+                    {
+                        logger.LogInformation("Connection string is available for resource {ResourceName}", reference.Name);
+                        tcs.SetResult();
+                        return Task.CompletedTask;
+                    });
+                    
+                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
+                }
+            }
+
+            _ = Task.Run(async () =>
+            {
+                await Task.WhenAll(waitFor).ConfigureAwait(false);
+                await PublishConnectionStringAvailableEvent(connectionStringResource, cancellationToken).ConfigureAwait(false);
+                await _notificationService.PublishUpdateAsync(connectionStringResource, s => s with
+                {
+                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info),
+                }).ConfigureAwait(false);
+            }, cancellationToken);
         }
     }
 
