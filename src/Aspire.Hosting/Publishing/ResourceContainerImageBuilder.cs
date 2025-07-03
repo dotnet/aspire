@@ -200,14 +200,14 @@ internal sealed class ResourceContainerImageBuilder(
                     throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
                 }
 
-                var arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}";
+                var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
 
                 // Add additional arguments based on options
                 if (options is not null)
                 {
                     if (!string.IsNullOrEmpty(options.OutputPath))
                     {
-                        arguments += $" /p:ContainerArchiveOutputPath={options.OutputPath}";
+                        arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
                     }
 
                     if (options.ImageFormat.HasValue)
@@ -219,12 +219,12 @@ internal sealed class ResourceContainerImageBuilder(
                             ContainerImageFormat.DockerTar => "DockerTar",
                             _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
                         };
-                        arguments += $" /p:ContainerImageFormat={format}";
+                        arguments += $" /p:ContainerImageFormat=\"{format}\"";
                     }
 
                     if (!string.IsNullOrEmpty(options.TargetPlatform))
                     {
-                        arguments += $" /p:ContainerRuntimeIdentifier={options.TargetPlatform}";
+                        arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
                     }
                 }
 
@@ -269,6 +269,82 @@ internal sealed class ResourceContainerImageBuilder(
                             ".NET CLI completed with exit code: {ExitCode}",
                             processResult.ExitCode);
                     }
+                }
+            }
+        }
+        else
+        {
+            // Handle case when publishingTask is null (no step provided)
+            // This is a resource project so we'll use the .NET SDK to build the container image.
+            if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
+            {
+                throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
+            }
+
+            var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+
+            // Add additional arguments based on options
+            if (options is not null)
+            {
+                if (!string.IsNullOrEmpty(options.OutputPath))
+                {
+                    arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
+                }
+
+                if (options.ImageFormat.HasValue)
+                {
+                    var format = options.ImageFormat.Value switch
+                    {
+                        ContainerImageFormat.Docker => "Docker",
+                        ContainerImageFormat.OciTar => "OciTar",
+                        ContainerImageFormat.DockerTar => "DockerTar",
+                        _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                    };
+                    arguments += $" /p:ContainerImageFormat=\"{format}\"";
+                }
+
+                if (!string.IsNullOrEmpty(options.TargetPlatform))
+                {
+                    arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
+                }
+            }
+
+            var spec = new ProcessSpec("dotnet")
+            {
+                Arguments = arguments,
+                OnOutputData = output =>
+                {
+                    logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
+                },
+                OnErrorData = error =>
+                {
+                    logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
+                }
+            };
+
+            logger.LogInformation(
+                "Starting .NET CLI with arguments: {Arguments}",
+                string.Join(" ", spec.Arguments)
+                );
+
+            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+            await using (processDisposable)
+            {
+                var processResult = await pendingProcessResult
+                    .WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (processResult.ExitCode != 0)
+                {
+                    logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
+                    throw new DistributedApplicationException($"Failed to build container image.");
+                }
+                else
+                {
+                    logger.LogDebug(
+                        ".NET CLI completed with exit code: {ExitCode}",
+                        processResult.ExitCode);
                 }
             }
         }
