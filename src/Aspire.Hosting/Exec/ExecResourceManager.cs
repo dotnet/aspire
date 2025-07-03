@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -202,17 +203,7 @@ internal class ExecResourceManager
             var commandUnwrapped = command.AsSpan(1, command.Length - 2).ToString();
             Debug.Assert(command[0] == '"' && command[^1] == '"');
 
-            var split = commandUnwrapped.Split(' ', count: 2);
-            var exe = split[0];
-            string argsString = split.Length > 1 ? split[1] : string.Empty;
-
-            string[] args = [];
-            if (!string.IsNullOrEmpty(argsString))
-            {
-                args = argsString.Split(" ");
-            }
-
-            return (exe, args);
+            return CommandLineArgsParser.ParseCommand(commandUnwrapped);
         }
     }
 }
