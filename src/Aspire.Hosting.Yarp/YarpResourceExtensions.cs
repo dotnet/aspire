@@ -45,7 +45,7 @@ public static class YarpResourceExtensions
             // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
 
-            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>((ctx, ct) =>
+            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (ctx, ct) =>
             {
                 configBuilder.BuildAndPopulateEnvironment();
                 return Task.CompletedTask;
