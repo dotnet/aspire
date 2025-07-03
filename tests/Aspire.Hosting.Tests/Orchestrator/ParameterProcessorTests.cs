@@ -204,16 +204,19 @@ public class ParameterProcessorTests
             {
                 Assert.Equal("param1", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
+                Assert.False(input.Required);
             },
             input =>
             {
                 Assert.Equal("param2", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
+                Assert.False(input.Required);
             },
             input =>
             {
                 Assert.Equal("secretParam", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
+                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[0].SetValue("value1");

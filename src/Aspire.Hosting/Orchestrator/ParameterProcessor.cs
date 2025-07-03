@@ -148,7 +148,6 @@ internal sealed class ParameterProcessor(
                         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
                         Label = parameter.Name,
                         Placeholder = "Enter value for " + parameter.Name,
-                        Required = true,
                     });
                 }
 
@@ -158,7 +157,7 @@ internal sealed class ParameterProcessor(
                     inputs,
                     new InputsDialogInteractionOptions
                     {
-                        PrimaryButtonText = "Submit",
+                        PrimaryButtonText = "Save",
                         ShowDismiss = true
                     })
                     .ConfigureAwait(false);
@@ -171,7 +170,7 @@ internal sealed class ParameterProcessor(
                         var parameter = unresolvedParameters[i];
                         var inputValue = valuesPrompt.Data[i].Value;
 
-                        if (inputValue is null)
+                        if (string.IsNullOrEmpty(inputValue))
                         {
                             // If the input value is null, we skip this parameter.
                             continue;
