@@ -53,7 +53,8 @@ internal class ExecResourceManager
 
         // wait until AppHost eventing fires ConfigureExecResource()
         // and execResource is initialized
-        IResource execResource;
+        IResource? execResource = null;
+        Exception? execResourceInitializationException = null;
         try
         {
             execResource = await _execResourceInitialized.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -63,9 +64,25 @@ internal class ExecResourceManager
             _logger.LogInformation("Cancelled before exec resource was initialized.");
             yield break;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(execResourceInitializationException, "Exec resource initialization failed.");
+            execResourceInitializationException = ex;
+        }
+
+        if (execResourceInitializationException is not null)
+        {
+            yield return new CommandOutput
+            {
+                Text = execResourceInitializationException.Message,
+                IsErrorMessage = true,
+                Type = type
+            };
+            yield break;
+        }
 
         // we need to make sure resource is starting to be launched, and then we fetch the DCP name
-        await _resourceNotificationService.WaitForResourceAsync(execResource.Name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
+        await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetState: KnownResourceStates.Starting, cancellationToken).ConfigureAwait(false);
         var dcpExecResourceName = execResource.GetResolvedResourceName();
 
         yield return new CommandOutput
@@ -103,25 +120,34 @@ internal class ExecResourceManager
         }
     }
 
-    public IResource? ConfigureExecResource()
+    public IResource? CreateExecResource()
     {
         if (!_execOptions.Enabled)
         {
             return null;
         }
 
-        var targetResource = _model.Resources.FirstOrDefault(x => x.Name.Equals(_execOptions.ResourceName, StringComparisons.ResourceName));
-        if (targetResource is null)
+        try
         {
-            _logger.LogError("Exec resource with name '{ResourceName}' not found in the model resources.", _execOptions.ResourceName);
-            throw new InvalidOperationException($"Exec resource with name '{_execOptions.ResourceName}' not found in the model resources.");
+            var targetResource = _model.Resources.FirstOrDefault(x => x.Name.Equals(_execOptions.ResourceName, StringComparisons.ResourceName));
+            if (targetResource is null)
+            {
+                _logger.LogError("Target resource '{ResourceName}' not found in the model resources.", _execOptions.ResourceName);
+                throw new InvalidOperationException($"Target resource {_execOptions.ResourceName} not found in the model resources");
+            }
+
+            var execResource = BuildResource(targetResource);
+
+            _logger.LogDebug("Resource '{ResourceName}' has been successfully built and added to the model resources.", execResource.Name);
+            _execResourceInitialized.SetResult(execResource);
+            return execResource;
         }
-
-        var execResource = BuildResource(targetResource);
-
-        _logger.LogInformation("Resource '{ResourceName}' has been successfully built and added to the model resources.", execResource.Name);
-        _execResourceInitialized.SetResult(execResource);
-        return execResource;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create exec resource.");
+            _execResourceInitialized.SetException(ex);
+            return null;
+        }
     }
 
     IResource BuildResource(IResource targetExecResource)
@@ -129,7 +155,7 @@ internal class ExecResourceManager
         return targetExecResource switch
         {
             ProjectResource prj => BuildAgainstProjectResource(prj),
-            _ => throw new InvalidOperationException($"Target resource does not support exec mode.")
+            _ => throw new InvalidOperationException($"Target resource {targetExecResource.Name} does not support exec mode.")
         };
     }
 
@@ -160,11 +186,11 @@ internal class ExecResourceManager
 
         if (_execOptions.StartResource)
         {
-            _logger.LogInformation("Exec resource '{ResourceName}' will wait until project '{Project}' starts up.", execResourceName, project.Name);
+            _logger.LogDebug("Exec resource '{ResourceName}' will wait until project '{Project}' starts up.", execResourceName, project.Name);
             executable.Annotations.Add(new WaitAnnotation(project, waitType: WaitType.WaitUntilHealthy));
         }
 
-        _logger.LogInformation("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
+        _logger.LogDebug("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
 
         return executable;
 

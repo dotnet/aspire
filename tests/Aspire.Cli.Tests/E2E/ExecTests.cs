@@ -23,6 +23,25 @@ public class ExecTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    public async Task Exec_NotFoundTargetResource_ShouldProduceLogs()
+    {
+        string[] args = [
+            "--operation", "run",
+            "--project", DatabaseMigrationsAppHostProjectPath,
+            "--resource", "randomnonexistingresource",
+            "--command", "\"dotnet --info\"",
+            "--postgres"
+        ];
+
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Contains("Target resource randomnonexistingresource not found in the model resources"));
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Exec_DotnetInfo_ShouldProduceLogs()
     {
         string[] args = [

@@ -11,7 +11,7 @@ internal static class ExecEventingHandlers
     public static Task InitializeExecResources(BeforeStartEvent beforeStartEvent, CancellationToken _)
     {
         var execResourceManager = beforeStartEvent.Services.GetRequiredService<ExecResourceManager>();
-        var resource = execResourceManager.ConfigureExecResource();
+        var resource = execResourceManager.CreateExecResource();
 
         if (resource is not null)
         {

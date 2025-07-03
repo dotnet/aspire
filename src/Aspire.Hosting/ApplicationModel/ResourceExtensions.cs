@@ -682,7 +682,7 @@ public static class ResourceExtensions
 
     /// <summary>
     /// Returns a single DCP resource name for the specified resource.
-    /// Throws an exception if the resource has no resolved names or multiple resolved names.
+    /// Throws <see cref="InvalidOperationException"/> if the resource has no resolved names or multiple resolved names.
     /// </summary>
     internal static string GetResolvedResourceName(this IResource resource)
     {
