@@ -26,7 +26,7 @@ public class ExecTests(ITestOutputHelper output)
     public async Task Exec_DotnetInfo_ShouldProduceLogs()
     {
         string[] args = [
-            "--operation", "exec",
+            "--operation", "run",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", "\"dotnet --info\"",
@@ -45,7 +45,7 @@ public class ExecTests(ITestOutputHelper output)
     public async Task Exec_EchoWithQuotedString_ShouldProduceLogs()
     {
         string[] args = [
-            "--operation", "exec",
+            "--operation", "run",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
                          // not existing csproj, but we dont care if that succeeds or not - we are expecting
@@ -72,7 +72,7 @@ public class ExecTests(ITestOutputHelper output)
     public async Task Exec_DotnetHelp_ShouldProduceLogs()
     {
         string[] args = [
-            "--operation", "exec",
+            "--operation", "run",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", "\"dotnet --help\"",
@@ -99,7 +99,7 @@ public class ExecTests(ITestOutputHelper output)
         DeleteMigrations(apiModelProjectDir, migrationName);
 
         string[] args = [
-            "--operation", "exec",
+            "--operation", "run",
             "--project", DatabaseMigrationsAppHostProjectPath,
             "--resource", "api",
             "--command", $"\"dotnet ef migrations add AddVersion --project {apiModelProjectDir}\"",

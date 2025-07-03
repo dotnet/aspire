@@ -129,7 +129,7 @@ internal class ExecCommand : BaseCommand
             }
 
             string[] args = [
-                "--operation", "exec",
+                "--operation", "run",
                 targetResourceMode, targetResource!,
 
                 // a bit hacky, but in order to pass a full command with possible quotes and etc properly without losing the signature

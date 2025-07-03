@@ -109,10 +109,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     // values in various callbacks and is a central location to access useful services like IServiceProvider.
     private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
 
-    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions(AppHostOptions appHostOptions)
+    private DistributedApplicationExecutionContextOptions BuildExecutionContextOptions()
     {
-        var configurationOperation = appHostOptions.Operation?.ToLowerInvariant();
-        if (configurationOperation is null)
+        var operationConfiguration = _innerBuilder.Configuration["AppHost:Operation"];
+        if (operationConfiguration is null)
         {
             return _innerBuilder.Configuration["Publishing:Publisher"] switch
             {
@@ -121,10 +121,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             };
         }
 
-        var operation = configurationOperation switch
+        var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "run" or "exec" => DistributedApplicationOperation.Run,
+            "run" => DistributedApplicationOperation.Run,
             _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
@@ -196,9 +196,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
         // Set configuration
-        var appHostOptions = ConfigureAppHostOptions(options);
         ConfigurePublishingOptions(options);
-        ConfigureExecOptions(options, appHostOptions);
+        var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -207,7 +206,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
-        _executionContextOptions = BuildExecutionContextOptions(appHostOptions);
+        _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
@@ -278,7 +277,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigureHealthChecks();
 
-        if (ExecutionContext.IsRunMode && !appHostOptions.IsExecMode())
+        if (ExecutionContext.IsRunMode && !isExecMode)
         {
             // Dashboard
             if (!options.DisableDashboard)
@@ -381,7 +380,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // exec
-        if (appHostOptions.IsExecMode())
+        if (isExecMode)
         {
             _innerBuilder.Services.AddSingleton<ExecResourceManager>();
             Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
@@ -494,26 +493,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
-    private AppHostOptions ConfigureAppHostOptions(DistributedApplicationOptions options)
-    {
-        var switchMappings = new Dictionary<string, string>()
-        {
-            { "--operation", "AppHost:Operation" },
-        };
-        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-
-        var configurationSection = _innerBuilder.Configuration.GetSection(AppHostOptions.Section);
-        _innerBuilder.Services.Configure<AppHostOptions>(configurationSection);
-
-        AppHostOptions appHostOptions = new();
-        configurationSection.Bind(appHostOptions);
-        return appHostOptions;
-    }
-
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--deploy", "Publishing:Deploy" },
@@ -526,10 +510,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
     }
 
-    private void ConfigureExecOptions(DistributedApplicationOptions options, AppHostOptions appHostOptions)
+    private bool ConfigureExecOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--start-resource", "Exec:ResourceName" },
             { "--command", "Exec:Command" }
@@ -537,15 +522,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 
         var execOptionsSection = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
-        _innerBuilder.Services.Configure<ExecOptions>(execOptionsSection);
-        _innerBuilder.Services.PostConfigure<ExecOptions>(execOptions =>
+        _innerBuilder.Services
+            .Configure<ExecOptions>(execOptionsSection)
+            .PostConfigure<ExecOptions>(execOptions =>
         {
             if (options.Args is null || !options.Args.Any())
             {
                 return;
             }
 
-            if (appHostOptions.IsExecMode())
+            if (!string.IsNullOrEmpty(execOptions.Command))
             {
                 execOptions.Enabled = true;
             }
@@ -555,6 +541,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 execOptions.StartResource = true;
             }
         });
+
+        return options.Args?.Any(arg => arg == "--command") ?? false;
     }
 
     /// <inheritdoc />
