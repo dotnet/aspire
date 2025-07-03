@@ -124,8 +124,16 @@ main() {
 
     # Construct the URL and filename
     combination="${os}-${arch}"
-    url="https://aka.ms/dotnet/9.0/daily/aspire-cli-${combination}.zip"
-    filename="aspire-cli-${combination}.zip"
+
+    # Determine file extension based on OS
+    if [[ "$os" == "win" ]]; then
+        extension="zip"
+    else
+        extension="tar.gz"
+    fi
+
+    url="https://aka.ms/dotnet/9.0/daily/aspire-cli-${combination}.${extension}"
+    filename="aspire-cli-${combination}.${extension}"
 
     # Download the file
     download_aspire_cli "$url" "$filename"

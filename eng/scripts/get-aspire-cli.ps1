@@ -94,15 +94,18 @@ function Main {
             exit 1
         }
 
+        # Determine file extension based on OS
+        $extension = if ($os -eq "win") { "zip" } else { "tar.gz" }
+
         # Construct the URL
         $combination = "$os-$arch"
-        $url = "https://aka.ms/dotnet/9.0/daily/aspire-cli-$combination.zip"
+        $url = "https://aka.ms/dotnet/9.0/daily/aspire-cli-$combination.$extension"
 
         # Output the URL
         Write-Host "Downloading from: $url"
 
         # Download the file
-        $filename = "aspire-cli-$combination.zip"
+        $filename = "aspire-cli-$combination.$extension"
         Write-Host "Saving to: $filename"
 
         try {
