@@ -340,10 +340,11 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureBlobStorageResource> AddBlobService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
+    public static IResourceBuilder<AzureBlobStorageResource> AddBlobService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
+        
+        name ??= builder.Resource.Name + "-blobs";
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
         builder.Resource.BlobStorageResource = resource;
@@ -386,8 +387,7 @@ public static class AzureStorageExtensions
         // Create a Blob Service resource implicitly
         if (builder.Resource.BlobStorageResource is null)
         {
-            var blobServiceName = $"{builder.Resource.Name}-blobs";
-            AddBlobService(builder, blobServiceName);
+            AddBlobService(builder);
         }
 
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource.BlobStorageResource!);
@@ -469,10 +469,11 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureTableStorageResource> AddTableService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
+    public static IResourceBuilder<AzureTableStorageResource> AddTableService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
+        
+        name ??= builder.Resource.Name + "-tables";
 
         var resource = new AzureTableStorageResource(name, builder.Resource);
         builder.Resource.TableStorageResource = resource;
@@ -501,10 +502,11 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureQueueStorageResource> AddQueueService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
+    public static IResourceBuilder<AzureQueueStorageResource> AddQueueService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
+        
+        name ??= builder.Resource.Name + "-queues";
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         builder.Resource.QueueStorageResource = resource;
@@ -547,8 +549,7 @@ public static class AzureStorageExtensions
         // Create a Queue Service resource implicitly
         if (builder.Resource.QueueStorageResource is null)
         {
-            var queueServiceName = $"{builder.Resource.Name}-queues";
-            AddQueueService(builder, queueServiceName);
+            AddQueueService(builder);
         }
 
         AzureQueueStorageQueueResource resource = new(name, queueName, builder.Resource.QueueStorageResource!);

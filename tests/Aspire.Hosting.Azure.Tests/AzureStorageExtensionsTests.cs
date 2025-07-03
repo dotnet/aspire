@@ -274,7 +274,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal("Endpoint={storage.outputs.blobEndpoint};ContainerName=myContainer", blobContainer.Resource.ConnectionStringExpression.ValueExpression);
     }
 
-[Fact]
+    [Fact]
     public async Task AddQueues_ConnectionString_resolved_expected_RunAsEmulator()
     {
         const string expected = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;";
@@ -821,5 +821,38 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
             """;
         var tableManifest = await ManifestUtils.GetManifest(table.Resource);
         Assert.Equal(expectedTableManifest, tableManifest.ToString());
+    }
+
+    [Fact]
+    public void AddBlobService_Default_Name()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobService = storage.AddBlobService();
+
+        Assert.Equal("storage-blobs", blobService.Resource.Name);
+    }
+
+    [Fact]
+    public void AddQueueService_Default_Name()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var queueService = storage.AddQueueService();
+
+        Assert.Equal("storage-queues", queueService.Resource.Name);
+    }
+
+    [Fact]
+    public void AddTableService_Default_Name()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var tableService = storage.AddTableService();
+
+        Assert.Equal("storage-tables", tableService.Resource.Name);
     }
 }
