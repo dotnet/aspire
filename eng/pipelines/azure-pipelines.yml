@@ -286,21 +286,14 @@ extends:
               - task: DownloadPipelineArtifact@2
                 displayName: Download Native archives
                 inputs:
-                  #artifactName: native_archives_linux
-                  itemPattern: '**/aspire-cli-*'
+                  artifactName: native_archives_linux
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
-              #- task: DownloadPipelineArtifact@2
-                #displayName: Download Archives macos
-                #inputs:
-                  #artifactName: native_archives_macos
-                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
-
-              #- task: DownloadPipelineArtifact@2
-                #displayName: Download Archives windows
-                #inputs:
-                  #artifactName: native_archives_windows
-                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+              - task: DownloadPipelineArtifact@2
+                displayName: Download Archives macos
+                inputs:
+                  artifactName: native_archives_macos
+                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
