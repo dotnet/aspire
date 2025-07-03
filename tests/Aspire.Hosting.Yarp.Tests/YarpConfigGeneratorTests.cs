@@ -4,6 +4,7 @@
 using System.Security.Authentication;
 using System.Text;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Yarp.Transforms;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -238,5 +239,45 @@ public class YarpConfigGeneratorTests()
         }
         var content = sb.ToString();
         await Verify(content, "env");
+    }
+
+    [Fact]
+    public async Task GenerateEnvVariablesConfigurationDockerCompose()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+
+            builder.AddDockerComposeEnvironment("docker-compose");
+
+            var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint();
+            var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint();
+
+            builder.AddYarp("gateway").WithConfiguration(yarp =>
+            {
+                var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
+                                         .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
+
+                yarp.AddRoute(frontend.GetEndpoint("http"))
+                    .WithTransformRequestHeader("X-Custom-Fowarded", "yes");
+
+                yarp.AddRoute(" /api/{**catch-all}", backendCluster)
+                    .WithTransformPathRemovePrefix("/api");
+            });
+
+            var app = builder.Build();
+            app.Run();
+
+            var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
+            Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+
+            var content = await File.ReadAllTextAsync(composeFile);
+            await Verify(content, "env");
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
     }
 }

@@ -23,7 +23,7 @@ public class YarpCluster
     /// Construct a new YarpCluster targeting the endpoint in parameter.
     /// </summary>
     /// <param name="endpoint">The endpoint to target.</param>
-    public YarpCluster(EndpointReference endpoint)
+    internal YarpCluster(EndpointReference endpoint)
         : this(endpoint.Resource.Name, endpoint)
     {
     }
@@ -32,7 +32,7 @@ public class YarpCluster
     /// Construct a new YarpCluster targeting the resource in parameter.
     /// </summary>
     /// <param name="resource">The resource to target.</param>
-    public YarpCluster(IResourceWithServiceDiscovery resource)
+    internal YarpCluster(IResourceWithServiceDiscovery resource)
         : this(resource.Name, BuildEndpointUri(resource))
     {
     }
@@ -41,7 +41,7 @@ public class YarpCluster
     /// Creates a new instance of <see cref="YarpCluster"/> with a specified external service resource.
     /// </summary>
     /// <param name="externalService">The external service.</param>
-    public YarpCluster(ExternalServiceResource externalService)
+    internal YarpCluster(ExternalServiceResource externalService)
         : this(externalService.Name, GetAddressFromExternalService(externalService))
     {
     }
@@ -50,7 +50,7 @@ public class YarpCluster
     {
         ClusterConfig = new()
         {
-            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid():N}",
+            ClusterId = $"cluster_{resourceName}",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
         };
         Target = target;

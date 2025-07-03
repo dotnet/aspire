@@ -13,7 +13,8 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     /// <inheritdoc/>
     public YarpRoute AddRoute(string path, YarpCluster cluster)
     {
-        var route = new YarpRoute(cluster);
+        var routeId = $"route{_parent.Resource.Routes.Count}";
+        var route = new YarpRoute(cluster, routeId);
         if (path != null)
         {
             route.WithMatchPath(path);

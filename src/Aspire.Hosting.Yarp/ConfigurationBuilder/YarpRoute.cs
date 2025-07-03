@@ -16,11 +16,11 @@ public class YarpRoute
         RouteConfig = routeConfig;
     }
 
-    internal YarpRoute(YarpCluster cluster)
+    internal YarpRoute(YarpCluster cluster, string routeId)
     {
         RouteConfig = new RouteConfig
         {
-            RouteId = $"route_{Guid.NewGuid().ToString("N")}",
+            RouteId = routeId,
             ClusterId = cluster.ClusterConfig.ClusterId,
             Match = new RouteMatch(),
         };
