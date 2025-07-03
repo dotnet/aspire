@@ -1,14 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Threading.Channels;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
-using Aspire.DashboardService.Proto.V1;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -278,6 +280,69 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
             Assert.True((await resultTask.DefaultTimeout()).Canceled);
         }
+
+        await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WatchInteractions_PromptInputAsync_CompleteOnResponse()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
+        var interactionService = new InteractionService(
+            loggerFactory.CreateLogger<InteractionService>(),
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchInteractionsResponseUpdate>(context);
+        var reader = new TestAsyncStreamReader<WatchInteractionsRequestUpdate>(context);
+
+        // Act
+        logger.LogInformation("Calling WatchInteractions.");
+        var task = dashboardService.WatchInteractions(
+            reader,
+            writer,
+            context);
+
+        var resultTask = interactionService.PromptInputAsync(
+            title: "Title!",
+            message: "Message!",
+            new ApplicationModel.InteractionInput { InputType = ApplicationModel.InputType.File, Label = "Input" });
+
+        // Assert
+        logger.LogInformation("Reading result from writer.");
+        var update = await writer.ReadNextAsync().DefaultTimeout();
+
+        Assert.NotEqual(0, update.InteractionId);
+        Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog, update.KindCase);
+
+        Assert.False(resultTask.IsCompleted);
+
+        logger.LogInformation("Send result to reader.");
+        update.InputsDialog.InputItems[0].Value = "FileName.txt";
+        update.InputsDialog.InputItems[0].ValueBytes = ByteString.CopyFromUtf8("File content");
+        reader.AddMessage(new WatchInteractionsRequestUpdate
+        {
+            InteractionId = update.InteractionId,
+            InputsDialog = update.InputsDialog
+        });
+
+        var result = await resultTask.DefaultTimeout();
+        Assert.False(result.Canceled);
+
+        var input = result.Data;
+        Assert.Equal("FileName.txt", input.Value);
+        Assert.Equal(Encoding.UTF8.GetBytes("File content"), input.ValueBytes);
 
         await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
     }
