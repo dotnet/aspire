@@ -139,14 +139,7 @@ internal class ExecResourceManager
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? throw new InvalidOperationException("Project path is invalid.");
         var (exe, args) = ParseCommand();
 
-        // unique name for the new exec resource
-        string execResourceName;
-        do
-        {
-            var shortId = Guid.NewGuid().ToString("N").Substring(0, 8);
-            execResourceName = "exec" + shortId;
-        } while (_model.Resources.Any(x => x.Name.Equals(execResourceName, StringComparisons.ResourceName)));
-
+        string execResourceName = project.Name + "-exec";
         var executable = new ExecutableResource(execResourceName, exe, projectDir);
         if (args is not null && args.Length > 0)
         {
