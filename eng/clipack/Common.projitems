@@ -52,7 +52,8 @@
         RemoveProperties="OutputPath;TargetFramework" />
 
     <!-- Codesign on macos -->
-    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(PreparePackagesForPublishingOnly)' == 'true'"
+    <Message Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'" Text="Codesigning .." />
+    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'"
           Command="codesign -s - -f --entitlements $(EntitlementsFile) $(OutputPath)/aspire" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->

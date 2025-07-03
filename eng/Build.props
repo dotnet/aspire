@@ -1,34 +1,34 @@
 <Project>
   <PropertyGroup>
     <_AspireOnlyBuild Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">true</_AspireOnlyBuild>
+    <SkipTestProjects Condition="'$(SkipTestProjects)' == '' and '$(NativeBuildOnly)' == 'true'">true</SkipTestProjects>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' != 'true'">
-    <!--<ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />-->
-    <!--<ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />-->
-    <!--<ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />-->
-    <!--<ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />-->
-
-    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
-
-    <!-- FIXME: condition/naming -->
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
-    <ProjectToBuild Condition="'$(ExcludePackagesForPublishing)' != 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
-
-    <!-- `$(SkipTestProjects)` allows skipping test projects from being
-          included in the build at all. This is useful for cases like when we are
-          just building the packages, and don't need to build the test projects. -->
-    <!--<ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />-->
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(NativeBuildOnly)' != 'true'">
+    <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
   </ItemGroup>
 
-  <!-- packages per-os -->
-  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(PreparePackagesForPublishingOnly)' == 'true'">
+  <!-- Native build -->
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(NativeBuildOnly)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
-
+  </ItemGroup>
+  <!-- native packages per-os -->
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true'">
+    <!-- aspire cli -->
     <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
     <ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
     <ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
+  </ItemGroup>
+
+  <!-- Tests -->
+  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(SkipTestProjects)' != 'true'">
+    <!-- `$(SkipTestProjects)` allows skipping test projects from being
+          included in the build at all. This is useful for cases like when we are
+          just building the packages, and don't need to build the test projects. -->
+    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->

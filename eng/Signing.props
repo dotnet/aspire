@@ -36,20 +36,7 @@
 
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="aspire.exe" CertificateName="MicrosoftDotNet500" />
     <FileSignInfo Condition="$([System.OperatingSystem]::IsLinux())" Include="aspire" CertificateName="MicrosoftDotNet500" />
-
-    <!--<CertificatesSignInfo Include="MacDeveloperWithNotarizationForAspireCLI" MacCertificate="MacDeveloper" MacNotarizationAppName="dotnet" />-->
-
     <FileSignInfo Condition="$([System.OperatingSystem]::IsMacOS())" Include="aspire" CertificateName="MacDeveloperHardenWithNotarization" />
-
-    <!-- cli archives -->
-    <!--<_CliArchivesForMacOS Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-osx-*" />-->
-    <!--<FileSignInfo Include="@(_CliArchivesForMacOS -> '%(FileName)%(Extension)')" CertificateName="MacDeveloperWithNotarization" />-->
-
-    <!--<_CliArchivesForWindows Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-win-*" />-->
-    <!--<FileSignInfo Include="@(_CliArchivesForWindows -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />-->
-
-    <!--<_CliArchivesForLinux Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-linux-*" />-->
-    <!--<FileSignInfo Include="@(_CliArchivesForLinux -> '%(FileName)%(Extension)')" CertificateName="MicrosoftDotNet500" />-->
   </ItemGroup>
 
   <PropertyGroup>
@@ -61,8 +48,8 @@
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.zip" Condition="'$(PreparePackagesForPublishingOnly)' == 'true'" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.tar.gz" Condition="'$(PreparePackagesForPublishingOnly)' == 'true'" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.zip" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.tar.gz" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>
