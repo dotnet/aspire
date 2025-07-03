@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
@@ -166,10 +167,11 @@ public class ParameterProcessorTests
     {
         // Arrange
         var testInteractionService = new TestInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(notificationService: notificationService, interactionService: testInteractionService);
         var param1 = CreateParameterWithMissingValue("param1");
         var param2 = CreateParameterWithMissingValue("param2");
-        var secretParam = CreateParameterWithMissingValue("secretParam");
+        var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
 
         List<ParameterResource> parameters = [param1, param2, secretParam];
 
@@ -178,6 +180,8 @@ public class ParameterProcessorTests
             // Initialize the parameters' WaitForValueTcs
             param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
+
+        var updates = notificationService.WatchAsync().GetAsyncEnumerator();
 
         // Act - Start handling unresolved parameters
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
@@ -195,14 +199,28 @@ public class ParameterProcessorTests
         Assert.Equal("Set Unresolved Parameters", inputsInteraction.Title);
         Assert.Equal("Please provide values for the unresolved parameters.", inputsInteraction.Message);
 
-        // Complete the inputs interaction with values
-        var inputResults = new List<InteractionInput>
-        {
-            new() { InputType = InputType.Text, Label = "param1", Value = "value1" },
-            new() { InputType = InputType.Text, Label = "param2", Value = "value2" },
-            new() { InputType = InputType.SecretText, Label = "secretParam", Value = "secretValue" }
-        };
-        inputsInteraction.CompletionTcs.SetResult(new InteractionResult<IReadOnlyList<InteractionInput>>(inputResults, false));
+        Assert.Collection(inputsInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("param1", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+            },
+            input =>
+            {
+                Assert.Equal("param2", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+            },
+            input =>
+            {
+                Assert.Equal("secretParam", input.Label);
+                Assert.Equal(InputType.SecretText, input.InputType);
+            });
+
+        inputsInteraction.Inputs[0].SetValue("value1");
+        inputsInteraction.Inputs[1].SetValue("value2");
+        inputsInteraction.Inputs[2].SetValue("secretValue");
+
+        inputsInteraction.CompletionTcs.SetResult(new InteractionResult<IReadOnlyList<InteractionInput>>(inputsInteraction.Inputs, false));
 
         // Wait for the handle task to complete
         await handleTask;
@@ -214,6 +232,21 @@ public class ParameterProcessorTests
         Assert.Equal("value1", await param1.WaitForValueTcs.Task);
         Assert.Equal("value2", await param2.WaitForValueTcs.Task);
         Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
+
+        // Notification service should have received updates for each parameter
+        // Marking them as Active with the provided values
+        await updates.MoveNextAsync();
+        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
+
+        await updates.MoveNextAsync();
+        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
+
+        await updates.MoveNextAsync();
+        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
+        Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
     }
 
     [Fact]
@@ -223,7 +256,7 @@ public class ParameterProcessorTests
         var testInteractionService = new TestInteractionService();
         var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
-        
+
         parameterWithMissingValue.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act - Start handling unresolved parameters
@@ -287,9 +320,9 @@ public class ParameterProcessorTests
         return new ParameterResource(name, _ => configuration[$"Parameters:{name}"] ?? throw new MissingParameterValueException($"Parameter '{name}' is missing"), secret);
     }
 
-    private static ParameterResource CreateParameterWithMissingValue(string name)
+    private static ParameterResource CreateParameterWithMissingValue(string name, bool secret = false)
     {
-        return new ParameterResource(name, _ => throw new MissingParameterValueException($"Parameter '{name}' is missing"), secret: false);
+        return new ParameterResource(name, _ => throw new MissingParameterValueException($"Parameter '{name}' is missing"), secret: secret);
     }
 
     private static ParameterResource CreateParameterWithGenericError(string name)
@@ -297,7 +330,7 @@ public class ParameterProcessorTests
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
     }
 
-    private sealed record InteractionData(string Title, string? Message, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
+    private sealed record InteractionData(string Title, string? Message, IReadOnlyList<InteractionInput> Inputs, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
 
     private sealed class TestInteractionService : IInteractionService
     {
@@ -322,14 +355,14 @@ public class ParameterProcessorTests
 
         public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
         {
-            var data = new InteractionData(title, message, options, new TaskCompletionSource<object>());
+            var data = new InteractionData(title, message, inputs, options, new TaskCompletionSource<object>());
             Interactions.Writer.TryWrite(data);
             return (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
         }
 
         public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
         {
-            var data = new InteractionData(title, message, options, new TaskCompletionSource<object>());
+            var data = new InteractionData(title, message, [], options, new TaskCompletionSource<object>());
             Interactions.Writer.TryWrite(data);
             return (InteractionResult<bool>)await data.CompletionTcs.Task;
         }
