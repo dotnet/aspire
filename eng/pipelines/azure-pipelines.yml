@@ -157,7 +157,7 @@ extends:
                 condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  ArtifactName: Archives_macos
+                  ArtifactName: native_archives_macos
 
           #- job: windows
             #pool:
@@ -189,7 +189,7 @@ extends:
                 #condition: always()
                 #inputs:
                   #PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  #ArtifactName: Archives_windows
+                  #ArtifactName: native_archives_windows
 
       # Linux only job - without enableMicrobuild
       - template: /eng/common/templates-official/jobs/jobs.yml@self
@@ -230,7 +230,7 @@ extends:
                 condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  ArtifactName: Archives_linux
+                  ArtifactName: native_archives_linux
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
@@ -284,22 +284,23 @@ extends:
 
             steps:
               - task: DownloadPipelineArtifact@2
-                displayName: Download Archives linux
+                displayName: Download Native archives
                 inputs:
-                  artifactName: Archives_linux
+                  #artifactName: native_archives_linux
+                  itemPattern: **/aspire-cli-*
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
-              - task: DownloadPipelineArtifact@2
-                displayName: Download Archives macos
-                inputs:
-                  artifactName: Archives_macos
-                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+              #- task: DownloadPipelineArtifact@2
+                #displayName: Download Archives macos
+                #inputs:
+                  #artifactName: native_archives_macos
+                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
-              - task: DownloadPipelineArtifact@2
-                displayName: Download Archives windows
-                inputs:
-                  artifactName: Archives_windows
-                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+              #- task: DownloadPipelineArtifact@2
+                #displayName: Download Archives windows
+                #inputs:
+                  #artifactName: native_archives_windows
+                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:

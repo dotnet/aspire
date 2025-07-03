@@ -3,8 +3,8 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
-    <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
-    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="'$(ArchiveFormat)' == '' and $(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="'$(ArchiveFormat)' == ''">tar.gz</ArchiveFormat>
 
     <!-- Publish native AOT if running on the target platfrom -->
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
@@ -52,7 +52,7 @@
         RemoveProperties="OutputPath;TargetFramework" />
 
     <!-- Codesign on macos -->
-    <Message Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'" Text="Codesigning .." />
+    <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'" />
     <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'"
           Command="codesign -s - -f --entitlements $(EntitlementsFile) $(OutputPath)/aspire" />
 
