@@ -36,7 +36,6 @@ automatically.
 > NOTE: Developers must have Owner access to the target subscription so that role assignments
 > can be configured for the provisioned resources.
 
-
 ## Usage example
 
 In the _AppHost.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
