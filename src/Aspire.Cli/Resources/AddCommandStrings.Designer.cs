@@ -134,5 +134,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SelectAnIntegrationToAdd", resourceCulture);
             }
         }
+        
+        public static string NoPackagesMatchedSearchTerm {
+            get {
+                return ResourceManager.GetString("NoPackagesMatchedSearchTerm", resourceCulture);
+            }
+        }
     }
 }
