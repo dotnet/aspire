@@ -58,21 +58,12 @@
           "AllowResponseBuffering": true
         },
         "Destinations": {
-          "destinationA": {
+          "destination1": {
             "Address": "https://localhost:10000/destA",
             "Health": "https://localhost:20000/destA",
             "Metadata": {
               "destA-K1": "destA-V1",
               "destA-K2": "destA-V2"
-            },
-            "Host": "localhost"
-          },
-          "destinationB": {
-            "Address": "https://localhost:10000/destB",
-            "Health": "https://localhost:20000/destB",
-            "Metadata": {
-              "destB-K1": "destB-V1",
-              "destB-K2": "destB-V2"
             },
             "Host": "localhost"
           }
@@ -85,13 +76,9 @@
       "cluster2": {
         "LoadBalancingPolicy": "RoundRobin",
         "Destinations": {
-          "destinationC": {
+          "destination1": {
             "Address": "https://localhost:10001/destC",
             "Host": "localhost"
-          },
-          "destinationD": {
-            "Address": "https://localhost:10000/destB",
-            "Host": "remotehost"
           }
         }
       }

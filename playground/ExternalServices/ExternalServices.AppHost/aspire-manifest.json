@@ -12,9 +12,23 @@
     },
     "gateway": {
       "type": "container.v0",
-      "image": "mcr.microsoft.com/dotnet/nightly/yarp:latest",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.3",
+      "entrypoint": "dotnet",
+      "args": [
+        "/app/yarp.dll"
+      ],
       "env": {
-        "ASPNETCORE_ENVIRONMENT": "Production"
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "services__nuget__https__0": "https://api.nuget.org/",
+        "REVERSEPROXY__ROUTES__route0__MATCH__PATH": "/nuget/{**catchall}",
+        "REVERSEPROXY__ROUTES__route0__CLUSTERID": "cluster_nuget",
+        "REVERSEPROXY__ROUTES__route0__TRANSFORMS__0__PathRemovePrefix": "/nuget",
+        "REVERSEPROXY__ROUTES__route1__MATCH__PATH": "/external-service/{**catchall}",
+        "REVERSEPROXY__ROUTES__route1__CLUSTERID": "cluster_external-service",
+        "REVERSEPROXY__ROUTES__route1__TRANSFORMS__0__PathRemovePrefix": "/external-service",
+        "REVERSEPROXY__CLUSTERS__cluster_nuget__DESTINATIONS__destination1__ADDRESS": "https://api.nuget.org/",
+        "REVERSEPROXY__CLUSTERS__cluster_external-service__DESTINATIONS__destination1__ADDRESS": "{external-service-url.value}",
+        "services__external-service__default__0": "{external-service-url.value}"
       },
       "bindings": {
         "http": {
