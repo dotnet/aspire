@@ -104,6 +104,7 @@ public interface IInteractionService
 public sealed class InteractionInput
 {
     private string? _value;
+    private byte[]? _valueBytes;
 
     /// <summary>
     /// Gets or sets the label for the input.
@@ -131,11 +132,17 @@ public sealed class InteractionInput
     public string? Value { get => _value; init => _value = value; }
 
     /// <summary>
+    /// Gets or sets the value of the input as a byte array. Only used by <see cref="InputType.File"/> inputs.
+    /// </summary>
+    public byte[]? ValueBytes { get => _valueBytes; init => _valueBytes = value; }
+
+    /// <summary>
     /// Gets or sets the placeholder text for the input.
     /// </summary>
     public string? Placeholder { get; set; }
 
     internal void SetValue(string value) => _value = value;
+    internal void SetValueBytes(byte[]? value) => _valueBytes = value;
 
     internal List<string> ValidationErrors { get; } = [];
 }
@@ -165,7 +172,11 @@ public enum InputType
     /// <summary>
     /// A numeric input.
     /// </summary>
-    Number
+    Number,
+    /// <summary>
+    /// A file input.
+    /// </summary>
+    File
 }
 
 /// <summary>

@@ -372,7 +372,8 @@ message InteractionInput {
     bool required = 4;
     map<string, string> options = 5;
     string value = 6;
-    repeated string validation_errors = 7;
+    bytes value_bytes = 7;
+    repeated string validation_errors = 8;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;
@@ -389,6 +390,7 @@ enum InputType {
     INPUT_TYPE_CHOICE = 3;
     INPUT_TYPE_BOOLEAN = 4;
     INPUT_TYPE_NUMBER = 5;
+    INPUT_TYPE_FILE = 6;
 }
 
 ////////////////////////////////////////////

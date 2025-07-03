@@ -7,6 +7,7 @@
 @using Aspire.Dashboard.Extensions
 @using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
@@ -82,12 +83,44 @@
                         case InputType.Number:
                             <FluentNumberField TValue="int?"
                                                @ref="@_elementRefs[localItem]"
-                                               @bind-Value="localItem.NumberValue"
+                                               @bind-Value="localItem.ValueNumber"
                                                Label="@localItem.Input.Label"
                                                Placeholder="@localItem.Input.Placeholder"
                                                Required="localItem.Input.Required"
                                                Immediate="true" />
-                            <ValidationMessage For="@(() => localItem.NumberValue)" />
+                            <ValidationMessage For="@(() => localItem.ValueNumber)" />
+                            break;
+                        case InputType.File:
+                            var inputId = $"FileUploadButton-{_inputDialogInputViewModels.IndexOf(localItem)}";
+                            <FluentInputFile @ref="@_elementRefs[localItem]"
+                                             DragDropZoneVisible="false"
+                                             Mode="InputFileMode.Buffer"
+                                             AnchorId="@inputId"
+                                             Multiple="false"
+                                             MaximumFileSize="@(2 * 1024 * 1024)"
+                                             OnProgressChange="@(args => OnFileInputProgress(localItem, args))"
+                                             OnCompleted="@(args => OnFileInputCompleted(localItem, args))" />
+                            <FluentInputLabel ForId="@inputId" Label="@localItem.Input.Label" Required="@localItem.Input.Required" />
+                            @if (!string.IsNullOrEmpty(localItem.Value))
+                            {
+                                <div class="uploaded-file-container">
+                                    <FluentIcon Icon="Icons.Filled.Size16.Document" Style="vertical-align: text-bottom;" Color="Color.Accent" />
+                                    <span>@localItem.Value</span>
+                                </div>
+                            }
+                            else if (localItem.FileProgressPercent != null)
+                            {
+                                <p>
+                                    <FluentProgress Min="0" Max="100" Value="@localItem.FileProgressPercent" />
+                                </p>
+                            }
+                            else
+                            {
+                                <FluentButton Id="@inputId" Appearance="Appearance.Accent">
+                                    @localItem.Input.Placeholder
+                                </FluentButton>
+                            }
+                            <ValidationMessage For="@(() => localItem.ValueBytes)" />
                             break;
                         default:
                             @* Ignore unexpected InputTypes *@

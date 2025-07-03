@@ -129,6 +129,7 @@ internal static class InteractionCommands
                    dinnerInput,
                    numberOfPeopleInput,
                    new InteractionInput { InputType = InputType.Boolean, Label = "Remember me", Placeholder = "What does this do?", Required = true },
+                   new InteractionInput { InputType = InputType.File, Label = "Receipt", Placeholder = "Upload receipt", Required = true },
                };
                var result = await interactionService.PromptInputsAsync(
                    "Input request",
@@ -157,7 +158,12 @@ internal static class InteractionCommands
 
                foreach (var updatedInput in result.Data)
                {
-                   logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+                   var value = updatedInput.Value;
+                   if (updatedInput.InputType == InputType.File && !string.IsNullOrEmpty(value))
+                   {
+                       value += $" ({updatedInput.ValueBytes!.Length} bytes)";
+                   }
+                   logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, value);
                }
 
                return CommandResults.Success();
