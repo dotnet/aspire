@@ -287,7 +287,7 @@ extends:
                 displayName: Download Native archives
                 inputs:
                   #artifactName: native_archives_linux
-                  itemPattern: **/aspire-cli-*
+                  itemPattern: '**/aspire-cli-*'
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               #- task: DownloadPipelineArtifact@2
