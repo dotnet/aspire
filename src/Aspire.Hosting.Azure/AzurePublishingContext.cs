@@ -25,11 +25,11 @@ public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
     ILogger logger,
-    IPublishingActivityProgressReporter progressReporter)
+    IPublishingActivityReporter progressReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityProgressReporter ProgressReporter => progressReporter;
+    private IPublishingActivityReporter ProgressReporter => progressReporter;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.

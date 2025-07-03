@@ -26,7 +26,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityProgressReporter progressReporter,
+    IPublishingActivityReporter progressReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;

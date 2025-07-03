@@ -283,7 +283,7 @@ public class PublishingTests
                 {
                     // Verify that ProgressReporter property is accessible and not null
                     Assert.NotNull(context.ProgressReporter);
-                    Assert.IsAssignableFrom<IPublishingActivityProgressReporter>(context.ProgressReporter);
+                    Assert.IsAssignableFrom<IPublishingActivityReporter>(context.ProgressReporter);
                     
                     // Verify that accessing it multiple times returns the same instance (lazy initialization)
                     var reporter1 = context.ProgressReporter;
