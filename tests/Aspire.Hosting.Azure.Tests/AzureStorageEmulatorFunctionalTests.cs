@@ -154,6 +154,8 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     [RequiresDocker]
     public async Task VerifyAzureStorageEmulatorResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
         var blobsResourceName = "BlobConnection";
         var blobContainerName = "my-container";
         var queuesResourceName = "QueuesConnection";
@@ -184,15 +186,19 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         using var host = hb.Build();
         await host.StartAsync();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceHealthyAsync(storage.Resource.Name, cts.Token);
+
         var blobContainerClient = host.Services.GetRequiredService<BlobContainerClient>();
         var blobClient = blobContainerClient.GetBlobClient("testKey");
+        var queueClient = host.Services.GetRequiredService<QueueClient>();
 
         await blobClient.UploadAsync(BinaryData.FromString("testValue"));
 
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
         Assert.Equal("testValue", downloadResult.Content.ToString());
 
-        var queueClient = host.Services.GetRequiredService<QueueClient>();
         await queueClient.SendMessageAsync("Hello, World!");
         var peekedMessages = await queueClient.PeekMessagesAsync(1);
         Assert.Single(peekedMessages.Value);

@@ -74,35 +74,45 @@ public static class AzureStorageExtensions
 
             var azureResource = (AzureStorageResource)infrastructure.AspireResource;
 
-            if (azureResource.BlobContainers.Count > 0)
+            if (azureResource.BlobStorageResource is not null)
             {
-                var blobs = new BlobService("blobs")
-                {
-                    Parent = storageAccount
-                };
-                infrastructure.Add(blobs);
+                var blobService = azureResource.BlobStorageResource.ToProvisioningEntity();
+                blobService.Parent = storageAccount;
+                infrastructure.Add(blobService);
 
-                foreach (var blobContainer in azureResource.BlobContainers)
+                if (azureResource.BlobContainers.Count > 0)
                 {
-                    var cdkBlobContainer = blobContainer.ToProvisioningEntity();
-                    cdkBlobContainer.Parent = blobs;
-                    infrastructure.Add(cdkBlobContainer);
+                    foreach (var blobContainer in azureResource.BlobContainers)
+                    {
+                        var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                        cdkBlobContainer.Parent = blobService;
+                        infrastructure.Add(cdkBlobContainer);
+                    }
                 }
             }
 
-            if (azureResource.Queues.Count > 0)
+            if (azureResource.QueueStorageResource is not null)
             {
-                var queues = new QueueService("queues")
+                var queueService = azureResource.QueueStorageResource.ToProvisioningEntity();
+                queueService.Parent = storageAccount;
+                infrastructure.Add(queueService);
+
+                if (azureResource.Queues.Count > 0)
                 {
-                    Parent = storageAccount
-                };
-                infrastructure.Add(queues);
-                foreach (var queue in azureResource.Queues)
-                {
-                    var cdkQueue = queue.ToProvisioningEntity();
-                    cdkQueue.Parent = queues;
-                    infrastructure.Add(cdkQueue);
+                    foreach (var queue in azureResource.Queues)
+                    {
+                        var cdkQueue = queue.ToProvisioningEntity();
+                        cdkQueue.Parent = queueService;
+                        infrastructure.Add(cdkQueue);
+                    }
                 }
+            }
+
+            if (azureResource.TableStorageResource is not null)
+            {
+                var tableService = azureResource.TableStorageResource.ToProvisioningEntity();
+                tableService.Parent = storageAccount;
+                infrastructure.Add(tableService);
             }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
@@ -152,16 +162,19 @@ public static class AzureStorageExtensions
 
         BlobServiceClient? blobServiceClient = null;
         QueueServiceClient? queueServiceClient = null;
-        
+
         builder
             .OnBeforeResourceStarted(async (storage, @event, ct) =>
             {
-                // The BlobServiceClient is created before the health check is run.
+                // The BlobServiceClient and QueueServiceClient are created before the health check is run.
                 // We can't use ConnectionStringAvailableEvent here because the resource doesn't have a connection string, so
                 // we use BeforeResourceStartedEvent
 
-                var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-                blobServiceClient = CreateBlobServiceClient(connectionString);
+                var blobConnectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+                blobServiceClient = CreateBlobServiceClient(blobConnectionString);
+
+                var queueConnectionString = await builder.Resource.GetQueueConnectionString().GetValueAsync(ct).ConfigureAwait(false) ?? throw new DistributedApplicationException($"{nameof(ConnectionStringAvailableEvent)} was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+                queueServiceClient = CreateQueueServiceClient(queueConnectionString);
             })
             .OnResourceReady(async (storage, @event, ct) =>
             {
@@ -333,6 +346,7 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
+        builder.Resource.BlobStorageResource = resource;
 
         string? connectionString = null;
 
@@ -370,13 +384,13 @@ public static class AzureStorageExtensions
         blobContainerName ??= name;
 
         // Create a Blob Service resource implicitly
-        if (builder.ApplicationBuilder.Resources.OfType<AzureBlobStorageResource>().FirstOrDefault() is not AzureBlobStorageResource blobStorageResource)
+        if (builder.Resource.BlobStorageResource is null)
         {
             var blobServiceName = $"{builder.Resource.Name}-blobs";
-            blobStorageResource = AddBlobService(builder, blobServiceName).Resource;
+            AddBlobService(builder, blobServiceName);
         }
 
-        AzureBlobStorageContainerResource resource = new(name, blobContainerName, blobStorageResource);
+        AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource.BlobStorageResource!);
         builder.Resource.BlobContainers.Add(resource);
 
         string? connectionString = null;
@@ -461,6 +475,8 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureTableStorageResource(name, builder.Resource);
+        builder.Resource.TableStorageResource = resource;
+
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -491,6 +507,7 @@ public static class AzureStorageExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
+        builder.Resource.QueueStorageResource = resource;
 
         string? connectionString = null;
 
@@ -528,13 +545,13 @@ public static class AzureStorageExtensions
         queueName ??= name;
 
         // Create a Queue Service resource implicitly
-        if (builder.ApplicationBuilder.Resources.OfType<AzureQueueStorageResource>().FirstOrDefault() is not AzureQueueStorageResource queueStorageResource)
+        if (builder.Resource.QueueStorageResource is null)
         {
             var queueServiceName = $"{builder.Resource.Name}-queues";
-            queueStorageResource = AddQueueService(builder, queueServiceName).Resource;
+            AddQueueService(builder, queueServiceName);
         }
 
-        AzureQueueStorageQueueResource resource = new(name, queueName, queueStorageResource);
+        AzureQueueStorageQueueResource resource = new(name, queueName, builder.Resource.QueueStorageResource!);
         builder.Resource.Queues.Add(resource);
 
         string? connectionString = null;
