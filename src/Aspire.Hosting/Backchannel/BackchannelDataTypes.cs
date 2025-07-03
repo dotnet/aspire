@@ -154,6 +154,11 @@ internal sealed class PublishingPromptInput
     /// Gets the default value for the input.
     /// </summary>
     public string? Value { get; init; }
+
+    /// <summary>
+    /// Gets the validation errors for the input.
+    /// </summary>
+    public IReadOnlyList<string>? ValidationErrors { get; init; }
 }
 
 /// <summary>

@@ -30,6 +30,14 @@
       "environmentVariables": {
       }
     },
+    "publishers": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "publish",
+      "workingDirectory": "../../playground/publishers/Publishers.AppHost",
+      "environmentVariables": {
+        "Deployment:Target": "publish-test"
+      }
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,
