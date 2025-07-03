@@ -29,7 +29,7 @@ Or, if you are using Visual Studio:
 
 ## Using VS Code
 
-Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linus) or `.\start-code.cmd` to start VS Code.
+Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linux) or `.\start-code.cmd` to start VS Code.
 
 ## View Dashboard
 
