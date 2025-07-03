@@ -212,9 +212,16 @@ internal sealed class ApplicationOrchestrator
                 Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
                 if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
-                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
+                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
+                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
                     urls.Add(url);
-                }
+                    if (allocatedEndpoint.BindingMode != EndpointBindingMode.SingleAddress && (endpoint.TargetHost is not "localhost" or "127.0.0.1"))
+                    {
+                        // Endpoint is listening on multiple addresses so add more URLs using
+                        var address = endpoint.TargetHost == "0.0.0.0" ? Environment.MachineName : endpoint.TargetHost;
+                        url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{address}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
+                        urls.Add(url);
+                    }
             }
         }
 
