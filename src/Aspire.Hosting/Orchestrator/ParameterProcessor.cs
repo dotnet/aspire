@@ -133,12 +133,12 @@ internal sealed class ParameterProcessor(
             if (result.Data)
             {
                 // Now we build up a new form base on the unresolved parameters.
-                var inputs = new Dictionary<ParameterResource, InteractionInput>();
+                var inputs = new List<InteractionInput>();
 
                 foreach (var parameter in _unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    inputs.Add(parameter, new InteractionInput
+                    inputs.Add(new InteractionInput
                     {
                         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
                         Label = parameter.Name,
@@ -150,7 +150,7 @@ internal sealed class ParameterProcessor(
                 var valuesPrompt = await interactionService.PromptInputsAsync(
                     "Set Unresolved Parameters",
                     "Please provide values for the unresolved parameters.",
-                    [.. inputs.Values],
+                    [.. inputs],
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = "Submit",
