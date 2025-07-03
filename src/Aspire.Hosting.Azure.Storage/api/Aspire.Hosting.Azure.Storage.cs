@@ -20,19 +20,19 @@ namespace Aspire.Hosting
         [System.Obsolete("Use AddBlobService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobs(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string? name = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageQueueResource> AddQueue(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name, string? queueName = null) { throw null; }
 
         [System.Obsolete("Use AddQueueService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueues(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueueService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueueService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string? name = null) { throw null; }
 
         [System.Obsolete("Use AddTableService on IResourceBuilder<AzureStorageResource> instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureTableStorageResource> AddTables(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Azure.AzureTableStorageResource> AddTableService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureTableStorageResource> AddTableService(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string? name = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureStorageEmulatorResource>>? configureContainer = null) { throw null; }
 
