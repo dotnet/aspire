@@ -10,12 +10,12 @@ import { configCommand } from './commands/config';
 import { deployCommand } from './commands/deploy';
 import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
-import { vscOutputChannelWriter } from './utils/logging';
+import { extensionLogOutputChannel } from './utils/logging';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-	vscOutputChannelWriter.appendLine("lifecycle", "Activating Aspire extension");
+	extensionLogOutputChannel.info("Activating Aspire extension");
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand(runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand(addCommand));
@@ -27,9 +27,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
 
 	rpcServerInfo = await createRpcServer(
-		connection => new InteractionService(vscOutputChannelWriter),
-		(connection, token: string) => new RpcClient(connection, token),
-		vscOutputChannelWriter
+		connection => new InteractionService(),
+		(connection, token: string) => new RpcClient(connection, token)
 	);
 
 	// Return exported API for tests or other extensions

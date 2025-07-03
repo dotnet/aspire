@@ -481,6 +481,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken)
     {
+        if (logLevel == LogLevel.None)
+        {
+            return;
+        }
+
         await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();
