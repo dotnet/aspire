@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Yarp;
 
 namespace Aspire.Hosting;
@@ -36,29 +35,18 @@ public static class YarpResourceExtensions
                       .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter();
 
-        var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
-
         if (builder.ExecutionContext.IsRunMode)
         {
             // YARP will not trust the cert used by Aspire otlp endpoint when running locally
             // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
             // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+        }
 
-            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (ctx, ct) =>
-            {
-                configBuilder.BuildAndPopulateEnvironment();
-                return Task.CompletedTask;
-            });
-        }
-        else
+        yarpBuilder.WithEnvironment(ctx =>
         {
-            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforePublishEvent>((ctx, ct) =>
-            {
-                configBuilder.BuildAndPopulateEnvironment();
-                return Task.CompletedTask;
-            });
-        }
+            YarpEnvConfigGenerator.PopulateEnvVariables(ctx.EnvironmentVariables, yarpBuilder.Resource.Routes, yarpBuilder.Resource.Clusters);
+        });
 
         return yarpBuilder;
     }
@@ -70,7 +58,8 @@ public static class YarpResourceExtensions
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
     public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
     {
-        builder.Resource.ConfigurationBuilderDelegates.Add(configurationBuilder);
+        var configBuilder = new YarpConfigurationBuilder(builder);
+        configurationBuilder(configBuilder);
         return builder;
     }
 }

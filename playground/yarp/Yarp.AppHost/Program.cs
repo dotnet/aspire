@@ -12,7 +12,7 @@ var frontendService = builder.AddProject<Projects.Yarp_Frontend>("frontend");
 var gateway = builder.AddYarp("gateway")
                      .WithConfiguration(yarp =>
                      {
-                         yarp.AddRoute(frontendService);
+                         yarp.AddRoute(frontendService.GetEndpoint("http"));
                          yarp.AddRoute("/api/{**catch-all}", backendService)
                              .WithTransformPathRemovePrefix("/api");
                      });

@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using System.Security.Authentication;
+using Aspire.Hosting.Yarp;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Aspire.Hosting;
@@ -11,17 +12,9 @@ internal class YarpEnvConfigGenerator
 {
     private const string Prefix = "REVERSEPROXY__";
 
-    public static void PopulateEnvVariables(Dictionary<string, object> environmentVariables, YarpConfigurationBuilder configBuilder)
+    public static void PopulateEnvVariables(Dictionary<string, object> environmentVariables, List<YarpRoute> routes, List<YarpCluster> clusters)
     {
-        var routes = configBuilder.Routes.Select(r => r.RouteConfig).ToList();
-        var clusters = configBuilder.Clusters.Select(c => c.ClusterConfig).ToList();
-
-        PopulateEnvVariables(environmentVariables, routes, clusters);
-    }
-
-    public static void PopulateEnvVariables(Dictionary<string, object> environmentVariables, List<RouteConfig> routes, List<ClusterConfig> clusters)
-    {
-        foreach (var route in routes)
+        foreach (var route in routes.Select(r => r.RouteConfig))
         {
             FlattenToEnvVars(environmentVariables, route, $"{Prefix}ROUTES__{route.RouteId}");
             // Hack: YARP throws if RouteConfig.RouterId is populated in the config.
@@ -31,10 +24,11 @@ internal class YarpEnvConfigGenerator
 
         foreach (var cluster in clusters)
         {
-            FlattenToEnvVars(environmentVariables, cluster, $"{Prefix}CLUSTERS__{cluster.ClusterId}");
+            FlattenToEnvVars(environmentVariables, cluster.ClusterConfig, $"{Prefix}CLUSTERS__{cluster.ClusterConfig.ClusterId}");
+            environmentVariables[$"{Prefix}CLUSTERS__{cluster.ClusterConfig.ClusterId}__DESTINATIONS__destination1__ADDRESS"] = cluster.Target;
             // Hack: YARP throws if ClusterConfig.ClusterId is populated in the config.
             // YARP will get the ClusterId from the config key and populate the value in the ClusterConfig itself.
-            environmentVariables.Remove($"{Prefix}CLUSTERS__{cluster.ClusterId}__CLUSTERID");
+            environmentVariables.Remove($"{Prefix}CLUSTERS__{cluster.ClusterConfig.ClusterId}__CLUSTERID");
         }
     }
 

@@ -3,6 +3,7 @@
 
 using System.Security.Authentication;
 using System.Text;
+using Aspire.Hosting.Utils;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -117,7 +118,7 @@ public class YarpConfigGeneratorTests()
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
                     {
                         {
-                            "destinationA",
+                            "destination1",
                             new DestinationConfig
                             {
                                 Address = "https://localhost:10000/destA",
@@ -126,16 +127,6 @@ public class YarpConfigGeneratorTests()
                                 Host = "localhost"
                             }
                         },
-                        {
-                            "destinationB",
-                            new DestinationConfig
-                            {
-                                Address = "https://localhost:10000/destB",
-                                Health = "https://localhost:20000/destB",
-                                Metadata = new Dictionary<string, string> { { "destB-K1", "destB-V1" }, { "destB-K2", "destB-V2" } },
-                                Host = "localhost"
-                            }
-                        }
                     },
             HealthCheck = new HealthCheckConfig
             {
@@ -204,8 +195,7 @@ public class YarpConfigGeneratorTests()
             ClusterId = "cluster2",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
             {
-                { "destinationC", new DestinationConfig { Address = "https://localhost:10001/destC", Host = "localhost" } },
-                { "destinationD", new DestinationConfig { Address = "https://localhost:10000/destB", Host = "remotehost" } }
+                { "destination1", new DestinationConfig { Address = "https://localhost:10001/destC", Host = "localhost" } },
             },
             LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin
         }
@@ -235,7 +225,12 @@ public class YarpConfigGeneratorTests()
     public async Task GenerateEnvVariablesConfiguration()
     {
         var variables = new Dictionary<string, object>();
-        YarpEnvConfigGenerator.PopulateEnvVariables(variables, _validRoutes, _validClusters);
+        var builder = TestDistributedApplicationBuilder.Create();
+
+        YarpEnvConfigGenerator.PopulateEnvVariables(
+            variables,
+            _validRoutes.Select(r => new YarpRoute(r)).ToList(),
+            _validClusters.Select(c => new YarpCluster(c, c.Destinations!.First().Value.Address)).ToList());
         var sb = new StringBuilder();
         foreach (var variable in variables)
         {

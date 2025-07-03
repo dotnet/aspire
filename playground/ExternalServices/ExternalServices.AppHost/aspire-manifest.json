@@ -12,9 +12,23 @@
     },
     "gateway": {
       "type": "container.v0",
-      "image": "mcr.microsoft.com/dotnet/nightly/yarp:latest",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.3",
+      "entrypoint": "dotnet",
+      "args": [
+        "/app/yarp.dll"
+      ],
       "env": {
-        "ASPNETCORE_ENVIRONMENT": "Production"
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "services__nuget__https__0": "https://api.nuget.org/",
+        "REVERSEPROXY__ROUTES__route_1523ce68a8844aea8f832446c13e2331__MATCH__PATH": "/nuget/{**catchall}",
+        "REVERSEPROXY__ROUTES__route_1523ce68a8844aea8f832446c13e2331__CLUSTERID": "cluster_nuget_81d0f841be374441bba4c3278c1e326a",
+        "REVERSEPROXY__ROUTES__route_1523ce68a8844aea8f832446c13e2331__TRANSFORMS__0__PathRemovePrefix": "/nuget",
+        "REVERSEPROXY__ROUTES__route_c5bd1e4444464e22ac1d8cd48adbe138__MATCH__PATH": "/external-service/{**catchall}",
+        "REVERSEPROXY__ROUTES__route_c5bd1e4444464e22ac1d8cd48adbe138__CLUSTERID": "cluster_external-service_7a4c5713d6014d34afc00ba71dacb166",
+        "REVERSEPROXY__ROUTES__route_c5bd1e4444464e22ac1d8cd48adbe138__TRANSFORMS__0__PathRemovePrefix": "/external-service",
+        "REVERSEPROXY__CLUSTERS__cluster_nuget_81d0f841be374441bba4c3278c1e326a__DESTINATIONS__destination1__ADDRESS": "Aspire.Hosting.ExternalServiceResource",
+        "REVERSEPROXY__CLUSTERS__cluster_external-service_7a4c5713d6014d34afc00ba71dacb166__DESTINATIONS__destination1__ADDRESS": "Aspire.Hosting.ExternalServiceResource",
+        "services__external-service__default__0": "{external-service-url.value}"
       },
       "bindings": {
         "http": {
