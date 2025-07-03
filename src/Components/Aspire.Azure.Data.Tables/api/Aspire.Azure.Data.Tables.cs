@@ -26,8 +26,14 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireTablesExtensions
     {
+        [System.Obsolete("Use AddAzureTableServiceClient instead. This method will be removed in a future version.")]
         public static void AddAzureTableClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Data.Tables.AzureDataTablesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Data.Tables.TableServiceClient, global::Azure.Data.Tables.TableClientOptions>>? configureClientBuilder = null) { }
 
+        public static void AddAzureTableServiceClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Data.Tables.AzureDataTablesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Data.Tables.TableServiceClient, global::Azure.Data.Tables.TableClientOptions>>? configureClientBuilder = null) { }
+
+        [System.Obsolete("Use AddKeyedAzureTableServiceClient instead. This method will be removed in a future version.")]
         public static void AddKeyedAzureTableClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Data.Tables.AzureDataTablesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Data.Tables.TableServiceClient, global::Azure.Data.Tables.TableClientOptions>>? configureClientBuilder = null) { }
+
+        public static void AddKeyedAzureTableServiceClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Data.Tables.AzureDataTablesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Data.Tables.TableServiceClient, global::Azure.Data.Tables.TableClientOptions>>? configureClientBuilder = null) { }
     }
 }

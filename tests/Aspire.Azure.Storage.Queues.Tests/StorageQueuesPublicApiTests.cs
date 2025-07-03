@@ -103,7 +103,7 @@ public class StorageQueuesPublicApiTests
         const string name = "queue";
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var action = () => builder.AddKeyedAzureQueueClient(name);
+        var action = () => builder.AddKeyedAzureQueueServiceClient(name);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
@@ -119,7 +119,7 @@ public class StorageQueuesPublicApiTests
         var name = isNull ? null! : string.Empty;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        var action = () => builder.AddKeyedAzureQueueClient(name);
+        var action = () => builder.AddKeyedAzureQueueServiceClient(name);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = isNull
