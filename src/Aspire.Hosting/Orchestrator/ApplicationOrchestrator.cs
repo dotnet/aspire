@@ -222,55 +222,56 @@ internal sealed class ApplicationOrchestrator
                         url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{address}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
                         urls.Add(url);
                     }
-            }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
-            urls.AddRange(existingUrls);
-        }
-
-        // Run the URL callbacks
-        if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
-        {
-            var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
-            {
-                Logger = _loggerService.GetLogger(resource.Name)
-            };
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
-            }
-        }
-
-        // Clear existing URLs
-        if (existingUrls is not null)
-        {
-            var existing = existingUrls.ToArray();
-            for (var i = existing.Length - 1; i >= 0; i--)
-            {
-                var url = existing[i];
-                resource.Annotations.Remove(url);
-            }
-        }
-
-        // Convert relative endpoint URLs to absolute URLs
-        foreach (var url in urls)
-        {
-            if (url.Endpoint is { } endpoint)
-            {
-                if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
-                {
-                    url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
                 }
             }
-        }
 
-        // Add URLs
-        foreach (var url in urls)
-        {
-            resource.Annotations.Add(url);
+            if (resource.TryGetUrls(out var existingUrls))
+            {
+                // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
+                urls.AddRange(existingUrls);
+            }
+
+            // Run the URL callbacks
+            if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
+            {
+                var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
+                {
+                    Logger = _loggerService.GetLogger(resource.Name)
+                };
+                foreach (var callback in callbacks)
+                {
+                    await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
+                }
+            }
+
+            // Clear existing URLs
+            if (existingUrls is not null)
+            {
+                var existing = existingUrls.ToArray();
+                for (var i = existing.Length - 1; i >= 0; i--)
+                {
+                    var url = existing[i];
+                    resource.Annotations.Remove(url);
+                }
+            }
+
+            // Convert relative endpoint URLs to absolute URLs
+            foreach (var url in urls)
+            {
+                if (url.Endpoint is { } endpoint)
+                {
+                    if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                    {
+                        url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                    }
+                }
+            }
+
+            // Add URLs
+            foreach (var url in urls)
+            {
+                resource.Annotations.Add(url);
+            }
         }
     }
 
