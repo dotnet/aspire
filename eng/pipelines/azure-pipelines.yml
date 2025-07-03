@@ -295,6 +295,13 @@ extends:
                   artifactName: native_archives_macos
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
+              - task: PowerShell@2
+                displayName: List artifacts packages contents
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    Get-ChildItem -Path "$(Build.SourcesDirectory)\artifacts\packages" -Recurse
+
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
                   dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
