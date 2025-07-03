@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Threading.Channels;
 using Xunit;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -161,16 +162,16 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public void HandleUnresolvedParametersAsync_WithMultipleUnresolvedParameters_CreatesInteractions()
+    public async Task HandleUnresolvedParametersAsync_WithMultipleUnresolvedParameters_CreatesInteractions()
     {
         // Arrange
-        var interactionService = CreateInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
         var param1 = CreateParameterWithMissingValue("param1");
         var param2 = CreateParameterWithMissingValue("param2");
         var secretParam = CreateParameterWithMissingValue("secretParam");
 
-        ParameterResource[] parameters = [param1, param2, secretParam];
+        List<ParameterResource> parameters = [param1, param2, secretParam];
 
         foreach (var param in parameters)
         {
@@ -178,47 +179,70 @@ public class ParameterProcessorTests
             param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        // Act - Initialize parameters to add them to unresolved list
-        var task = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        // Act - Start handling unresolved parameters
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
 
-        // Assert - All parameters should be unresolved and interaction should be created
-        Assert.NotNull(param1.WaitForValueTcs);
-        Assert.NotNull(param2.WaitForValueTcs);
-        Assert.NotNull(secretParam.WaitForValueTcs);
-        Assert.False(param1.WaitForValueTcs.Task.IsCompleted);
-        Assert.False(param2.WaitForValueTcs.Task.IsCompleted);
-        Assert.False(secretParam.WaitForValueTcs.Task.IsCompleted);
-        
-        // Verify there's an active interaction for the parameters
-        var interactions = interactionService.GetCurrentInteractions();
-        Assert.NotEmpty(interactions);
-        
-        // Verify the interaction has the expected title
-        Assert.Contains(interactions, i => i.Title == "Unresolved Parameters");
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved Parameters", messageBarInteraction.Title);
+        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
+
+        // Complete the message bar interaction to proceed to inputs dialog
+        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(true, false)); // Data = true (user clicked Enter Values)
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set Unresolved Parameters", inputsInteraction.Title);
+        Assert.Equal("Please provide values for the unresolved parameters.", inputsInteraction.Message);
+
+        // Complete the inputs interaction with values
+        var inputResults = new List<InteractionInput>
+        {
+            new() { InputType = InputType.Text, Label = "param1", Value = "value1" },
+            new() { InputType = InputType.Text, Label = "param2", Value = "value2" },
+            new() { InputType = InputType.SecretText, Label = "secretParam", Value = "secretValue" }
+        };
+        inputsInteraction.CompletionTcs.SetResult(new InteractionResult<IReadOnlyList<InteractionInput>>(inputResults, false));
+
+        // Wait for the handle task to complete
+        await handleTask;
+
+        // Assert - All parameters should now be resolved
+        Assert.True(param1.WaitForValueTcs!.Task.IsCompletedSuccessfully);
+        Assert.True(param2.WaitForValueTcs!.Task.IsCompletedSuccessfully);
+        Assert.True(secretParam.WaitForValueTcs!.Task.IsCompletedSuccessfully);
+        Assert.Equal("value1", await param1.WaitForValueTcs.Task);
+        Assert.Equal("value2", await param2.WaitForValueTcs.Task);
+        Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
     }
 
     [Fact]
-    public async Task HandleUnresolvedParametersAsync_WithNoInteractionService_DoesNotCreateInteractions()
+    public async Task HandleUnresolvedParametersAsync_WhenUserCancelsInteraction_ParametersRemainUnresolved()
     {
-        // Arrange - Use interaction service with dashboard disabled
-        var interactionService = CreateInteractionService(disableDashboard: true);
-        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
-
-        // Act - Initialize parameters
-        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
-
-        // Allow background task time to run (if it would run)
-        await Task.Delay(100);
-
-        // Assert - Parameter should be in error state since interaction service is not available
-        Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
-        Assert.True(parameterWithMissingValue.WaitForValueTcs.Task.IsCompleted);
-        Assert.True(parameterWithMissingValue.WaitForValueTcs.Task.IsFaulted);
         
-        // No interactions should be created
-        var interactions = interactionService.GetCurrentInteractions();
-        Assert.Empty(interactions);
+        parameterWithMissingValue.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Act - Start handling unresolved parameters
+        _ = parameterProcessor.HandleUnresolvedParametersAsync([parameterWithMissingValue]);
+
+        // Wait for the message bar interaction
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved Parameters", messageBarInteraction.Title);
+
+        // Complete the message bar interaction with false (user chose not to enter values)
+        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(false, false)); // Data = false (user dismissed/cancelled)
+
+        // Assert that the message bar will show up again if there are still unresolved parameters
+        var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved Parameters", nextMessageBarInteraction.Title);
+
+        // Assert - Parameter should remain unresolved since user cancelled
+        Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
+        Assert.False(parameterWithMissingValue.WaitForValueTcs.Task.IsCompleted);
     }
 
     [Fact]
@@ -228,61 +252,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act & Assert - Should not throw
-        await parameterProcessor.InitializeParametersAsync(Array.Empty<ParameterResource>());
-    }
-
-    [Fact]
-    public void HandleUnresolvedParametersAsync_WithSingleUnresolvedParameter_CreatesInteraction()
-    {
-        // Arrange
-        var interactionService = CreateInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
-        var unresolvedParam = CreateParameterWithMissingValue("testParam");
-
-        // Initialize the parameter's WaitForValueTcs
-        unresolvedParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        // Act - Directly call HandleUnresolvedParametersAsync with the parameter list
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([unresolvedParam]);
-
-        // Assert - Verify interaction was created (the method should start immediately and create interaction)
-        var interactions = interactionService.GetCurrentInteractions();
-        Assert.NotEmpty(interactions);
-        Assert.Contains(interactions, i => i.Title == "Unresolved Parameters");
-        
-        // Verify the parameter is still unresolved (waiting for user input)
-        Assert.NotNull(unresolvedParam.WaitForValueTcs);
-        Assert.False(unresolvedParam.WaitForValueTcs.Task.IsCompleted);
-    }
-
-    [Fact]
-    public void HandleUnresolvedParametersAsync_WithMultipleUnresolvedParameters_CreatesCorrectInteraction()
-    {
-        // Arrange
-        var interactionService = CreateInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
-        var unresolvedParam1 = CreateParameterWithMissingValue("param1");
-        var unresolvedParam2 = CreateParameterWithMissingValue("param2");
-
-        // Initialize the parameters' WaitForValueTcs
-        unresolvedParam1.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        unresolvedParam2.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        // Act - Directly call HandleUnresolvedParametersAsync with the parameter list
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([unresolvedParam1, unresolvedParam2]);
-
-        // Assert - Verify interaction was created for multiple parameters
-        var interactions = interactionService.GetCurrentInteractions();
-        Assert.NotEmpty(interactions);
-        
-        var parameterInteraction = interactions.FirstOrDefault(i => i.Title == "Unresolved Parameters");
-        Assert.NotNull(parameterInteraction);
-        
-        // Verify both parameters are still unresolved (waiting for user input)
-        Assert.NotNull(unresolvedParam1.WaitForValueTcs);
-        Assert.NotNull(unresolvedParam2.WaitForValueTcs);
-        Assert.False(unresolvedParam1.WaitForValueTcs.Task.IsCompleted);
-        Assert.False(unresolvedParam2.WaitForValueTcs.Task.IsCompleted);
+        await parameterProcessor.InitializeParametersAsync([]);
     }
 
     private static ParameterProcessor CreateParameterProcessor(
@@ -325,5 +295,48 @@ public class ParameterProcessorTests
     private static ParameterResource CreateParameterWithGenericError(string name)
     {
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
+    }
+
+    private sealed record InteractionData(string Title, string? Message, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
+
+    private sealed class TestInteractionService : IInteractionService
+    {
+        public Channel<InteractionData> Interactions { get; } = Channel.CreateUnbounded<InteractionData>();
+
+        public bool IsAvailable { get; set; } = true;
+
+        public Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            var data = new InteractionData(title, message, options, new TaskCompletionSource<object>());
+            Interactions.Writer.TryWrite(data);
+            return (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
+        }
+
+        public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            var data = new InteractionData(title, message, options, new TaskCompletionSource<object>());
+            Interactions.Writer.TryWrite(data);
+            return (InteractionResult<bool>)await data.CompletionTcs.Task;
+        }
+
+        public Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
