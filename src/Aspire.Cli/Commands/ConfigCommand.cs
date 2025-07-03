@@ -33,7 +33,7 @@ internal sealed class ConfigCommand : BaseCommand
 
         var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
         var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
+        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier, configuration);
         var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
 
         Subcommands.Add(getCommand);
@@ -212,12 +212,14 @@ internal sealed class ConfigCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
+        private readonly IConfiguration _configuration;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, IConfiguration configuration)
             : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
+            _configuration = configuration;
         }
 
         protected override bool UpdateNotificationsEnabled => false;
@@ -229,6 +231,16 @@ internal sealed class ConfigCommand : BaseCommand
 
         public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
         {
+            if (_interactionService is ExtensionInteractionService extensionInteractionService)
+            {
+                var settingsFilePath = _configurationService.GetSettingsFilePath(isGlobal: false);
+                if (Path.Exists(settingsFilePath))
+                {
+                    extensionInteractionService.OpenInIde(settingsFilePath);
+                    return ExitCodeConstants.Success;
+                }
+            }
+
             var allConfig = await _configurationService.GetAllConfigurationAsync(cancellationToken);
 
             if (allConfig.Count == 0)

@@ -34,7 +34,7 @@ internal interface IExtensionBackchannel
     Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
-    Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
+    Task OpenInIdeAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
 }
@@ -464,7 +464,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
         return result;
     }
 
-    public async Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)
+    public async Task OpenInIdeAsync(string path, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -472,11 +472,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Opening project at path: {ProjectPath}", projectPath);
+        logger.LogDebug("Opening path: {ProjectPath}", path);
 
         await rpc.InvokeWithCancellationAsync(
-            "openProject",
-            [_token, projectPath],
+            "openInIde",
+            [_token, path],
             cancellationToken);
     }
 

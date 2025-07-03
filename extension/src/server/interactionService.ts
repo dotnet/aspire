@@ -1,5 +1,6 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
 import { isFolderOpenInWorkspace } from '../utils/workspace';
 import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
@@ -21,7 +22,7 @@ export interface IInteractionService {
     displayLines: (lines: ConsoleLine[]) => void;
     displayPlainText: (message: string) => void;
     displayCancellationMessage: (message: string) => void;
-    openProject: (projectPath: string) => void;
+    openInIde: (path: string) => Promise<void>;
     logMessage: (logLevel: string, message: string) => void;
 }
 
@@ -218,15 +219,31 @@ export class InteractionService implements IInteractionService {
         vscode.window.showWarningMessage(formatText(message));
     }
 
-    openProject(projectPath: string) {
-        this._outputChannelWriter.appendLine('interaction', `Opening project at path: ${projectPath}`);
+    async openInIde(path: string) {
+        this._outputChannelWriter.appendLine('interaction', `Opening path: ${path}`);
 
-        if (isFolderOpenInWorkspace(projectPath)) {
-            return;
+        // check if is folder
+        if (await isDirectory(path)) {
+            if (isFolderOpenInWorkspace(path)) {
+                return;
+            }
+
+            const uri = vscode.Uri.file(path);
+            vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+        }
+        else {
+            const fileUri = vscode.Uri.file(path);
+            await vscode.window.showTextDocument(fileUri, { preview: false });
         }
 
-        const uri = vscode.Uri.file(projectPath);
-        vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+        async function isDirectory(path: string): Promise<boolean> {
+            try {
+                const stat = await fs.stat(path);
+                return stat.isDirectory();
+            } catch {
+                return false;
+            }
+        }
     }
 
     logMessage(logLevel: string, message: string) {
@@ -250,6 +267,6 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayPlainText", withAuthentication(interactionService.displayPlainText.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
-    connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
+    connection.onRequest("openInIde", withAuthentication(interactionService.openInIde.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
 }

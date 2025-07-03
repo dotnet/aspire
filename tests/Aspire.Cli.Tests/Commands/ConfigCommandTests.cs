@@ -409,4 +409,9 @@ public class TestConfigurationService : IConfigurationService
     {
         return Task.FromResult<string?>(key);
     }
+
+    public string GetSettingsFilePath(bool isGlobal)
+    {
+        return string.Empty;
+    }
 }
