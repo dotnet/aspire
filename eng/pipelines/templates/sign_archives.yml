@@ -9,7 +9,7 @@ jobs:
 - template: /eng/common/templates-official/jobs/jobs.yml@self
   parameters:
     enableMicrobuild: ${{ eq(parameters.codeSign, true) }}
-    enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
+    #enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
     enableTelemetry: true
     # Publish build logs
     enablePublishBuildArtifacts: true
