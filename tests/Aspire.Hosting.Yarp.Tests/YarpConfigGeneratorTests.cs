@@ -3,6 +3,9 @@
 
 using System.Security.Authentication;
 using System.Text;
+using Aspire.Hosting.Utils;
+using Aspire.Hosting.Yarp.Transforms;
+using Aspire.TestUtilities;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -117,7 +120,7 @@ public class YarpConfigGeneratorTests()
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
                     {
                         {
-                            "destinationA",
+                            "destination1",
                             new DestinationConfig
                             {
                                 Address = "https://localhost:10000/destA",
@@ -126,16 +129,6 @@ public class YarpConfigGeneratorTests()
                                 Host = "localhost"
                             }
                         },
-                        {
-                            "destinationB",
-                            new DestinationConfig
-                            {
-                                Address = "https://localhost:10000/destB",
-                                Health = "https://localhost:20000/destB",
-                                Metadata = new Dictionary<string, string> { { "destB-K1", "destB-V1" }, { "destB-K2", "destB-V2" } },
-                                Host = "localhost"
-                            }
-                        }
                     },
             HealthCheck = new HealthCheckConfig
             {
@@ -204,8 +197,7 @@ public class YarpConfigGeneratorTests()
             ClusterId = "cluster2",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
             {
-                { "destinationC", new DestinationConfig { Address = "https://localhost:10001/destC", Host = "localhost" } },
-                { "destinationD", new DestinationConfig { Address = "https://localhost:10000/destB", Host = "remotehost" } }
+                { "destination1", new DestinationConfig { Address = "https://localhost:10001/destC", Host = "localhost" } },
             },
             LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin
         }
@@ -235,7 +227,12 @@ public class YarpConfigGeneratorTests()
     public async Task GenerateEnvVariablesConfiguration()
     {
         var variables = new Dictionary<string, object>();
-        YarpEnvConfigGenerator.PopulateEnvVariables(variables, _validRoutes, _validClusters);
+        var builder = TestDistributedApplicationBuilder.Create();
+
+        YarpEnvConfigGenerator.PopulateEnvVariables(
+            variables,
+            _validRoutes.Select(r => new YarpRoute(r)).ToList(),
+            _validClusters.Select(c => new YarpCluster(c, c.Destinations!.First().Value.Address)).ToList());
         var sb = new StringBuilder();
         foreach (var variable in variables)
         {
@@ -243,5 +240,49 @@ public class YarpConfigGeneratorTests()
         }
         var content = sb.ToString();
         await Verify(content, "env");
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task GenerateEnvVariablesConfigurationDockerCompose()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+
+            builder.AddDockerComposeEnvironment("docker-compose").WithDashboard(db => db.WithHostPort(18888));
+
+            var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
+            var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
+
+            builder.AddYarp("gateway")
+                   .WithHostPort(5000)
+                   .WithExternalHttpEndpoints()
+                   .WithConfiguration(yarp =>
+                    {
+                        var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
+                                                 .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
+
+                        yarp.AddRoute(frontend.GetEndpoint("http"))
+                            .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
+
+                        yarp.AddRoute("/api/{**catch-all}", backendCluster)
+                            .WithTransformPathRemovePrefix("/api");
+                    });
+
+            var app = builder.Build();
+            app.Run();
+
+            var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
+            Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+
+            var content = await File.ReadAllTextAsync(composeFile);
+            await Verify(content, "env");
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
     }
 }

@@ -9,6 +9,7 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
@@ -444,6 +445,7 @@ public class ApplicationOrchestratorTests
         ResourceLoggerService? resourceLoggerService = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        resourceLoggerService ??= new ResourceLoggerService();
 
         return new ApplicationOrchestrator(
             distributedAppModel,
@@ -451,12 +453,25 @@ public class ApplicationOrchestratorTests
             dcpEvents ?? new DcpExecutorEvents(),
             [],
             notificationService,
-            resourceLoggerService ?? new ResourceLoggerService(),
+            resourceLoggerService,
             applicationEventing ?? new DistributedApplicationEventing(),
             serviceProvider,
             new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider }),
+            new ParameterProcessor(
+                notificationService,
+                resourceLoggerService,
+                CreateInteractionService(),
+                NullLogger<ParameterProcessor>.Instance)
             );
+    }
+
+    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
+    {
+        return new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            options ?? new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
     }
 
     private sealed class CustomResource(string name) : Resource(name);

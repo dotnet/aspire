@@ -8,33 +8,26 @@ namespace Aspire.Hosting;
 
 internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) : IYarpConfigurationBuilder
 {
-    private bool _hasBeenBuilt;
-
     private readonly IResourceBuilder<YarpResource> _parent = parent;
-
-    internal List<YarpCluster> Clusters { get; } = new();
-
-    internal List<YarpRoute> Routes { get; } = new();
 
     /// <inheritdoc/>
     public YarpRoute AddRoute(string path, YarpCluster cluster)
     {
-        ThrowIfHasBeenBuilt();
-        var route = new YarpRoute(cluster);
+        var routeId = $"route{_parent.Resource.Routes.Count}";
+        var route = new YarpRoute(cluster, routeId);
         if (path != null)
         {
             route.WithMatchPath(path);
         }
-        Routes.Add(route);
+        _parent.Resource.Routes.Add(route);
         return route;
     }
 
     /// <inheritdoc/>
     public YarpCluster AddCluster(EndpointReference endpoint)
     {
-        ThrowIfHasBeenBuilt();
         var destination = new YarpCluster(endpoint);
-        Clusters.Add(destination);
+        _parent.Resource.Clusters.Add(destination);
         _parent.WithReference(endpoint);
         return destination;
     }
@@ -42,9 +35,8 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     /// <inheritdoc/>
     public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
     {
-        ThrowIfHasBeenBuilt();
         var destination = new YarpCluster(resource.Resource);
-        Clusters.Add(destination);
+        _parent.Resource.Clusters.Add(destination);
         _parent.WithReference(resource);
         return destination;
     }
@@ -52,33 +44,9 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     /// <inheritdoc/>
     public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService)
     {
-        ThrowIfHasBeenBuilt();
         var destination = new YarpCluster(externalService.Resource);
-        Clusters.Add(destination);
+        _parent.Resource.Clusters.Add(destination);
         _parent.WithReference(externalService);
         return destination;
-    }
-
-    internal void BuildAndPopulateEnvironment()
-    {
-        // Check if the configuration was already built or not.
-        // If it was already, we don't want to run it again.
-        if (_hasBeenBuilt == false)
-        {
-            foreach (var configurator in _parent.Resource.ConfigurationBuilderDelegates)
-            {
-                configurator(this);
-            }
-            _parent.WithEnvironment(env => YarpEnvConfigGenerator.PopulateEnvVariables(env.EnvironmentVariables, this));
-            _hasBeenBuilt = true;
-        }
-    }
-
-    private void ThrowIfHasBeenBuilt()
-    {
-        if (_hasBeenBuilt)
-        {
-            throw new DistributedApplicationException("YarpConfigurationBuilder has already been built.");
-        }
     }
 }

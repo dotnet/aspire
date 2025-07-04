@@ -153,7 +153,7 @@ public static class ParameterResourceBuilderExtensions
         configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
-            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
+            ?? throw new MissingParameterValueException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
 
     internal static IResourceBuilder<T> AddParameter<T>(this IDistributedApplicationBuilder builder, T resource)
@@ -191,7 +191,7 @@ public static class ParameterResourceBuilderExtensions
                 new ConnectionStringParameterResource(
                     name,
                     _ => builder.Configuration.GetConnectionString(name) ??
-                        throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
+                        throw new MissingParameterValueException($"Connection string parameter resource could not be used because connection string '{name}' is missing."),
                     environmentVariableName)
                 );
     }
