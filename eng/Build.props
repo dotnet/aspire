@@ -13,14 +13,14 @@
 
   <!-- Native build -->
   <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(NativeBuildOnly)' == 'true'">
-    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" BuildStep="native" BuildInParallel="false" />
   </ItemGroup>
   <!-- native packages per-os -->
   <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true'">
     <!-- aspire cli -->
-    <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" />
-    <ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" />
-    <ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" />
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" BuildStep="native" BuildInParallel="false" />
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" BuildStep="native" BuildInParallel="false" />
+    <ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" BuildStep="native" BuildInParallel="false" />
   </ItemGroup>
 
   <!-- Tests -->
