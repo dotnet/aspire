@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.AppService;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -25,6 +27,11 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
     internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
 
+    /// <summary>
+    /// Gets the name of the App Service Plan.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => 
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
@@ -33,4 +40,13 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 
     ReferenceExpression IContainerRegistry.Endpoint => 
         ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var plan = AppServicePlan.FromExisting(this.GetBicepIdentifier());
+        plan.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(plan);
+        return plan;
+    }
 }
