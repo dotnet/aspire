@@ -119,30 +119,26 @@ extends:
       - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: macos
-          #jobNameSuffix: macos_arm64
           targetRids:
             - osx-arm64
-          codeSign: true
-          teamName: $(_TeamName)
-          extraBuildArgs: >-
-            /p:TargetRid=osx-arm64
-            /p:Configuration=$(_BuildConfig)
-            $(_SignArgs)
-            $(_OfficialBuildIdArgs)
-
-      - template: /eng/pipelines/templates/build_sign_native.yml@self
-        parameters:
-          agentOs: macos
-          #jobNameSuffix: macos_x64
-          targetRids:
             - osx-x64
           codeSign: true
           teamName: $(_TeamName)
           extraBuildArgs: >-
-            /p:TargetRid=osx-x64
             /p:Configuration=$(_BuildConfig)
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
+
+      #- template: /eng/pipelines/templates/build_sign_native.yml@self
+        #parameters:
+          #agentOs: macos
+          #targetRids:
+          #codeSign: true
+          #teamName: $(_TeamName)
+          #extraBuildArgs: >-
+            #/p:Configuration=$(_BuildConfig)
+            #$(_SignArgs)
+            #$(_OfficialBuildIdArgs)
 
       - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
@@ -151,7 +147,6 @@ extends:
             - linux-x64
             - linux-arm64
             #- linux-musl-x64
-          #jobNameSuffix: linux
           codeSign: true
           teamName: $(_TeamName)
           extraBuildArgs: >-
