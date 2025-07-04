@@ -1,16 +1,15 @@
 parameters:
   agentOs: 'windows'
-  # All the targetRids must be for the same OS
-  targetRids:
+  # All the targetRidsForSameOS must be for the same OS
+  targetRidsForSameOS:
     - win_x64
-  #jobNameSuffix: 'windows_x64'
   extraBuildArgs: ''
   codeSign: false
   teamName: ''
 
 jobs:
 
-- ${{ each targetRid in parameters.targetRids }}:
+- ${{ each targetRid in parameters.targetRidsForSameOS }}:
   - template: /eng/common/templates-official/jobs/jobs.yml@self
     parameters:
       # enableMicrobuild fails to run on Linux

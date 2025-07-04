@@ -119,7 +119,7 @@ extends:
       - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: macos
-          targetRids:
+          targetRidsForSameOS:
             - osx-arm64
             - osx-x64
           codeSign: true
@@ -132,7 +132,7 @@ extends:
       #- template: /eng/pipelines/templates/build_sign_native.yml@self
         #parameters:
           #agentOs: macos
-          #targetRids:
+          #targetRidsForSameOS:
           #codeSign: true
           #teamName: $(_TeamName)
           #extraBuildArgs: >-
@@ -143,7 +143,7 @@ extends:
       - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: linux
-          targetRids:
+          targetRidsForSameOS:
             - linux-x64
             - linux-arm64
             #- linux-musl-x64
