@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -63,8 +61,7 @@ internal class ExtensionInteractionService : IInteractionService
         Debug.Assert(result);
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
-        bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -75,11 +72,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -107,12 +99,7 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.ConfirmAsync(promptText.RemoveSpectreFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
-                    tcs.SetResult(result.Value);
+                    tcs.SetResult(result);
                 }
                 catch (Exception ex)
                 {
@@ -141,11 +128,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
