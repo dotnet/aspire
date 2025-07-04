@@ -250,7 +250,7 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        return false;
+        return true;
     }
 
     internal async IAsyncEnumerable<Interaction> SubscribeInteractionUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
