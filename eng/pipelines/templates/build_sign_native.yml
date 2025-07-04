@@ -66,7 +66,7 @@ jobs:
               version: 8.0.x
               installationPath: ${{ parameters.microBuildOutputFolder }}/.dotnet
               workingDirectory: ${{ parameters.microBuildOutputFolder }}
-            condition: eq(parameters.agentOs, 'linux')
+            condition: ${{ eq(parameters.agentOs, 'linux') }}
 
         steps:
           - script: >-
