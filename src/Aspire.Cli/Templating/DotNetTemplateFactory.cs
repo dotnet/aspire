@@ -13,7 +13,7 @@ using Semver;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter) : ITemplateFactory
+internal class DotNetTemplateFactory(IConsoleService consoleService, IDotNetCliRunner runner, ICertificateService certificateService, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter) : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -98,7 +98,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
         var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
         if (!useRedisCache.HasValue)
         {
-            useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
+            useRedisCache = await consoleService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
             {
                 var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
                 var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
@@ -108,7 +108,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
 
         if (useRedisCache ?? false)
         {
-            interactionService.DisplayMessage("french_fries", TemplatingStrings.UseRedisCache_UsingRedisCache);
+            consoleService.DisplayMessage("french_fries", TemplatingStrings.UseRedisCache_UsingRedisCache);
             extraArgs.Add("--use-redis-cache");
         }
     }
@@ -119,7 +119,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
 
         if (testFramework is null)
         {
-            var createTestProject = await interactionService.PromptForSelectionAsync(
+            var createTestProject = await consoleService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFMOptions_Prompt,
                 [TemplatingStrings.Yes, TemplatingStrings.No],
                 choice => choice,
@@ -133,7 +133,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
 
         if (string.IsNullOrEmpty(testFramework))
         {
-            testFramework = await interactionService.PromptForSelectionAsync(
+            testFramework = await consoleService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFM_Prompt,
                 ["MSTest", "NUnit", "xUnit.net", TemplatingStrings.None],
                 choice => choice,
@@ -147,7 +147,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
                 await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
             }
 
-            interactionService.DisplayMessage("french_fries", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
+            consoleService.DisplayMessage("french_fries", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
 
             extraArgs.Add("--test-framework");
             extraArgs.Add(testFramework);
@@ -159,7 +159,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
         var xunitVersion = result.GetValue<string?>("--xunit-version");
         if (string.IsNullOrEmpty(xunitVersion))
         {
-            xunitVersion = await interactionService.PromptForSelectionAsync(
+            xunitVersion = await consoleService.PromptForSelectionAsync(
                 TemplatingStrings.EnterXUnitVersion_Prompt,
                 ["v2", "v3", "v3mtp"],
                 choice => choice,
@@ -206,7 +206,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
             var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease: true, source: source, cancellationToken: cancellationToken);
 
             var templateInstallCollector = new OutputCollector();
-            var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
+            var templateInstallResult = await consoleService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
                 $":ice:  {TemplatingStrings.GettingLatestTemplates}",
                 async () =>
                 {
@@ -222,15 +222,15 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
 
             if (templateInstallResult.ExitCode != 0)
             {
-                interactionService.DisplayLines(templateInstallCollector.GetLines());
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode));
+                consoleService.DisplayLines(templateInstallCollector.GetLines());
+                consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode));
                 return new TemplateResult(ExitCodeConstants.FailedToInstallTemplates);
             }
 
-            interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
+            consoleService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
 
             var newProjectCollector = new OutputCollector();
-            var newProjectExitCode = await interactionService.ShowStatusAsync(
+            var newProjectExitCode = await consoleService.ShowStatusAsync(
                 $":rocket:  {TemplatingStrings.CreatingNewProject}",
                 async () =>
                 {
@@ -253,30 +253,30 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
 
             if (newProjectExitCode != 0)
             {
-                interactionService.DisplayLines(newProjectCollector.GetLines());
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
+                consoleService.DisplayLines(newProjectCollector.GetLines());
+                consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
                 return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
             }
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
+            consoleService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }
         catch (OperationCanceledException)
         {
-            interactionService.DisplayCancellationMessage();
+            consoleService.DisplayCancellationMessage();
             return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
         catch (CertificateServiceException ex)
         {
-            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
         catch (EmptyChoicesException ex)
         {
-            interactionService.DisplayError(ex.Message);
+            consoleService.DisplayError(ex.Message);
             return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
     }
@@ -312,7 +312,7 @@ internal class DotNetTemplateFactory(IConsoleService interactionService, IDotNet
         {
             var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
 
-            var candidatePackages = await interactionService.ShowStatusAsync(
+            var candidatePackages = await consoleService.ShowStatusAsync(
                 TemplatingStrings.SearchingForAvailableTemplateVersions,
                 () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );

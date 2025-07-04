@@ -28,7 +28,7 @@ internal sealed class NewCommand : BaseCommand
         IDotNetCliRunner runner,
         INuGetPackageCache nuGetPackageCache,
         INewCommandPrompter prompter,
-        IConsoleService interactionService,
+        IConsoleService consoleService,
         ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
@@ -40,7 +40,7 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
 
@@ -48,7 +48,7 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _consoleService = interactionService;
+        _consoleService = consoleService;
         _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
@@ -119,11 +119,11 @@ internal interface INewCommandPrompter
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
 
-internal class NewCommandPrompter(IConsoleService interactionService) : INewCommandPrompter
+internal class NewCommandPrompter(IConsoleService consoleService) : INewCommandPrompter
 {
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        return await consoleService.PromptForSelectionAsync(
             NewCommandStrings.SelectATemplateVersion,
             candidatePackages,
             (p) => $"{p.Version} ({p.Source})",
@@ -133,7 +133,7 @@ internal class NewCommandPrompter(IConsoleService interactionService) : INewComm
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForStringAsync(
+        return await consoleService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
             defaultValue: path,
             cancellationToken: cancellationToken
@@ -142,7 +142,7 @@ internal class NewCommandPrompter(IConsoleService interactionService) : INewComm
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForStringAsync(
+        return await consoleService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
@@ -153,7 +153,7 @@ internal class NewCommandPrompter(IConsoleService interactionService) : INewComm
 
     public virtual async Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        return await consoleService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
             t => $"{t.Name} ({t.Description})",

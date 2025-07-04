@@ -18,16 +18,16 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IConfigurationService _configurationService;
     private readonly IConsoleService _consoleService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IConsoleService consoleService, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("config", ConfigCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
 
         _configuration = configuration;
         _configurationService = configurationService;
-        _consoleService = interactionService;
+        _consoleService = consoleService;
 
         var getCommand = new GetCommand(configurationService, _consoleService, features, updateNotifier);
         var setCommand = new SetCommand(configurationService, _consoleService, features, updateNotifier);
@@ -53,11 +53,11 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IConsoleService _consoleService;
 
-        public GetCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public GetCommand(IConfigurationService configurationService, IConsoleService consoleService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
-            _consoleService = interactionService;
+            _consoleService = consoleService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -97,11 +97,11 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IConsoleService _consoleService;
 
-        public SetCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public SetCommand(IConfigurationService configurationService, IConsoleService consoleService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
-            _consoleService = interactionService;
+            _consoleService = consoleService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -166,11 +166,11 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IConsoleService _consoleService;
 
-        public ListCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public ListCommand(IConfigurationService configurationService, IConsoleService consoleService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
-            _consoleService = interactionService;
+            _consoleService = consoleService;
         }
 
         protected override bool UpdateNotificationsEnabled => false;
@@ -199,11 +199,11 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IConsoleService _consoleService;
 
-        public DeleteCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public DeleteCommand(IConfigurationService configurationService, IConsoleService consoleService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
-            _consoleService = interactionService;
+            _consoleService = consoleService;
 
             var keyArgument = new Argument<string>("key")
             {

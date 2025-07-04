@@ -20,7 +20,7 @@ internal class ExtensionLoggerProvider(IServiceProvider serviceProvider) : ILogg
 
 internal class ExtensionLogger(IServiceProvider serviceProvider) : ILogger
 {
-    private ExtensionConsoleService InteractionService => (ExtensionConsoleService)serviceProvider.GetRequiredService<IConsoleService>();
+    private ExtensionConsoleService ConsoleService => (ExtensionConsoleService)serviceProvider.GetRequiredService<IConsoleService>();
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -28,6 +28,6 @@ internal class ExtensionLogger(IServiceProvider serviceProvider) : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        InteractionService.LogMessage(logLevel, formatter(state, exception));
+        ConsoleService.LogMessage(logLevel, formatter(state, exception));
     }
 }

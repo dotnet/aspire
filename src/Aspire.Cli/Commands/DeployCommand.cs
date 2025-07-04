@@ -14,8 +14,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PublishCommandBase
 {
-    public DeployCommand(IDotNetCliRunner runner, IConsoleService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
+    public DeployCommand(IDotNetCliRunner runner, IConsoleService consoleService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base("deploy", DeployCommandStrings.Description, runner, consoleService, projectLocator, telemetry, features, updateNotifier)
     {
     }
 

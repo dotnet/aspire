@@ -17,11 +17,11 @@ internal interface IPublishCommandPrompter
     Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken);
 }
 
-internal class PublishCommandPrompter(IConsoleService interactionService) : IPublishCommandPrompter
+internal class PublishCommandPrompter(IConsoleService consoleService) : IPublishCommandPrompter
 {
     public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        return await consoleService.PromptForSelectionAsync(
             PublishCommandStrings.SelectAPublisher,
             publishers,
             p => p,
@@ -34,8 +34,8 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IConsoleService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
+    public PublishCommand(IDotNetCliRunner runner, IConsoleService consoleService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base("publish", PublishCommandStrings.Description, runner, consoleService, projectLocator, telemetry, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;

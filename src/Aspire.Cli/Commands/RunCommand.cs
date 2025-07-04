@@ -30,7 +30,7 @@ internal sealed class RunCommand : BaseCommand
 
     public RunCommand(
         IDotNetCliRunner runner,
-        IConsoleService interactionService,
+        IConsoleService consoleService,
         ICertificateService certificateService,
         IProjectLocator projectLocator,
         IAnsiConsole ansiConsole,
@@ -42,7 +42,7 @@ internal sealed class RunCommand : BaseCommand
         : base("run", RunCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
@@ -50,7 +50,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
 
         _runner = runner;
-        _consoleService = interactionService;
+        _consoleService = consoleService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;

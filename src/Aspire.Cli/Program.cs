@@ -157,10 +157,10 @@ public class Program
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), consoleService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)

@@ -19,7 +19,7 @@ internal sealed class RootCommand : BaseRootCommand
 {
     private readonly IConsoleService _consoleService;
 
-    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatures featureFlags, IConsoleService interactionService)
+    public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatures featureFlags, IConsoleService consoleService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -29,9 +29,9 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
 
-        _consoleService = interactionService;
+        _consoleService = consoleService;
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;

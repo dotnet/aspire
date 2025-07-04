@@ -24,19 +24,19 @@ internal sealed class AddCommand : BaseCommand
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IConsoleService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IConsoleService consoleService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
-        _consoleService = interactionService;
+        _consoleService = consoleService;
         _projectLocator = projectLocator;
         _prompter = prompter;
         _telemetry = telemetry;
@@ -261,12 +261,12 @@ internal interface IAddCommandPrompter
     Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
 }
 
-internal class  AddCommandPrompter(IConsoleService interactionService) : IAddCommandPrompter
+internal class  AddCommandPrompter(IConsoleService consoleService) : IAddCommandPrompter
 {
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
         var selectedPackage = packages.First();
-        var version = await interactionService.PromptForSelectionAsync(
+        var version = await consoleService.PromptForSelectionAsync(
             string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
             packages.DistinctBy(p => p.Package.Version),
             p => p.Package.Version,
@@ -276,7 +276,7 @@ internal class  AddCommandPrompter(IConsoleService interactionService) : IAddCom
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
-        var selectedIntegration = await interactionService.PromptForSelectionAsync(
+        var selectedIntegration = await consoleService.PromptForSelectionAsync(
             AddCommandStrings.SelectAnIntegrationToAdd,
             packages,
             PackageNameWithFriendlyNameIfAvailable,

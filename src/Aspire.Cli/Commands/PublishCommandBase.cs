@@ -35,16 +35,16 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IConsoleService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IConsoleService consoleService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
-        _consoleService = interactionService;
+        _consoleService = consoleService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
 
