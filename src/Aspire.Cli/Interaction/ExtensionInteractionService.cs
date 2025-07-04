@@ -226,14 +226,16 @@ internal class ExtensionInteractionService : IInteractionService
         _consoleInteractionService.DisplayEmptyLine();
     }
 
-    public void OpenNewProject(string projectPath)
+    public void OpenInIde(string path)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenInIdeAsync(path, _cancellationToken));
         Debug.Assert(result);
     }
 
     public void DisplayPlainText(string text)
     {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayPlainTextAsync(text, _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayPlainText(text);
     }
 
