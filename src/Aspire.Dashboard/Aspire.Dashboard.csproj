@@ -257,6 +257,7 @@
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
+    <Compile Include="$(SharedDir)InteractionConfig.cs" Link="Utils\InteractionConfig.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceCommands.cs" Link="Utils\KnownResourceCommands.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />

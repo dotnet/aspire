@@ -46,6 +46,7 @@
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)InteractionConfig.cs" Link="Utils\InteractionConfig.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="StringComparers.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
   </ItemGroup>

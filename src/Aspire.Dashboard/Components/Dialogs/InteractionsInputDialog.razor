@@ -97,7 +97,7 @@
                                              Mode="InputFileMode.Buffer"
                                              AnchorId="@inputId"
                                              Multiple="false"
-                                             MaximumFileSize="@(2 * 1024 * 1024)"
+                                             MaximumFileSize="@InteractionConfig.MaxFileSizeBytes"
                                              OnProgressChange="@(args => OnFileInputProgress(localItem, args))"
                                              OnCompleted="@(args => OnFileInputCompleted(localItem, args))" />
                             <FluentInputLabel ForId="@inputId" Label="@localItem.Input.Label" Required="@localItem.Input.Required" />

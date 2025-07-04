@@ -13,6 +13,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -21,9 +22,6 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
-    private const int MaxFileSizeMB = 2;
-    private const int MaxFileSizeBytes = MaxFileSizeMB * 1024 * 1024;
-
     protected readonly IDotNetCliRunner _runner;
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
@@ -570,9 +568,9 @@ internal abstract class PublishCommandBase : BaseCommand
             }
 
             var fileInfo = new FileInfo(value);
-            if (fileInfo.Length > MaxFileSizeBytes)
+            if (fileInfo.Length > InteractionConfig.MaxFileSizeBytes)
             {
-                return ValidationResult.Error($"File size must be less than {MaxFileSizeMB} MB.");
+                return ValidationResult.Error($"File size must be less than {InteractionConfig.MaxFileSizeMegabytes} MB.");
             }
 
             return ValidationResult.Success();
