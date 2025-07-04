@@ -29,7 +29,7 @@ public sealed class AzurePublishingContext(
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityReporter ProgressReporter => progressReporter;
+    private IPublishingActivityReporter ActivityReporter => progressReporter;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -75,7 +75,7 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        var step = await ProgressReporter.CreateStepAsync(
+        var step = await ActivityReporter.CreateStepAsync(
             "Publishing Azure Bicep templates",
             cancellationToken
         ).ConfigureAwait(false);

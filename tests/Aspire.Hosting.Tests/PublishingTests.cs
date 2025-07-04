@@ -269,34 +269,34 @@ public class PublishingTests
     }
 
     [Fact]
-    public void DeployingContextProgressReporterProperty()
+    public void DeployingContextActivityReporterProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
 
         // Explicitly set Deploy to true
         builder.Configuration["Publishing:Deploy"] = "true";
 
-        var progressReporterAccessed = false;
+        var activityReporterAccessed = false;
 
         builder.AddContainer("cache", "redis")
                .WithAnnotation(new DeployingCallbackAnnotation(context =>
                 {
-                    // Verify that ProgressReporter property is accessible and not null
-                    Assert.NotNull(context.ProgressReporter);
-                    Assert.IsAssignableFrom<IPublishingActivityReporter>(context.ProgressReporter);
+                    // Verify that ActivityReporter property is accessible and not null
+                    Assert.NotNull(context.ActivityReporter);
+                    Assert.IsAssignableFrom<IPublishingActivityReporter>(context.ActivityReporter);
                     
                     // Verify that accessing it multiple times returns the same instance (lazy initialization)
-                    var reporter1 = context.ProgressReporter;
-                    var reporter2 = context.ProgressReporter;
+                    var reporter1 = context.ActivityReporter;
+                    var reporter2 = context.ActivityReporter;
                     Assert.Same(reporter1, reporter2);
                     
-                    progressReporterAccessed = true;
+                    activityReporterAccessed = true;
                     return Task.CompletedTask;
                 }));
 
         using var app = builder.Build();
         app.Run();
 
-        Assert.True(progressReporterAccessed, "ProgressReporter property was not tested.");
+        Assert.True(activityReporterAccessed, "ActivityReporter property was not tested.");
     }
 }

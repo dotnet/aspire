@@ -59,7 +59,7 @@ public sealed class AzureEnvironmentResource : Resource
             context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger,
-            context.ProgressReporter);
+            context.ActivityReporter);
 
         return azureCtx.WriteModelAsync(context.Model, this);
     }
