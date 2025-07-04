@@ -154,7 +154,7 @@ internal sealed class DashboardServiceData : IDisposable
     {
         await _interactionService.CompleteInteractionAsync(
             request.InteractionId,
-            (interaction, serviceProvider, cancellationToken) =>
+            (interaction, serviceProvider) =>
             {
                 switch (request.KindCase)
                 {
