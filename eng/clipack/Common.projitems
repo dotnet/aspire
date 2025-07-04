@@ -44,7 +44,6 @@
       <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
-    <Message Text="** Build Aspire.Cli.csproj with publishdir=$(OutputPath) and PublishAot=$(PublishNativeAot)" Importance="High" />
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(CliProjectDirectory)Aspire.Cli.csproj"
@@ -52,23 +51,8 @@
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
 
-    <!--<Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"-->
-      <!--Command="find $(OutputPath) -type f -ls"-->
-      <!--StandardOutputImportance="High"-->
-      <!--StandardErrorImportance="High" />-->
-
-    <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
-      Command="file $(OutputPath)/aspire"
-      StandardOutputImportance="High"
-      StandardErrorImportance="High" />
-
-    <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
-      Command="find $(ArtifactsDir) -type f -name aspire -ls"
-      StandardOutputImportance="High"
-      StandardErrorImportance="High" />
-
     <!-- Codesign on macos -->
-    <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'" />
+    <Message Text="Codesigning $(OutputPath)/aspire .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'" />
     <!-- '-o runtime' is to enable hardened runtime -->
     <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'"
           Command="codesign -s - -o runtime -f $(OutputPath)/aspire" />

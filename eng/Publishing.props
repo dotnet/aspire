@@ -23,7 +23,6 @@
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
-    <_AllFilesInPackages Include="$(ArtifactsShippingPackagesDir)\**\*" />
     <_CliFilesToPublish Include="$(ArtifactsShippingPackagesDir)\aspire-cli-*" />
   </ItemGroup>
 
@@ -50,9 +49,6 @@
     <ItemGroup>
       <_CliFilesToPublish Include="@(GenerateChecksumItems->'%(DestinationPath)')" />
     </ItemGroup>
-
-    <Message Text="Files in artifacts directory $(ArtifactsShippingPackagesDir): @(_CliFilestoPublish)" Importance="High" />
-    <Message Text="ALL in artifacts directory $(ArtifactsShippingPackagesDir): @(_AllFilesInPackages)" Importance="High" />
 
     <ItemGroup>
       <ItemsToPushToBlobFeed Include="@(_InstallersToPublish)">

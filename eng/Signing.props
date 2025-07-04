@@ -48,8 +48,8 @@
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.zip" />
-    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-*.tar.gz" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-$(TargetRid)*.zip" />
+    <ItemsToSign Include="$(ArtifactsShippingPackagesDir)**\aspire-cli-$(TargetRid)*.tar.gz" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>
