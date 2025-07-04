@@ -149,7 +149,7 @@ internal sealed class ParameterProcessor(
                     {
                         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
                         Label = parameter.Name,
-                        Placeholder = "Enter value for " + parameter.Name,
+                        Placeholder = $"Enter value for {parameter.Name}",
                     };
                     resourceInputs.Add((parameter, input));
                 }
