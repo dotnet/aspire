@@ -243,6 +243,47 @@ public class AzureAppServiceTests
     }
 
     [Fact]
+    public void AzureAppServiceEnvironmentHasNameOutputReference()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        // Verify that the NameOutputReference property exists and returns the expected value
+        Assert.NotNull(env.Resource.NameOutputReference);
+        Assert.Equal("name", env.Resource.NameOutputReference.Name);
+        Assert.Same(env.Resource, env.Resource.NameOutputReference.Resource);
+    }
+
+    [Fact]
+    public async Task AzureAppServiceEnvironmentCanReferenceExistingAppServicePlan()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var nameParameter = builder.AddParameter("appServicePlanName", "existing-plan-name");
+        var resourceGroupParameter = builder.AddParameter("resourceGroup", "existing-rg");
+
+        builder.AddAzureAppServiceEnvironment("env")
+            .PublishAsExisting(nameParameter, resourceGroupParameter);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        Assert.True(environment.IsExisting());
+        Assert.True(environment.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var annotation));
+        Assert.NotNull(annotation);
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
     public void AzureAppServiceEnvironmentImplementsIAzureComputeEnvironmentResource()
     {
         var builder = TestDistributedApplicationBuilder.Create();
@@ -250,6 +291,67 @@ public class AzureAppServiceTests
 
         Assert.IsAssignableFrom<IAzureComputeEnvironmentResource>(env.Resource);
         Assert.IsAssignableFrom<IComputeEnvironmentResource>(env.Resource);
+    }
+
+    [Fact]
+    public async Task PublishAsAzureAppServiceWebsite_ThrowsIfNoEnvironment()
+    {
+        static async Task RunTest(Action<IDistributedApplicationBuilder> action)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+            // Do not add AddAzureAppServiceEnvironment
+
+            action(builder);
+
+            using var app = builder.Build();
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+            Assert.Contains("there are no 'AzureAppServiceEnvironmentResource' resources", ex.Message);
+        }
+
+        await RunTest(builder =>
+            builder.AddProject<Projects.ServiceA>("ServiceA")
+                .PublishAsAzureAppServiceWebsite((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddContainer("api", "myimage")
+                .PublishAsAzureAppServiceWebsite((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddExecutable("exe", "path/to/executable", ".")
+                .PublishAsDockerFile()
+                .PublishAsAzureAppServiceWebsite((_, _) => { }));
+    }
+
+    [Fact]
+    public async Task MultipleAzureAppServiceEnvironmentsSupported()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path);
+
+        var env1 = builder.AddAzureAppServiceEnvironment("env1");
+        var env2 = builder.AddAzureAppServiceEnvironment("env2");
+
+        builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(env1);
+
+        builder.AddProject<Projects.ServiceB>("ServiceB")
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(env2);
+
+        using var app = builder.Build();
+
+        // Publishing will stop the app when it is done
+        await app.RunAsync();
+
+        var verifySettings = new VerifySettings();
+        verifySettings.ScrubLines(line => line.Contains("\"path\"") && line.Contains(".csproj"));
+        await VerifyFile(
+            Path.Combine(tempDir.Path, "aspire-manifest.json"),
+            verifySettings);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

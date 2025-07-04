@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -753,10 +754,13 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
+                var (targetHost, bindingMode) = NormalizeTargetHost(sp.EndpointAnnotation.TargetHost);
+
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    "localhost",
+                    targetHost,
                     (int)svc.AllocatedPort!,
+                    bindingMode,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
@@ -791,12 +795,19 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
-                svc.Spec.Address = endpoint.TargetHost switch
+                if (string.Equals("localhost", endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
                 {
-                    "*" or "+" => "0.0.0.0",
-                    _ => endpoint.TargetHost
-                };
-                svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
+                    svc.Spec.Address = "localhost";
+                }
+                else
+                {
+                    svc.Spec.Address = endpoint.TargetHost;
+                }
+
+                if (!endpoint.IsProxied)
+                {
+                    svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+                }
 
                 // So we can associate the service with the resource that produced it and the endpoint it represents.
                 svc.Annotate(CustomResource.ResourceNameAnnotation, sp.ModelResource.Name);
@@ -1441,6 +1452,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
+            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost, ea.IsProxied);
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1454,6 +1466,60 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             }
             return false;
         }
+    }
+
+    private static string NormalizeServiceProducerTargetHost(string targetHost, bool isProxied)
+    {
+        // When proxied, the individual services are always bound to localhost even if the proxy
+        // is bound to different addresses.
+        if (isProxied)
+        {
+            return "localhost";
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(targetHost) || string.Equals(targetHost, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                return "localhost";
+            }
+            else if (IPAddress.TryParse(targetHost, out _))
+            {
+                // Use an IP address as is
+                return targetHost;
+            }
+            else
+            {
+                // Use 0.0.0.0 if the target host is not a valid IP address or hostname
+                return IPAddress.Any.ToString();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Normalize the target host to a tuple of (address, binding mode). A user may have configured
+    /// an endpoint target host that isn't itself a valid IP address or hostname that can be resolved
+    /// by other services or clients. For example, 0.0.0.0 is considered to mean that the service should
+    /// bind to all IPv4 addresses. When the target host indicates that the service should bind to all
+    /// IPv4 or IPv6 addresses, we instead return "localhost" as the address. The binding mode is metdata
+    /// that indicates whether an endpoint is bound to a single address or some set of multiple addresses
+    /// on the system.
+    /// </summary>
+    /// <param name="targetHost">The target host from an EndpointAnnotation</param>
+    /// <returns>A tuple of (address, binding mode).</returns>
+    private static (string, EndpointBindingMode) NormalizeTargetHost(string targetHost)
+    {
+        return targetHost switch
+        {
+            null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
+            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
+            var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
+            {
+                var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
+                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addreses)
+                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is
+            },
+            _ => ("localhost", EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
+        };
     }
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
@@ -1803,6 +1869,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 case ProtocolType.Udp:
                     portSpec.Protocol = PortProtocol.UDP;
                     break;
+            }
+
+            if (sp.EndpointAnnotation.TargetHost != "localhost")
+            {
+                portSpec.HostIP = sp.EndpointAnnotation.TargetHost;
             }
 
             ports.Add(portSpec);

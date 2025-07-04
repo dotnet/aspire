@@ -23,7 +23,7 @@ public sealed class OtlpLogsService
         var addContext = new AddContext();
         _telemetryRepository.AddLogs(addContext, request.ResourceLogs);
 
-        _logger.LogDebug("Processed logs export. Failure count: {FailureCount}", addContext.FailureCount);
+        _logger.LogDebug("Processed logs export. Success count: {SuccessCount}, failure count: {FailureCount}", addContext.SuccessCount, addContext.FailureCount);
 
         return new ExportLogsServiceResponse
         {

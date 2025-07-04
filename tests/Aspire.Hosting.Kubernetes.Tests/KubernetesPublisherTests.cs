@@ -120,14 +120,17 @@ public class KubernetesPublisherTests()
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
             .PublishAsKubernetesService(serviceResource => {
-                serviceResource.Workload = new ArgoRollout {
+                serviceResource.Workload = new ArgoRollout
+                {
                     Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
                     Spec = { Template = serviceResource.Workload!.PodTemplate, Selector = { MatchLabels = serviceResource.Labels.ToDictionary() } }
                 };
-                serviceResource.AdditionalResources.Add(new KedaScaledObject {
-                    Metadata = { Name = "myapp-scaler"},
-                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }});
-        });
+                serviceResource.AdditionalResources.Add(new KedaScaledObject
+                {
+                    Metadata = { Name = "myapp-scaler" },
+                    Spec = { ScaleTargetRef = { Kind = serviceResource.Workload.Kind!, Name = serviceResource.Workload.Metadata.Name }, MaxReplicaCount = 3 }
+                });
+            });
 
         builder.AddProject<TestProject>("project1", launchProfileName: null)
             .WithReference(api.GetEndpoint("http"));
@@ -175,9 +178,14 @@ public class KubernetesPublisherTests()
 
         builder.AddKubernetesEnvironment("env");
 
+        var param0 = builder.AddParameter("param0");
+        var param1 = builder.AddParameter("param1", secret: true);
+        var cs = builder.AddConnectionString("api-cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
         builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
-            .WithEnvironment("param3", param3);
+            .WithEnvironment("param3", param3)
+            .WithReference(cs);
 
         var app = builder.Build();
 

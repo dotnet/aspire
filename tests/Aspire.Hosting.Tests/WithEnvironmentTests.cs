@@ -161,7 +161,7 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             projectA.Resource,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance

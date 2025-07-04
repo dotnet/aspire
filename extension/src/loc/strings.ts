@@ -21,8 +21,6 @@ export const codespacesLink = localize('aspire-vscode.strings.codespacesLink', '
 export const openAspireDashboard = localize('aspire-vscode.strings.openAspireDashboard', 'Open Aspire Dashboard');
 export const noWorkspaceOpen = localize('aspire-vscode.strings.noWorkspaceOpen', 'No workspace is open. Please open a folder or workspace before running this command.');
 export const failedToShowPromptEmpty = localize('aspire-vscode.strings.failedToShowPromptEmpty', 'Failed to show prompt, text was empty.');
-export const activated = localize('aspire-vscode.strings.activated', 'Aspire Extension activated.');
-export const rpcServerListening = (address: string) => localize('aspire-vscode.strings.listening', 'Aspire extension server listening on {0}', address);
 export const rpcServerAddressError = localize('aspire-vscode.strings.addressError', 'Failed to get RPC server address. The extension may not function correctly.');
 export const rpcServerError = (err: any) => localize('aspire-vscode.strings.rpcServerError', 'RPC Server error: {0}', err);
 export const incompatibleAppHostError = localize('aspire-vscode.strings.incompatibleAppHostError', 'The app host is not compatible. Consider upgrading the app host or Aspire CLI.');
@@ -31,3 +29,4 @@ export const aspireCliVersion = (version: string) => localize('aspire-vscode.str
 export const requiredCapability = (capability: string) => localize('aspire-vscode.strings.requiredCapability', 'Required Capability: {0}', capability);
 export const aspireTerminalName = localize('aspire-vscode.strings.aspireTerminalName', 'Aspire Terminal');
 export const aspireOutputChannelName = localize('aspire-vscode.strings.aspireOutputChannelName', 'Aspire Extension');
+export const fieldRequired = localize('aspire-vscode.strings.fieldRequired', 'This field is required');

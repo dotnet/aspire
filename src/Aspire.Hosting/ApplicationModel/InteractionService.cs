@@ -3,8 +3,6 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -123,9 +121,10 @@ internal class InteractionService : IInteractionService
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
 
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
-        return completion.Complete
+        var promptState = completion.State as bool?;
+        return promptState == null
             ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok((bool)completion.State!);
+            : InteractionResultFactory.Ok(promptState.Value);
     }
 
     // For testing.
@@ -180,7 +179,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, Task<InteractionCompletionState>> createResult, CancellationToken cancellationToken)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, InteractionCompletionState> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 
@@ -193,7 +192,14 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        var result = await createResult(interactionState, _serviceProvider, cancellationToken).ConfigureAwait(false);
+        var result = createResult(interactionState, _serviceProvider);
+
+        // Run validation for inputs interaction.
+        if (!await RunValidationAsync(interactionState, result, cancellationToken).ConfigureAwait(false))
+        {
+            // Interaction is not complete if there are validation errors.
+            result = new InteractionCompletionState { Complete = false, State = result.State };
+        }
 
         lock (_onInteractionUpdatedLock)
         {
@@ -213,6 +219,38 @@ internal class InteractionService : IInteractionService
             // Either broadcast out the interaction is complete, or its updated state.
             OnInteractionUpdated?.Invoke(interactionState);
         }
+    }
+
+    private async Task<bool> RunValidationAsync(Interaction interactionState, InteractionCompletionState result, CancellationToken cancellationToken)
+    {
+        if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+        {
+            // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
+            if (result.State is IReadOnlyList<InteractionInput> inputs)
+            {
+                var options = (InputsDialogInteractionOptions)interactionState.Options;
+
+                if (options.ValidationCallback is { } validationCallback)
+                {
+                    foreach (var input in inputs)
+                    {
+                        input.ValidationErrors.Clear();
+                    }
+
+                    var context = new InputsDialogValidationContext
+                    {
+                        CancellationToken = cancellationToken,
+                        ServiceProvider = _serviceProvider,
+                        Inputs = inputsInfo.Inputs
+                    };
+                    await validationCallback(context).ConfigureAwait(false);
+
+                    return context.HasErrors;
+                }
+            }
+        }
+
+        return true;
     }
 
     internal async IAsyncEnumerable<Interaction> SubscribeInteractionUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -268,30 +306,6 @@ internal class InteractionCollection : KeyedCollection<int, Interaction>
     protected override int GetKeyForItem(Interaction item) => item.InteractionId;
 }
 
-/// <summary>
-/// 
-/// </summary>
-[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class InteractionResult<T>
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    public T? Data { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [MemberNotNullWhen(false, nameof(Data))]
-    public bool Canceled { get; }
-
-    internal InteractionResult(T? data, bool canceled)
-    {
-        Data = data;
-        Canceled = canceled;
-    }
-}
-
 internal static class InteractionResultFactory
 {
     internal static InteractionResult<T> Ok<T>(T result)
@@ -331,7 +345,7 @@ internal class Interaction
     {
         InteractionId = Interlocked.Increment(ref s_nextInteractionId);
         Title = title;
-        Message = options.EscapeMessageHtml == false ? message : WebUtility.HtmlEncode(message);
+        Message = message;
         Options = options;
         InteractionInfo = interactionInfo;
         CancellationToken = cancellationToken;

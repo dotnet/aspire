@@ -74,5 +74,19 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         set => _configurationKey = value;
     }
 
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
+    /// <summary>
+    /// A task completion source that can be used to wait for the value of the parameter to be set.
+    /// </summary>
+    internal TaskCompletionSource<string>? WaitForValueTcs { get; set; }
+
+    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    {
+        if (WaitForValueTcs is not null)
+        {
+            // Wait for the value to be set if the task completion source is available.
+            return await WaitForValueTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
 }

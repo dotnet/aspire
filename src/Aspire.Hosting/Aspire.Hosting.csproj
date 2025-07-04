@@ -50,6 +50,7 @@
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+    <PackageReference Include="Semver" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
