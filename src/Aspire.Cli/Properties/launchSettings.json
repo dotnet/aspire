@@ -78,6 +78,14 @@
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
+    },
+    "exec-dotnet-build-random-csproj": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet build RandomCsProj.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
     }
   }
 }

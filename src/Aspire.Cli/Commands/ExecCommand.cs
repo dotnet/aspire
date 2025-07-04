@@ -208,11 +208,7 @@ internal class ExecCommand : BaseCommand
 
             if (commandExitCode is not null)
             {
-                if (commandExitCode.Value is not 0)
-                {
-                    _interactionService.DisplayLines(runOutputCollector.GetLines());
-                }
-
+                // if there is a deterministic output of the command with exit code - we should display that
                 return commandExitCode.Value;
             }
 
