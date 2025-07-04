@@ -129,19 +129,19 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/build_sign_native.yml@self
-        parameters:
-          agentOs: linux
-          targetRidsForSameOS:
-            - linux-x64
-            - linux-arm64
-            #- linux-musl-x64
-          codeSign: true
-          teamName: $(_TeamName)
-          extraBuildArgs: >-
-            /p:Configuration=$(_BuildConfig)
-            $(_SignArgs)
-            $(_OfficialBuildIdArgs)
+      # - template: /eng/pipelines/templates/build_sign_native.yml@self
+      #   parameters:
+      #     agentOs: linux
+      #     targetRidsForSameOS:
+      #       - linux-x64
+      #       - linux-arm64
+      #       #- linux-musl-x64
+      #     codeSign: true
+      #     teamName: $(_TeamName)
+      #     extraBuildArgs: >-
+      #       /p:Configuration=$(_BuildConfig)
+      #       $(_SignArgs)
+      #       $(_OfficialBuildIdArgs)
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
@@ -195,24 +195,13 @@ extends:
 
             steps:
               - task: DownloadPipelineArtifact@2
-                displayName: 🟣 Download Native archives
+                displayName: 🟣 Download All Native Archives
                 inputs:
-                  #artifactName: native_archives_linux
+                  # Leave artifactName empty to download from all artifacts
                   itemPattern: |
-                    '**/aspire-cli-*.zip'
-                    '**/aspire-cli-*.tar.gz'
+                    **/aspire-cli-*.zip
+                    **/aspire-cli-*.tar.gz
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
-              #- task: DownloadPipelineArtifact@2
-                #displayName: Download Native archives
-                #inputs:
-                  #artifactName: native_archives_linux
-                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
-
-              #- task: DownloadPipelineArtifact@2
-                #displayName: Download Archives macos
-                #inputs:
-                  #artifactName: native_archives_macos
-                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - task: PowerShell@2
                 displayName: 🟣 List artifacts packages contents
