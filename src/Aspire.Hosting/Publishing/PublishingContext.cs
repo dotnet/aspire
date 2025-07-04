@@ -43,9 +43,9 @@ public sealed class PublishingContext(
     public IServiceProvider Services { get; } = serviceProvider;
 
     /// <summary>
-    /// Gets the progress reporter for publishing activities.
+    /// Gets the activity reporter for publishing activities.
     /// </summary>
-    public IPublishingActivityReporter ProgressReporter => _activityReporter ??=
+    public IPublishingActivityReporter ActivityReporter => _activityReporter ??=
         Services.GetRequiredService<IPublishingActivityReporter>();
 
     /// <summary>
