@@ -99,9 +99,15 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string ListCommand_Description {
+        public static string ShowCommand_Description {
             get {
-                return ResourceManager.GetString("ListCommand_Description", resourceCulture);
+                return ResourceManager.GetString("ShowCommand_Description", resourceCulture);
+            }
+        }
+        
+        public static string ShowCommand_UglyOptionDescription {
+            get {
+                return ResourceManager.GetString("ShowCommand_UglyOptionDescription", resourceCulture);
             }
         }
         

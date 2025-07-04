@@ -135,8 +135,11 @@
     <value>Configuration '{0}' set to '{1}' globally.</value>
     <comment>{0} is the key, {1} is the value</comment>
   </data>
-  <data name="ListCommand_Description" xml:space="preserve">
-    <value>List all configuration values.</value>
+  <data name="ShowCommand_Description" xml:space="preserve">
+    <value>Show effective configuration as merged JSON.</value>
+  </data>
+  <data name="ShowCommand_UglyOptionDescription" xml:space="preserve">
+    <value>Output plain ASCII without ANSI formatting or colors.</value>
   </data>
   <data name="NoConfigurationValuesFound" xml:space="preserve">
     <value>No configuration values found.</value>

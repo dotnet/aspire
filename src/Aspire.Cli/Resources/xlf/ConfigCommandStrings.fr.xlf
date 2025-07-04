@@ -52,11 +52,6 @@
         <target state="translated">La clé de configuration à récupérer.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ListCommand_Description">
-        <source>List all configuration values.</source>
-        <target state="translated">Répertoriez toutes les valeurs de configuration.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">Aucune valeur de configuration trouvée.</target>
@@ -80,6 +75,16 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">La valeur de configuration à définir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowCommand_Description">
+        <source>Show effective configuration as merged JSON.</source>
+        <target state="new">Show effective configuration as merged JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowCommand_UglyOptionDescription">
+        <source>Output plain ASCII without ANSI formatting or colors.</source>
+        <target state="new">Output plain ASCII without ANSI formatting or colors.</target>
         <note />
       </trans-unit>
     </body>
