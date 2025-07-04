@@ -350,7 +350,7 @@ extends:
                 displayName: Download Native archives
                 inputs:
                   #artifactName: native_archives_linux
-                  itemPattern:
+                  itemPattern: |
                     '**/aspire-cli-*.zip'
                     '**/aspire-cli-*.tar.gz'
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
