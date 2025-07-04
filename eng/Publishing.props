@@ -40,6 +40,17 @@
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
 
+    <!-- Generate checksums for aspire-cli packages -->
+    <ItemGroup>
+      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-*" />
+      <GenerateChecksumItems Include="@(_ArchiveFile)" DestinationPath="%(FullPath).sha512" />
+    </ItemGroup>
+
+    <GenerateChecksums Items="@(GenerateChecksumItems)" />
+    <ItemGroup>
+      <_CliFilesToPublish Include="@(GenerateChecksumItems->'%(DestinationPath)')" />
+    </ItemGroup>
+
     <Message Text="Files in artifacts directory $(ArtifactsShippingPackagesDir): @(_CliFilestoPublish)" Importance="High" />
     <Message Text="ALL in artifacts directory $(ArtifactsShippingPackagesDir): @(_AllFilesInPackages)" Importance="High" />
 
@@ -59,11 +70,11 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
-      <!--<ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">-->
-        <!--<IsShipping>false</IsShipping>-->
-        <!--<PublishFlatContainer>true</PublishFlatContainer>-->
-        <!--<RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>-->
-      <!--</ItemsToPushToBlobFeed>-->
+      <ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">
+        <IsShipping>false</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
     </ItemGroup>
   </Target>
 </Project>
