@@ -11,6 +11,7 @@ namespace Aspire.Cli.Interaction;
 
 internal class ConsoleInteractionService : IInteractionService
 {
+    private static readonly Style s_exitCodeMessageStyle = new Style(foreground: Color.RoyalBlue1, background: null, decoration: Decoration.None);
     private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
     private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Black, background: null, decoration: Decoration.Bold);
@@ -118,6 +119,7 @@ internal class ConsoleInteractionService : IInteractionService
             {
                 "waiting" => s_waitingMessageStyle,
                 "running" => s_infoMessageStyle,
+                "exitCode" => s_exitCodeMessageStyle,
                 _ => s_infoMessageStyle
             };
 

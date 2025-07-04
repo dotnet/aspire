@@ -123,6 +123,17 @@ internal class ExecResourceManager
                 };
             }
         }
+
+        int? exitCode;
+        if (_resourceNotificationService.TryGetCurrentState(dcpExecResourceName, out var resourceEvent) && (exitCode = resourceEvent?.Snapshot?.ExitCode) is not null)
+        {
+            yield return new CommandOutput
+            {
+                Text = "Aspire exec exit code: " + exitCode.Value,
+                IsErrorMessage = false,
+                Type = "exitCode"
+            };
+        }
     }
 
     public IResource? CreateExecResource()

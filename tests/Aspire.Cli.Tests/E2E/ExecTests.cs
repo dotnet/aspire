@@ -59,11 +59,12 @@ public class ExecTests(ITestOutputHelper output)
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
         Assert.Contains(logs, x => x.Text.Contains(".NET SDKs installed"));
+        Assert.Contains(logs, x => x.Text.Contains("Aspire exec exit code: 0")); // success
     }
 
     [Fact]
     [RequiresDocker]
-    public async Task Exec_EchoWithQuotedString_ShouldProduceLogs()
+    public async Task Exec_DotnetBuildFail_ShouldProduceLogs()
     {
         string[] args = [
             "--operation", "run",
@@ -86,6 +87,7 @@ public class ExecTests(ITestOutputHelper output)
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
         Assert.Contains(logs, x => x.Text.Contains("Project file does not exist"));
+        Assert.Contains(logs, x => x.Text.Contains("Aspire exec exit code: 1")); // not success
     }
 
     [Fact]
@@ -105,6 +107,7 @@ public class ExecTests(ITestOutputHelper output)
 
         Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
         Assert.Contains(logs, x => x.Text.Contains("Usage: dotnet [sdk-options] [command] [command-options] [arguments]"));
+        Assert.Contains(logs, x => x.Text.Contains("Aspire exec exit code: 0")); // success
     }
 
     [Fact]
