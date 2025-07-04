@@ -61,8 +61,7 @@ internal class ExtensionInteractionService : IInteractionService
         Debug.Assert(result);
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
-        bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -72,7 +71,7 @@ internal class ExtensionInteractionService : IInteractionService
             {
                 try
                 {
-                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, _cancellationToken).ConfigureAwait(false);
+                    var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
