@@ -1,7 +1,10 @@
 <Project>
   <PropertyGroup>
     <_AspireOnlyBuild Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">true</_AspireOnlyBuild>
+    <NativeBuildOnly Condition="'$(TargetRid)' != ''">true</NativeBuildOnly>
     <SkipTestProjects Condition="'$(SkipTestProjects)' == '' and '$(NativeBuildOnly)' == 'true'">true</SkipTestProjects>
+
+    <!-- TODO: compute RID for local runs -->
   </PropertyGroup>
 
   <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(NativeBuildOnly)' != 'true'">
@@ -21,7 +24,7 @@
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" BuildStep="native" BuildInParallel="false" />-->
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" BuildStep="native" BuildInParallel="false" />-->
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" BuildStep="native" BuildInParallel="false" />-->
-    <ProjectToBuild Condition="Exists('$(RepoRoot)eng\clipack\Aspire.Cli.$(NETCoreSdkRuntimeIdentifier).csproj')" Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(NETCoreSdkRuntimeIdentifier).csproj" />
+    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(TargetRid).csproj" />
   </ItemGroup>
 
   <!-- Tests -->

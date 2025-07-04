@@ -125,7 +125,7 @@ extends:
 
           jobs:
 
-          - job: macos
+          - job: macos-arm64
             pool:
               name: Azure Pipelines
               vmImage: macOS-latest-internal
@@ -145,7 +145,7 @@ extends:
                   --build
                   --restore
                   --sign
-                  /p:NativeBuildOnly=true
+                  /p:TargetRid=osx-arm64
                   /p:Configuration=$(_BuildConfig)
                   $(_SignArgs)
                   $(_OfficialBuildIdArgs)
@@ -157,7 +157,41 @@ extends:
                 condition: always()
                 inputs:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-                  ArtifactName: native_archives_macos
+                  ArtifactName: native_archives_macos_arm64
+
+          - job: macos-x64
+            pool:
+              name: Azure Pipelines
+              vmImage: macOS-latest-internal
+              os: macOS
+            variables:
+              - TeamName: $(_TeamName)
+
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+            steps:
+              - script: >-
+                  $(Build.SourcesDirectory)/build.sh
+                  --ci
+                  --build
+                  --restore
+                  --sign
+                  /p:TargetRid=osx-x64
+                  /p:Configuration=$(_BuildConfig)
+                  $(_SignArgs)
+                  $(_OfficialBuildIdArgs)
+                  -bl:$(Build.Arcade.LogsPath)Build.binlog
+                displayName: Build native packages
+
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: Publish Artifacts
+                condition: always()
+                inputs:
+                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                  ArtifactName: native_archives_macos_x64
 
       # Linux only job - without enableMicrobuild
       - template: /eng/common/templates-official/jobs/jobs.yml@self
