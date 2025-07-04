@@ -70,7 +70,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             imageBuilder,
             outputPath,
             context.Logger,
-            context.ProgressReporter,
+            context.ActivityReporter,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

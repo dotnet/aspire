@@ -2079,7 +2079,7 @@ namespace Aspire.Hosting.Publishing
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public partial interface IPublishingActivityProgressReporter
+    public partial interface IPublishingActivityReporter
     {
         System.Threading.Tasks.Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, System.Threading.CancellationToken cancellationToken);
         System.Threading.Tasks.Task UpdateActivityStatusAsync(PublishingActivity publishingActivity, System.Func<PublishingActivityStatus, PublishingActivityStatus> statusUpdate, System.Threading.CancellationToken cancellationToken);
@@ -2119,11 +2119,11 @@ namespace Aspire.Hosting.Publishing
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class NullPublishingActivityProgressReporter : IPublishingActivityProgressReporter
+    public sealed partial class NullPublishingActivityReporter : IPublishingActivityReporter
     {
-        internal NullPublishingActivityProgressReporter() { }
+        internal NullPublishingActivityReporter() { }
 
-        public static NullPublishingActivityProgressReporter Instance { get { throw null; } }
+        public static NullPublishingActivityReporter Instance { get { throw null; } }
 
         public System.Threading.Tasks.Task<PublishingActivity> CreateActivityAsync(string id, string initialStatusText, bool isPrimary, System.Threading.CancellationToken cancellationToken) { throw null; }
 
