@@ -21,7 +21,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
-    private readonly IConsoleService _interactionService;
+    private readonly IConsoleService _consoleService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -50,7 +50,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
 
         _runner = runner;
-        _interactionService = interactionService;
+        _consoleService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
@@ -109,17 +109,17 @@ internal sealed class RunCommand : BaseCommand
                     StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _consoleService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
                 if (buildExitCode != 0)
                 {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
+                    _consoleService.DisplayLines(buildOutputCollector.GetLines());
+                    _consoleService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _consoleService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -147,7 +147,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
+            var backchannel = await _consoleService.ShowStatusAsync("Connecting to app host...", async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
@@ -156,7 +156,7 @@ internal sealed class RunCommand : BaseCommand
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            var dashboardUrls = await _consoleService.ShowStatusAsync("Starting dashboard...", async () =>
             {
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
@@ -234,46 +234,46 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
-            _interactionService.DisplayCancellationMessage();
+            _consoleService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            return _consoleService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
+            _consoleService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
+            _consoleService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }

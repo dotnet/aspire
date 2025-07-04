@@ -17,7 +17,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    private readonly IConsoleService _interactionService;
+    private readonly IConsoleService _consoleService;
 
     public RootCommand(NewCommand newCommand, RunCommand runCommand, AddCommand addCommand, PublishCommand publishCommand, DeployCommand deployCommand, ConfigCommand configCommand, IFeatures featureFlags, IConsoleService interactionService)
         : base(RootCommandStrings.Description)
@@ -31,7 +31,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        _interactionService = interactionService;
+        _consoleService = interactionService;
 
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
@@ -57,7 +57,7 @@ internal sealed class RootCommand : BaseRootCommand
 
             if (waitForDebugger)
             {
-                _interactionService.ShowStatus(
+                _consoleService.ShowStatus(
                     $":bug:  {string.Format(CultureInfo.CurrentCulture, RootCommandStrings.WaitingForDebugger, Environment.ProcessId)}",
                     () =>
                     {

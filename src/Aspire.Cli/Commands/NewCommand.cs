@@ -20,7 +20,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IConsoleService _interactionService;
+    private readonly IConsoleService _consoleService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
 
@@ -48,7 +48,7 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _interactionService = interactionService;
+        _consoleService = interactionService;
         _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
@@ -102,7 +102,7 @@ internal sealed class NewCommand : BaseCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null && _interactionService is ExtensionConsoleService extensionInteractionService)
+        if (templateResult.OutputPath is not null && _consoleService is ExtensionConsoleService extensionInteractionService)
         {
             extensionInteractionService.OpenNewProject(templateResult.OutputPath);
         }

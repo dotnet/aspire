@@ -22,7 +22,7 @@ namespace Aspire.Cli.Commands;
 internal abstract class PublishCommandBase : BaseCommand
 {
     protected readonly IDotNetCliRunner _runner;
-    protected readonly IConsoleService _interactionService;
+    protected readonly IConsoleService _consoleService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
 
@@ -44,7 +44,7 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
-        _interactionService = interactionService;
+        _consoleService = interactionService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
 
@@ -101,7 +101,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _consoleService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -114,12 +114,12 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _consoleService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 
             if (buildExitCode != 0)
             {
-                _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                _interactionService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
+                _consoleService.DisplayLines(buildOutputCollector.GetLines());
+                _consoleService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
@@ -151,10 +151,10 @@ internal abstract class PublishCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                _interactionService.DisplayMessage("bug", ConsoleServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                _consoleService.DisplayMessage("bug", ConsoleServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
+            var backchannel = await _consoleService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
@@ -179,52 +179,52 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (debugMode)
             {
-                _interactionService.DisplayLines(operationOutputCollector.GetLines());
+                _consoleService.DisplayLines(operationOutputCollector.GetLines());
             }
 
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayError(GetCanceledMessage());
+            _consoleService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.SpecifiedProjectFileNotAppHostProject);
+            _consoleService.DisplayError(ConsoleServiceStrings.SpecifiedProjectFileNotAppHostProject);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            return _consoleService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message));
-            _interactionService.DisplayLines(operationOutputCollector.GetLines());
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            _consoleService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }
@@ -476,19 +476,19 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             foreach (var error in errors)
             {
-                _interactionService.DisplayError(error);
+                _consoleService.DisplayError(error);
             }
         }
 
         return inputType switch
         {
-            InputType.Text => await _interactionService.PromptForStringAsync(
+            InputType.Text => await _consoleService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
                 required: input.Required,
                 cancellationToken: cancellationToken),
 
-            InputType.SecretText => await _interactionService.PromptForStringAsync(
+            InputType.SecretText => await _consoleService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
                 isSecret: true,
@@ -497,11 +497,11 @@ internal abstract class PublishCommandBase : BaseCommand
 
             InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
 
-            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
+            InputType.Boolean => (await _consoleService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
+            _ => await _consoleService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
         };
     }
 
@@ -509,12 +509,12 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+            return await _consoleService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
         // but we can reorder the options to put the default first or use a different approach
-        var selectedChoice = await _interactionService.PromptForSelectionAsync(
+        var selectedChoice = await _consoleService.PromptForSelectionAsync(
             promptText,
             input.Options,
             choice => choice.Value,
@@ -537,7 +537,7 @@ internal abstract class PublishCommandBase : BaseCommand
             return ValidationResult.Success();
         }
 
-        return await _interactionService.PromptForStringAsync(
+        return await _consoleService.PromptForStringAsync(
             promptText,
             defaultValue: input.Value,
             validator: Validator,
