@@ -3,7 +3,7 @@ parameters:
   # All the targetRids must be for the same OS
   targetRids:
     - win_x64
-  jobNameSuffix: 'windows_x64'
+  #jobNameSuffix: 'windows_x64'
   extraBuildArgs: ''
   codeSign: false
   teamName: ''
@@ -21,8 +21,8 @@ jobs:
       enablePublishBuildArtifacts: true
 
       jobs:
-      - job: BuildNative_${{ parameters.jobNameSuffix }}
-        displayName: Native ${{ parameters.jobNameSuffix }}
+      - job: BuildNative_${{ replace(targetRid, '-', '_') }}
+        displayName: ${{ replace(targetRid, '-', '_') }}
         timeoutInMinutes: 20
 
         variables:
@@ -73,4 +73,4 @@ jobs:
             condition: always()
             inputs:
               PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-              ArtifactName: native_archives_${{ parameters.jobNameSuffix }}_${{ replace(targetRid, '-', '_') }}
+              ArtifactName: native_archives_${{ replace(targetRid, '-', '_') }}
