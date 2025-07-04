@@ -681,6 +681,25 @@ public static class ResourceExtensions
         };
 
     /// <summary>
+    /// Returns a single DCP resource name for the specified resource.
+    /// Throws <see cref="InvalidOperationException"/> if the resource has no resolved names or multiple resolved names.
+    /// </summary>
+    internal static string GetResolvedResourceName(this IResource resource)
+    {
+        var names = resource.GetResolvedResourceNames();
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has no resolved names.");
+        }
+        if (names.Length > 1)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple resolved names: {string.Join(", ", names)}.");
+        }
+
+        return names[0];
+    }
+
+    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
