@@ -116,7 +116,7 @@ extends:
       displayName: Archive, and Sign native packages
 
       jobs:
-      - template: /eng/pipelines/templates/sign_archives.yml@self
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: macos
           jobNameSuffix: macos_arm64
@@ -128,7 +128,7 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml@self
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: macos
           jobNameSuffix: macos_x64
@@ -140,7 +140,7 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml@self
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: linux
           targetRids:
@@ -155,7 +155,7 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      #- template: /eng/pipelines/templates/sign_archives.yml@self
+      #- template: /eng/pipelines/templates/build_sign_native.yml@self
         #parameters:
           #agentOs: linux
           #jobNameSuffix: linux_arm64
@@ -167,7 +167,7 @@ extends:
             #$(_SignArgs)
             #$(_OfficialBuildIdArgs)
 
-      #- template: /eng/pipelines/templates/sign_archives.yml@self
+      #- template: /eng/pipelines/templates/build_sign_native.yml@self
         #parameters:
           #agentOs: linux
           #jobNameSuffix: linux_musl_x64
