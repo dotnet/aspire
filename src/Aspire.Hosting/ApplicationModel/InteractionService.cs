@@ -197,7 +197,7 @@ internal class InteractionService : IInteractionService
         // Run validation for inputs interaction.
         if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
         {
-            // State could be null if the user dismissed the inputs dialog.
+            // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
             if (result.State is IReadOnlyList<InteractionInput> inputs)
             {
                 var options = (InputsDialogInteractionOptions)interactionState.Options;
