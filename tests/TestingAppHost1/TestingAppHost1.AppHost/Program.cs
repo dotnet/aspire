@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -21,6 +21,8 @@ if (args.Contains("--add-redis"))
 var webApp = builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEnvironment("APP_HOST_ARG", builder.Configuration["APP_HOST_ARG"])
     .WithEnvironment("LAUNCH_PROFILE_VAR_FROM_APP_HOST", builder.Configuration["LAUNCH_PROFILE_VAR_FROM_APP_HOST"]);
+
+builder.AddExecutable("ping-executable", "ping", Path.GetDirectoryName(webApp.Resource.GetProjectMetadata().ProjectPath)!, "google.com");
 
 if (builder.Configuration.GetValue("USE_HTTPS", false))
 {
