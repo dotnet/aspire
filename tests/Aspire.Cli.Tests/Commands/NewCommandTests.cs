@@ -37,7 +37,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 return new TestNewCommandPrompter(interactionService);
             };
 
@@ -80,7 +80,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForProjectNameCallback = (defaultName) =>
@@ -138,7 +138,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter =  new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForTemplatesVersionCallback = (packages) =>
@@ -204,7 +204,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter =  new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForTemplatesVersionCallback = (packages) =>
@@ -278,7 +278,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForProjectNameCallback = (defaultName) =>
@@ -332,7 +332,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForOutputPathCallback = (path) =>
@@ -386,7 +386,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForTemplateCallback = (path) =>
@@ -440,7 +440,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
 
                 prompter.PromptForTemplatesVersionCallback = (packages) =>
@@ -490,8 +490,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-            options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleInteractionService();
+            options.ConsoleServiceFactory = (sp) => {
+                var testInteractionService = new TestConsoleService();
                 testInteractionService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
@@ -525,7 +525,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.NewCommandPrompterFactory = (sp) => {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
                 return prompter;
             };
@@ -580,7 +580,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 }
 
-internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
+internal sealed class TestNewCommandPrompter(IConsoleService interactionService) : NewCommandPrompter(interactionService)
 {
     public Func<IEnumerable<NuGetPackage>, NuGetPackage>? PromptForTemplatesVersionCallback { get; set; }
     public Func<ITemplate[], ITemplate>? PromptForTemplateCallback { get; set; }

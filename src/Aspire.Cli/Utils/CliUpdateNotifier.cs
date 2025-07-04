@@ -16,7 +16,7 @@ internal interface ICliUpdateNotifier
 internal class CliUpdateNotifier(
     ILogger<CliUpdateNotifier> logger,
     INuGetPackageCache nuGetPackageCache,
-    IInteractionService interactionService) : ICliUpdateNotifier
+    IConsoleService interactionService) : ICliUpdateNotifier
 {
 
     public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default)

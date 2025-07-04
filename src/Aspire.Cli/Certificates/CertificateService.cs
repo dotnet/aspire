@@ -15,7 +15,7 @@ internal interface ICertificateService
     Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
+internal sealed class CertificateService(IConsoleService interactionService, AspireCliTelemetry telemetry) : ICertificateService
 {
 
     public async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
@@ -24,7 +24,7 @@ internal sealed class CertificateService(IInteractionService interactionService,
 
         var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(
-            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
+            $":locked_with_key: {ConsoleServiceStrings.CheckingCertificates}",
             async () => {
                 var options = new DotNetCliRunnerInvocationOptions
                 {
@@ -46,7 +46,7 @@ internal sealed class CertificateService(IInteractionService interactionService,
             };
 
             var trustExitCode = await interactionService.ShowStatusAsync(
-                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
+                $":locked_with_key: {ConsoleServiceStrings.TrustingCertificates}",
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));

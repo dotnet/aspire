@@ -16,9 +16,9 @@ internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
     private readonly IConfigurationService _configurationService;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("config", ConfigCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -51,9 +51,9 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class GetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
+        private readonly IConsoleService _interactionService;
 
-        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public GetCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
@@ -95,9 +95,9 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class SetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
+        private readonly IConsoleService _interactionService;
 
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public SetCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
@@ -164,9 +164,9 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class ListCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
+        private readonly IConsoleService _interactionService;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public ListCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;
@@ -197,9 +197,9 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class DeleteCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
+        private readonly IConsoleService _interactionService;
 
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        public DeleteCommand(IConfigurationService configurationService, IConsoleService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
             : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier)
         {
             _configurationService = configurationService;

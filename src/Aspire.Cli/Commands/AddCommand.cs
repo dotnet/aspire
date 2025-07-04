@@ -19,12 +19,12 @@ internal sealed class AddCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IConsoleService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -162,17 +162,17 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (OperationCanceledException)
@@ -261,7 +261,7 @@ internal interface IAddCommandPrompter
     Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
 }
 
-internal class  AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
+internal class  AddCommandPrompter(IConsoleService interactionService) : IAddCommandPrompter
 {
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {

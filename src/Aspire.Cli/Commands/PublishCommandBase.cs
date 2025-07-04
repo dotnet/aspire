@@ -22,7 +22,7 @@ namespace Aspire.Cli.Commands;
 internal abstract class PublishCommandBase : BaseCommand
 {
     protected readonly IDotNetCliRunner _runner;
-    protected readonly IInteractionService _interactionService;
+    protected readonly IConsoleService _interactionService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
 
@@ -35,7 +35,7 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IConsoleService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -119,7 +119,7 @@ internal abstract class PublishCommandBase : BaseCommand
             if (buildExitCode != 0)
             {
                 _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                _interactionService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
@@ -151,7 +151,7 @@ internal abstract class PublishCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                _interactionService.DisplayMessage("bug", ConsoleServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
             var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
@@ -191,22 +191,22 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject);
+            _interactionService.DisplayError(ConsoleServiceStrings.SpecifiedProjectFileNotAppHostProject);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
@@ -218,13 +218,13 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message));
             _interactionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }

@@ -20,7 +20,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
 
@@ -28,7 +28,7 @@ internal sealed class NewCommand : BaseCommand
         IDotNetCliRunner runner,
         INuGetPackageCache nuGetPackageCache,
         INewCommandPrompter prompter,
-        IInteractionService interactionService,
+        IConsoleService interactionService,
         ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
@@ -102,7 +102,7 @@ internal sealed class NewCommand : BaseCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null && _interactionService is ExtensionInteractionService extensionInteractionService)
+        if (templateResult.OutputPath is not null && _interactionService is ExtensionConsoleService extensionInteractionService)
         {
             extensionInteractionService.OpenNewProject(templateResult.OutputPath);
         }
@@ -119,7 +119,7 @@ internal interface INewCommandPrompter
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
 
-internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
+internal class NewCommandPrompter(IConsoleService interactionService) : INewCommandPrompter
 {
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {

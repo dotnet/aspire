@@ -17,14 +17,14 @@ internal interface IProjectLocator
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IConsoleService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
 
     private async Task<List<FileInfo>> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
+        return await interactionService.ShowStatusAsync(ConsoleServiceStrings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
             var lockObject = new object();
@@ -35,7 +35,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 IgnoreInaccessible = true
             };
 
-            interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
+            interactionService.DisplayMessage("magnifying_glass_tilted_left", ConsoleServiceStrings.FindingAppHosts);
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
@@ -160,7 +160,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         else if (appHostProjects.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
-                InteractionServiceStrings.SelectAppHostToRun,
+                ConsoleServiceStrings.SelectAppHostToRun,
                 appHostProjects,
                 projectFile => $"{projectFile.Name} ({Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
@@ -184,7 +184,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
 
         var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
+        interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
 }
 

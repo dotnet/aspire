@@ -21,7 +21,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -30,7 +30,7 @@ internal sealed class RunCommand : BaseCommand
 
     public RunCommand(
         IDotNetCliRunner runner,
-        IInteractionService interactionService,
+        IConsoleService interactionService,
         ICertificateService certificateService,
         IProjectLocator projectLocator,
         IAnsiConsole ansiConsole,
@@ -114,7 +114,7 @@ internal sealed class RunCommand : BaseCommand
                 if (buildExitCode != 0)
                 {
                     _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                    _interactionService.DisplayError(ConsoleServiceStrings.ProjectCouldNotBeBuilt);
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
@@ -239,17 +239,17 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _interactionService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (AppHostIncompatibleException ex)
@@ -266,13 +266,13 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

@@ -34,7 +34,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 return new TestAddCommandPrompter(interactionService);
             };
 
@@ -100,7 +100,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
 
                 prompter.PromptForIntegrationVersionCallback = (packages) =>
@@ -172,7 +172,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
 
                 prompter.PromptForIntegrationVersionCallback = (packages) =>
@@ -252,7 +252,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
@@ -328,7 +328,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
@@ -412,7 +412,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
@@ -501,7 +501,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 return new TestAddCommandPrompter(interactionService);
             };
 
@@ -561,8 +561,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-            options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleInteractionService();
+            options.ConsoleServiceFactory = (sp) => {
+                var testInteractionService = new TestConsoleService();
                 testInteractionService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
@@ -600,8 +600,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-            options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleInteractionService();
+            options.ConsoleServiceFactory = (sp) => {
+                var testInteractionService = new TestConsoleService();
                 testInteractionService.DisplaySubtleMessageCallback = (message) => {
                     displayedSubtleMessage = message;
                 };
@@ -610,7 +610,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var interactionService = sp.GetRequiredService<IConsoleService>();
                 var prompter = new TestAddCommandPrompter(interactionService);
                 prompter.PromptForIntegrationCallback = (packages) =>
                 {
@@ -664,7 +664,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     }
 }
 
-internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)
+internal sealed class TestAddCommandPrompter(IConsoleService interactionService) : AddCommandPrompter(interactionService)
 {
     public Func<IEnumerable<(string FriendlyName, NuGetPackage Package)>, (string FriendlyName, NuGetPackage Package)>? PromptForIntegrationCallback { get; set; }
     public Func<IEnumerable<(string FriendlyName, NuGetPackage Package)>, (string FriendlyName, NuGetPackage Package)>? PromptForIntegrationVersionCallback { get; set; }

@@ -28,7 +28,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -65,7 +65,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         writer.Close();
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -103,7 +103,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         writer.Close();
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -146,7 +146,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             }
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -170,7 +170,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -203,7 +203,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             }
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
 
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
@@ -218,7 +218,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
 
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
@@ -239,7 +239,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
@@ -257,7 +257,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
 
         var configurationService = new TestConfigurationService();
         var projectLocator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
@@ -283,7 +283,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             return (0, true, VersionHelper.GetDefaultTemplateVersion());
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestConsoleService();
 
         // Simulated global settings path for test isolation.
         var globalSettingsFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.global.json");

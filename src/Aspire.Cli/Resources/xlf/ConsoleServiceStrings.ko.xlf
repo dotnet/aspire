@@ -1,35 +1,35 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../InteractionServiceStrings.resx">
+  <file datatype="xml" source-language="en" target-language="ko" original="../ConsoleServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">應用程式主機不相容。請考慮升級應用程式主機或 Aspire CLI。</target>
+        <target state="translated">앱 호스트가 호환되지 않습니다. 앱 호스트 또는 Aspire CLI를 업그레이드하는 것을 고려해 보세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
         <source>Aspire CLI Version</source>
-        <target state="translated">Aspire CLI 版本</target>
+        <target state="translated">Aspire CLI 버전</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingSDKVersion">
         <source>Aspire.Hosting Version</source>
-        <target state="translated">Aspire.Hosting 版本</target>
+        <target state="translated">Aspire.Hosting 버전</target>
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host...</source>
-        <target state="translated">正在建置應用程式主機...</target>
+        <target state="translated">앱 호스트를 빌드하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
         <source>Checking certificates...</source>
-        <target state="translated">正在檢查憑證...</target>
+        <target state="translated">인증서를 확인하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingProjectType">
         <source>Checking project type...</source>
-        <target state="translated">正在檢查專案類型...</target>
+        <target state="translated">프로젝트 형식을 확인하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="CodespacesLink">
@@ -39,97 +39,97 @@
       </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
-        <target state="translated">已在 {0} 建立設定檔案。</target>
+        <target state="translated">{0}에 설정 파일을 만들었습니다.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
-        <target state="translated">儀表板</target>
+        <target state="translated">대시보드</target>
         <note />
       </trans-unit>
       <trans-unit id="DirectLink">
         <source>Direct</source>
-        <target state="translated">直接</target>
+        <target state="translated">직접</target>
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
         <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="translated">連接到應用程式主機時發生錯誤。應用程式主機可能在可用之前當機: {0}。</target>
+        <target state="translated">앱 호스트에 연결하는 동안 오류가 발생했습니다. 앱 호스트가 사용 가능하기 전에 충돌했을 수 있음: {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding app hosts...</source>
-        <target state="translated">正在尋找應用程式主機...</target>
+        <target state="translated">앱 호스트를 찾는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
-        <target state="translated">沒有可供選取的項目: {0}</target>
+        <target state="translated">선택할 수 있는 항목 없음: {0}</target>
         <note>{0} is the original selection prompt text.</note>
       </trans-unit>
       <trans-unit id="OperationCancelled">
         <source>The operation was canceled.</source>
-        <target state="translated">已取消作業。</target>
+        <target state="translated">작업이 취소되었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
         <source>The project could not be built. For more information run with --debug switch.</source>
-        <target state="translated">無法建置專案。如需詳細資訊，請使用 --debug 切換執行。</target>
+        <target state="translated">프로젝트를 빌드할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
         <source>The --project option specified a project that does not exist.</source>
-        <target state="translated">--project 選項指定的專案不存在。</target>
+        <target state="translated">--project 옵션에서 존재하지 않는 프로젝트를 지정했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">未指定 --project 選項，且偵測到多個應用程式主機專案檔案。</target>
+        <target state="translated">--project 옵션이 지정되지 않았고 앱 호스트 프로젝트 파일이 여러 개 감지되었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
         <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="translated">未指定專案引數，且未偵測到任何 *.csproj 檔案。</target>
+        <target state="translated">프로젝트 인수가 지정되지 않았고 *.csproj 파일이 감지되지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
         <source>Required Capability</source>
-        <target state="translated">必要的功能</target>
+        <target state="translated">필수 기능</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingProjects">
         <source>Searching...</source>
-        <target state="translated">正在搜尋...</target>
+        <target state="translated">검색 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
         <source>Select app host to run</source>
-        <target state="translated">選取要執行的應用程式主機</target>
+        <target state="translated">실행할 앱 호스트 선택</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定的專案檔案不是 Aspire 應用程式主機專案。</target>
+        <target state="translated">지정한 프로젝트 파일은 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
         <source>Stopping Aspire.</source>
-        <target state="translated">正在停止 Aspire。</target>
+        <target state="translated">Aspire를 중지하는 중입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
-        <target state="translated">信任憑證...</target>
+        <target state="translated">인증서를 신뢰하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
         <source>An unexpected error occurred: {0}</source>
-        <target state="translated">發生未預期的錯誤: {0}</target>
+        <target state="translated">예기치 않은 오류가 발생했습니다. {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
         <source>Waiting for debugger to attach to app host process</source>
-        <target state="translated">正在等候偵錯工具連結到應用程式主機流程</target>
+        <target state="translated">디버거가 앱 호스트 프로세스에 연결되기를 기다리는 중</target>
         <note />
       </trans-unit>
     </body>

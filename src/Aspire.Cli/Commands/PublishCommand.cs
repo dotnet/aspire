@@ -17,7 +17,7 @@ internal interface IPublishCommandPrompter
     Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken);
 }
 
-internal class PublishCommandPrompter(IInteractionService interactionService) : IPublishCommandPrompter
+internal class PublishCommandPrompter(IConsoleService interactionService) : IPublishCommandPrompter
 {
     public virtual async Task<string> PromptForPublisherAsync(IEnumerable<string> publishers, CancellationToken cancellationToken)
     {
@@ -34,7 +34,7 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public PublishCommand(IDotNetCliRunner runner, IConsoleService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(prompter);
@@ -52,7 +52,7 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string GetFailureMessage(int exitCode) => string.Format(CultureInfo.CurrentCulture, PublishCommandStrings.FailedToPublishArtifacts, exitCode);
 
-    protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;
+    protected override string GetCanceledMessage() => ConsoleServiceStrings.OperationCancelled;
 
     protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
 }

@@ -157,7 +157,7 @@ public class Program
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
@@ -194,11 +194,11 @@ public class Program
             builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
 
             var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
-            builder.Services.AddSingleton<IInteractionService>(provider =>
+            builder.Services.AddSingleton<IConsoleService>(provider =>
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
-                return new ExtensionInteractionService(consoleInteractionService,
+                var consoleService = new ConsoleService(ansiConsole);
+                return new ExtensionConsoleService(consoleService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
             });
@@ -210,7 +210,7 @@ public class Program
         }
         else
         {
-            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+            builder.Services.AddSingleton<IConsoleService, ConsoleService>();
         }
     }
 

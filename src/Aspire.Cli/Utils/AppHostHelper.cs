@@ -13,7 +13,7 @@ namespace Aspire.Cli.Utils;
 internal static class AppHostHelper
 {
 
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IConsoleService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, cancellationToken);
 
@@ -49,12 +49,12 @@ internal static class AppHostHelper
             }
     }
 
-    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
+    internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IConsoleService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
 
         var appHostInformationResult = await interactionService.ShowStatusAsync(
-            $":microscope: {InteractionServiceStrings.CheckingProjectType}",
+            $":microscope: {ConsoleServiceStrings.CheckingProjectType}",
             () => runner.GetAppHostInformationAsync(
                 projectFile,
                 new DotNetCliRunnerInvocationOptions(),
@@ -63,10 +63,10 @@ internal static class AppHostHelper
         return appHostInformationResult;
     }
 
-    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IConsoleService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
-            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost}",
+            $":hammer_and_wrench:  {ConsoleServiceStrings.BuildingAppHost}",
             () => runner.BuildAsync(
                 projectFile,
                 options,

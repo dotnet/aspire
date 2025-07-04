@@ -7,13 +7,13 @@ using Xunit;
 
 namespace Aspire.Cli.Tests.Interaction;
 
-public class ConsoleInteractionServiceTests
+public class ConsoleServiceTests
 {
     [Fact]
     public async Task PromptForSelectionAsync_EmptyChoices_ThrowsEmptyChoicesException()
     {
         // Arrange
-        var interactionService = new ConsoleInteractionService(AnsiConsole.Console);
+        var interactionService = new ConsoleService(AnsiConsole.Console);
         var choices = Array.Empty<string>();
 
         // Act & Assert
