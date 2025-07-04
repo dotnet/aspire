@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -101,6 +102,7 @@ public interface IInteractionService
 /// Represents an input for an interaction.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Label = {Label}, InputType = {InputType}, Required = {Required}, Value = {Value}")]
 public sealed class InteractionInput
 {
     private string? _value;
@@ -132,7 +134,7 @@ public sealed class InteractionInput
     public string? Value { get => _value; init => _value = value; }
 
     /// <summary>
-    /// Gets or sets the value of the input as a byte array. Only used by <see cref="InputType.File"/> inputs.
+    /// Gets or sets the bytes value of the input. Only used by <see cref="InputType.File"/> inputs.
     /// </summary>
     public byte[]? ValueBytes { get => _valueBytes; init => _valueBytes = value; }
 

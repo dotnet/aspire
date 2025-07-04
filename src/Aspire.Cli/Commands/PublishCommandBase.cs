@@ -21,6 +21,9 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
+    private const int MaxFileSizeMB = 2;
+    private const int MaxFileSizeBytes = MaxFileSizeMB * 1024 * 1024;
+
     protected readonly IDotNetCliRunner _runner;
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
@@ -432,12 +435,13 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         // Handle multiple inputs
-        var results = new string?[inputs.Count];
+        var answers = new PublishingPromptInputAnswer[inputs.Count];
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
 
             string? result;
+            byte[]? resultBytes;
 
             // Get prompt for input if there are no validation errors (first time we've asked)
             // or there are validation errors and this input has an error.
@@ -449,21 +453,25 @@ internal abstract class PublishCommandBase : BaseCommand
                     ? $"{input.Label}: "
                     : $"[bold]{activity.Data.StatusText}[/]";
 
-                result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+                (result, resultBytes) = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
             else
             {
-                result = input.Value;
+                (result, resultBytes) = (input.Value, input.ValueBytes);
             }
 
-            results[i] = result;
+            answers[i] = new PublishingPromptInputAnswer
+            {
+                Value = result,
+                ValueBytes = resultBytes
+            };
         }
 
         // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, results, cancellationToken);
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
     }
 
-    private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
+    private async Task<(string?, byte[]?)> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
         if (!Enum.TryParse<InputType>(input.InputType, ignoreCase: true, out var inputType))
         {
@@ -480,29 +488,36 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        return inputType switch
+        string? value = null;
+        byte[]? valueBytes = null;
+
+        switch (inputType)
         {
-            InputType.Text => await _interactionService.PromptForStringAsync(
-                promptText,
-                defaultValue: input.Value,
-                required: input.Required,
-                cancellationToken: cancellationToken),
+            case InputType.Text:
+                value = await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+                break;
+            case InputType.SecretText:
+                value = await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, isSecret: true, required: input.Required, cancellationToken: cancellationToken);
+                break;
+            case InputType.Choice:
+                value = await HandleSelectInputAsync(input, promptText, cancellationToken);
+                break;
+            case InputType.Boolean:
+                var confirmed = await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken);
+                value = confirmed.ToString().ToLowerInvariant();
+                break;
+            case InputType.Number:
+                value = await HandleNumberInputAsync(input, promptText, cancellationToken);
+                break;
+            case InputType.File:
+                (value, valueBytes) = await HandleFileInputAsync(input, promptText, cancellationToken);
+                break;
+            default:
+                value = await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+                break;
+        }
 
-            InputType.SecretText => await _interactionService.PromptForStringAsync(
-                promptText,
-                defaultValue: input.Value,
-                isSecret: true,
-                required: input.Required,
-                cancellationToken: cancellationToken),
-
-            InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
-
-            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
-
-            InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
-
-            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
-        };
+        return (value, valueBytes);
     }
 
     private async Task<string?> HandleSelectInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
@@ -543,6 +558,40 @@ internal abstract class PublishCommandBase : BaseCommand
             validator: Validator,
             required: input.Required,
             cancellationToken: cancellationToken);
+    }
+
+    private async Task<(string?, byte[]?)> HandleFileInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
+    {
+        static ValidationResult Validator(string value)
+        {
+            if (!File.Exists(value))
+            {
+                return ValidationResult.Error("Please enter a valid file path.");
+            }
+
+            var fileInfo = new FileInfo(value);
+            if (fileInfo.Length > MaxFileSizeBytes)
+            {
+                return ValidationResult.Error($"File size must be less than {MaxFileSizeMB} MB.");
+            }
+
+            return ValidationResult.Success();
+        }
+
+        var path = await _interactionService.PromptForStringAsync(
+            promptText,
+            defaultValue: input.Value,
+            validator: Validator,
+            required: input.Required,
+            cancellationToken: cancellationToken);
+
+        if (string.IsNullOrEmpty(path))
+        {
+            return (null, null);
+        }
+
+        var fileBytes = await File.ReadAllBytesAsync(path, cancellationToken);
+        return (Path.GetFileName(path), fileBytes);
     }
 
     private static bool ParseBooleanValue(string? value)

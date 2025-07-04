@@ -237,7 +237,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
     }
 
-    public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }

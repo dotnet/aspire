@@ -156,6 +156,11 @@ internal sealed class PublishingPromptInput
     public string? Value { get; init; }
 
     /// <summary>
+    /// Gets or sets the bytes value of the input. Only used by file inputs.
+    /// </summary>
+    public byte[]? ValueBytes { get; init; }
+
+    /// <summary>
     /// Gets the validation errors for the input.
     /// </summary>
     public IReadOnlyList<string>? ValidationErrors { get; init; }
@@ -190,4 +195,10 @@ internal class BackchannelLogEntry
     public required string Message { get; set; }
     public required DateTimeOffset Timestamp { get; set; }
     public required string CategoryName { get; set; }
+}
+
+internal class PublishingPromptInputAnswer
+{
+    public string? Value { get; set; }
+    public byte[]? ValueBytes { get; set; }
 }

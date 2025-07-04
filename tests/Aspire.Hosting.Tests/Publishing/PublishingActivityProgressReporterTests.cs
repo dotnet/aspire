@@ -482,7 +482,7 @@ public class PublishingActivityProgressReporterTests
         Assert.Equal("text-label", input.Label);
         Assert.Equal("Text", input.InputType);
 
-        var responses = new string[] { "user-response" };
+        var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
         await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None);
