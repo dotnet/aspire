@@ -139,12 +139,22 @@ export class InteractionService implements IInteractionService {
     }
 
     displayError(errorMessage: string) {
+        if (errorMessage.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty error message.');
+            return;
+        }
+
         extensionLogOutputChannel.error(`Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
         this.clearStatusBar();
     }
 
     displayMessage(emoji: string, message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty message.');
+            return;
+        }
+
         extensionLogOutputChannel.info(`Displaying message: ${emoji} ${message}`);
         vscode.window.showInformationMessage(formatText(message));
     }
@@ -152,11 +162,21 @@ export class InteractionService implements IInteractionService {
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty success message.');
+            return;
+        }
+
         extensionLogOutputChannel.info(`Displaying success message: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
     }
 
     displaySubtleMessage(message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty subtle message.');
+            return;
+        }
+
         extensionLogOutputChannel.info(`Displaying subtle message: ${message}`);
         vscode.window.setStatusBarMessage(formatText(message), 5000);
     }
