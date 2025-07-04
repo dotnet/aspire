@@ -65,10 +65,10 @@ jobs:
               $(_buildArgs)
               ${{ parameters.extraBuildArgs }}
               -bl:$(Build.Arcade.LogsPath)Build.binlog
-            displayName: Build native packages
+            displayName: 🟣Build native packages
 
           - task: 1ES.PublishBuildArtifacts@1
-            displayName: Publish Artifacts
+            displayName: 🟣Publish Artifacts
             condition: always()
             inputs:
               PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'

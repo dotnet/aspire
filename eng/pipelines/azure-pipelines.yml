@@ -129,17 +129,6 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      #- template: /eng/pipelines/templates/build_sign_native.yml@self
-        #parameters:
-          #agentOs: macos
-          #targetRidsForSameOS:
-          #codeSign: true
-          #teamName: $(_TeamName)
-          #extraBuildArgs: >-
-            #/p:Configuration=$(_BuildConfig)
-            #$(_SignArgs)
-            #$(_OfficialBuildIdArgs)
-
       - template: /eng/pipelines/templates/build_sign_native.yml@self
         parameters:
           agentOs: linux
@@ -153,30 +142,6 @@ extends:
             /p:Configuration=$(_BuildConfig)
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
-
-      #- template: /eng/pipelines/templates/build_sign_native.yml@self
-        #parameters:
-          #agentOs: linux
-          #jobNameSuffix: linux_arm64
-          #codeSign: true
-          #teamName: $(_TeamName)
-          #extraBuildArgs: >-
-            #/p:TargetRid=linux-arm64
-            #/p:Configuration=$(_BuildConfig)
-            #$(_SignArgs)
-            #$(_OfficialBuildIdArgs)
-
-      #- template: /eng/pipelines/templates/build_sign_native.yml@self
-        #parameters:
-          #agentOs: linux
-          #jobNameSuffix: linux_musl_x64
-          #codeSign: true
-          #teamName: $(_TeamName)
-          #extraBuildArgs: >-
-            #/p:TargetRid=linux-musl-x64
-            #/p:Configuration=$(_BuildConfig)
-            #$(_SignArgs)
-            #$(_OfficialBuildIdArgs)
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
