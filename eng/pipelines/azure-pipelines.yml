@@ -129,19 +129,19 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      # - template: /eng/pipelines/templates/build_sign_native.yml@self
-      #   parameters:
-      #     agentOs: linux
-      #     targetRidsForSameOS:
-      #       - linux-x64
-      #       - linux-arm64
-      #       #- linux-musl-x64
-      #     codeSign: true
-      #     teamName: $(_TeamName)
-      #     extraBuildArgs: >-
-      #       /p:Configuration=$(_BuildConfig)
-      #       $(_SignArgs)
-      #       $(_OfficialBuildIdArgs)
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
+        parameters:
+          agentOs: linux
+          targetRidsForSameOS:
+            - linux-x64
+            - linux-arm64
+            #- linux-musl-x64
+          codeSign: true
+          teamName: $(_TeamName)
+          extraBuildArgs: >-
+            /p:Configuration=$(_BuildConfig)
+            $(_SignArgs)
+            $(_OfficialBuildIdArgs)
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
@@ -197,7 +197,6 @@ extends:
               - task: DownloadPipelineArtifact@2
                 displayName: 🟣 Download All Native Archives
                 inputs:
-                  # Leave artifactName empty to download from all artifacts
                   itemPattern: |
                     **/aspire-cli-*.zip
                     **/aspire-cli-*.tar.gz
