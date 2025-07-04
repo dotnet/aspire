@@ -55,6 +55,10 @@
       Command="find $(OutputPath) -type f -ls"
       StandardOutputImportance="High"
       StandardErrorImportance="High" />
+    <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
+      Command="find $(ArtifactsDir) -type f -ls"
+      StandardOutputImportance="High"
+      StandardErrorImportance="High" />
 
     <!-- Codesign on macos -->
     <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'" />
