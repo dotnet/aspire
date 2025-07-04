@@ -22,7 +22,9 @@ public class ResourceLoggerServiceE2ETests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var exec = model.Resources.FirstOrDefault(x => x.Name == "ping-executable");
 
-        await foreach (var logBatch in rls.WatchAsync(exec!))
+        var startApp = app.StartAsync();
+
+        await foreach (var logBatch in rls.WatchAsync(exec!).WithCancellation(cts.Token))
         {
             foreach (var log in logBatch)
             {
@@ -30,6 +32,12 @@ public class ResourceLoggerServiceE2ETests(ITestOutputHelper output)
                 output.WriteLine($"Received log: [{type}] {log.Content}");
             }
         }
+
+        // when this finishes, it should not finish via cts Token
+        // but DCP has to close WatchAsync
+        Assert.False(cts.IsCancellationRequested);
+
+        await startApp;
     }
 
     private async Task<DistributedApplication> BuildAppAsync(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? configureBuilder = null)

@@ -418,7 +418,9 @@ public class ResourceLoggerService
             var lineNumber = 1;
             var channel = Channel.CreateUnbounded<LogEntry>();
 
-            using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
+            using var _ = _logStreamCts.Token.Register(
+                () => channel.Writer.TryComplete()
+            );
 
             // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
