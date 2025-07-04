@@ -69,8 +69,9 @@
 
     <!-- Codesign on macos -->
     <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'" />
+    <!-- '-o runtime' is to enable hardened runtime -->
     <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'"
-          Command="codesign -s - -f $(OutputPath)/aspire" />
+          Command="codesign -s - -o runtime -f $(OutputPath)/aspire" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
