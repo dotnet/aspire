@@ -26,7 +26,7 @@ public sealed class PublishingContext(
     CancellationToken cancellationToken,
     string outputPath)
 {
-    private IPublishingActivityReporter? _progressReporter;
+    private IPublishingActivityReporter? _activityReporter;
     /// <summary>
     /// Gets the distributed application model to be published.
     /// </summary>
@@ -45,7 +45,7 @@ public sealed class PublishingContext(
     /// <summary>
     /// Gets the progress reporter for publishing activities.
     /// </summary>
-    public IPublishingActivityReporter ProgressReporter => _progressReporter ??=
+    public IPublishingActivityReporter ProgressReporter => _activityReporter ??=
         Services.GetRequiredService<IPublishingActivityReporter>();
 
     /// <summary>
