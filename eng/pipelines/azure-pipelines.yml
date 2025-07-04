@@ -114,8 +114,9 @@ extends:
 
     - stage: archive_and_sign
       displayName: Archive, and Sign native packages
+
       jobs:
-      - template: /eng/pipelines/templates/sign_archives.yml
+      - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
           agentOs: macos
           jobNameSuffix: macos_arm64
