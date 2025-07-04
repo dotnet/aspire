@@ -44,6 +44,7 @@
       <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
+    <Message Text="** Build Aspire.Cli.csproj with publishdir=$(OutputPath)" Importance="High" />
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(CliProjectDirectory)Aspire.Cli.csproj"
@@ -55,6 +56,11 @@
       <!--Command="find $(OutputPath) -type f -ls"-->
       <!--StandardOutputImportance="High"-->
       <!--StandardErrorImportance="High" />-->
+
+    <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
+      Command="file $(OutputPath)aspire"
+      StandardOutputImportance="High"
+      StandardErrorImportance="High" />
 
     <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
       Command="find $(ArtifactsDir) -type f -name aspire -ls"
