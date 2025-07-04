@@ -202,4 +202,6 @@ internal struct CommandOutput
     /// Should be used for controlling the display style.
     /// </summary>
     public string? Type { get; init; }
+
+    public int? ExitCode { get; init; }
 }

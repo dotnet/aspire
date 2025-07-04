@@ -131,7 +131,8 @@ internal class ExecResourceManager
             {
                 Text = "Aspire exec exit code: " + exitCode.Value,
                 IsErrorMessage = false,
-                Type = "exitCode"
+                Type = "exitCode",
+                ExitCode = exitCode.Value
             };
         }
     }

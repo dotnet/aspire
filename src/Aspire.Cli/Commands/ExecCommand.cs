@@ -72,6 +72,7 @@ internal class ExecCommand : BaseCommand
 
         IAppHostBackchannel? backchannel = null;
         Task<int>? pendingRun = null;
+        int? commandExitCode = null;
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
@@ -172,18 +173,23 @@ internal class ExecCommand : BaseCommand
                         return backchannel;
                     });
 
-                _ = await _interactionService.ShowStatusAsync<int>(
+                commandExitCode = await _interactionService.ShowStatusAsync<int?>(
                     ":running_shoe: Running exec...",
                     async () =>
                     {
                         // execute tool and stream the output
+                        int? exitCode = null;
                         var outputStream = backchannel.ExecAsync(cancellationToken);
                         await foreach (var output in outputStream)
                         {
                             _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
+                            if (output.ExitCode is not null)
+                            {
+                                exitCode = output.ExitCode;
+                            }
                         }
 
-                        return ExitCodeConstants.Success;
+                        return exitCode;
                     });
             }
             finally
@@ -198,6 +204,16 @@ internal class ExecCommand : BaseCommand
                         return ExitCodeConstants.Success;
                     });
                 }
+            }
+
+            if (commandExitCode is not null)
+            {
+                if (commandExitCode.Value is not 0)
+                {
+                    _interactionService.DisplayLines(runOutputCollector.GetLines());
+                }
+
+                return commandExitCode.Value;
             }
 
             if (pendingRun is not null)
