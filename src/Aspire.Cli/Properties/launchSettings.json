@@ -38,5 +38,6 @@
       "environmentVariables": {
         "Deployment:Target": "publish-test"
       }
+    }
   }
 }

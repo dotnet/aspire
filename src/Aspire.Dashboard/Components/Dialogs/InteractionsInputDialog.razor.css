@@ -2,6 +2,8 @@
     width: 100%;
 }
 
-.interaction-input-dialog .interaction-input ::deep fluent-text-field, .interaction-input-dialog .interaction-input ::deep fluent-select {
+.interaction-input-dialog .interaction-input ::deep fluent-text-field,
+.interaction-input-dialog .interaction-input ::deep fluent-select,
+.interaction-input-dialog .interaction-input ::deep .uploaded-file-container {
     width: 75%;
 }

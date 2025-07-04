@@ -3,6 +3,7 @@
 
 using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
@@ -133,6 +134,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Value = input.Value;
                                 }
+                                if (input.ValueBytes != null)
+                                {
+                                    dto.ValueBytes = ByteString.CopyFrom(input.ValueBytes);
+                                }
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
@@ -200,6 +205,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             ApplicationModel.InputType.Choice => InputType.Choice,
             ApplicationModel.InputType.Boolean => InputType.Boolean,
             ApplicationModel.InputType.Number => InputType.Number,
+            ApplicationModel.InputType.File => InputType.File,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }

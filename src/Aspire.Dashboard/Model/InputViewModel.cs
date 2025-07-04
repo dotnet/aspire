@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.DashboardService.Proto.V1;
+using Google.Protobuf;
 
 namespace Aspire.Dashboard.Model;
 
@@ -46,9 +47,19 @@ public sealed class InputViewModel
     }
 
     // Used when binding to FluentNumberField.
-    public int? NumberValue
+    public int? ValueNumber
     {
         get => int.TryParse(Input.Value, CultureInfo.InvariantCulture, out var result) ? result : null;
         set => Input.Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
+
+    // Used when binding to FluentInputFile data. File name is stored in Value.
+    public byte[]? ValueBytes
+    {
+        get => Input.ValueBytes?.ToByteArray();
+        set => Input.ValueBytes = value != null ? ByteString.CopyFrom(value) : ByteString.Empty;
+    }
+
+    public int? FileProgressPercent { get; set; }
+    public string? FileName { get; set; }
 }

@@ -180,6 +180,11 @@ internal sealed class DashboardServiceData : IDisposable
                             }
 
                             modelInput.SetValue(incomingValue);
+
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.File)
+                            {
+                                modelInput.SetValueBytes(!string.IsNullOrEmpty(incomingValue) ? requestInput.ValueBytes.ToByteArray() : null);
+                            }
                         }
 
                         return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };

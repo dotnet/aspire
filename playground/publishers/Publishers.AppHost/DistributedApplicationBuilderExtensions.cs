@@ -59,6 +59,12 @@ internal static class IDistributedApplicationBuilderExtensions
                             new KeyValuePair<string, string>("lets-encrypt", "Let's Encrypt Certificate"),
                             new KeyValuePair<string, string>("custom", "Custom Certificate")
                         ]
+                    },
+                    new InteractionInput
+                    {
+                        Label = "Certificate file",
+                        InputType = InputType.File,
+                        Required = true
                     }
                 ],
                 new InputsDialogInteractionOptions
@@ -88,6 +94,7 @@ internal static class IDistributedApplicationBuilderExtensions
             var appName = multiInputResult.Canceled ? "default-app" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "Application Name")?.Value ?? "default-app");
             var appVersion = multiInputResult.Canceled ? "1.0.0" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "Application Version")?.Value ?? "1.0.0");
             var sslType = multiInputResult.Canceled ? "self-signed" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "SSL Certificate Type")?.Value ?? "self-signed");
+            var file = multiInputResult.Canceled ? null : multiInputResult.Data?.FirstOrDefault(i => i.Label == "Certificate file")?.ValueBytes;
 
             // Test Text input
             var envResult = await interactionService.PromptInputAsync(

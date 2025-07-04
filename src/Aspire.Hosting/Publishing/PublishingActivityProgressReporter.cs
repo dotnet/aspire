@@ -293,6 +293,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                 Required = input.Required,
                 Options = input.Options,
                 Value = input.Value,
+                ValueBytes = input.ValueBytes,
                 ValidationErrors = input.ValidationErrors
             }).ToList();
 
@@ -312,7 +313,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         }
     }
 
-    internal async Task CompleteInteractionAsync(string promptId, string?[]? responses, CancellationToken cancellationToken = default)
+    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, CancellationToken cancellationToken = default)
     {
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
@@ -326,7 +327,8 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
                         {
                             for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
                             {
-                                inputsInfo.Inputs[i].SetValue(responses[i] ?? "");
+                                inputsInfo.Inputs[i].SetValue(responses[i].Value ?? "");
+                                inputsInfo.Inputs[i].SetValueBytes(responses[i].ValueBytes);
                             }
                         }
 

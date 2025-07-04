@@ -23,6 +23,7 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
 [JsonSerializable(typeof(RequestId))]
 [JsonSerializable(typeof(IEnumerable<DisplayLineState>))]
+[JsonSerializable(typeof(PublishingPromptInputAnswer[]))]
 [JsonSerializable(typeof(ValidationResult))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
