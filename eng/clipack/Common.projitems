@@ -44,7 +44,7 @@
       <AdditionalProperties Include="PublishWindowsPdb=false" />
     </ItemGroup>
 
-    <Message Text="** Build Aspire.Cli.csproj with publishdir=$(OutputPath)" Importance="High" />
+    <Message Text="** Build Aspire.Cli.csproj with publishdir=$(OutputPath) and PublishAot=$(PublishNativeAot)" Importance="High" />
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
         Projects="$(CliProjectDirectory)Aspire.Cli.csproj"
@@ -58,7 +58,7 @@
       <!--StandardErrorImportance="High" />-->
 
     <Exec Condition="$([System.OperatingSystem]::IsLinux()) and '$(NativeBuildOnly)' == 'true'"
-      Command="file $(OutputPath)aspire"
+      Command="file $(OutputPath)/aspire"
       StandardOutputImportance="High"
       StandardErrorImportance="High" />
 
@@ -68,8 +68,8 @@
       StandardErrorImportance="High" />
 
     <!-- Codesign on macos -->
-    <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'" />
-    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true'"
+    <Message Text="Codesigning .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'" />
+    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'"
           Command="codesign -s - -f --entitlements $(EntitlementsFile) $(OutputPath)/aspire" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
@@ -78,6 +78,9 @@
     <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
     <ItemGroup>
       <DirectoriesToRemove Include="$(XlfLanguages)" />
+
+      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-*" />
+      <GenerateChecksumItems Include="@(_ArchiveFile)" DestinationPath="%(FullPath).sha512" />
     </ItemGroup>
     <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
   </Target>
