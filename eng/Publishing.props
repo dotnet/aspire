@@ -59,11 +59,11 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
-      <ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">
-        <IsShipping>false</IsShipping>
-        <PublishFlatContainer>true</PublishFlatContainer>
-        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
-      </ItemsToPushToBlobFeed>
+      <!--<ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">-->
+        <!--<IsShipping>false</IsShipping>-->
+        <!--<PublishFlatContainer>true</PublishFlatContainer>-->
+        <!--<RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>-->
+      <!--</ItemsToPushToBlobFeed>-->
     </ItemGroup>
   </Target>
 </Project>

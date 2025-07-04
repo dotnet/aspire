@@ -79,8 +79,14 @@
     <ItemGroup>
       <DirectoriesToRemove Include="$(XlfLanguages)" />
 
-      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-*" />
+      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-$(CliRuntime)*" />
       <GenerateChecksumItems Include="@(_ArchiveFile)" DestinationPath="%(FullPath).sha512" />
+
+      <ItemsToPushToBlobFeed Include="@(_ArchiveFile)" Condition="'$(PublishNativeAot)' == 'true'">
+        <IsShipping>false</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
     </ItemGroup>
     <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
   </Target>
