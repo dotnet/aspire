@@ -59,14 +59,16 @@ jobs:
           # Needed to download the MicroBuild plugin nupkgs on Mac and Linux as nuget.exe is unavailable
           # `enableMicrobuild` is set to false because of https://github.com/dotnet/arcade/issues/15946
           # and this step is a workaround
-          - task: UseDotNet@2
-            displayName: 🟣Install .NET 8.0 SDK for MicroBuild Plugin
-            inputs:
-              packageType: sdk
-              version: 8.0.x
-              installationPath: $(Build.SourcesDirectory)/.dotnet
-              workingDirectory: $(Build.SourcesDirectory)
-            condition: ${{ eq(parameters.agentOs, 'linux') }}
+          #- task: UseDotNet@2
+            #displayName: 🟣Install .NET 8.0 SDK for MicroBuild Plugin
+            #inputs:
+              #packageType: sdk
+              #version: 8.0.x
+              #installationPath: $(Build.SourcesDirectory)/.dotnet
+              #workingDirectory: $(Build.SourcesDirectory)
+            #condition: ${{ eq(parameters.agentOs, 'linux') }}
+          - script: ./build.sh -restore
+            displayName: 🟣Restore
 
         steps:
           - script: >-
