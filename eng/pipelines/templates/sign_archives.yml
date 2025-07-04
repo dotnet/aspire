@@ -19,16 +19,16 @@ jobs:
       displayName: Native ${{ parameters.jobNameSuffix }}
       timeoutInMinutes: 20
 
-      variables:
-      - ${{ if eq(parameters.codeSign, true) }}:
-        - _buildArgs: '--sign'
-      - ${{ else }}:
-        - _buildArgs: ''
+      #variables:
+      #- ${{ if eq(parameters.codeSign, true) }}:
+        #- _buildArgs: '--sign'
+      #- ${{ else }}:
+        #- _buildArgs: ''
 
-      - ${{ if eq(parameters.agentOs, 'windows') }}:
-        - scriptName: build.cmd
-      - ${{ else }}:
-        - scriptName: build.sh
+      #- ${{ if eq(parameters.agentOs, 'windows') }}:
+        #- scriptName: build.cmd
+      #- ${{ else }}:
+        #- scriptName: build.sh
 
       pool:
         ${{ if eq(parameters.agentOs, 'windows') }}:
