@@ -120,7 +120,7 @@ extends:
         parameters:
           agentOs: macos
           jobNameSuffix: macos_arm64
-          codesign: true
+          codeSign: true
           extraBuildArgs: >-
             /p:TargetRid=osx-arm64
             /p:Configuration=$(_BuildConfig)
@@ -131,7 +131,7 @@ extends:
         parameters:
           agentOs: macos
           jobNameSuffix: macos_x64
-          codesign: true
+          codeSign: true
           extraBuildArgs: >-
             /p:TargetRid=osx-x64
             /p:Configuration=$(_BuildConfig)
@@ -142,7 +142,7 @@ extends:
         parameters:
           agentOs: linux
           jobNameSuffix: linux_x64
-          codesign: true
+          codeSign: true
           extraBuildArgs: >-
             /p:TargetRid=linux-x64
             /p:Configuration=$(_BuildConfig)
