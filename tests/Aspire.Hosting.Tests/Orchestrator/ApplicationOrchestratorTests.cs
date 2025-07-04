@@ -462,7 +462,8 @@ public class ApplicationOrchestratorTests
                 notificationService,
                 resourceLoggerService,
                 CreateInteractionService(),
-                NullLogger<ParameterProcessor>.Instance)
+                NullLogger<ParameterProcessor>.Instance,
+                new DistributedApplicationOptions())
             );
     }
 

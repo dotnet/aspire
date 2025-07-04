@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Threading.Channels;
 using Xunit;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -217,6 +216,12 @@ public class ParameterProcessorTests
                 Assert.Equal("secretParam", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.False(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal("Save to secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[0].SetValue("value1");
@@ -302,7 +307,8 @@ public class ParameterProcessorTests
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
-            logger ?? new NullLogger<ParameterProcessor>()
+            logger ?? new NullLogger<ParameterProcessor>(),
+            new DistributedApplicationOptions { DisableDashboard = disableDashboard }
         );
     }
 
@@ -331,48 +337,5 @@ public class ParameterProcessorTests
     private static ParameterResource CreateParameterWithGenericError(string name)
     {
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
-    }
-
-    private sealed record InteractionData(string Title, string? Message, IReadOnlyList<InteractionInput> Inputs, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
-
-    private sealed class TestInteractionService : IInteractionService
-    {
-        public Channel<InteractionData> Interactions { get; } = Channel.CreateUnbounded<InteractionData>();
-
-        public bool IsAvailable { get; set; } = true;
-
-        public Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            var data = new InteractionData(title, message, inputs, options, new TaskCompletionSource<object>());
-            Interactions.Writer.TryWrite(data);
-            return (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
-        }
-
-        public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            var data = new InteractionData(title, message, [], options, new TaskCompletionSource<object>());
-            Interactions.Writer.TryWrite(data);
-            return (InteractionResult<bool>)await data.CompletionTcs.Task;
-        }
-
-        public Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
