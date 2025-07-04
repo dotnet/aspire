@@ -19,24 +19,24 @@ internal sealed class AddCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _consoleService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IConsoleService consoleService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(telemetry);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
-        _interactionService = interactionService;
+        _consoleService = consoleService;
         _projectLocator = projectLocator;
         _prompter = prompter;
         _telemetry = telemetry;
@@ -79,7 +79,7 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packages = await _interactionService.ShowStatusAsync(
+            var packages = await _consoleService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
                 () => _nuGetPackageCache.GetIntegrationPackagesAsync(
                     workingDirectory: effectiveAppHostProjectFile.Directory!,
@@ -99,7 +99,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (!packagesWithShortName.Any())
             {
-                _interactionService.DisplayError(AddCommandStrings.NoPackagesFound);
+                _consoleService.DisplayError(AddCommandStrings.NoPackagesFound);
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -127,7 +127,7 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
             };
 
-            var addPackageResult = await _interactionService.ShowStatusAsync(
+            var addPackageResult = await _consoleService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,
                 async () => {
 
@@ -150,45 +150,45 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addPackageResult));
+                _consoleService.DisplayLines(outputCollector.GetLines());
+                _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addPackageResult));
                 return ExitCodeConstants.FailedToAddPackage;
             }
             else
             {
-                _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
+                _consoleService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
                 return ExitCodeConstants.Success;
             }
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionDoesntExist);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
+            _consoleService.DisplayError(ConsoleServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayCancellationMessage();
+            _consoleService.DisplayCancellationMessage();
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (EmptyChoicesException ex)
         {
-            _interactionService.DisplayError(ex.Message);
+            _consoleService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayLines(outputCollector.GetLines());
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
+            _consoleService.DisplayLines(outputCollector.GetLines());
+            _consoleService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
@@ -226,7 +226,7 @@ internal sealed class AddCommand : BaseCommand
     {
         if (searchTerm is not null)
         {
-            _interactionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
+            _consoleService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
         }
 
         return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
@@ -261,12 +261,12 @@ internal interface IAddCommandPrompter
     Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
 }
 
-internal class  AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
+internal class  AddCommandPrompter(IConsoleService consoleService) : IAddCommandPrompter
 {
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
         var selectedPackage = packages.First();
-        var version = await interactionService.PromptForSelectionAsync(
+        var version = await consoleService.PromptForSelectionAsync(
             string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
             packages.DistinctBy(p => p.Package.Version),
             p => p.Package.Version,
@@ -276,7 +276,7 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
-        var selectedIntegration = await interactionService.PromptForSelectionAsync(
+        var selectedIntegration = await consoleService.PromptForSelectionAsync(
             AddCommandStrings.SelectAnIntegrationToAdd,
             packages,
             PackageNameWithFriendlyNameIfAvailable,

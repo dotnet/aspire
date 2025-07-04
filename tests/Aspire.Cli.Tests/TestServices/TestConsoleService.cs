@@ -7,7 +7,7 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Tests.TestServices;
 
-internal sealed class TestConsoleInteractionService : IInteractionService
+internal sealed class TestConsoleService : IConsoleService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }

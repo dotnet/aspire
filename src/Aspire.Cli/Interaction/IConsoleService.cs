@@ -6,7 +6,7 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal interface IInteractionService
+internal interface IConsoleService
 {
     Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action);
     void ShowStatus(string statusText, Action action);

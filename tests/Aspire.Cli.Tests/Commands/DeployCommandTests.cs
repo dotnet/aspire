@@ -175,8 +175,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
             options.PublishCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestDeployCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestDeployCommandPrompter(consoleService);
                 return prompter;
             };
         });
@@ -241,8 +241,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
             options.PublishCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestDeployCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestDeployCommandPrompter(consoleService);
                 return prompter;
             };
         });
@@ -259,7 +259,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 }
 
-internal sealed class TestDeployCommandPrompter(IInteractionService interactionService) : PublishCommandPrompter(interactionService)
+internal sealed class TestDeployCommandPrompter(IConsoleService interactionService) : PublishCommandPrompter(interactionService)
 {
     public Func<IEnumerable<string>, string>? PromptForPublisherCallback { get; set; }
 

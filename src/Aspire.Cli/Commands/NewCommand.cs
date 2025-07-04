@@ -20,7 +20,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IInteractionService _interactionService;
+    private readonly IConsoleService _consoleService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
 
@@ -28,7 +28,7 @@ internal sealed class NewCommand : BaseCommand
         IDotNetCliRunner runner,
         INuGetPackageCache nuGetPackageCache,
         INewCommandPrompter prompter,
-        IInteractionService interactionService,
+        IConsoleService consoleService,
         ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
@@ -40,7 +40,7 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(consoleService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
 
@@ -48,7 +48,7 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _interactionService = interactionService;
+        _consoleService = consoleService;
         _telemetry = telemetry;
 
         var nameOption = new Option<string>("--name", "-n");
@@ -102,9 +102,9 @@ internal sealed class NewCommand : BaseCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null && _interactionService is ExtensionInteractionService extensionInteractionService)
+        if (templateResult.OutputPath is not null && _consoleService is ExtensionConsoleService extensionConsoleService)
         {
-            extensionInteractionService.OpenNewProject(templateResult.OutputPath);
+            extensionConsoleService.OpenNewProject(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;
@@ -119,11 +119,11 @@ internal interface INewCommandPrompter
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
 
-internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
+internal class NewCommandPrompter(IConsoleService consoleService) : INewCommandPrompter
 {
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        return await consoleService.PromptForSelectionAsync(
             NewCommandStrings.SelectATemplateVersion,
             candidatePackages,
             (p) => $"{p.Version} ({p.Source})",
@@ -133,7 +133,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForStringAsync(
+        return await consoleService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
             defaultValue: path,
             cancellationToken: cancellationToken
@@ -142,7 +142,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForStringAsync(
+        return await consoleService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
@@ -153,7 +153,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
+        return await consoleService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
             t => $"{t.Name} ({t.Description})",

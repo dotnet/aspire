@@ -9,11 +9,11 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal class ConsoleInteractionService : IInteractionService
+internal class ConsoleService : IConsoleService
 {
     private readonly IAnsiConsole _ansiConsole;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole)
+    public ConsoleService(IAnsiConsole ansiConsole)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         _ansiConsole = ansiConsole;
@@ -65,7 +65,7 @@ internal class ConsoleInteractionService : IInteractionService
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
-            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
+            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, ConsoleServiceStrings.NoItemsAvailableForSelection, promptText));
         }
 
         var prompt = new SelectionPrompt<T>()
@@ -82,12 +82,12 @@ internal class ConsoleInteractionService : IInteractionService
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 
-        DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
+        DisplayError(ConsoleServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
         _ansiConsole.MarkupLine(
-            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
+            $"\t[bold]{ConsoleServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{ConsoleServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
+        _ansiConsole.MarkupLine($"\t[bold]{ConsoleServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -115,13 +115,13 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
+        _ansiConsole.MarkupLine($"[green bold]{ConsoleServiceStrings.Dashboard}[/]:");
         if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
         {
             _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
+                $":chart_increasing:  {ConsoleServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
             _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
+                $":chart_increasing:  {ConsoleServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
         }
         else
         {
@@ -149,7 +149,7 @@ internal class ConsoleInteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
         _ansiConsole.WriteLine();
-        DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
+        DisplayMessage("stop_sign", $"[teal bold]{ConsoleServiceStrings.StoppingAspire}[/]");
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)

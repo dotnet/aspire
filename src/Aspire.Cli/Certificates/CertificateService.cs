@@ -15,7 +15,7 @@ internal interface ICertificateService
     Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
+internal sealed class CertificateService(IConsoleService consoleService, AspireCliTelemetry telemetry) : ICertificateService
 {
 
     public async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
@@ -23,8 +23,8 @@ internal sealed class CertificateService(IInteractionService interactionService,
         using var activity = telemetry.ActivitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 
         var ensureCertificateCollector = new OutputCollector();
-        var checkExitCode = await interactionService.ShowStatusAsync(
-            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
+        var checkExitCode = await consoleService.ShowStatusAsync(
+            $":locked_with_key: {ConsoleServiceStrings.CheckingCertificates}",
             async () => {
                 var options = new DotNetCliRunnerInvocationOptions
                 {
@@ -45,16 +45,16 @@ internal sealed class CertificateService(IInteractionService interactionService,
                 StandardErrorCallback = ensureCertificateCollector.AppendError,
             };
 
-            var trustExitCode = await interactionService.ShowStatusAsync(
-                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
+            var trustExitCode = await consoleService.ShowStatusAsync(
+                $":locked_with_key: {ConsoleServiceStrings.TrustingCertificates}",
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));
 
             if (trustExitCode != 0)
             {
-                interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
+                consoleService.DisplayLines(ensureCertificateCollector.GetLines());
+                consoleService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
             }
         }
     }
