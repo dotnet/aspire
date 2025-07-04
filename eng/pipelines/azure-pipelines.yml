@@ -127,7 +127,7 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml
+      - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
           agentOs: macos
           jobNameSuffix: macos_x64
@@ -138,7 +138,7 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml
+      - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
           agentOs: linux
           jobNameSuffix: linux_x64
