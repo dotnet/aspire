@@ -251,6 +251,78 @@ public sealed class AzureEnvironmentResource : Resource
                     "Main Bicep template deployed successfully",
                     context.CancellationToken).ConfigureAwait(false);
 
+                // Create task for propagating outputs to OutputLookup
+                var outputPropagationTask = await mainDeploymentStep.CreateTaskAsync(
+                    "Propagating deployment outputs to OutputLookup",
+                    context.CancellationToken).ConfigureAwait(false);
+
+                await using (outputPropagationTask.ConfigureAwait(false))
+                {
+                    var propagatedOutputsCount = 0;
+
+                    // Propagate outputs from the main resource to the OutputLookup
+                    foreach (var outputEntry in mainResource.Outputs)
+                    {
+                        var outputName = outputEntry.Key;
+                        var outputValue = outputEntry.Value;
+
+                        // Find any BicepOutputReference in the OutputLookup that references this output
+                        foreach (var kvp in PublishingContext.OutputLookup)
+                        {
+                            var outputRef = kvp.Key;
+                            var provisioningOutput = kvp.Value;
+
+                            // Check if this output reference matches our deployed output
+                            // The output could be from any of the deployed modules that contributed to the main template
+                            if ($"{outputRef.Resource.Name.Replace("-", "_")}_{outputRef.Name}" == outputName)
+                            {
+                                // Update the underlying resource's Outputs dictionary so the BicepOutputReference can access it
+                                outputRef.Resource.Outputs[outputRef.Name] = outputValue;
+                                propagatedOutputsCount++;
+                            }
+                        }
+                    }
+
+                    await outputPropagationTask.SucceedAsync(
+                        $"Propagated {propagatedOutputsCount} output(s) to OutputLookup",
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+
+                // Create task for propagating outputs to deployment targets
+                var deploymentTargetPropagationTask = await mainDeploymentStep.CreateTaskAsync(
+                    "Propagating deployment outputs to compute resource targets",
+                    context.CancellationToken).ConfigureAwait(false);
+
+                await using (deploymentTargetPropagationTask.ConfigureAwait(false))
+                {
+                    var propagatedTargetsCount = 0;
+                    var totalOutputsPropagated = 0;
+
+                    // Propagate outputs from main resource to deployment targets in ComputeResources
+                    foreach (var (computeResourcePath, computeResource) in PublishingContext.ComputeResources)
+                    {
+                        var deploymentTarget = computeResource.GetDeploymentTargetAnnotation();
+                        if (deploymentTarget?.DeploymentTarget is AzureBicepResource targetResource)
+                        {
+                            // Propagate all outputs from main resource to the target resource
+                            foreach (var outputEntry in mainResource.Outputs)
+                            {
+                                var outputName = outputEntry.Key;
+                                var outputValue = outputEntry.Value;
+
+                                // Update the deployment target resource's Outputs dictionary
+                                targetResource.Outputs[outputName] = outputValue;
+                                totalOutputsPropagated++;
+                            }
+                            propagatedTargetsCount++;
+                        }
+                    }
+
+                    await deploymentTargetPropagationTask.SucceedAsync(
+                        $"Propagated {totalOutputsPropagated} output(s) to {propagatedTargetsCount} deployment target(s)",
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+
                 await mainDeploymentStep.SucceedAsync(
                     "Azure deployment completed successfully using consolidated Bicep template",
                     context.CancellationToken).ConfigureAwait(false);
@@ -302,9 +374,7 @@ public sealed class AzureEnvironmentResource : Resource
 
                         foreach (var computeResource in computeResources)
                         {
-                            if (computeResource is not ProjectResource &&
-    (!computeResource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation) ||
-     !computeResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation)))
+                            if (computeResource is not ProjectResource && (!computeResource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation) || !computeResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation)))
                             {
                                 continue;
                             }
@@ -397,32 +467,6 @@ public sealed class AzureEnvironmentResource : Resource
                                 // Deploy the compute resource using its Bicep file
                                 var deploymentTarget = computeResource.GetDeploymentTargetAnnotation();
                                 var targetResource = (AzureBicepResource)deploymentTarget!.DeploymentTarget;
-                                // Hack -- figure me out: need to set outputs on the underlying resources within each module
-                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_apps_environment_default_domain"))
-                                {
-                                    targetResource.Parameters["infra_outputs_azure_container_apps_environment_default_domain"] = mainResource.Outputs["infra_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"];
-                                }
-                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_registry_endpoint"))
-                                {
-                                    targetResource.Parameters["infra_outputs_azure_container_registry_endpoint"] = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
-                                }
-                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_apps_environment_id"))
-                                {
-                                    targetResource.Parameters["infra_outputs_azure_container_apps_environment_id"] = mainResource.Outputs["infra_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"];
-                                }
-                                if (targetResource.Parameters.ContainsKey("infra_outputs_azure_container_registry_managed_identity_id"))
-                                {
-                                    targetResource.Parameters["infra_outputs_azure_container_registry_managed_identity_id"] = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"];
-                                }
-                                if (targetResource.Parameters.ContainsKey($"{targetResource.Name}_containerimage"))
-                                {
-                                    var endpoint = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
-                                    targetResource.Parameters[$"{targetResource.Name}_containerimage"] = $"{endpoint}/{targetResource.Name.ToLowerInvariant()}:latest";
-                                }
-                                if (targetResource.Parameters.ContainsKey($"{targetResource.Name}_containerport"))
-                                {
-                                    targetResource.Parameters[$"{targetResource.Name}_containerport"] = "8080";
-                                }
                                 await bicepProvisioner.DeployWithBicepFileAsync(
                                             targetResource,
                                             computeResourcePath,

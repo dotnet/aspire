@@ -53,10 +53,20 @@ internal static class BicepUtilities
                     JsonNode node => node,
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
+                    ContainerImageReference cir => await ResolveContainerImageReference(cir, cancellationToken).ConfigureAwait(false),
+                    ContainerPortReference cpr => "8080",
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
                 }
             };
         }
+    }
+
+    private static async Task<string> ResolveContainerImageReference(ContainerImageReference cir, CancellationToken cancellationToken)
+    {
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var containerRegistry = (cir.Resource.GetDeploymentTargetAnnotation()?.ContainerRegistry) ?? throw new InvalidOperationException("Container registry information is missing.");
+        var endpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        return $"{endpoint}/{cir.Resource.Name}:latest";
     }
 
     /// <summary>
