@@ -121,6 +121,7 @@ extends:
           agentOs: macos
           jobNameSuffix: macos_arm64
           codeSign: true
+          teamName: $(_TeamName)
           extraBuildArgs: >-
             /p:TargetRid=osx-arm64
             /p:Configuration=$(_BuildConfig)
@@ -132,6 +133,7 @@ extends:
           agentOs: macos
           jobNameSuffix: macos_x64
           codeSign: true
+          teamName: $(_TeamName)
           extraBuildArgs: >-
             /p:TargetRid=osx-x64
             /p:Configuration=$(_BuildConfig)
@@ -143,6 +145,7 @@ extends:
           agentOs: linux
           jobNameSuffix: linux_x64
           codeSign: true
+          teamName: $(_TeamName)
           extraBuildArgs: >-
             /p:TargetRid=linux-x64
             /p:Configuration=$(_BuildConfig)
@@ -154,6 +157,7 @@ extends:
           agentOs: linux
           jobNameSuffix: linux_arm64
           codeSign: true
+          teamName: $(_TeamName)
           extraBuildArgs: >-
             /p:TargetRid=linux-arm64
             /p:Configuration=$(_BuildConfig)
@@ -165,6 +169,7 @@ extends:
           agentOs: linux
           jobNameSuffix: linux_musl_x64
           codeSign: true
+          teamName: $(_TeamName)
           extraBuildArgs: >-
             /p:TargetRid=linux-musl-x64
             /p:Configuration=$(_BuildConfig)
