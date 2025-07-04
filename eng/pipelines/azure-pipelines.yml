@@ -125,7 +125,7 @@ extends:
 
           jobs:
 
-          - job: macos-arm64
+          - job: macos_arm64
             pool:
               name: Azure Pipelines
               vmImage: macOS-latest-internal
@@ -159,7 +159,7 @@ extends:
                   PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
                   ArtifactName: native_archives_macos_arm64
 
-          - job: macos-x64
+          - job: macos_x64
             pool:
               name: Azure Pipelines
               vmImage: macOS-latest-internal
