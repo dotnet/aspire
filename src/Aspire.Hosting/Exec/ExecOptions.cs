@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Exec;
 /// <summary>
 /// Configuration options for running AppHost in exec mode.
 /// </summary>
-public sealed class ExecOptions
+internal sealed class ExecOptions
 {
     /// <summary>
     /// The name of the exec configuration section in the appsettings.json file.
