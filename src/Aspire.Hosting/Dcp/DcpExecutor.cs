@@ -359,11 +359,11 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                         logStream.Cancellation.Cancel();
                     }
 
-                    // TODO: Handle resource deletion
-                    if (_logger.IsEnabled(LogLevel.Trace))
-                    {
-                        _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
-                    }
+                    //// TODO: Handle resource deletion
+                    //if (_logger.IsEnabled(LogLevel.Trace))
+                    //{
+                    //    _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
+                    //}
                 }
                 else
                 {

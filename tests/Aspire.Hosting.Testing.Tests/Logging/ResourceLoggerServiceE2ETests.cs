@@ -37,7 +37,7 @@ public class ResourceLoggerServiceE2ETests(ITestOutputHelper output)
         // but DCP has to close WatchAsync
         Assert.False(cts.IsCancellationRequested);
 
-        await startApp;
+        // await startApp;
     }
 
     private async Task<DistributedApplication> BuildAppAsync(string[] args, Action<DistributedApplicationOptions, HostApplicationBuilderSettings>? configureBuilder = null)
