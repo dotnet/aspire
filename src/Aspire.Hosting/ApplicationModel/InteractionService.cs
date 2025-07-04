@@ -179,7 +179,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, InteractionCompletionState> createResult, CancellationToken cancellationToken)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, InteractionCompletionState> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 
@@ -192,9 +192,37 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        var result = createResult(interactionState, _serviceProvider, cancellationToken);
+        var result = createResult(interactionState, _serviceProvider);
 
         // Run validation for inputs interaction.
+        if (!await RunValidationAsync(interactionState, result, cancellationToken).ConfigureAwait(false))
+        {
+            // Interaction is not complete if there are validation errors.
+            result = new InteractionCompletionState { Complete = false, State = result.State };
+        }
+
+        lock (_onInteractionUpdatedLock)
+        {
+            // Double check interaction is still in collection after awaiting the result creation.
+            if (!_interactionCollection.TryGetValue(interactionId, out interactionState))
+            {
+                return;
+            }
+
+            if (result.Complete)
+            {
+                interactionState.CompletionTcs.TrySetResult(result);
+                interactionState.State = Interaction.InteractionState.Complete;
+                _interactionCollection.Remove(interactionId);
+            }
+
+            // Either broadcast out the interaction is complete, or its updated state.
+            OnInteractionUpdated?.Invoke(interactionState);
+        }
+    }
+
+    private async Task<bool> RunValidationAsync(Interaction interactionState, InteractionCompletionState result, CancellationToken cancellationToken)
+    {
         if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
         {
             // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
@@ -217,32 +245,12 @@ internal class InteractionService : IInteractionService
                     };
                     await validationCallback(context).ConfigureAwait(false);
 
-                    if (context.HasErrors)
-                    {
-                        result = new InteractionCompletionState { Complete = false, State = inputs };
-                    }
+                    return context.HasErrors;
                 }
             }
         }
 
-        lock (_onInteractionUpdatedLock)
-        {
-            // Double check interaction is still in collection after awaiting the result creation.
-            if (!_interactionCollection.TryGetValue(interactionId, out interactionState))
-            {
-                return;
-            }
-
-            if (result.Complete)
-            {
-                interactionState.CompletionTcs.TrySetResult(result);
-                interactionState.State = Interaction.InteractionState.Complete;
-                _interactionCollection.Remove(interactionId);
-            }
-
-            // Either broadcast out the interaction is complete, or its updated state.
-            OnInteractionUpdated?.Invoke(interactionState);
-        }
+        return false;
     }
 
     internal async IAsyncEnumerable<Interaction> SubscribeInteractionUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)

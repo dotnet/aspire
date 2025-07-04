@@ -273,7 +273,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         {
             if (HasStepsInProgress())
             {
-                await _interactionService.CompleteInteractionAsync(interaction.InteractionId, (interaction, ServiceProvider, cancellationToken) =>
+                await _interactionService.CompleteInteractionAsync(interaction.InteractionId, (interaction, ServiceProvider) =>
                 {
                     // Complete the interaction with an error state
                     interaction.CompletionTcs.TrySetException(new InvalidOperationException("Cannot prompt interaction while steps are in progress."));
@@ -317,7 +317,7 @@ internal sealed class PublishingActivityProgressReporter : IPublishingActivityPr
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
             await _interactionService.CompleteInteractionAsync(interactionId,
-                (interaction, serviceProvider, cancellationToken) =>
+                (interaction, serviceProvider) =>
                 {
                     if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
                     {
