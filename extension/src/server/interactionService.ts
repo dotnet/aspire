@@ -140,6 +140,7 @@ export class InteractionService implements IInteractionService {
 
     displayError(errorMessage: string) {
         if (errorMessage.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty error message.');
             return;
         }
 
@@ -150,6 +151,7 @@ export class InteractionService implements IInteractionService {
 
     displayMessage(emoji: string, message: string) {
         if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty message.');
             return;
         }
 
@@ -161,6 +163,7 @@ export class InteractionService implements IInteractionService {
     // in extension design philosophy.
     displaySuccess(message: string) {
         if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty success message.');
             return;
         }
 
@@ -170,6 +173,7 @@ export class InteractionService implements IInteractionService {
 
     displaySubtleMessage(message: string) {
         if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty subtle message.');
             return;
         }
 
