@@ -34,8 +34,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                return new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                return new TestAddCommandPrompter(consoleService);
             };
 
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
@@ -100,8 +100,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
 
                 prompter.PromptForIntegrationVersionCallback = (packages) =>
                 {
@@ -172,8 +172,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
 
                 prompter.PromptForIntegrationVersionCallback = (packages) =>
                 {
@@ -252,8 +252,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
                 {
@@ -328,8 +328,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
                 {
@@ -412,8 +412,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
 
                 prompter.PromptForIntegrationCallback = (packages) =>
                 {
@@ -501,8 +501,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                return new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                return new TestAddCommandPrompter(consoleService);
             };
 
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
@@ -562,11 +562,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.ConsoleServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleService();
-                testInteractionService.DisplayErrorCallback = (message) => {
+                var testConsoleService = new TestConsoleService();
+                testConsoleService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
-                return testInteractionService;
+                return testConsoleService;
             };
 
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
@@ -601,17 +601,17 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.ConsoleServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleService();
-                testInteractionService.DisplaySubtleMessageCallback = (message) => {
+                var testConsoleService = new TestConsoleService();
+                testConsoleService.DisplaySubtleMessageCallback = (message) => {
                     displayedSubtleMessage = message;
                 };
-                return testInteractionService;
+                return testConsoleService;
             };
 
             options.AddCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestAddCommandPrompter(consoleService);
                 prompter.PromptForIntegrationCallback = (packages) =>
                 {
                     promptedForIntegration = true;

@@ -13,11 +13,11 @@ public class ConsoleServiceTests
     public async Task PromptForSelectionAsync_EmptyChoices_ThrowsEmptyChoicesException()
     {
         // Arrange
-        var interactionService = new ConsoleService(AnsiConsole.Console);
+        var consoleService = new ConsoleService(AnsiConsole.Console);
         var choices = Array.Empty<string>();
 
         // Act & Assert
         await Assert.ThrowsAsync<EmptyChoicesException>(() => 
-            interactionService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
+            consoleService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
     }
 }

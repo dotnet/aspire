@@ -42,23 +42,23 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.ConsoleServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleService();
-                interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
+                var consoleService = new TestConsoleService();
+                consoleService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
                 };
 
-                return interactionService;
+                return consoleService;
             };
 
             configure.CliUpdateNotifierFactory = (sp) =>
             {
                 var logger = sp.GetRequiredService<ILogger<CliUpdateNotifier>>();
                 var nuGetPackageCache = sp.GetRequiredService<INuGetPackageCache>();
-                var interactionService = sp.GetRequiredService<IConsoleService>();
+                var consoleService = sp.GetRequiredService<IConsoleService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, consoleService);
             };
         });
 
@@ -96,23 +96,23 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.ConsoleServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleService();
-                interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
+                var consoleService = new TestConsoleService();
+                consoleService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
                 };
 
-                return interactionService;
+                return consoleService;
             };
 
             configure.CliUpdateNotifierFactory = (sp) =>
             {
                 var logger = sp.GetRequiredService<ILogger<CliUpdateNotifier>>();
                 var nuGetPackageCache = sp.GetRequiredService<INuGetPackageCache>();
-                var interactionService = sp.GetRequiredService<IConsoleService>();
+                var consoleService = sp.GetRequiredService<IConsoleService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, consoleService);
             };
         });
 
@@ -150,23 +150,23 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.ConsoleServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleService();
-                interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
+                var consoleService = new TestConsoleService();
+                consoleService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
                 };
 
-                return interactionService;
+                return consoleService;
             };
 
             configure.CliUpdateNotifierFactory = (sp) =>
             {
                 var logger = sp.GetRequiredService<ILogger<CliUpdateNotifier>>();
                 var nuGetPackageCache = sp.GetRequiredService<INuGetPackageCache>();
-                var interactionService = sp.GetRequiredService<IConsoleService>();
+                var consoleService = sp.GetRequiredService<IConsoleService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, consoleService);
             };
         });
 
@@ -200,23 +200,23 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.ConsoleServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleService();
-                interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
+                var consoleService = new TestConsoleService();
+                consoleService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     Assert.Fail("Should not suggest a preview version when current version is stable.");
                 };
 
-                return interactionService;
+                return consoleService;
             };
 
             configure.CliUpdateNotifierFactory = (sp) =>
             {
                 var logger = sp.GetRequiredService<ILogger<CliUpdateNotifier>>();
                 var nuGetPackageCache = sp.GetRequiredService<INuGetPackageCache>();
-                var interactionService = sp.GetRequiredService<IConsoleService>();
+                var consoleService = sp.GetRequiredService<IConsoleService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, consoleService);
             };
         });
 

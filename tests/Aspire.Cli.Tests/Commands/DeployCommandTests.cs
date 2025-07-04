@@ -175,8 +175,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
             options.PublishCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestDeployCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestDeployCommandPrompter(consoleService);
                 return prompter;
             };
         });
@@ -241,8 +241,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
             options.PublishCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestDeployCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestDeployCommandPrompter(consoleService);
                 return prompter;
             };
         });

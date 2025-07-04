@@ -215,8 +215,8 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
             options.PublishCommandPrompterFactory = (sp) =>
             {
-                var interactionService = sp.GetRequiredService<IConsoleService>();
-                var prompter = new TestPublishCommandPrompter(interactionService);
+                var consoleService = sp.GetRequiredService<IConsoleService>();
+                var prompter = new TestPublishCommandPrompter(consoleService);
                 return prompter;
             };
         });

@@ -127,28 +127,28 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
-        return new NewCommandPrompter(interactionService);
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
+        return new NewCommandPrompter(consoleService);
     };
 
     public Func<IServiceProvider, ICliUpdateNotifier> CliUpdateNotifierFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = NullLoggerFactory.Instance.CreateLogger<CliUpdateNotifier>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
-        return new CliUpdateNotifier(logger, nuGetPackageCache, interactionService);
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
+        return new CliUpdateNotifier(logger, nuGetPackageCache, consoleService);
     };
 
     public Func<IServiceProvider, IAddCommandPrompter> AddCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
-        return new AddCommandPrompter(interactionService);
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
+        return new AddCommandPrompter(consoleService);
     };
 
     public Func<IServiceProvider, IPublishCommandPrompter> PublishCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
-        return new PublishCommandPrompter(interactionService);
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
+        return new PublishCommandPrompter(consoleService);
     };
 
     public Func<IServiceProvider, IConfigurationService> ConfigurationServiceFactory { get; set; }
@@ -171,10 +171,10 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, WorkingDirectory, interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, runner, WorkingDirectory, consoleService, configurationService, telemetry);
     }
 
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -227,12 +227,12 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var interactionService = serviceProvider.GetRequiredService<IConsoleService>();
+        var consoleService = serviceProvider.GetRequiredService<IConsoleService>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var certificateService = serviceProvider.GetRequiredService<ICertificateService>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, nuGetPackageCache, prompter);
+        var factory = new DotNetTemplateFactory(consoleService, runner, certificateService, nuGetPackageCache, prompter);
         return new TemplateProvider([factory]);
     };
 }
