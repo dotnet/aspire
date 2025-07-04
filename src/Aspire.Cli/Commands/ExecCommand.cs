@@ -146,7 +146,7 @@ internal class ExecCommand : BaseCommand
                 pendingRun = _runner.RunAsync(
                     projectFile: effectiveAppHostProjectFile,
                     watch: false,
-                    noBuild: true,
+                    noBuild: false,
                     args: args,
                     env: env,
                     backchannelCompletionSource: backchannelCompletionSource,
