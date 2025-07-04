@@ -1,5 +1,8 @@
 parameters:
   agentOs: 'windows'
+  # All the targetRids must be for the same OS
+  targetRids:
+    - win_x64
   jobNameSuffix: 'windows_x64'
   extraBuildArgs: ''
   codeSign: false
@@ -7,65 +10,67 @@ parameters:
 
 jobs:
 
-- template: /eng/common/templates-official/jobs/jobs.yml@self
-  parameters:
-    # enableMicrobuild fails to run on Linux
-    enableMicrobuild: ${{ and(ne(parameters.agentOs, 'linux'), eq(parameters.codeSign, true)) }}
-    enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
-    enableTelemetry: true
-    # Publish build logs
-    enablePublishBuildArtifacts: true
+- ${{ each targetRid in parameters.targetRids }}:
+  - template: /eng/common/templates-official/jobs/jobs.yml@self
+    parameters:
+      # enableMicrobuild fails to run on Linux
+      enableMicrobuild: ${{ and(ne(parameters.agentOs, 'linux'), eq(parameters.codeSign, true)) }}
+      enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
+      enableTelemetry: true
+      # Publish build logs
+      enablePublishBuildArtifacts: true
 
-    jobs:
-    - job: BuildNative_${{ parameters.jobNameSuffix }}
-      displayName: Native ${{ parameters.jobNameSuffix }}
-      timeoutInMinutes: 20
+      jobs:
+      - job: BuildNative_${{ parameters.jobNameSuffix }}
+        displayName: Native ${{ parameters.jobNameSuffix }}
+        timeoutInMinutes: 20
 
-      variables:
-      - TeamName: ${{ parameters.teamName }}
-      - ${{ if eq(parameters.codeSign, true) }}:
-        - _buildArgs: '--sign'
-      - ${{ else }}:
-        - _buildArgs: ''
+        variables:
+        - TeamName: ${{ parameters.teamName }}
+        - ${{ if eq(parameters.codeSign, true) }}:
+          - _buildArgs: '--sign'
+        - ${{ else }}:
+          - _buildArgs: ''
 
-      - ${{ if eq(parameters.agentOs, 'windows') }}:
-        - scriptName: build.cmd
-      - ${{ else }}:
-        - scriptName: build.sh
+        - ${{ if eq(parameters.agentOs, 'windows') }}:
+          - scriptName: build.cmd
+        - ${{ else }}:
+          - scriptName: build.sh
 
-      pool:
-        ${{ if eq(parameters.agentOs, 'windows') }}:
-          name: NetCore1ESPool-Internal
-          image: windows.vs2022preview.amd64
-          os: windows
-        ${{ if eq(parameters.agentOs, 'linux') }}:
-          name: NetCore1ESPool-Internal
-          image: 1es-mariner-2
-          os: linux
-        ${{ if eq(parameters.agentOs, 'macos') }}:
-          name: Azure Pipelines
-          vmImage: macOS-latest-internal
-          os: macOS
+        pool:
+          ${{ if eq(parameters.agentOs, 'windows') }}:
+            name: NetCore1ESPool-Internal
+            image: windows.vs2022preview.amd64
+            os: windows
+          ${{ if eq(parameters.agentOs, 'linux') }}:
+            name: NetCore1ESPool-Internal
+            image: 1es-mariner-2
+            os: linux
+          ${{ if eq(parameters.agentOs, 'macos') }}:
+            name: Azure Pipelines
+            vmImage: macOS-latest-internal
+            os: macOS
 
-      preSteps:
-        - checkout: self
-          fetchDepth: 1
-          clean: true
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-      steps:
-        - script: >-
-            $(Build.SourcesDirectory)/$(scriptName)
-            --ci
-            --build
-            --restore
-            $(_buildArgs)
-            ${{ parameters.extraBuildArgs }}
-            -bl:$(Build.Arcade.LogsPath)Build.binlog
-          displayName: Build native packages
+        steps:
+          - script: >-
+              $(Build.SourcesDirectory)/$(scriptName)
+              --ci
+              --build
+              --restore
+              /p:TargetRid=${{ targetRid }}
+              $(_buildArgs)
+              ${{ parameters.extraBuildArgs }}
+              -bl:$(Build.Arcade.LogsPath)Build.binlog
+            displayName: Build native packages
 
-        - task: 1ES.PublishBuildArtifacts@1
-          displayName: Publish Artifacts
-          condition: always()
-          inputs:
-            PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
-            ArtifactName: native_archives_${{ parameters.jobNameSuffix }}
+          - task: 1ES.PublishBuildArtifacts@1
+            displayName: Publish Artifacts
+            condition: always()
+            inputs:
+              PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+              ArtifactName: native_archives_${{ parameters.jobNameSuffix }}_${{ replace(targetRid, '-', '_') }}

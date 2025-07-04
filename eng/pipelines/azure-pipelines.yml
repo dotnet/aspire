@@ -143,38 +143,41 @@ extends:
       - template: /eng/pipelines/templates/sign_archives.yml@self
         parameters:
           agentOs: linux
-          jobNameSuffix: linux_x64
+          targetRids:
+            - linux-x64
+            - linux-arm64
+            #- linux-musl-x64
+          jobNameSuffix: linux
           codeSign: true
           teamName: $(_TeamName)
           extraBuildArgs: >-
-            /p:TargetRid=linux-x64
             /p:Configuration=$(_BuildConfig)
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml@self
-        parameters:
-          agentOs: linux
-          jobNameSuffix: linux_arm64
-          codeSign: true
-          teamName: $(_TeamName)
-          extraBuildArgs: >-
-            /p:TargetRid=linux-arm64
-            /p:Configuration=$(_BuildConfig)
-            $(_SignArgs)
-            $(_OfficialBuildIdArgs)
+      #- template: /eng/pipelines/templates/sign_archives.yml@self
+        #parameters:
+          #agentOs: linux
+          #jobNameSuffix: linux_arm64
+          #codeSign: true
+          #teamName: $(_TeamName)
+          #extraBuildArgs: >-
+            #/p:TargetRid=linux-arm64
+            #/p:Configuration=$(_BuildConfig)
+            #$(_SignArgs)
+            #$(_OfficialBuildIdArgs)
 
-      - template: /eng/pipelines/templates/sign_archives.yml@self
-        parameters:
-          agentOs: linux
-          jobNameSuffix: linux_musl_x64
-          codeSign: true
-          teamName: $(_TeamName)
-          extraBuildArgs: >-
-            /p:TargetRid=linux-musl-x64
-            /p:Configuration=$(_BuildConfig)
-            $(_SignArgs)
-            $(_OfficialBuildIdArgs)
+      #- template: /eng/pipelines/templates/sign_archives.yml@self
+        #parameters:
+          #agentOs: linux
+          #jobNameSuffix: linux_musl_x64
+          #codeSign: true
+          #teamName: $(_TeamName)
+          #extraBuildArgs: >-
+            #/p:TargetRid=linux-musl-x64
+            #/p:Configuration=$(_BuildConfig)
+            #$(_SignArgs)
+            #$(_OfficialBuildIdArgs)
 
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
