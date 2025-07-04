@@ -197,6 +197,7 @@ internal class InteractionService : IInteractionService
         // Run validation for inputs interaction.
         if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
         {
+            // State could be null if the user dismissed the inputs dialog.
             if (result.State is IReadOnlyList<InteractionInput> inputs)
             {
                 var options = (InputsDialogInteractionOptions)interactionState.Options;
@@ -221,10 +222,6 @@ internal class InteractionService : IInteractionService
                         result = new InteractionCompletionState { Complete = false, State = inputs };
                     }
                 }
-            }
-            else
-            {
-                throw new InvalidOperationException($"Expected state of {typeof(IReadOnlyList<InteractionInput>).FullName} for completed inputs interaction.");
             }
         }
 
