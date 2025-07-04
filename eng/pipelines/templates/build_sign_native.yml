@@ -14,7 +14,7 @@ jobs:
   - template: /eng/common/templates-official/jobs/jobs.yml@self
     parameters:
       # enableMicrobuild fails to run on Linux - https://github.com/dotnet/arcade/issues/15946
-      enableMicrobuild: ${{ and(ne(parameters.agentOs, 'linux'), eq(parameters.codeSign, true)) }}
+      enableMicrobuild: ${{ eq(parameters.codeSign, true) }}
       enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
       enableTelemetry: true
       # Publish build logs
