@@ -153,4 +153,8 @@
   <data name="SelectAnIntegrationToAdd" xml:space="preserve">
     <value>Select an integration to add:</value>
   </data>
+  <data name="NoPackagesMatchedSearchTerm" xml:space="preserve">
+    <value>No packages matched your search term '{0}'. Showing all available packages.</value>
+    <comment>{0} is the search term provided by the user.</comment>
+  </data>
 </root>

@@ -416,30 +416,46 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         // Check if we have input information
-        if (activity.Data.Inputs is null || activity.Data.Inputs.Count == 0)
+        if (activity.Data.Inputs is not { Count: > 0 } inputs)
         {
             throw new InvalidOperationException("Prompt provided without input data.");
         }
 
-        // For multiple inputs, display the activity status text as a header
-        if (activity.Data.Inputs.Count > 1)
+        // Check for validation errors. If there are errors then this isn't the first time the user has been prompted.
+        var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
+
+        // For multiple inputs, display the activity status text as a header.
+        // Don't display if there are validation errors. Validation errors means the header has already been displayed.
+        if (!hasValidationErrors && inputs.Count > 1)
         {
             AnsiConsole.MarkupLine($"[bold]{activity.Data.StatusText.EscapeMarkup()}[/]");
         }
 
         // Handle multiple inputs
-        var results = new string?[activity.Data.Inputs.Count];
-        for (var i = 0; i < activity.Data.Inputs.Count; i++)
+        var results = new string?[inputs.Count];
+        for (var i = 0; i < inputs.Count; i++)
         {
-            var input = activity.Data.Inputs[i];
+            var input = inputs[i];
 
-            // For multiple inputs, use the input label as the prompt
-            // For single input, use the activity status text as the prompt
-            var promptText = activity.Data.Inputs.Count > 1
-                ? $"{input.Label}: "
-                : $"[bold]{activity.Data.StatusText}[/]";
+            string? result;
 
-            var result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+            // Get prompt for input if there are no validation errors (first time we've asked)
+            // or there are validation errors and this input has an error.
+            if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
+            {
+                // For multiple inputs, use the input label as the prompt
+                // For single input, use the activity status text as the prompt
+                var promptText = inputs.Count > 1
+                    ? $"{input.Label}: "
+                    : $"[bold]{activity.Data.StatusText}[/]";
+
+                result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+            }
+            else
+            {
+                result = input.Value;
+            }
+
             results[i] = result;
         }
 
@@ -453,6 +469,15 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             // Fallback to text if unknown type
             inputType = InputType.Text;
+        }
+
+        // Display any validation errors.
+        if (input.ValidationErrors is { Count: > 0 } errors)
+        {
+            foreach (var error in errors)
+            {
+                _interactionService.DisplayError(error);
+            }
         }
 
         return inputType switch

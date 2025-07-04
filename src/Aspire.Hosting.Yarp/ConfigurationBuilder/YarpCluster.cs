@@ -12,11 +12,18 @@ namespace Aspire.Hosting.Yarp;
 /// </summary>
 public class YarpCluster
 {
+    // Testing only
+    internal YarpCluster(ClusterConfig config, object target)
+    {
+        ClusterConfig = config;
+        Target = target;
+    }
+
     /// <summary>
     /// Construct a new YarpCluster targeting the endpoint in parameter.
     /// </summary>
     /// <param name="endpoint">The endpoint to target.</param>
-    public YarpCluster(EndpointReference endpoint)
+    internal YarpCluster(EndpointReference endpoint)
         : this(endpoint.Resource.Name, $"{endpoint.Scheme}://_{endpoint.EndpointName}.{endpoint.Resource.Name}")
     {
     }
@@ -25,46 +32,71 @@ public class YarpCluster
     /// Construct a new YarpCluster targeting the resource in parameter.
     /// </summary>
     /// <param name="resource">The resource to target.</param>
-    public YarpCluster(IResourceWithServiceDiscovery resource)
+    internal YarpCluster(IResourceWithServiceDiscovery resource)
         : this(resource.Name, BuildEndpointUri(resource))
     {
     }
 
-    private YarpCluster(string resourceName, string endpointUri)
+    /// <summary>
+    /// Creates a new instance of <see cref="YarpCluster"/> with a specified external service resource.
+    /// </summary>
+    /// <param name="externalService">The external service.</param>
+    internal YarpCluster(ExternalServiceResource externalService)
+        : this(externalService.Name, GetAddressFromExternalService(externalService))
+    {
+    }
+
+    private YarpCluster(string resourceName, object target)
     {
         ClusterConfig = new()
         {
-            ClusterId = $"cluster_{resourceName}_{Guid.NewGuid().ToString("N")}",
+            ClusterId = $"cluster_{resourceName}",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "destination1", new DestinationConfig { Address = endpointUri } }
-            }
         };
+        Target = target;
     }
 
     internal ClusterConfig ClusterConfig { get; private set; }
+
+    internal object Target { get; private set; }
 
     internal void Configure(Func<ClusterConfig, ClusterConfig> configure)
     {
         ClusterConfig = configure(ClusterConfig);
     }
 
-    private static string BuildEndpointUri(IResourceWithServiceDiscovery resource)
+    private static object BuildEndpointUri(IResourceWithServiceDiscovery resource)
     {
         var resourceName = resource.Name;
 
+        // NOTE: This should likely fallback to other endpoints with HTTP or HTTPS schemes in cases where they don't
+        //       have the default names.
         var httpsEndpoint = resource.GetEndpoint("https");
         var httpEndpoint = resource.GetEndpoint("http");
 
         var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
         {
-            (true, true)  => "https+http",
+            (true, true) => "https+http",
             (true, false) => "https",
             (false, true) => "http",
             _ => throw new ArgumentException("Cannot find a http or https endpoint for this resource.", nameof(resource))
         };
 
         return $"{scheme}://{resourceName}";
+    }
+
+    private static object GetAddressFromExternalService(ExternalServiceResource externalService)
+    {
+        if (externalService.Uri is not null)
+        {
+            return externalService.Uri.ToString();
+        }
+        if (externalService.UrlParameter is not null)
+        {
+            return externalService.UrlParameter;
+        }
+        // This shouldn't get to here as the ExternalServiceResource should ensure the URL is a valid absolute URI.
+        throw new InvalidOperationException("External service must have either a URI or a URL parameter defined.");
     }
 }
 

@@ -6,6 +6,7 @@
 
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Publishing;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -474,8 +475,7 @@ public class PublishingActivityProgressReporterTests
 
         // Get the interaction ID from the activity that was emitted
         var activityReader = reporter.ActivityItemUpdated.Reader;
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var activity = await activityReader.ReadAsync(cts.Token);
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
         var promptId = activity.Data.Id;
         Assert.NotNull(activity.Data.Inputs);
         var input = Assert.Single(activity.Data.Inputs);
@@ -485,10 +485,10 @@ public class PublishingActivityProgressReporterTests
         var responses = new string[] { "user-response" };
 
         // Act
-        await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None);
+        await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None).DefaultTimeout();
 
         // The prompt task should complete with the user's response
-        var promptResult = await promptTask;
+        var promptResult = await promptTask.DefaultTimeout();
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
     }

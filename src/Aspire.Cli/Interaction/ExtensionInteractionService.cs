@@ -246,4 +246,9 @@ internal class ExtensionInteractionService : IInteractionService
     {
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
     }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
+    }
 }

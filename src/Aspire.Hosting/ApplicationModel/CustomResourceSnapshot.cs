@@ -396,6 +396,11 @@ public static class KnownResourceStates
     public static readonly string NotStarted = nameof(NotStarted);
 
     /// <summary>
+    /// The not active state. Useful for resources without a lifetime.
+    /// </summary>
+    public static readonly string Active = nameof(Active);
+
+    /// <summary>
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
