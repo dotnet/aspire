@@ -112,7 +112,7 @@ extends:
 
     stages:
 
-    - stage: archive_and_sign
+    - stage: archive_and_sign_stage
       displayName: Archive, and Sign native packages
 
       jobs:
@@ -149,7 +149,7 @@ extends:
     - stage: build
       displayName: Build
       dependsOn:
-      - archive_and_sign
+      - archive_and_sign_stage
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
@@ -195,7 +195,7 @@ extends:
 
             steps:
               - task: DownloadPipelineArtifact@2
-                displayName: Download Native archives
+                displayName: 🟣 Download Native archives
                 inputs:
                   #artifactName: native_archives_linux
                   itemPattern: |
@@ -215,7 +215,7 @@ extends:
                   #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - task: PowerShell@2
-                displayName: List artifacts packages contents
+                displayName: 🟣 List artifacts packages contents
                 inputs:
                   targetType: 'inline'
                   script: |
