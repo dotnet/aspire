@@ -59,11 +59,16 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
+    </ItemGroup>
+
+    <ItemGroup Label="Aspire cli">
       <ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">
         <IsShipping>false</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
+
+      <GenerateChecksumItems Include="@(_CliFilesToPublish)" DestinationPath="%(FullPath).sha512" />
     </ItemGroup>
   </Target>
 </Project>
