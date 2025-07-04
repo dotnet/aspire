@@ -144,7 +144,7 @@ public static class DistributedApplicationTestingBuilder
     /// <returns>
     /// A new instance of <see cref="IDistributedApplicationTestingBuilder"/>.
     /// </returns>
-    public static IDistributedApplicationTestingBuilder Create(
+    internal static IDistributedApplicationTestingBuilder Create(
         string[] args,
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder,
         Assembly appHostAssembly)
