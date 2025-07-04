@@ -286,14 +286,15 @@ extends:
               - task: DownloadPipelineArtifact@2
                 displayName: Download Native archives
                 inputs:
-                  artifactName: native_archives_linux
+                  #artifactName: native_archives_linux
+                  itemPattern: '**/aspire-cli-*'
                   targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
-              - task: DownloadPipelineArtifact@2
-                displayName: Download Archives macos
-                inputs:
-                  artifactName: native_archives_macos
-                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
+              #- task: DownloadPipelineArtifact@2
+                #displayName: Download Archives macos
+                #inputs:
+                  #artifactName: native_archives_macos
+                  #targetPath: '$(Build.SourcesDirectory)/artifacts/packages'
 
               - task: PowerShell@2
                 displayName: List artifacts packages contents
