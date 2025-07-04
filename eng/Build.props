@@ -21,7 +21,7 @@
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsWindows())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.win-*" BuildStep="native" BuildInParallel="false" />-->
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsLinux())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.linux-*" BuildStep="native" BuildInParallel="false" />-->
     <!--<ProjectToBuild Condition="$([System.OperatingSystem]::IsMacOS())" Include="$(RepoRoot)eng\clipack\Aspire.Cli.osx-*" BuildStep="native" BuildInParallel="false" />-->
-    <ProjectToBuild Condition="Exists('$(RepoRoot)eng\clipack\Aspire.Cli.$(RuntimeIdentifier).csproj')" Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(RuntimeIdentifier).csproj" />
+    <ProjectToBuild Condition="Exists('$(RepoRoot)eng\clipack\Aspire.Cli.$(NETCoreSdkRuntimeIdentifier).csproj')" Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(NETCoreSdkRuntimeIdentifier).csproj" />
   </ItemGroup>
 
   <!-- Tests -->
