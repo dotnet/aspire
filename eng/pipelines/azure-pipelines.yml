@@ -149,6 +149,28 @@ extends:
             $(_SignArgs)
             $(_OfficialBuildIdArgs)
 
+      - template: /eng/pipelines/templates/sign_archives.yml@self
+        parameters:
+          agentOs: linux
+          jobNameSuffix: linux_arm64
+          codeSign: true
+          extraBuildArgs: >-
+            /p:TargetRid=linux-arm64
+            /p:Configuration=$(_BuildConfig)
+            $(_SignArgs)
+            $(_OfficialBuildIdArgs)
+
+      - template: /eng/pipelines/templates/sign_archives.yml@self
+        parameters:
+          agentOs: linux
+          jobNameSuffix: linux_musl_x64
+          codeSign: true
+          extraBuildArgs: >-
+            /p:TargetRid=linux-musl-x64
+            /p:Configuration=$(_BuildConfig)
+            $(_SignArgs)
+            $(_OfficialBuildIdArgs)
+
       #- template: /eng/common/templates-official/jobs/jobs.yml@self
         #parameters:
           #enableMicrobuild: true
