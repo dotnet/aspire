@@ -34,15 +34,15 @@ jobs:
         ${{ if eq(parameters.agentOs, 'windows') }}:
           name: NetCore1ESPool-Internal
           image: windows.vs2022preview.amd64
-          agentOs: windows
+          os: windows
         ${{ if eq(parameters.agentOs, 'linux') }}:
           name: NetCore1ESPool-Internal
           image: 1es-mariner-2
-          agentOs: linux
+          os: linux
         ${{ if eq(parameters.agentOs, 'macos') }}:
           name: Azure Pipelines
           vmImage: macOS-latest-internal
-          agentOs: macOS
+          os: macOS
 
       preSteps:
         - checkout: self
