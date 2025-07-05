@@ -157,17 +157,20 @@ internal sealed class ParameterProcessor(
                 var saveParameters = new InteractionInput
                 {
                     InputType = InputType.Boolean,
-                    Label = "Save to secrets"
+                    Label = "Save to user secrets"
                 };
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
                     "Set unresolved parameters",
-                    "Please provide values for the unresolved parameters.",
+                    """
+                    Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+                    """,
                     [.. resourceInputs.Select(i => i.Input), saveParameters],
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = "Save",
-                        ShowDismiss = true
+                        ShowDismiss = true,
+                        EnableMessageMarkdown = true,
                     })
                     .ConfigureAwait(false);
 
