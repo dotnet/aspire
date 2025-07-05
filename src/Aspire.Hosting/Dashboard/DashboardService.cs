@@ -7,7 +7,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using static Aspire.Hosting.ApplicationModel.Interaction;
+using static Aspire.Hosting.Interaction;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -117,7 +117,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
-                                var dto = new InteractionInput
+                                var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required
@@ -174,33 +174,33 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    private static MessageIntent MapMessageIntent(ApplicationModel.MessageIntent? intent)
+    private static Aspire.DashboardService.Proto.V1.MessageIntent MapMessageIntent(Aspire.Hosting.MessageIntent? intent)
     {
         if (intent is null)
         {
-            return MessageIntent.None;
+            return Aspire.DashboardService.Proto.V1.MessageIntent.None;
         }
 
         return intent.Value switch
         {
-            ApplicationModel.MessageIntent.Success => MessageIntent.Success,
-            ApplicationModel.MessageIntent.Warning => MessageIntent.Warning,
-            ApplicationModel.MessageIntent.Error => MessageIntent.Error,
-            ApplicationModel.MessageIntent.Information => MessageIntent.Information,
-            ApplicationModel.MessageIntent.Confirmation => MessageIntent.Confirmation,
-            _ => MessageIntent.None,
+            Aspire.Hosting.MessageIntent.Success => Aspire.DashboardService.Proto.V1.MessageIntent.Success,
+            Aspire.Hosting.MessageIntent.Warning => Aspire.DashboardService.Proto.V1.MessageIntent.Warning,
+            Aspire.Hosting.MessageIntent.Error => Aspire.DashboardService.Proto.V1.MessageIntent.Error,
+            Aspire.Hosting.MessageIntent.Information => Aspire.DashboardService.Proto.V1.MessageIntent.Information,
+            Aspire.Hosting.MessageIntent.Confirmation => Aspire.DashboardService.Proto.V1.MessageIntent.Confirmation,
+            _ => Aspire.DashboardService.Proto.V1.MessageIntent.None,
         };
     }
 
-    private static InputType MapInputType(ApplicationModel.InputType inputType)
+    private static Aspire.DashboardService.Proto.V1.InputType MapInputType(Aspire.Hosting.InputType inputType)
     {
         return inputType switch
         {
-            ApplicationModel.InputType.Text => InputType.Text,
-            ApplicationModel.InputType.SecretText => InputType.SecretText,
-            ApplicationModel.InputType.Choice => InputType.Choice,
-            ApplicationModel.InputType.Boolean => InputType.Boolean,
-            ApplicationModel.InputType.Number => InputType.Number,
+            Aspire.Hosting.InputType.Text => Aspire.DashboardService.Proto.V1.InputType.Text,
+            Aspire.Hosting.InputType.SecretText => Aspire.DashboardService.Proto.V1.InputType.SecretText,
+            Aspire.Hosting.InputType.Choice => Aspire.DashboardService.Proto.V1.InputType.Choice,
+            Aspire.Hosting.InputType.Boolean => Aspire.DashboardService.Proto.V1.InputType.Boolean,
+            Aspire.Hosting.InputType.Number => Aspire.DashboardService.Proto.V1.InputType.Number,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }
