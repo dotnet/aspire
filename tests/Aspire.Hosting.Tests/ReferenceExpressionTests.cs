@@ -9,11 +9,11 @@ public class ReferenceExpressionTests
 {
     [Theory]
     [InlineData("world", "Hello world", "Hello world")]
-    [InlineData("{", "Hello {{", "Hello {")]
-    [InlineData("}", "Hello }}", "Hello }")]
-    [InlineData("{1}", "Hello {{1}}", "Hello {1}")]
-    [InlineData("{x}", "Hello {{x}}", "Hello {x}")]
-    [InlineData("{{x}}", "Hello {{x}}", "Hello {x}")]
+    [InlineData("{", "Hello {{", "Hello {{")]
+    [InlineData("}", "Hello }}", "Hello }}")]
+    [InlineData("{1}", "Hello {{1}}", "Hello {{1}}")]
+    [InlineData("{x}", "Hello {{x}}", "Hello {{x}}")]
+    [InlineData("{{x}}", "Hello {{x}}", "Hello {{x}}")]
     public void TestReferenceExpressionCreateInputStringTreatedAsLiteral(string input, string expectedFormat, string expectedExpression)
     {
         var refExpression = ReferenceExpression.Create($"Hello {input}");
@@ -25,13 +25,13 @@ public class ReferenceExpressionTests
     }
 
     [Theory]
-    [InlineData("{x}", "{x}")]
-    [InlineData("{x", "{x")]
-    [InlineData("x}", "x}")]
-    [InlineData("{1 var}", "{1 var}")]
-    [InlineData("{var 1}", "{var 1}")]
-    [InlineData("{1myVar}", "{1myVar}")]
-    [InlineData("{myVar1}", "{myVar1}")]
+    [InlineData("{x}", "{{x}}")]
+    [InlineData("{x", "{{x")]
+    [InlineData("x}", "x}}")]
+    [InlineData("{1 var}", "{{1 var}}")]
+    [InlineData("{var 1}", "{{var 1}}")]
+    [InlineData("{1myVar}", "{{1myVar}}")]
+    [InlineData("{myVar1}", "{{myVar1}}")]
     public void ReferenceExpressionHandlesValueWithNonParameterBrackets(string input, string expected)
     {
         var expr = ReferenceExpression.Create($"{input}").ValueExpression;
@@ -78,7 +78,7 @@ public class ReferenceExpressionTests
 
         var expr = ReferenceExpression.Create($"[{{\"api_uri\":\"{v}\"}}]");
 
-        Assert.Equal("[{\"api_uri\":\"{value}\"}]", expr.ValueExpression);
+        Assert.Equal("[{{\"api_uri\":\"{value}\"}}]", expr.ValueExpression);
         Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
     }
 
@@ -89,7 +89,7 @@ public class ReferenceExpressionTests
 
         var expr = ReferenceExpression.Create($"[{{{{\"api_uri\":\"{v}\"}}}}]");
 
-        Assert.Equal("[{\"api_uri\":\"{value}\"}]", expr.ValueExpression);
+        Assert.Equal("[{{\"api_uri\":\"{value}\"}}]", expr.ValueExpression);
         Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
     }
 
