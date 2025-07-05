@@ -1,0 +1,90 @@
+parameters:
+  # values: windows/mac/linux
+  agentOs: 'windows'
+  # All the targetRidsForSameOS must be for the same OS
+  targetRidsForSameOS:
+    - win_x64
+  extraBuildArgs: ''
+  codeSign: false
+  teamName: ''
+
+jobs:
+
+- ${{ each targetRid in parameters.targetRidsForSameOS }}:
+  - template: /eng/common/templates-official/jobs/jobs.yml@self
+    parameters:
+      # enableMicrobuild fails to run on Linux - https://github.com/dotnet/arcade/issues/15946
+      enableMicrobuild: ${{ eq(parameters.codeSign, true) }}
+      enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
+      enableTelemetry: true
+      # Publish build logs
+      enablePublishBuildArtifacts: true
+
+      jobs:
+      - job: BuildNative_${{ replace(targetRid, '-', '_') }}
+        displayName: ${{ replace(targetRid, '-', '_') }}
+        timeoutInMinutes: 20
+
+        variables:
+        - TeamName: ${{ parameters.teamName }}
+        - ${{ if eq(parameters.codeSign, true) }}:
+          - _buildArgs: '--sign'
+        - ${{ else }}:
+          - _buildArgs: ''
+
+        - ${{ if eq(parameters.agentOs, 'windows') }}:
+          - scriptName: build.cmd
+        - ${{ else }}:
+          - scriptName: build.sh
+
+        pool:
+          ${{ if eq(parameters.agentOs, 'windows') }}:
+            name: NetCore1ESPool-Internal
+            image: windows.vs2022preview.amd64
+            os: windows
+          ${{ if eq(parameters.agentOs, 'linux') }}:
+            name: NetCore1ESPool-Internal
+            image: 1es-mariner-2
+            os: linux
+          ${{ if eq(parameters.agentOs, 'macos') }}:
+            name: Azure Pipelines
+            vmImage: macOS-latest-internal
+            os: macOS
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+          # Needed to download the MicroBuild plugin nupkgs on Mac and Linux as nuget.exe is unavailable
+          # `enableMicrobuild` is set to false because of https://github.com/dotnet/arcade/issues/15946
+          # and this step is a workaround
+          #- task: UseDotNet@2
+            #displayName: 🟣Install .NET 8.0 SDK for MicroBuild Plugin
+            #inputs:
+              #packageType: sdk
+              #version: 8.0.x
+              #installationPath: $(Build.SourcesDirectory)/.dotnet
+              #workingDirectory: $(Build.SourcesDirectory)
+            #condition: ${{ eq(parameters.agentOs, 'linux') }}
+          - script: ./build.sh -restore
+            displayName: 🟣Restore
+
+        steps:
+          - script: >-
+              $(Build.SourcesDirectory)/$(scriptName)
+              --ci
+              --build
+              --restore
+              /p:TargetRid=${{ targetRid }}
+              $(_buildArgs)
+              ${{ parameters.extraBuildArgs }}
+              -bl:$(Build.Arcade.LogsPath)Build.binlog
+            displayName: 🟣Build native packages
+
+          - task: 1ES.PublishBuildArtifacts@1
+            displayName: 🟣Publish Artifacts
+            condition: always()
+            inputs:
+              PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+              ArtifactName: native_archives_${{ replace(targetRid, '-', '_') }}

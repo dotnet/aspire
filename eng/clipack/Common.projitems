@@ -3,13 +3,16 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
-    <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
-    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('linux-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="'$(ArchiveFormat)' == '' and $(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="'$(ArchiveFormat)' == ''">tar.gz</ArchiveFormat>
 
     <!-- Publish native AOT if running on the target platfrom -->
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
+
+    <CliProjectDirectory>$([MSBuild]::NormalizeDirectory($(RepoRoot), 'src', 'Aspire.Cli'))</CliProjectDirectory>
+    <EntitlementsFile>$(CliProjectDirectory)entitlements.plist</EntitlementsFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,17 +46,25 @@
 
     <!-- Remove OutputPath, and TargetFramework so the defaults can be used -->
     <MSBuild
-        Projects="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj"
+        Projects="$(CliProjectDirectory)Aspire.Cli.csproj"
         Targets="Publish"
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
 
+    <!-- Codesign on macos -->
+    <Message Text="Codesigning $(OutputPath)/aspire .." Importance="High" Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'" />
+    <!-- '-o runtime' is to enable hardened runtime -->
+    <Exec Condition="$([System.OperatingSystem]::IsMacOS()) and '$(NativeBuildOnly)' == 'true' and '$(PublishNativeAot)' == 'true'"
+          Command="codesign -s - -o runtime -f $(OutputPath)/aspire" />
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
 
     <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
     <ItemGroup>
       <DirectoriesToRemove Include="$(XlfLanguages)" />
+
+      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-$(CliRuntime)*" />
+      <GenerateChecksumItems Include="@(_ArchiveFile)" DestinationPath="%(FullPath).sha512" />
     </ItemGroup>
     <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
   </Target>

@@ -39,6 +39,17 @@
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
 
+    <!-- Generate checksums for aspire-cli packages -->
+    <ItemGroup>
+      <_ArchiveFile Include="$(ArtifactsShippingPackagesDir)/aspire-cli-*" />
+      <GenerateChecksumItems Include="@(_ArchiveFile)" DestinationPath="%(FullPath).sha512" />
+    </ItemGroup>
+
+    <GenerateChecksums Items="@(GenerateChecksumItems)" />
+    <ItemGroup>
+      <_CliFilesToPublish Include="@(GenerateChecksumItems->'%(DestinationPath)')" />
+    </ItemGroup>
+
     <ItemGroup>
       <ItemsToPushToBlobFeed Include="@(_InstallersToPublish)">
         <IsShipping>true</IsShipping>
