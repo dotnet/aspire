@@ -4,8 +4,9 @@ kind: "Secret"
 metadata:
   name: "myapp-secrets"
   labels:
-    app: "aspire"
-    component: "myapp"
+    app.kubernetes.io/name: "aspire-hosting-tests"
+    app.kubernetes.io/component: "myapp"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 stringData:
   param1: "{{ .Values.secrets.myapp.param1 }}"
   param3: "{{ .Values.secrets.myapp.param3 }}"

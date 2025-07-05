@@ -3,12 +3,17 @@ apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
   name: "service-deployment"
+  labels:
+    app.kubernetes.io/name: "aspire-hosting-tests"
+    app.kubernetes.io/component: "service"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 spec:
   template:
     metadata:
       labels:
-        app: "aspire"
-        component: "service"
+        app.kubernetes.io/name: "aspire-hosting-tests"
+        app.kubernetes.io/component: "service"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
     spec:
       containers:
         - image: "nginx:latest"
@@ -19,8 +24,9 @@ spec:
           imagePullPolicy: "Always"
   selector:
     matchLabels:
-      app: "aspire"
-      component: "service"
+      app.kubernetes.io/name: "aspire-hosting-tests"
+      app.kubernetes.io/component: "service"
+      app.kubernetes.io/instance: "{{.Release.Name}}"
   replicas: 1
   revisionHistoryLimit: 5
   strategy:

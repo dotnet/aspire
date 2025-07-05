@@ -88,6 +88,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         foreach (var resource in AdditionalResources)
         {
+            foreach(var label in Labels)
+            {
+                resource.Metadata.Labels.TryAdd(label.Key, label.Value);
+            }
+
             yield return resource;
         }
     }
@@ -105,8 +110,9 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         Labels = new()
         {
-            ["app"] = "aspire",
-            ["component"] = resource.Name,
+            ["app.kubernetes.io/name"] = Parent.HelmChartName,
+            ["app.kubernetes.io/component"] = resource.Name,
+            ["app.kubernetes.io/instance"] = "{{.Release.Name}}",
         };
     }
 
