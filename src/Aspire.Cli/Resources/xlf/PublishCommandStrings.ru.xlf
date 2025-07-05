@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
-        <target state="needs-review-translation">Генерирует артефакты развертывания для проекта узла приложения Aspire.</target>
+        <target state="translated">Генерирует артефакты развертывания для проекта узла приложения Aspire. (Предварительная версия)</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToPublishArtifacts">

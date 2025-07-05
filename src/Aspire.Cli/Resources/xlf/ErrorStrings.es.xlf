@@ -69,12 +69,12 @@
       </trans-unit>
       <trans-unit id="ExtensionIncompatibleWithCli">
         <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
-        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">Aspire Extension no es compatible con la CLI. Debe actualizarse a una versión que soporte la funcionalidad de {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionTokenMustBeSet">
         <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
-        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <target state="translated">Si se establece ASPIRE_EXTENSION_ENDPOINT, se debe configurar el token de extensión de Aspire. Asegúrese de que ASPIRE_EXTENSION_TOKEN esté configurado</target>
         <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="InvalidSocketPath">
         <source>The provided extension socket path needs two valid parts.</source>
-        <target state="new">The provided extension socket path needs two valid parts.</target>
+        <target state="translated">La ruta de acceso del socket de extensión proporcionada necesita dos partes válidas.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="NoSelectionMade">
         <source>Input was required for prompt '{0}' but not provided.</source>
-        <target state="new">Input was required for prompt '{0}' but not provided.</target>
+        <target state="translated">Se requiere una entrada para la solicitud '{0}', pero no se ha proporcionado.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">

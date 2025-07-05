@@ -69,12 +69,12 @@
       </trans-unit>
       <trans-unit id="ExtensionIncompatibleWithCli">
         <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
-        <target state="new">Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</target>
+        <target state="translated">L’extension Aspire est incompatible avec l’interface CLI. L’extension doit être mise à jour vers une version qui prend en charge la fonctionnalité {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionTokenMustBeSet">
         <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
-        <target state="new">The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</target>
+        <target state="translated">Le jeton d’extension Aspire doit être défini si ASPIRE_EXTENSION_ENDPOINT est défini. Veuillez vérifier que ASPIRE_EXTENSION_TOKEN est défini</target>
         <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
       </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="InvalidSocketPath">
         <source>The provided extension socket path needs two valid parts.</source>
-        <target state="new">The provided extension socket path needs two valid parts.</target>
+        <target state="translated">Le chemin d’accès de socket d’extension fourni nécessite deux parties valides.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="NoSelectionMade">
         <source>Input was required for prompt '{0}' but not provided.</source>
-        <target state="new">Input was required for prompt '{0}' but not provided.</target>
+        <target state="translated">Une entrée était requise pour l’invite '{0}', mais elle n’a pas été fournie.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">

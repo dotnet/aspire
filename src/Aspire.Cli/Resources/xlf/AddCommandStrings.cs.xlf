@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="NoPackagesMatchedSearchTerm">
         <source>No packages matched your search term '{0}'. Showing all available packages.</source>
-        <target state="new">No packages matched your search term '{0}'. Showing all available packages.</target>
+        <target state="translated">Vašemu hledaného termínu {0} neodpovídají žádné balíčky. Zobrazují se všechny dostupné balíčky.</target>
         <note>{0} is the search term provided by the user.</note>
       </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">

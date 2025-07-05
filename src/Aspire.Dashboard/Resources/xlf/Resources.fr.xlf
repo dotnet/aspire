@@ -144,7 +144,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsParameterValueProperty">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valeur</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
