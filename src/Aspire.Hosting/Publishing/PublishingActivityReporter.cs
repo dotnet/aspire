@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
