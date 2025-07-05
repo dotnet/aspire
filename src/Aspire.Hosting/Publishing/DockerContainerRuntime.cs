@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
@@ -9,11 +11,41 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
+        var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+
+        // Add platform support if specified
+        if (!string.IsNullOrEmpty(options?.TargetPlatform))
+        {
+            arguments += $" --platform \"{options.TargetPlatform}\"";
+        }
+
+        // Add output format support if specified
+        if (options?.ImageFormat.HasValue == true || !string.IsNullOrEmpty(options?.OutputPath))
+        {
+            var outputType = options.ImageFormat switch
+            {
+                ContainerImageFormat.OciTar => "type=oci",
+                ContainerImageFormat.DockerTar => "type=docker",
+                ContainerImageFormat.Docker => "type=docker",
+                null => "type=docker",
+                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+            };
+
+            if (!string.IsNullOrEmpty(options?.OutputPath))
+            {
+                outputType += $",dest=\"{options.OutputPath}\"";
+            }
+
+            arguments += $" --output \"{outputType}\"";
+        }
+
+        arguments += $" \"{contextPath}\"";
+
         var spec = new ProcessSpec("docker")
         {
-            Arguments = $"build --file {dockerfilePath} --tag {imageName} {contextPath}",
+            Arguments = arguments,
             OnOutputData = output =>
             {
                 logger.LogInformation("docker build (stdout): {Output}", output);
@@ -46,12 +78,13 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var exitCode = await RunDockerBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
+            options,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)
@@ -64,14 +97,14 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     {
         var spec = new ProcessSpec("docker")
         {
-            Arguments = "info",
+            Arguments = "buildx version",
             OnOutputData = output =>
             {
-                logger.LogInformation("docker info (stdout): {Output}", output);
+                logger.LogInformation("docker buildx version (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("docker info (stderr): {Error}", error);
+                logger.LogInformation("docker buildx version (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -80,9 +113,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        return CheckDockerInfoAsync(pendingProcessResult, processDisposable, cancellationToken);
+        return CheckDockerBuildxAsync(pendingProcessResult, processDisposable, cancellationToken);
 
-        async Task<bool> CheckDockerInfoAsync(Task<ProcessResult> pendingResult, IAsyncDisposable processDisposable, CancellationToken ct)
+        async Task<bool> CheckDockerBuildxAsync(Task<ProcessResult> pendingResult, IAsyncDisposable processDisposable, CancellationToken ct)
         {
             await using (processDisposable)
             {
@@ -90,12 +123,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
                 if (processResult.ExitCode != 0)
                 {
-                    logger.LogError("Docker info failed with exit code {ExitCode}.", processResult.ExitCode);
+                    logger.LogError("Docker buildx version failed with exit code {ExitCode}.", processResult.ExitCode);
                     return false;
                 }
 
-                // Optionally, parse output for health, but exit code 0 is usually sufficient.
-                logger.LogInformation("Docker is running and healthy.");
+                logger.LogInformation("Docker buildx is available and running.");
                 return true;
             }
         }

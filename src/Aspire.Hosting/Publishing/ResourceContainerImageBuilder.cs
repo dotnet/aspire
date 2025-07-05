@@ -14,6 +14,50 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
+/// Specifies the format for container images.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public enum ContainerImageFormat
+{
+    /// <summary>
+    /// Docker format (default).
+    /// </summary>
+    Docker,
+
+    /// <summary>
+    /// OCI tar format.
+    /// </summary>
+    OciTar,
+
+    /// <summary>
+    /// Docker tar format.
+    /// </summary>
+    DockerTar
+}
+
+/// <summary>
+/// Options for building container images.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class ContainerBuildOptions
+{
+    /// <summary>
+    /// Gets or sets the output path for the container archive.
+    /// </summary>
+    public string? OutputPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the container image format.
+    /// </summary>
+    public ContainerImageFormat? ImageFormat { get; init; }
+
+    /// <summary>
+    /// Gets or sets the target platform for the container.
+    /// </summary>
+    public string? TargetPlatform { get; init; }
+}
+
+/// <summary>
 /// Provides a service to publishers for building containers that represent a resource.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -23,16 +67,18 @@ public interface IResourceContainerImageBuilder
     /// Builds a container that represents the specified resource.
     /// </summary>
     /// <param name="resource">The resource to build.</param>
+    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task BuildImageAsync(IResource resource, CancellationToken cancellationToken);
+    Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Builds container images for a collection of resources.
     /// </summary>
     /// <param name="resources">The resources to build images for.</param>
+    /// <param name="options">The container build options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken);
+    Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -48,7 +94,7 @@ internal sealed class ResourceContainerImageBuilder(
         null => serviceProvider.GetRequiredKeyedService<IContainerRuntime>("docker")
     };
 
-    public async Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+    public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         var step = await activityReporter.CreateStepAsync(
             "Building container images for resources",
@@ -87,19 +133,19 @@ internal sealed class ResourceContainerImageBuilder(
             foreach (var resource in resources)
             {
                 // TODO: Consider parallelizing this.
-                await BuildImageAsync(step, resource, cancellationToken).ConfigureAwait(false);
+                await BuildImageAsync(step, resource, options, cancellationToken).ConfigureAwait(false);
             }
 
             await step.CompleteAsync("Building container images completed", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+    public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return BuildImageAsync(step: null, resource, cancellationToken);
+        return BuildImageAsync(step: null, resource, options, cancellationToken);
     }
 
-    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, CancellationToken cancellationToken)
+    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {Resource}", resource.Name);
 
@@ -110,6 +156,7 @@ internal sealed class ResourceContainerImageBuilder(
             await BuildProjectContainerImageAsync(
                 resource,
                 step,
+                options,
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -124,6 +171,7 @@ internal sealed class ResourceContainerImageBuilder(
                     dockerfileBuildAnnotation.DockerfilePath,
                     containerImageAnnotation.Image,
                     step,
+                    options,
                     cancellationToken).ConfigureAwait(false);
                 return;
             }
@@ -134,7 +182,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, IPublishingStep? step, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -152,9 +200,37 @@ internal sealed class ResourceContainerImageBuilder(
                     throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
                 }
 
+                var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+
+                // Add additional arguments based on options
+                if (options is not null)
+                {
+                    if (!string.IsNullOrEmpty(options.OutputPath))
+                    {
+                        arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
+                    }
+
+                    if (options.ImageFormat.HasValue)
+                    {
+                        var format = options.ImageFormat.Value switch
+                        {
+                            ContainerImageFormat.Docker => "Docker",
+                            ContainerImageFormat.OciTar => "OciTar",
+                            ContainerImageFormat.DockerTar => "DockerTar",
+                            _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                        };
+                        arguments += $" /p:ContainerImageFormat=\"{format}\"";
+                    }
+
+                    if (!string.IsNullOrEmpty(options.TargetPlatform))
+                    {
+                        arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
+                    }
+                }
+
                 var spec = new ProcessSpec("dotnet")
                 {
-                    Arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}",
+                    Arguments = arguments,
                     OnOutputData = output =>
                     {
                         logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
@@ -205,9 +281,37 @@ internal sealed class ResourceContainerImageBuilder(
                 throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
             }
 
+            var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+
+            // Add additional arguments based on options
+            if (options is not null)
+            {
+                if (!string.IsNullOrEmpty(options.OutputPath))
+                {
+                    arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
+                }
+
+                if (options.ImageFormat.HasValue)
+                {
+                    var format = options.ImageFormat.Value switch
+                    {
+                        ContainerImageFormat.Docker => "Docker",
+                        ContainerImageFormat.OciTar => "OciTar",
+                        ContainerImageFormat.DockerTar => "DockerTar",
+                        _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                    };
+                    arguments += $" /p:ContainerImageFormat=\"{format}\"";
+                }
+
+                if (!string.IsNullOrEmpty(options.TargetPlatform))
+                {
+                    arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
+                }
+            }
+
             var spec = new ProcessSpec("dotnet")
             {
-                Arguments = $"publish {projectMetadata.ProjectPath} --configuration Release /t:PublishContainer /p:ContainerRepository={resource.Name}",
+                Arguments = arguments,
                 OnOutputData = output =>
                 {
                     logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
@@ -246,7 +350,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -264,6 +368,7 @@ internal sealed class ResourceContainerImageBuilder(
                         contextPath,
                         dockerfilePath,
                         imageName,
+                        options,
                         cancellationToken).ConfigureAwait(false);
 
                     await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
@@ -285,6 +390,7 @@ internal sealed class ResourceContainerImageBuilder(
                     contextPath,
                     dockerfilePath,
                     imageName,
+                    options,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
