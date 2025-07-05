@@ -191,12 +191,13 @@ public class ParameterProcessorTests
         Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(true, false)); // Data = true (user clicked Enter Values)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", inputsInteraction.Title);
-        Assert.Equal("Please provide values for the unresolved parameters.", inputsInteraction.Message);
+        Assert.Equal("Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.", inputsInteraction.Message);
+        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
 
         Assert.Collection(inputsInteraction.Inputs,
             input =>
@@ -219,7 +220,7 @@ public class ParameterProcessorTests
             },
             input =>
             {
-                Assert.Equal("Save to secrets", input.Label);
+                Assert.Equal("Save to user secrets", input.Label);
                 Assert.Equal(InputType.Boolean, input.InputType);
                 Assert.False(input.Required);
             });
@@ -228,7 +229,7 @@ public class ParameterProcessorTests
         inputsInteraction.Inputs[1].SetValue("value2");
         inputsInteraction.Inputs[2].SetValue("secretValue");
 
-        inputsInteraction.CompletionTcs.SetResult(new InteractionResult<IReadOnlyList<InteractionInput>>(inputsInteraction.Inputs, false));
+        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
         await handleTask;
@@ -275,7 +276,7 @@ public class ParameterProcessorTests
         Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
-        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(false, false)); // Data = false (user dismissed/cancelled)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
