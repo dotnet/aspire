@@ -125,7 +125,10 @@ public class KeycloakResourceBuilderTests
               "env": {
                 "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
                 "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
-                "KC_HEALTH_ENABLED": "true"
+                "KC_HEALTH_ENABLED": "true",
+                "KC_HTTP_ENABLED": "true",
+                "KC_PROXY_HEADERS": "xforwarded",
+                "KC_HOSTNAME_STRICT": "false"
               },
               "bindings": {
                 "http": {
