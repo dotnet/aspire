@@ -22,7 +22,7 @@
                               OnMenuChanged="@OnFormatOptionChanged">
                 @foreach (var option in _options)
                 {
-                    <FluentMenuItem Id="@option.Id" Disabled="@(!EnabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentMenuItem>
+                    <FluentMenuItem Class="overflow-fluent-menu-item" Id="@option.Id" Disabled="@(!EnabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentMenuItem>
                 }
             </FluentMenuButton>
         </div>
