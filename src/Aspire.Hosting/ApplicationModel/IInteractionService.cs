@@ -323,10 +323,10 @@ public class InteractionOptions
     public bool? ShowDismiss { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the message is rendered as Markdown.
+    /// Gets or sets a value indicating whether Markdown in the message is rendered.
     /// Setting this to <c>true</c> allows a message to contain Markdown elements such as links, text decoration and lists.
     /// </summary>
-    public bool? MessageAsMarkdown { get; set; }
+    public bool? EnableMessageMarkdown { get; set; }
 }
 
 /// <summary>

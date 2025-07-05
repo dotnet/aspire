@@ -312,7 +312,7 @@ public partial class InteractionsProviderTests : DashboardTestContext
         {
             InteractionId = 1,
             Message = message,
-            MessageAsMarkdown = markdownSupported,
+            EnableMessageMarkdown = markdownSupported,
             InputsDialog = new InteractionInputsDialog()
         };
         await interactionsChannel.Writer.WriteAsync(response);

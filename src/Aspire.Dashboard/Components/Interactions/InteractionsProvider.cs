@@ -272,7 +272,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
     private static string GetMessageHtml(WatchInteractionsResponseUpdate item)
     {
-        if (!item.MessageAsMarkdown)
+        if (!item.EnableMessageMarkdown)
         {
             return WebUtility.HtmlEncode(item.Message);
         }
