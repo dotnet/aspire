@@ -136,7 +136,8 @@ public static class AspireRedisExtensions
                     // That is why we don't invoke it here, but capture the state (in a closure)
                     // and let the health check invoke it and handle the exception (if any).
                     connectionMultiplexerFactory: sp => serviceKey is null ? sp.GetRequiredService<IConnectionMultiplexer>() : sp.GetRequiredKeyedService<IConnectionMultiplexer>(serviceKey),
-                    healthCheckName));
+                    healthCheckName,
+                    tags: settings.HealthCheckTags));
         }
     }
 
