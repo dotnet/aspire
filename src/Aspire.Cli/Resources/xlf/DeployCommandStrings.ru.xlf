@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Сбой развертывания с кодом выхода {0}. Для получения дополнительных сведений запустите команду с параметром --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
-        <target state="needs-review-translation">Разверните проект хоста приложений Aspire на поддерживаемых целевых объектах развертывания.</target>
+        <target state="translated">Разверните проект хоста приложений Aspire на поддерживаемых целевых объектах развертывания. (Предварительная версия)</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
