@@ -46,14 +46,17 @@ internal static class InteractionCommands
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, /*EscapeMessageHtml = false*/ });
+               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
+               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
 
-               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The <strong>command</strong> successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, /*EscapeMessageHtml = false*/ });
+               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
+               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+               _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
 
-               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
-               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide <strong>your</strong> name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions {  /*EscapeMessageHtml = false*/ });
+               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide **your** name", "<strong>Name</strong>", "Enter <strong>your</strong> name");
+               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Provide **your** name", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { EnableMessageMarkdown = true });
+               _ = await interactionService.PromptInputAsync("Text <strong>request</strong>", "Multiline 1\r\n\r\nMultiline 2", "<strong>Name</strong>", "Enter <strong>your</strong> name", new InputsDialogInteractionOptions { EnableMessageMarkdown = true });
 
                return CommandResults.Success();
            })
