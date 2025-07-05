@@ -60,7 +60,7 @@ public class AzureAIFoundryExtensionsTests
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         // The connection string should reference the aiFoundryApiEndpoint output
-        var expected = $"Endpoint={resource.AIFoundryApiEndpoint.ValueExpression};EndpointAIInference={resource.AIFoundryApiEndpoint.ValueExpression}models";
+        var expected = $"Endpoint={resource.Endpoint.ValueExpression};EndpointAIInference={resource.AIFoundryApiEndpoint.ValueExpression}models";
         var connectionString = resource.ConnectionStringExpression.ValueExpression;
         Assert.Equal(expected, connectionString);
     }

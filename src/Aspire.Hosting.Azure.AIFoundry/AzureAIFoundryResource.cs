@@ -21,15 +21,22 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
 
     /// <summary>
-    /// Gets the "connectionString" output reference from the Azure AI Foundry resource.
+    /// Gets the "aiFoundryApiEndpoint" output reference from the Azure AI Foundry resource.
     /// </summary>
     public BicepOutputReference AIFoundryApiEndpoint => new("aiFoundryApiEndpoint", this);
+
+    /// <summary>
+    /// Gets the "endpoint" output reference from the Azure AI Foundry resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("endpoint", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint={AIFoundryApiEndpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
+        IsEmulator
+        ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey}")
+        : ReferenceExpression.Create($"Endpoint={Endpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
 
     /// <summary>
     /// Gets the list of deployment resources associated with the Azure AI Foundry.
@@ -68,7 +75,5 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     }
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        IsEmulator
-            ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
-            : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
+        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }
