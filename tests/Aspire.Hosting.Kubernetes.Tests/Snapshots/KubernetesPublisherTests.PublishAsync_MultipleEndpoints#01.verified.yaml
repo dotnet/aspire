@@ -1,33 +1,36 @@
----
+﻿---
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
-  name: "servicea-deployment"
+  name: "myapp-deployment"
 spec:
   template:
     metadata:
       labels:
         app: "aspire"
-        component: "ServiceA"
+        component: "myapp"
     spec:
       containers:
-        - image: "{{ .Values.parameters.ServiceA.ServiceA_image }}"
-          name: "ServiceA"
+        - image: "{{ .Values.parameters.myapp.myapp_image }}"
+          name: "myapp"
           envFrom:
             - configMapRef:
-                name: "servicea-config"
+                name: "myapp-config"
           ports:
             - name: "http"
               protocol: "TCP"
               containerPort: 8080
-            - name: "https"
+            - name: "grpc"
               protocol: "TCP"
               containerPort: 8081
+            - name: "https"
+              protocol: "TCP"
+              containerPort: 8082
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
       app: "aspire"
-      component: "ServiceA"
+      component: "myapp"
   replicas: 1
   revisionHistoryLimit: 3
   strategy:
