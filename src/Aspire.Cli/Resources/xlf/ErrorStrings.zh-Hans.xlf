@@ -128,13 +128,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">项目文件不是 Aspire 应用主机项目。</target>
+        <source>Project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">项目文件不是 Aspire 应用主机项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">该项目不是 Aspire 应用主机项目。</target>
+        <source>The project is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">该项目不是 Aspire 应用主机项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

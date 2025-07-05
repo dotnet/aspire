@@ -122,7 +122,7 @@
     <comment>{0} is the original selection prompt text.</comment>
   </data>
   <data name="AppHostNotCompatibleConsiderUpgrading" xml:space="preserve">
-    <value>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</value>
+    <value>The Apphost is not compatible. Consider upgrading the Apphost or Aspire CLI.</value>
   </data>
   <data name="AspireHostingSDKVersion" xml:space="preserve">
     <value>Aspire.Hosting Version</value>
@@ -151,7 +151,7 @@
     <value>Checking project type...</value>
   </data>
   <data name="BuildingAppHost" xml:space="preserve">
-    <value>Building app host...</value>
+    <value>Building Apphost...</value>
   </data>
   <data name="CheckingCertificates" xml:space="preserve">
     <value>Checking certificates...</value>
@@ -163,10 +163,10 @@
     <value>Searching...</value>
   </data>
   <data name="FindingAppHosts" xml:space="preserve">
-    <value>Finding app hosts...</value>
+    <value>Finding Apphosts...</value>
   </data>
   <data name="SelectAppHostToRun" xml:space="preserve">
-    <value>Select app host to run</value>
+    <value>Select Apphost to run</value>
   </data>
   <data name="CreatedSettingsFile" xml:space="preserve">
     <value>Created settings file at {0}.</value>
@@ -176,7 +176,7 @@
     <value>The --project option specified a project that does not exist.</value>
   </data>
   <data name="ProjectOptionNotSpecifiedMultipleAppHostsFound" xml:space="preserve">
-    <value>The --project option was not specified and multiple app host project files were detected.</value>
+    <value>The --project option was not specified and multiple Apphost project files were detected.</value>
   </data>
   <data name="ProjectOptionNotSpecifiedNoCsprojFound" xml:space="preserve">
     <value>The project argument was not specified and no *.csproj files were detected.</value>
@@ -188,16 +188,16 @@
     <value>The operation was canceled.</value>
   </data>
   <data name="SpecifiedProjectFileNotAppHostProject" xml:space="preserve">
-    <value>The specified project file is not an Aspire app host project.</value>
+    <value>The specified project file is not an Aspire Apphost project.</value>
   </data>
   <data name="ErrorConnectingToAppHost" xml:space="preserve">
-    <value>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</value>
+    <value>An error occurred while connecting to the Apphost. The Apphost possibly crashed before it was available: {0}.</value>
   </data>
   <data name="UnexpectedErrorOccurred" xml:space="preserve">
     <value>An unexpected error occurred: {0}</value>
     <comment>{0} is the exception message</comment>
   </data>
   <data name="WaitingForDebuggerToAttachToAppHost" xml:space="preserve">
-    <value>Waiting for debugger to attach to app host process</value>
+    <value>Waiting for debugger to attach to Apphost process</value>
   </data>
 </root>

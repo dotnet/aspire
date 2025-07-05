@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Aguarde um depurador anexar antes de executar o comando.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Aguarde um depurador anexar antes de executar o comando.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">Habilitar o log de depuração no console.</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">Habilitar o log de depuração no console.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Aguarde um depurador anexar antes de executar o comando.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Aguarde um depurador anexar antes de executar o comando.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

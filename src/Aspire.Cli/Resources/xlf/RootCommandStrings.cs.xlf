@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Před provedením příkazu počkejte na připojení ladicího programu.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Před provedením příkazu počkejte na připojení ladicího programu.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">Povolte protokolování ladění do konzoly.</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">Povolte protokolování ladění do konzoly.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">Před provedením příkazu počkejte na připojení ladicího programu.</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">Před provedením příkazu počkejte na připojení ladicího programu.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">

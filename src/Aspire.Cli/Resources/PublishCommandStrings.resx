@@ -107,16 +107,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Generates deployment artifacts for an Aspire app host project. (Preview)</value>
+    <value>Generates deployment artifacts for an Aspire Apphost project. (Preview)</value>
   </data>
   <data name="SelectAPublisher" xml:space="preserve">
     <value>Select a publisher:</value>
   </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
-    <value>The path to the Aspire app host project file.</value>
+    <value>The path to the Aspire Apphost project file</value>
   </data>
   <data name="OutputPathArgumentDescription" xml:space="preserve">
-    <value>The output path for the generated artifacts.</value>
+    <value>The output path for the generated artifacts</value>
   </data>
   <data name="GeneratingArtifacts" xml:space="preserve">
     <value>Generating artifacts...</value>
