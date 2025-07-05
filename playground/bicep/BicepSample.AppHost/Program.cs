@@ -29,9 +29,9 @@ var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku
 var storage = builder.AddAzureStorage("storage");
                     // .RunAsEmulator();
 
-var blobs = storage.AddBlobs("blob");
-var tables = storage.AddTables("table");
-var queues = storage.AddQueues("queue");
+var blobs = storage.AddBlobService("blob");
+var tables = storage.AddTableService("table");
+var queues = storage.AddQueueService("queue");
 
 var sqlServer = builder.AddAzureSqlServer("sql").AddDatabase("db");
 

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
 
@@ -39,5 +40,15 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
             // Injected to support Aspire client integration for Azure Storage Tables.
             target[$"{AzureStorageResource.TablesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.TableEndpoint; // Updated for consistency
         }
+    }
+
+    /// <summary>
+    /// Converts the current instance to a provisioning entity.
+    /// </summary>
+    /// <returns>A <see cref="global::Azure.Provisioning.Storage.TableService"/> instance.</returns>
+    internal global::Azure.Provisioning.Storage.TableService ToProvisioningEntity()
+    {
+        global::Azure.Provisioning.Storage.TableService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
+        return service;
     }
 }

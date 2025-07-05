@@ -41,7 +41,7 @@ automatically.
 In the _AppHost.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
 
 ```csharp
-var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");
+var blobs = builder.AddAzureStorage("storage").AddBlobService("blobs");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(blobs);
@@ -50,8 +50,58 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Storage.Blobs](https://www.nuget.org/packages/Aspire.Azure.Storage.Blobs):
 
 ```csharp
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 ```
+
+## Creating and using blob containers and queues directly
+
+You can create and use blob containers and queues directly by adding them to your storage resource. This allows you to provision and reference specific containers or queues for your services.
+
+### Adding a blob container
+
+```csharp
+var storage = builder.AddAzureStorage("storage");
+var container = storage.AddBlobContainer("my-container");
+```
+
+You can then pass the container reference to a project:
+
+```csharp
+builder.AddProject<Projects.MyService>()
+       .WithReference(container);
+```
+
+In your service, consume the container using:
+
+```csharp
+builder.AddAzureBlobContainerClient("my-container");
+```
+
+This will register a singleton of type `BlobContainerClient`.
+
+### Adding a queue
+
+```csharp
+var storage = builder.AddAzureStorage("storage");
+var queue = storage.AddQueue("my-queue");
+```
+
+Pass the queue reference to a project:
+
+```csharp
+builder.AddProject<Projects.MyService>()
+       .WithReference(queue);
+```
+
+In your service, consume the queue using:
+
+```csharp
+builder.AddAzureQueue("my-queue");
+```
+
+This will register a singleton of type `QueueClient`.
+
+This approach allows you to define and use specific blob containers and queues as first-class resources in your Aspire application model.
 
 ## Additional documentation
 

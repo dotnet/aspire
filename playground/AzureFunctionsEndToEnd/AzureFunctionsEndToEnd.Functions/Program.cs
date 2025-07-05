@@ -4,8 +4,7 @@ using Microsoft.Extensions.Hosting;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddAzureQueueClient("queue");
-builder.AddAzureBlobClient("blob");
+builder.AddAzureQueue("queue");
 builder.AddAzureBlobContainerClient("myblobcontainer");
 builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS

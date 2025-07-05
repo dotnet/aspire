@@ -24,6 +24,8 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
 
     protected override string ActivitySourceName => "Azure.Storage.Queues.QueueClient";
 
+    protected override bool CheckOptionClassSealed => false;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Azure.Core",
@@ -80,11 +82,11 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
     {
         if (key is null)
         {
-            builder.AddAzureQueueClient("queue", ConfigureCredentials);
+            builder.AddAzureQueueServiceClient("queue", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureQueueClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureQueueServiceClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureStorageQueuesSettings settings)

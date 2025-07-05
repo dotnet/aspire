@@ -1,8 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var clusteringTable = storage.AddTables("clustering");
-var grainStorage = storage.AddBlobs("grainstate");
+var clusteringTable = storage.AddTableService("clustering");
+var grainStorage = storage.AddBlobService("grainstate");
 
 var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)

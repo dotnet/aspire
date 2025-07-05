@@ -18,7 +18,7 @@ if (useConsumer)
 else
 {
     // required for checkpointing our position in the event stream
-    builder.AddAzureBlobClient("checkpoints");
+    builder.AddAzureBlobServiceClient("checkpoints");
 
     builder.AddAzureEventProcessorClient("eventhubOne");
 

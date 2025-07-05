@@ -9,6 +9,10 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "storage-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
     "mycontainer1": {
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-1"
@@ -29,6 +33,10 @@
       "type": "value.v0",
       "connectionString": "{storage2.outputs.blobEndpoint}"
     },
+    "storage2-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage2.outputs.blobEndpoint}"
+    },
     "foocontainer": {
       "type": "value.v0",
       "connectionString": "Endpoint={storage2.outputs.blobEndpoint};ContainerName=foo-container"
@@ -42,7 +50,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
         "ConnectionStrings__queues": "{queues.connectionString}"
       },

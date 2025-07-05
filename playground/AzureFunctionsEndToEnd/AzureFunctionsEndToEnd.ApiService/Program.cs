@@ -14,8 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
-builder.AddAzureQueueClient("queue");
-builder.AddAzureBlobClient("blob");
+builder.AddAzureQueueServiceClient("queue");
+builder.AddAzureBlobServiceClient("blob");
 builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");

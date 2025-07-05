@@ -31,7 +31,7 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
-    public static void AddAzureTableClient(
+    public static void AddAzureTableServiceClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureDataTablesSettings>? configureSettings = null,
@@ -41,6 +41,20 @@ public static class AspireTablesExtensions
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <inheritdoc cref="AddAzureTableServiceClient" />
+    [Obsolete("Use AddAzureTableServiceClient instead. This method will be removed in a future version.")]
+    public static void AddAzureTableClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureDataTablesSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddAzureTableServiceClient(builder, connectionName, configureSettings, configureClientBuilder);
     }
 
     /// <summary>
@@ -53,6 +67,20 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
+    public static void AddKeyedAzureTableServiceClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureDataTablesSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddAzureTableServiceClient" />
+    [Obsolete("Use AddKeyedAzureTableServiceClient instead. This method will be removed in a future version.")]
     public static void AddKeyedAzureTableClient(
         this IHostApplicationBuilder builder,
         string name,

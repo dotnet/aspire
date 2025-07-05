@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
 builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
