@@ -438,7 +438,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null)
         {
+#pragma warning disable CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
             _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+#pragma warning restore CA2025 // Do not pass 'IDisposable' instances into unawaited tasks
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
@@ -496,9 +498,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.Id
                 );
 
-            while (!cancellationToken.IsCancellationRequested && !reader.EndOfStream)
+            string? line;
+            while (!cancellationToken.IsCancellationRequested &&
+                (line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
-                var line = await reader.ReadLineAsync(cancellationToken);
                 logger.LogDebug(
                     "dotnet({ProcessId}) {Identifier}: {Line}",
                     process.Id,

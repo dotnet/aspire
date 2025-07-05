@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets">
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
     <ArchiveFormat Condition="$(CliRuntime.StartsWith('linux-'))">tar.gz</ArchiveFormat>
@@ -20,6 +20,7 @@
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
+      <AdditionalProperties Include="SelfContained=true" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(PublishNativeAot)' == 'true'">
@@ -30,7 +31,6 @@
       <AdditionalProperties Include="Configuration=$(Configuration)" />
       <AdditionalProperties Include="PublishAot=false" />
       <AdditionalProperties Include="PublishSingleFile=true" />
-      <AdditionalProperties Include="SelfContained=true" />
 
       <!-- Windows pdb aren't really needed any more. See https://github.com/dotnet/arcade/issues/15724
           As the pdb file is in the same location for all the RIDs it causes arcade's `_DeployPortableSymbolsToSymStore`
