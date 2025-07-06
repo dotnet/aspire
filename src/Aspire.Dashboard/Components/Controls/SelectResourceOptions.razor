@@ -14,10 +14,10 @@
                     ShowIndeterminate="false"
                     ThreeStateOrderUncheckToIntermediate="true"
                     @bind-CheckState:get="@GetCheckState(Values)"
-                    @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync"
-    />
+                    @bind-CheckState:set="@OnAllValuesCheckedChangedInternalAsync" />
 
-    @foreach (var (key, isChecked) in Values.OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
+    @* OrderBy doesn't use thread safe APIs on ConcurrentDictionary. Call ToArray first. *@
+    @foreach (var (key, isChecked) in Values.ToArray().OrderBy(pair => pair.Key.ToString(), StringComparer.OrdinalIgnoreCase))
     {
         var label = string.IsNullOrEmpty(key.ToString()) ? Loc[nameof(Resources.ResourceFilterOptionEmpty)] : key.ToString();
 
@@ -26,17 +26,3 @@
                         @bind-Value:set="@(c => OnValueVisibilityChangedInternalAsync(key, c))" />
     }
 </FluentStack>
-
-@code {
-    [Parameter, EditorRequired]
-    public required ConcurrentDictionary<TValue, bool> Values { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Task> OnAllValuesCheckedChangedAsync { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<TValue, bool, Task> OnValueVisibilityChangedAsync { get; set; }
-
-    [Parameter]
-    public string? Id { get; set; }
-}
