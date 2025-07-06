@@ -321,6 +321,36 @@ public class InteractionOptions
     /// Gets or sets a value indicating whether show the dismiss button in the header.
     /// </summary>
     public bool? ShowDismiss { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Markdown in the message is rendered.
+    /// Setting this to <c>true</c> allows a message to contain Markdown elements such as links, text decoration and lists.
+    /// </summary>
+    public bool? EnableMessageMarkdown { get; set; }
+}
+
+/// <summary>
+/// Represents the result of an interaction.
+/// </summary>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class InteractionResult<T>
+{
+    /// <summary>
+    /// The data returned from the interaction. Won't have a useful value if the interaction was canceled.
+    /// </summary>
+    public T? Data { get; }
+
+    /// <summary>
+    /// A flag indicating whether the interaction was canceled by the user.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(Data))]
+    public bool Canceled { get; }
+
+    internal InteractionResult(T? data, bool canceled)
+    {
+        Data = data;
+        Canceled = canceled;
+    }
 }
 
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
