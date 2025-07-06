@@ -5,6 +5,8 @@ import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, fai
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { attachToAppHost } from '../debugger/appHost';
+import { getAspireTerminal } from '../utils/terminal';
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Info' | 'Warn' | 'Error' | 'Critical';
 
@@ -24,6 +26,7 @@ export interface IInteractionService {
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
+    requestAppHostAttach(pid: number, projectName: string): Promise<void>;
 }
 
 type DashboardUrls = {
@@ -32,8 +35,8 @@ type DashboardUrls = {
 };
 
 type ConsoleLine = {
-    stream: 'stdout' | 'stderr';
-    line: string;
+    Stream: 'stdout' | 'stderr';
+    Line: string;
 };
 
 export class InteractionService implements IInteractionService {
@@ -217,9 +220,10 @@ export class InteractionService implements IInteractionService {
     }
 
     displayLines(lines: ConsoleLine[]) {
-        const displayText = lines.map(line => line.line).join('\n');
-        vscode.window.showInformationMessage(formatText(displayText));
-        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.line)));
+        lines.forEach(line => {
+            getAspireTerminal().sendText(formatText(line.Line), false);
+            extensionLogOutputChannel.info(formatText(line.Line));
+        });
     }
 
     displayCancellationMessage(message: string) {
@@ -254,6 +258,10 @@ export class InteractionService implements IInteractionService {
         else if (logLevel === 'Error' || logLevel === 'Critical') {
             extensionLogOutputChannel.error(formatText(message));
         }
+    }
+
+    requestAppHostAttach(pid: number, projectName: string): Promise<void> {
+        return attachToAppHost(pid, projectName);
     }
 
     clearStatusBar() {

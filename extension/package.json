@@ -23,7 +23,9 @@
     "orchestrator",
     "apphost"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/*AppHost*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
