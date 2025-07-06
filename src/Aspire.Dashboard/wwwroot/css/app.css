@@ -817,3 +817,7 @@ fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
+
+.fluent-messagebar-action {
+    font-size: var(--type-ramp-minus-1-font-size);
+}

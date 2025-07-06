@@ -11,6 +11,11 @@ namespace Aspire.Cli.Interaction;
 
 internal class ConsoleInteractionService : IInteractionService
 {
+    private static readonly Style s_exitCodeMessageStyle = new Style(foreground: Color.RoyalBlue1, background: null, decoration: Decoration.None);
+    private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
+    private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
+    private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Black, background: null, decoration: Decoration.Bold);
+
     private readonly IAnsiConsole _ansiConsole;
 
     public ConsoleInteractionService(IAnsiConsole ansiConsole)
@@ -107,6 +112,21 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine(message);
     }
 
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var style = isErrorMessage ? s_errorMessageStyle
+            : type switch
+            {
+                "waiting" => s_waitingMessageStyle,
+                "running" => s_infoMessageStyle,
+                "exitCode" => s_exitCodeMessageStyle,
+                _ => s_infoMessageStyle
+            };
+
+        var prefix = lineNumber.HasValue ? $"#{lineNumber.Value}: " : "";
+        _ansiConsole.WriteLine($"{prefix}{message}", style);
+    }
+
     public void DisplaySuccess(string message)
     {
         DisplayMessage("thumbs_up", message);
@@ -165,10 +185,6 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayEmptyLine()
     {
         _ansiConsole.WriteLine();
-    }
-
-    public void OpenNewProject(string projectPath)
-    {
     }
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";

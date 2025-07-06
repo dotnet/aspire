@@ -243,6 +243,47 @@ public class AzureAppServiceTests
     }
 
     [Fact]
+    public void AzureAppServiceEnvironmentHasNameOutputReference()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        // Verify that the NameOutputReference property exists and returns the expected value
+        Assert.NotNull(env.Resource.NameOutputReference);
+        Assert.Equal("name", env.Resource.NameOutputReference.Name);
+        Assert.Same(env.Resource, env.Resource.NameOutputReference.Resource);
+    }
+
+    [Fact]
+    public async Task AzureAppServiceEnvironmentCanReferenceExistingAppServicePlan()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var nameParameter = builder.AddParameter("appServicePlanName", "existing-plan-name");
+        var resourceGroupParameter = builder.AddParameter("resourceGroup", "existing-rg");
+
+        builder.AddAzureAppServiceEnvironment("env")
+            .PublishAsExisting(nameParameter, resourceGroupParameter);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        Assert.True(environment.IsExisting());
+        Assert.True(environment.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var annotation));
+        Assert.NotNull(annotation);
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
     public void AzureAppServiceEnvironmentImplementsIAzureComputeEnvironmentResource()
     {
         var builder = TestDistributedApplicationBuilder.Create();

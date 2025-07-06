@@ -119,7 +119,7 @@ internal sealed class AddCommand : BaseCommand
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
             var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
-                0 => await GetPackageByInteractiveFlow(packagesWithShortName, null, cancellationToken),
+                0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()
                     : await GetPackageByInteractiveFlow(filteredPackagesWithShortName, null, cancellationToken),
@@ -220,6 +220,16 @@ internal sealed class AddCommand : BaseCommand
         var version = await _prompter.PromptForIntegrationVersionAsync(orderedPackageVersions, cancellationToken);
 
         return version;
+    }
+
+    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlowWithNoMatchesMessage(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? searchTerm, CancellationToken cancellationToken)
+    {
+        if (searchTerm is not null)
+        {
+            _interactionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
+        }
+
+        return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
     }
 
     private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
