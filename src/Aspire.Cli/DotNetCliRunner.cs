@@ -8,8 +8,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -422,6 +424,18 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (backchannelCompletionSource is not null)
         {
             startInfo.EnvironmentVariables[KnownConfigNames.UnixSocketPath] = socketPath;
+
+            if (ExtensionHelper.IsExtensionHost(serviceProvider, out _, out var backchannel))
+            {
+                var capabilities = await backchannel.GetCapabilitiesAsync(cancellationToken);
+
+                // We will attach a debugger after process start via the extension backchannel
+                if (capabilities.Contains("apphost-debug"))
+                {
+                    startInfo.EnvironmentVariables[KnownConfigNames.WaitForDebugger] = "true";
+                    startInfo.EnvironmentVariables[KnownConfigNames.ExtensionPidFilePath] = Path.Combine(Path.GetTempPath(), $"apphost-{Guid.NewGuid()}.pid");
+                }
+            }
         }
 
         // The AppHost uses this environment variable to signal to the CliOrphanDetector which process
@@ -439,6 +453,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (backchannelCompletionSource is not null)
         {
             _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+        }
+
+        if (backchannelCompletionSource is not null
+            && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out var extensionBackchannel)
+            && (await extensionBackchannel.GetCapabilitiesAsync(cancellationToken)).Contains("apphost-debug"))
+        {
+            _ = StartDebuggingAsync(startInfo.EnvironmentVariables[KnownConfigNames.ExtensionPidFilePath]!, workingDirectory.FullName, interactionService, cancellationToken);
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
@@ -584,18 +605,36 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         } while (await timer.WaitForNextTickAsync(cancellationToken));
     }
 
+    private async Task StartDebuggingAsync(string appHostPortPath, string appHostDirectoryPath, ExtensionInteractionService interactionService, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Waiting for AppHost to write port to {Path}", appHostPortPath);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await Task.Delay(50, cancellationToken);
+            if (File.Exists(appHostPortPath) && int.TryParse(await File.ReadAllTextAsync(appHostPortPath, cancellationToken), out var port))
+            {
+                _ = interactionService.RequestAppHostAttachAsync(port, Path.GetDirectoryName(appHostDirectoryPath) ?? appHostDirectoryPath);
+                File.Delete(appHostPortPath);
+                return;
+            }
+
+            await Task.Delay(50, cancellationToken);
+        }
+    }
+
     public async Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
-        
+
         // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
         var env = new Dictionary<string, string>
         {
             ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
         };
-        
+
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
