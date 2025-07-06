@@ -20,7 +20,7 @@ public static class EventingExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnBeforeResourceStarted<T>(this IResourceBuilder<T> builder, Func<IResourceBuilder<T>, BeforeResourceStartedEvent, CancellationToken, Task> callback)
         where T : IResource
-        => builder.OnEvent(builder, callback);
+        => builder.OnEventWithBuilderArgument(callback);
 
     /// <summary>
     /// Subscribes a callback to the <see cref="ConnectionStringAvailableEvent"/> event within the AppHost.
@@ -31,7 +31,7 @@ public static class EventingExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnConnectionStringAvailable<T>(this IResourceBuilder<T> builder, Func<T, ConnectionStringAvailableEvent, CancellationToken, Task> callback)
         where T : IResourceWithConnectionString
-        => builder.OnEvent(builder.Resource, callback);
+        => builder.OnEventWithResourceArgument(callback);
 
     /// <summary>
     /// Subscribes a callback to the <see cref="InitializeResourceEvent"/> event within the AppHost.
@@ -42,7 +42,7 @@ public static class EventingExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnInitializeResource<T>(this IResourceBuilder<T> builder, Func<T, InitializeResourceEvent, CancellationToken, Task> callback)
         where T : IResource
-        => builder.OnEvent(builder.Resource, callback);
+        => builder.OnEventWithResourceArgument(callback);
 
     /// <summary>
     /// Subscribes a callback to the <see cref="ResourceEndpointsAllocatedEvent"/> event within the AppHost.
@@ -53,7 +53,7 @@ public static class EventingExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnResourceEndpointsAllocated<T>(this IResourceBuilder<T> builder, Func<T, ResourceEndpointsAllocatedEvent, CancellationToken, Task> callback)
         where T : IResourceWithEndpoints
-        => builder.OnEvent(builder.Resource, callback);
+        => builder.OnEventWithResourceArgument(callback);
 
     /// <summary>
     /// Subscribes a callback to the <see cref="ResourceReadyEvent"/> event within the AppHost.
@@ -64,13 +64,21 @@ public static class EventingExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> OnResourceReady<T>(this IResourceBuilder<T> builder, Func<T, ResourceReadyEvent, CancellationToken, Task> callback)
         where T : IResource
-        => builder.OnEvent(builder.Resource, callback);
+        => builder.OnEventWithResourceArgument(callback);
 
-    private static IResourceBuilder<TResource> OnEvent<TResource, TArg, TEvent>(this IResourceBuilder<TResource> builder, TArg callbackArgument, Func<TArg, TEvent, CancellationToken, Task> callback)
+    private static IResourceBuilder<TResource> OnEventWithResourceArgument<TResource, TEvent>(this IResourceBuilder<TResource> builder, Func<TResource, TEvent, CancellationToken, Task> callback)
         where TResource : IResource
         where TEvent : IDistributedApplicationResourceEvent
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<TEvent>(builder.Resource, (evt, ct) => callback(callbackArgument, evt, ct));
+        builder.ApplicationBuilder.Eventing.Subscribe<TEvent>(builder.Resource, (evt, ct) => callback(builder.Resource, evt, ct));
+        return builder;
+    }
+
+    private static IResourceBuilder<TResource> OnEventWithBuilderArgument<TResource, TEvent>(this IResourceBuilder<TResource> builder, Func<IResourceBuilder<TResource>, TEvent, CancellationToken, Task> callback)
+        where TResource : IResource
+        where TEvent : IDistributedApplicationResourceEvent
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<TEvent>(builder.Resource, (evt, ct) => callback(builder, evt, ct));
         return builder;
     }
 }
