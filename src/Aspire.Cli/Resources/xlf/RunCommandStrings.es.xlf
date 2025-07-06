@@ -33,9 +33,9 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Presione [bold]Ctrl+C[/] para detener el host de la aplicación y salir.</target>
-        <note>[bold] should not be localized</note>
+        <source>Press [bold white on red]CTRL+C[/] to stop the app host and exit.</source>
+        <target state="needs-review-translation">Presione [bold]Ctrl+C[/] para detener el host de la aplicación y salir.</target>
+        <note>[bold white on red] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>

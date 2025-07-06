@@ -185,8 +185,8 @@ internal sealed class RunCommand : BaseCommand
             }
             topGrid.AddRow(Text.Empty, Text.Empty);
             topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-            grid.AddRow(new Text(string.Empty), new Text(string.Empty));
-            grid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+            topGrid.AddRow(new Text(string.Empty), new Text(string.Empty));
+            topGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
 
             _ansiConsole.Write(topPadder);
 

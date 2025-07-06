@@ -143,8 +143,8 @@
     <value>Endpoints</value>
   </data>
   <data name="PressCtrlCToStopAppHost" xml:space="preserve">
-    <value>Press [bold]Ctrl+C[/] to stop the app host and exit.</value>
-    <comment>[bold] should not be localized</comment>
+    <value>Press [bold white on red]CTRL+C[/] to stop the app host and exit.</value>
+    <comment>[bold white on red] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
     <value>The project could not be run. For more information run with --debug switch.</value>
