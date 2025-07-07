@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
+using Aspire.Dashboard.Telemetry;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -346,5 +347,5 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(TraceDetail));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.TraceDetail);
 }
