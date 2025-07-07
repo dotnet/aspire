@@ -186,6 +186,51 @@ function Get-CLIArchitecture-From-Architecture([string]$Architecture) {
     }
 }
 
+# Helper function to extract Content-Type from response headers
+function Get-ContentTypeFromHeaders {
+    param(
+        [object]$Headers,
+        [bool]$IsModernPowerShell = $true
+    )
+
+    if (-not $Headers) {
+        return ""
+    }
+
+    try {
+        if ($IsModernPowerShell) {
+            # PowerShell 6+: Try different case variations
+            if ($Headers.ContainsKey('Content-Type')) {
+                return $Headers['Content-Type'] -join ', '
+            }
+            elseif ($Headers.ContainsKey('content-type')) {
+                return $Headers['content-type'] -join ', '
+            }
+            else {
+                # Case-insensitive search
+                $ctHeader = $Headers.Keys | Where-Object { $_ -ieq 'Content-Type' } | Select-Object -First 1
+                if ($ctHeader) {
+                    return $Headers[$ctHeader] -join ', '
+                }
+            }
+        }
+        else {
+            # PowerShell 5: Use different access methods
+            if ($Headers['Content-Type']) {
+                return $Headers['Content-Type']
+            }
+            else {
+                return $Headers.Get('Content-Type')
+            }
+        }
+    }
+    catch {
+        return "Unable to determine ($($_.Exception.Message))"
+    }
+
+    return ""
+}
+
 # Common function for web requests with centralized configuration
 function Invoke-SecureWebRequest {
     param(
@@ -197,18 +242,82 @@ function Invoke-SecureWebRequest {
         [int]$MaxRetries = 5
     )
 
+    $isModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
+
+    # Configure TLS for PowerShell 5
+    if (-not $isModernPowerShell) {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+    }
+
     try {
-        if ($PSVersionTable.PSVersion.Major -ge 6) {
-            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -SslProtocol Tls12,Tls13 -MaximumRedirection 10 -TimeoutSec $TimeoutSec -OperationTimeoutSeconds $OperationTimeoutSec -UserAgent $UserAgent -MaximumRetryCount $MaxRetries
+        # Check content type via HEAD request first
+        Test-ContentTypeViaHead -Uri $Uri -IsModernPowerShell $isModernPowerShell -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -UserAgent $UserAgent -MaxRetries $MaxRetries
+
+        # Download the actual file
+        $downloadParams = @{
+            Uri = $Uri
+            OutFile = $OutFile
+            MaximumRedirection = 10
+            TimeoutSec = $TimeoutSec
+            UserAgent = $UserAgent
+            MaximumRetryCount = $MaxRetries
         }
-        else {
-            # PowerShell 5: Set TLS 1.2/1.3 globally and do not use -SslProtocol
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
-            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -MaximumRedirection 10 -TimeoutSec $TimeoutSec -UserAgent $UserAgent
+
+        if ($isModernPowerShell) {
+            $downloadParams.SslProtocol = @('Tls12', 'Tls13')
+            $downloadParams.OperationTimeoutSeconds = $OperationTimeoutSec
         }
+
+        $webResponse = Invoke-WebRequest @downloadParams
     }
     catch {
         throw $_.Exception
+    }
+}
+
+# Helper function to test content type via HEAD request
+function Test-ContentTypeViaHead {
+    param(
+        [string]$Uri,
+        [bool]$IsModernPowerShell,
+        [int]$TimeoutSec,
+        [int]$OperationTimeoutSec,
+        [string]$UserAgent,
+        [int]$MaxRetries
+    )
+
+    $contentType = ""
+
+    try {
+        $headParams = @{
+            Uri = $Uri
+            Method = 'Head'
+            MaximumRedirection = 10
+            TimeoutSec = $TimeoutSec
+            UserAgent = $UserAgent
+            MaximumRetryCount = $MaxRetries
+        }
+
+        if ($IsModernPowerShell) {
+            $headParams.SslProtocol = @('Tls12', 'Tls13')
+            $headParams.OperationTimeoutSeconds = $OperationTimeoutSec
+        }
+
+        $headResponse = Invoke-WebRequest @headParams
+        $contentType = Get-ContentTypeFromHeaders -Headers $headResponse.Headers -IsModernPowerShell $IsModernPowerShell
+    }
+    catch {
+        Say-Verbose "Content-Type: Unable to determine via HEAD request ($($_.Exception.Message))"
+        # Continue with download even if HEAD request fails
+        return
+    }
+
+    Say-Verbose "Content-Type: $contentType"
+
+    # Throw if we detect HTML content (error page)
+    if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
+        Say-Verbose "Server returned HTML content (Content-Type: $contentType) instead of expected file."
+        throw "Could not find the file."
     }
 }
 
