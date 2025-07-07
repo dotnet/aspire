@@ -273,19 +273,22 @@ internal static class ResourceExtensions
                     Protocol = "TCP",
                 });
 
-            container.Env.Add(
-                new()
-                {
-                    Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Url",
-                    Value = $"{mapping.Scheme}://+:{mapping.ContainerPort}"
-                });
+            if (context.TargetResource is ProjectResource)
+            {
+                container.Env.Add(
+                    new()
+                    {
+                        Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Url",
+                        Value = $"{mapping.Scheme}://+:{mapping.ContainerPort}"
+                    });
 
-            container.Env.Add(
-                new()
-                {
-                    Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Protocols",
-                    Value = $"{mapping.Transport.ToKestrelProtocol(mapping.Name)}"
-                });
+                container.Env.Add(
+                    new()
+                    {
+                        Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Protocols",
+                        Value = $"{mapping.Transport.ToKestrelProtocol(mapping.Name)}"
+                    });
+            }
         }
 
         return container;

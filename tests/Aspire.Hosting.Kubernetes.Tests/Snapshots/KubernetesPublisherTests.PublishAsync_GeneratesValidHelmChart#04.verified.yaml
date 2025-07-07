@@ -33,11 +33,6 @@ spec:
           volumeMounts:
             - name: "logs"
               mountPath: "/logs"
-          env:
-            - name: "ASPNETCORE_Kestrel__Endpoints__http__Url"
-              value: "http://+:8080"
-            - name: "ASPNETCORE_Kestrel__Endpoints__http__Protocols"
-              value: "Http1"
           imagePullPolicy: "IfNotPresent"
       volumes:
         - name: "logs"
