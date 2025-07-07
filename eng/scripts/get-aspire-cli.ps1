@@ -88,7 +88,7 @@ function Get-OperatingSystem {
         else {
             $platform = [System.Environment]::OSVersion.Platform
             if ($platform -eq 4 -or $platform -eq 6) {
-                return "unix"
+                return "linux"
             }
             elseif ($platform -eq 128) {
                 return "osx"
