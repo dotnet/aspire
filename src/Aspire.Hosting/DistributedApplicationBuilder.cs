@@ -394,8 +394,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityProgressReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityProgressReporter, PublishingActivityProgressReporter>(sp => sp.GetRequiredService<PublishingActivityProgressReporter>());
+        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
