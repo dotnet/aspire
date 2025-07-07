@@ -27,6 +27,10 @@ Or, if you are using Visual Studio:
 1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
 1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
 
+## Using VS Code
+
+Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linux) or `.\start-code.cmd` to start VS Code.
+
 ## View Dashboard
 
 When you start the sample app in Visual Studio, it will automatically open your browser to show the dashboard.

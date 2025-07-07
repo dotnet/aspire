@@ -179,7 +179,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, CancellationToken, InteractionCompletionState> createResult, CancellationToken cancellationToken)
+    internal async Task CompleteInteractionAsync(int interactionId, Func<Interaction, IServiceProvider, InteractionCompletionState> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 
@@ -192,40 +192,13 @@ internal class InteractionService : IInteractionService
             }
         }
 
-        var result = createResult(interactionState, _serviceProvider, cancellationToken);
+        var result = createResult(interactionState, _serviceProvider);
 
         // Run validation for inputs interaction.
-        if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+        if (!await RunValidationAsync(interactionState, result, cancellationToken).ConfigureAwait(false))
         {
-            if (result.State is IReadOnlyList<InteractionInput> inputs)
-            {
-                var options = (InputsDialogInteractionOptions)interactionState.Options;
-
-                if (options.ValidationCallback is { } validationCallback)
-                {
-                    foreach (var input in inputs)
-                    {
-                        input.ValidationErrors.Clear();
-                    }
-
-                    var context = new InputsDialogValidationContext
-                    {
-                        CancellationToken = cancellationToken,
-                        ServiceProvider = _serviceProvider,
-                        Inputs = inputsInfo.Inputs
-                    };
-                    await validationCallback(context).ConfigureAwait(false);
-
-                    if (context.HasErrors)
-                    {
-                        result = new InteractionCompletionState { Complete = false, State = inputs };
-                    }
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException($"Expected state of {typeof(IReadOnlyList<InteractionInput>).FullName} for completed inputs interaction.");
-            }
+            // Interaction is not complete if there are validation errors.
+            result = new InteractionCompletionState { Complete = false, State = result.State };
         }
 
         lock (_onInteractionUpdatedLock)
@@ -246,6 +219,38 @@ internal class InteractionService : IInteractionService
             // Either broadcast out the interaction is complete, or its updated state.
             OnInteractionUpdated?.Invoke(interactionState);
         }
+    }
+
+    private async Task<bool> RunValidationAsync(Interaction interactionState, InteractionCompletionState result, CancellationToken cancellationToken)
+    {
+        if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+        {
+            // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
+            if (result.State is IReadOnlyList<InteractionInput> inputs)
+            {
+                var options = (InputsDialogInteractionOptions)interactionState.Options;
+
+                if (options.ValidationCallback is { } validationCallback)
+                {
+                    foreach (var input in inputs)
+                    {
+                        input.ValidationErrors.Clear();
+                    }
+
+                    var context = new InputsDialogValidationContext
+                    {
+                        CancellationToken = cancellationToken,
+                        ServiceProvider = _serviceProvider,
+                        Inputs = inputsInfo.Inputs
+                    };
+                    await validationCallback(context).ConfigureAwait(false);
+
+                    return context.HasErrors;
+                }
+            }
+        }
+
+        return true;
     }
 
     internal async IAsyncEnumerable<Interaction> SubscribeInteractionUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
