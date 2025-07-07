@@ -16,9 +16,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
-        if (!string.IsNullOrEmpty(options?.TargetPlatform))
+        if (options?.TargetPlatform.HasValue == true)
         {
-            arguments += $" --platform \"{options.TargetPlatform}\"";
+            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
         }
 
         // Add output format support if specified

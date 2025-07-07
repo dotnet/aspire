@@ -16,18 +16,18 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
-        if (!string.IsNullOrEmpty(options?.TargetPlatform))
+        if (options?.TargetPlatform.HasValue == true)
         {
-            arguments += $" --platform \"{options.TargetPlatform}\"";
+            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
         }
 
-        // Add format support if specified 
+        // Add format support if specified
         if (options?.ImageFormat.HasValue == true)
         {
             var format = options.ImageFormat.Value switch
             {
                 ContainerImageFormat.OciTar => "oci",
-                ContainerImageFormat.DockerTar => "docker-archive", 
+                ContainerImageFormat.DockerTar => "docker-archive",
                 ContainerImageFormat.Docker => "docker",
                 _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
             };

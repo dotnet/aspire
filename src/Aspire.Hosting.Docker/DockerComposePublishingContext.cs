@@ -123,7 +123,8 @@ internal sealed class DockerComposePublishingContext(
         // Build container images for the services that require it
         if (containerImagesToBuild.Count > 0)
         {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
+            var options = new ContainerBuildOptions { TargetPlatform = ContainerTargetPlatform.LinuxAmd64 };
+            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: options, cancellationToken).ConfigureAwait(false);
         }
 
         var step = await activityReporter.CreateStepAsync(
