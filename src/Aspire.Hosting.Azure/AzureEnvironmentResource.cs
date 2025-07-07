@@ -14,6 +14,8 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Azure.ResourceManager;
+using Azure.Core;
 
 namespace Aspire.Hosting.Azure;
 
@@ -90,22 +92,26 @@ public sealed class AzureEnvironmentResource : Resource
         var interactionService = context.Services.GetService<IInteractionService>();
         if (interactionService?.IsAvailable == true)
         {
-            var missingInputs = new List<InteractionInput>();
+            // First prompt: Subscription and Resource Group
+            var basicInputs = new List<InteractionInput>();
 
             if (string.IsNullOrEmpty(subscriptionId))
             {
-                missingInputs.Add(new InteractionInput
+                // Fetch available subscriptions from Azure
+                var subscriptionOptions = await GetAvailableSubscriptionsAsync(context).ConfigureAwait(false);
+                basicInputs.Add(new InteractionInput
                 {
-                    Label = "Azure Subscription ID",
-                    InputType = InputType.Text,
+                    Label = "Azure Subscription",
+                    InputType = InputType.Choice,
                     Required = true,
-                    Placeholder = "Enter your Azure subscription ID"
+                    Placeholder = "Select an Azure subscription",
+                    Options = subscriptionOptions
                 });
             }
 
             if (string.IsNullOrEmpty(resourceGroup))
             {
-                missingInputs.Add(new InteractionInput
+                basicInputs.Add(new InteractionInput
                 {
                     Label = "Resource Group Name",
                     InputType = InputType.Text,
@@ -114,48 +120,59 @@ public sealed class AzureEnvironmentResource : Resource
                 });
             }
 
-            if (string.IsNullOrEmpty(location))
+            if (basicInputs.Count > 0)
             {
-                missingInputs.Add(new InteractionInput
-                {
-                    Label = "Azure Location",
-                    InputType = InputType.Text,
-                    Required = true,
-                    Placeholder = "e.g., eastus, westus2, centralus"
-                });
-            }
-
-            if (missingInputs.Count > 0)
-            {
-                var inputResult = await interactionService.PromptInputsAsync(
+                var basicInputResult = await interactionService.PromptInputsAsync(
                     "Azure Deployment Configuration",
                     "The following Azure configuration values are required for deployment:",
-                    missingInputs,
+                    basicInputs,
                     cancellationToken: context.CancellationToken).ConfigureAwait(false);
 
-                if (inputResult.Canceled || inputResult.Data == null)
+                if (basicInputResult.Canceled || basicInputResult.Data == null)
                 {
                     throw new InvalidOperationException("Azure deployment configuration is required but was not provided.");
                 }
 
                 // Extract the provided values
-                var inputs = inputResult.Data.ToList();
+                var basicInputsData = basicInputResult.Data.ToList();
                 var inputIndex = 0;
 
                 if (string.IsNullOrEmpty(subscriptionId))
                 {
-                    subscriptionId = inputs[inputIndex++].Value;
+                    subscriptionId = basicInputsData[inputIndex++].Value;
                 }
 
                 if (string.IsNullOrEmpty(resourceGroup))
                 {
-                    resourceGroup = inputs[inputIndex++].Value;
+                    resourceGroup = basicInputsData[inputIndex].Value;
+                }
+            }
+
+            // Second prompt: Location (now that we have subscription ID)
+            if (string.IsNullOrEmpty(location))
+            {
+                // Fetch available regions from Azure using the subscription ID
+                var regionOptions = await GetAvailableRegionsAsync(context, subscriptionId).ConfigureAwait(false);
+
+                var locationInputResult = await interactionService.PromptInputAsync(
+                    "Azure Region Selection",
+                    "Select the Azure region for your deployment:",
+                    new InteractionInput
+                    {
+                        Label = "Azure Region",
+                        InputType = InputType.Choice,
+                        Required = true,
+                        Placeholder = "Select an Azure region",
+                        Options = regionOptions
+                    },
+                    cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+                if (locationInputResult.Canceled || locationInputResult.Data == null)
+                {
+                    throw new InvalidOperationException("Azure region selection is required but was not provided.");
                 }
 
-                if (string.IsNullOrEmpty(location))
-                {
-                    location = inputs[inputIndex].Value;
-                }
+                location = locationInputResult.Data.Value;
             }
         }
         else if (string.IsNullOrEmpty(subscriptionId) || string.IsNullOrEmpty(location))
@@ -205,6 +222,20 @@ public sealed class AzureEnvironmentResource : Resource
 
             await setupTask.SucceedAsync(
                 "Deployment context configured",
+                context.CancellationToken).ConfigureAwait(false);
+
+            // Create task for generating deployment URL
+            var deploymentUrlTask = await mainDeploymentStep.CreateTaskAsync(
+                "Generating Azure deployment URL",
+                context.CancellationToken).ConfigureAwait(false);
+
+            // Generate deployment URL for status display
+            var deploymentName = this.Name + "-main" + DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            var tenantDomain = provisioningContext.Tenant.DefaultDomain;
+            var deploymentUrl = $"https://ms.portal.azure.com/#@{tenantDomain}/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/deployments";
+
+            await deploymentUrlTask.SucceedAsync(
+                $"{deploymentUrl}",
                 context.CancellationToken).ConfigureAwait(false);
 
             // Create task for deploying main template
@@ -506,6 +537,110 @@ public sealed class AzureEnvironmentResource : Resource
                 context.CancellationToken).ConfigureAwait(false);
 
             throw;
+        }
+    }
+
+    private static async Task<IReadOnlyList<KeyValuePair<string, string>>> GetAvailableSubscriptionsAsync(DeployingContext context)
+    {
+        try
+        {
+            var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
+            var credential = tokenCredentialProvider.TokenCredential;
+            var armClient = new ArmClient(credential);
+
+            var subscriptions = new List<KeyValuePair<string, string>>();
+
+            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false))
+            {
+                var subscriptionData = subscription.Data;
+                var displayName = !string.IsNullOrEmpty(subscriptionData.DisplayName)
+                    ? $"{subscriptionData.DisplayName} ({subscriptionData.SubscriptionId})"
+                    : subscriptionData.SubscriptionId;
+
+                subscriptions.Add(new KeyValuePair<string, string>(subscriptionData.SubscriptionId, displayName));
+            }
+
+            return subscriptions.OrderBy(s => s.Value).ToList();
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogWarning(ex, "Failed to fetch Azure subscriptions. Falling back to text input.");
+            return new List<KeyValuePair<string, string>>();
+        }
+    }
+
+    private static async Task<IReadOnlyList<KeyValuePair<string, string>>> GetAvailableRegionsAsync(DeployingContext context, string? subscriptionId)
+    {
+        try
+        {
+            var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
+            var credential = tokenCredentialProvider.TokenCredential;
+            var armClient = new ArmClient(credential);
+
+            var regions = new List<KeyValuePair<string, string>>();
+
+            // Get the default subscription to access location information
+            if (string.IsNullOrEmpty(subscriptionId))
+            {
+                var defaultSubscription = await armClient.GetDefaultSubscriptionAsync(context.CancellationToken).ConfigureAwait(false);
+                subscriptionId = defaultSubscription.Data.SubscriptionId;
+            }
+
+            var subscription = armClient.GetSubscriptionResource(new ResourceIdentifier(subscriptionId));
+
+            var locations = await subscription.GetAvailableLocationsAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
+            foreach (var location in locations.Value)
+            {
+                var locationData = location;
+                var displayName = !string.IsNullOrEmpty(locationData.DisplayName)
+                    ? $"{locationData.DisplayName} ({locationData.Name})"
+                    : locationData.Name;
+
+                regions.Add(new KeyValuePair<string, string>(locationData.Name, displayName));
+            }
+
+            return regions.OrderBy(r => r.Value).ToList();
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogWarning(ex, "Failed to fetch Azure regions. Using common regions.");
+            // Fallback to comprehensive list of Azure regions
+            return new List<KeyValuePair<string, string>>
+            {
+                new("eastus", "East US"),
+                new("eastus2", "East US 2"),
+                new("westus", "West US"),
+                new("westus2", "West US 2"),
+                new("westus3", "West US 3"),
+                new("centralus", "Central US"),
+                new("northcentralus", "North Central US"),
+                new("southcentralus", "South Central US"),
+                new("westcentralus", "West Central US"),
+                new("canadacentral", "Canada Central"),
+                new("canadaeast", "Canada East"),
+                new("northeurope", "North Europe"),
+                new("westeurope", "West Europe"),
+                new("uksouth", "UK South"),
+                new("ukwest", "UK West"),
+                new("francecentral", "France Central"),
+                new("germanywestcentral", "Germany West Central"),
+                new("norwayeast", "Norway East"),
+                new("switzerlandnorth", "Switzerland North"),
+                new("swedencentral", "Sweden Central"),
+                new("australiaeast", "Australia East"),
+                new("australiasoutheast", "Australia Southeast"),
+                new("southeastasia", "Southeast Asia"),
+                new("eastasia", "East Asia"),
+                new("japaneast", "Japan East"),
+                new("japanwest", "Japan West"),
+                new("koreacentral", "Korea Central"),
+                new("koreasouth", "Korea South"),
+                new("southafricanorth", "South Africa North"),
+                new("brazilsouth", "Brazil South"),
+                new("centralindia", "Central India"),
+                new("southindia", "South India"),
+                new("westindia", "West India")
+            };
         }
     }
 }

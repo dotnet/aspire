@@ -502,6 +502,19 @@ internal sealed class BicepProvisioner(
         return $"{prefix}/{encodedPath}";
     }
 
-    public static string GetDeploymentUrl(ResourceIdentifier deploymentId) =>
-        $"{PortalDeploymentOverviewUrl}/{Uri.EscapeDataString(deploymentId.ToString())}";
+    public static string GetDeploymentUrl(ResourceIdentifier deploymentId)
+    {
+        // Extract subscription and resource group from deployment ID
+        // Format: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Resources/deployments/{deploymentName}
+        var parts = deploymentId.ToString().Split('/');
+        if (parts.Length >= 5)
+        {
+            var subscriptionId = parts[2];
+            var resourceGroupName = parts[4];
+            return $"https://ms.portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/deployments";
+        }
+
+        // Fallback to the old format if parsing fails
+        return $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id{deploymentId}";
+    }
 }
