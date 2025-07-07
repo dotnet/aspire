@@ -33,7 +33,15 @@ namespace Aspire.Hosting.Dcp;
 internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-    internal const string DefaultAspireNetworkName = "default-aspire-network";
+
+    // The resource name for the Aspire network resource.
+    internal const string DefaultAspireNetworkResource = "aspire-network";
+
+    // The base name for ephemeral networks
+    internal const string DefaultAspireNetworkName = "aspire-session-network";
+
+    // The base name for persistent networks
+    internal const string DefaultAspirePersistentNetworkName = "aspire-persistent-network";
 
     // Disposal of the DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
@@ -1174,7 +1182,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             {
                 new ContainerNetworkConnection
                 {
-                    Name = DefaultAspireNetworkName,
+                    Name = DefaultAspireNetworkResource,
                     Aliases = new List<string> { container.Name },
                 }
             };
@@ -1239,14 +1247,18 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             // Create a custom container network for Aspire if there are container resources
             if (containerResources.Any())
             {
-                var network = ContainerNetwork.Create(DefaultAspireNetworkName);
+                var network = ContainerNetwork.Create(DefaultAspireNetworkResource);
                 if (containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent))
                 {
                     // If we have any persistent container resources
                     network.Spec.Persistent = true;
                     // Persistent networks require a predictable name to be reused between runs.
                     // Append the same project hash suffix used for persistent container names.
-                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+                    network.Spec.NetworkName = $"{DefaultAspirePersistentNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+                }
+                else
+                {
+                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{DcpNameGenerator.GetRandomNameSuffix()}";
                 }
 
                 tasks.Add(_kubernetesService.CreateAsync(network, cancellationToken));
