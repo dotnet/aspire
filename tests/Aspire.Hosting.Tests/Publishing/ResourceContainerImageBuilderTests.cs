@@ -46,7 +46,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker] 
+    [RequiresDocker]
     public async Task CanBuildImageFromProjectResourceWithOptions()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -58,7 +58,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         {
             ImageFormat = ContainerImageFormat.OciTar,
             OutputPath = "/tmp/test-output",
-            TargetPlatform = "linux-x64"
+            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
@@ -73,12 +73,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         {
             ImageFormat = ContainerImageFormat.DockerTar,
             OutputPath = "/custom/path",
-            TargetPlatform = "linux-arm64"
+            TargetPlatform = ContainerTargetPlatform.LinuxArm64
         };
 
         Assert.Equal(ContainerImageFormat.DockerTar, options.ImageFormat);
         Assert.Equal("/custom/path", options.OutputPath);
-        Assert.Equal("linux-arm64", options.TargetPlatform);
+        Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
 
     [Theory]
@@ -91,7 +91,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var formatString = format switch
         {
             ContainerImageFormat.Docker => "Docker",
-            ContainerImageFormat.OciTar => "OciTar", 
+            ContainerImageFormat.OciTar => "OciTar",
             ContainerImageFormat.DockerTar => "DockerTar",
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };

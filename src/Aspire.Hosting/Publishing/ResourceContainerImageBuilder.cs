@@ -36,6 +36,38 @@ public enum ContainerImageFormat
 }
 
 /// <summary>
+/// Specifies the target platform for container images.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public enum ContainerTargetPlatform
+{
+    /// <summary>
+    /// Linux AMD64 (linux/amd64).
+    /// </summary>
+    LinuxAmd64,
+
+    /// <summary>
+    /// Linux ARM64 (linux/arm64).
+    /// </summary>
+    LinuxArm64,
+
+    /// <summary>
+    /// Linux ARM (linux/arm).
+    /// </summary>
+    LinuxArm,
+
+    /// <summary>
+    /// Linux 386 (linux/386).
+    /// </summary>
+    Linux386,
+
+    /// <summary>
+    /// Windows AMD64 (windows/amd64).
+    /// </summary>
+    WindowsAmd64
+}
+
+/// <summary>
 /// Options for building container images.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -54,7 +86,7 @@ public class ContainerBuildOptions
     /// <summary>
     /// Gets or sets the target platform for the container.
     /// </summary>
-    public string? TargetPlatform { get; init; }
+    public ContainerTargetPlatform? TargetPlatform { get; init; }
 }
 
 /// <summary>
@@ -222,9 +254,9 @@ internal sealed class ResourceContainerImageBuilder(
                         arguments += $" /p:ContainerImageFormat=\"{format}\"";
                     }
 
-                    if (!string.IsNullOrEmpty(options.TargetPlatform))
+                    if (options.TargetPlatform.HasValue)
                     {
-                        arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
+                        arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
                     }
                 }
 
@@ -303,9 +335,9 @@ internal sealed class ResourceContainerImageBuilder(
                     arguments += $" /p:ContainerImageFormat=\"{format}\"";
                 }
 
-                if (!string.IsNullOrEmpty(options.TargetPlatform))
+                if (options.TargetPlatform.HasValue)
                 {
-                    arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform}\"";
+                    arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
                 }
             }
 
@@ -415,4 +447,41 @@ internal sealed class ResourceContainerImageBuilder(
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
+}
+
+/// <summary>
+/// Extension methods for <see cref="ContainerTargetPlatform"/>.
+/// </summary>
+[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public static class ContainerTargetPlatformExtensions
+{
+    /// <summary>
+    /// Converts the target platform to the format used by container runtimes (Docker/Podman).
+    /// </summary>
+    /// <param name="platform">The target platform.</param>
+    /// <returns>The platform string in the format used by container runtimes.</returns>
+    public static string ToRuntimePlatformString(this ContainerTargetPlatform platform) => platform switch
+    {
+        ContainerTargetPlatform.LinuxAmd64 => "linux/amd64",
+        ContainerTargetPlatform.LinuxArm64 => "linux/arm64",
+        ContainerTargetPlatform.LinuxArm => "linux/arm",
+        ContainerTargetPlatform.Linux386 => "linux/386",
+        ContainerTargetPlatform.WindowsAmd64 => "windows/amd64",
+        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
+    };
+
+    /// <summary>
+    /// Converts the target platform to the format used by MSBuild ContainerRuntimeIdentifier.
+    /// </summary>
+    /// <param name="platform">The target platform.</param>
+    /// <returns>The platform string in the format used by MSBuild.</returns>
+    public static string ToMSBuildRuntimeIdentifierString(this ContainerTargetPlatform platform) => platform switch
+    {
+        ContainerTargetPlatform.LinuxAmd64 => "linux-x64",
+        ContainerTargetPlatform.LinuxArm64 => "linux-arm64",
+        ContainerTargetPlatform.LinuxArm => "linux-arm",
+        ContainerTargetPlatform.Linux386 => "linux-x86",
+        ContainerTargetPlatform.WindowsAmd64 => "win-x64",
+        _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
+    };
 }
