@@ -69,7 +69,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private Task? _resourceWatchTask;
     private int _stopped;
 
-    private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
+    private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers, bool? DcpLogStreamsCompleted);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
         new UnboundedChannelOptions { SingleReader = true });
 
@@ -239,7 +239,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         {
             await foreach (var subscribers in _loggerService.WatchAnySubscribersAsync(cancellationToken).ConfigureAwait(false))
             {
-                _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
+                _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers, DcpLogStreamsCompleted: null));
             }
         });
 
@@ -253,6 +253,19 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
 
             await foreach (var entry in _logInformationChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // this is a natural way to stop log streaming
+                if (entry.DcpLogStreamsCompleted == true)
+                {
+                    if (_logStreams.TryRemove(entry.ResourceName, out var logStream))
+                    {
+                        logStream.Cancellation.Cancel();
+                    }
+
+                    _loggerService.Complete(entry.ResourceName);
+                    _logger.LogDebug("DCP log stream for resource {ResourceName} completed.", entry.ResourceName);
+                    continue;
+                }
+
                 var logsAvailable = false;
                 var hasSubscribers = false;
                 if (resourceLogState.TryGetValue(entry.ResourceName, out (bool, bool) stateEntry))
@@ -379,7 +392,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                     if (resource is Container { LogsAvailable: true } ||
                         resource is Executable { LogsAvailable: true })
                     {
-                        _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
+                        _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null, DcpLogStreamsCompleted: null));
                     }
                 }
             }
@@ -535,6 +548,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
+                }
+                finally
+                {
+                    // Signal that this log stream has completed by writing to the information channel
+                    // This will trigger the cleanup logic in watchInformationChannelTask
+                    _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: null, HasSubscribers: null, DcpLogStreamsCompleted: true));
                 }
             },
             cancellation.Token);

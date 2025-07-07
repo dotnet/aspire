@@ -99,16 +99,21 @@ internal class ExecResourceManager
         }, cancellationToken);
 
         // in the background wait for the exec resource to reach terminal state. Once done we can complete logging
-        _ = Task.Run(async () =>
+        //_ = Task.Run(async () =>
+        //{
+        //    await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
+
+        //    // hack: https://github.com/dotnet/aspire/issues/10245
+        //    // workarounds the race-condition between streaming all logs from the resource, and resource completion
+        //    await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
+
+        //    _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
+        //}, cancellationToken);
+
+        yield return new CommandOutput
         {
-            await _resourceNotificationService.WaitForResourceAsync(execResource!.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
-
-            // hack: https://github.com/dotnet/aspire/issues/10245
-            // workarounds the race-condition between streaming all logs from the resource, and resource completion
-            await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
-
-            _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
-        }, cancellationToken);
+            Text = "waiting for logs from " + dcpExecResourceName
+        };
 
         await foreach (var logs in _resourceLoggerService.WatchAsync(dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
