@@ -116,7 +116,7 @@ The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies whe
 
 The following runtime identifier (RID) combinations are available:
 
-| Runtime Identifier | AOT Support |
+| Runtime Identifier | AOTed |
 |-------------------|-------------|
 | `win-x64` | ✅ |
 | `win-arm64` | ✅ |
@@ -126,6 +126,8 @@ The following runtime identifier (RID) combinations are available:
 | `linux-musl-x64` | ❌ |
 | `osx-x64` | ✅ |
 | `osx-arm64` | ✅ |
+
+The non-aot binaries are self-contained executables.
 
 ## Troubleshooting
 
