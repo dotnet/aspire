@@ -441,6 +441,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <returns>The normalized application name with invalid characters removed.</returns>
     private static string NormalizeApplicationName(string applicationName)
     {
+        if (string.IsNullOrEmpty(applicationName))
+        {
+            return applicationName;
+        }
+
         applicationName = ApplicationNameRegex().Match(applicationName) switch
         {
             Match { Success: true } match => match.Groups["name"].Value,
