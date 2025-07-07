@@ -411,7 +411,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         _showTimestamp = showTimestamp;
         _isTimestampUtc = isTimestampUtc;
-
         await UpdateConsoleLogSettingsAsync();
     }
 
