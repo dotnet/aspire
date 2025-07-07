@@ -103,7 +103,7 @@ say_verbose() {
 }
 
 # Function to detect OS
-get_os() {
+detect_os() {
     local uname_s
     uname_s=$(uname -s)
 
@@ -113,7 +113,7 @@ get_os() {
             ;;
         Linux*)
             # Check if it's musl-based (Alpine, etc.)
-            if ldd --version 2>&1 | grep -q musl; then
+            if command -v ldd >/dev/null 2>&1 && ldd --version 2>&1 | grep -q musl; then
                 printf "linux-musl"
             else
                 printf "linux"
@@ -129,8 +129,33 @@ get_os() {
     esac
 }
 
+# Function to validate and normalize architecture
+get_cli_architecture_from_architecture() {
+    local architecture="$1"
+
+    if [[ "$architecture" == "<auto>" ]]; then
+        architecture=$(detect_architecture)
+    fi
+
+    case "$(echo "$architecture" | tr '[:upper:]' '[:lower:]')" in
+        amd64|x64)
+            printf "x64"
+            ;;
+        x86)
+            printf "x86"
+            ;;
+        arm64)
+            printf "arm64"
+            ;;
+        *)
+            printf "Error: Architecture '%s' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues\n" "$architecture" >&2
+            return 1
+            ;;
+    esac
+}
+
 # Function to detect architecture
-get_arch() {
+detect_architecture() {
     local uname_m
     uname_m=$(uname -m)
 
@@ -145,7 +170,7 @@ get_arch() {
             printf "x86"
             ;;
         *)
-            printf "unsupported"
+            printf "Error: Architecture '%s' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues\n" "$uname_m" >&2
             return 1
             ;;
     esac
@@ -158,69 +183,88 @@ secure_curl() {
     local timeout="${3:-300}"
     local user_agent="${4:-$USER_AGENT}"
     local max_retries="${5:-5}"
+    local method="${6:-GET}"
 
-    # FIXME: --cert-status is failing with `curl: (91) No OCSP response received`
-    curl \
-        --fail \
-        --silent \
-        --show-error \
-        --location \
-        --tlsv1.2 \
-        --tls-max 1.3 \
-        --max-time "$timeout" \
-        --user-agent "$user_agent" \
-        --max-redirs 10 \
-        --retry "$max_retries" \
-        --retry-delay 1 \
-        --retry-max-time 60 \
-        --output "$output_file" \
-        "$url"
+    local curl_args=(
+        --fail
+        --silent
+        --show-error
+        --location
+        --tlsv1.2
+        --tls-max 1.3
+        --max-time "$timeout"
+        --user-agent "$user_agent"
+        --max-redirs 10
+        --retry "$max_retries"
+        --retry-delay 1
+        --retry-max-time 60
+        --request "$method"
+    )
+
+    # Add output file only for GET requests
+    if [[ "$method" == "GET" ]]; then
+        curl_args+=(--output "$output_file")
+    fi
+
+    curl "${curl_args[@]}" "$url"
 }
 
-# Download the Aspire CLI for the current platform
-download_aspire_cli() {
+# Validate content type via HEAD request
+validate_content_type() {
     local url="$1"
-    local filename="$2"
-    local temp_filename="${filename}.tmp"
 
-    printf "Downloading from: %s\n" "$url"
+    say_verbose "Validating content type for $url"
 
-    # Use temporary file and move on success to avoid partial downloads
-    if secure_curl "$url" "$temp_filename" 300; then
-        # Check if the downloaded file is actually HTML (error page) instead of the expected archive
-        if file "$temp_filename" | grep -q "HTML document"; then
-            printf "Error: Downloaded file appears to be an HTML error page instead of the expected archive.\n" >&2
-            printf "The URL may be incorrect or the file may not be available: %s\n" "$url" >&2
-            rm -f "$temp_filename"
+    # Get headers via HEAD request
+    local headers
+    if headers=$(secure_curl "$url" /dev/null 60 "$USER_AGENT" 3 "HEAD" 2>&1); then
+        # Check if response suggests HTML content (error page)
+        if echo "$headers" | grep -qi "content-type:.*text/html"; then
+            printf "Error: Server returned HTML content instead of expected file.\n" >&2
             return 1
         fi
-
-        mv "$temp_filename" "$filename"
-        return 0
     else
-        # Clean up temporary file on failure
-        rm -f "$temp_filename"
-        printf "Error: Failed to download %s\n" "$url" >&2
-        return 1
+        # If HEAD request fails, continue anyway as some servers don't support it
+        say_verbose "HEAD request failed, proceeding with download"
     fi
+
+    return 0
 }
 
-# Download the checksum file
-download_checksum() {
+# General-purpose file download wrapper
+download_file() {
     local url="$1"
-    local filename="$2"
-    local temp_filename="${filename}.tmp"
+    local output_path="$2"
+    local timeout="${3:-300}"
+    local max_retries="${4:-5}"
+    local validate_content_type="${5:-false}"
+    local use_temp_file="${6:-false}"
 
-    say_verbose "Downloading checksum from: $url"
+    local target_file="$output_path"
+    if [[ "$use_temp_file" == true ]]; then
+        target_file="${output_path}.tmp"
+    fi
 
-    # Use temporary file and move on success to avoid partial downloads
-    if secure_curl "$url" "$temp_filename" 60; then
-        mv "$temp_filename" "$filename"
+    # Validate content type via HEAD request if requested
+    if [[ "$validate_content_type" == true ]]; then
+        if ! validate_content_type "$url"; then
+            return 1
+        fi
+    fi
+
+    say_verbose "Downloading $url to $target_file"
+
+    # Download the file
+    if secure_curl "$url" "$target_file" "$timeout" "$USER_AGENT" "$max_retries"; then
+        # Move temp file to final location if using temp file
+        if [[ "$use_temp_file" == true ]]; then
+            mv "$target_file" "$output_path"
+        fi
+
+        say_verbose "Successfully downloaded file to: $output_path"
         return 0
     else
-        # Clean up temporary file on failure
-        rm -f "$temp_filename"
-        printf "Error: Failed to download checksum %s\n" "$url" >&2
+        printf "Error: Failed to download %s to %s\n" "$url" "$output_path" >&2
         return 1
     fi
 }
@@ -239,13 +283,6 @@ validate_checksum() {
     # Read the expected checksum from the file
     local expected_checksum
     expected_checksum=$(cat "$checksum_file" | tr -d '\n' | tr -d '\r' | tr '[:upper:]' '[:lower:]')
-
-    # Check if the checksum file contains HTML (error page) instead of a checksum
-    if [[ "$expected_checksum" == *"<!doctype html"* ]] || [[ "$expected_checksum" == *"<html"* ]]; then
-        printf "Error: Checksum file contains HTML error page instead of checksum. The URL may be incorrect or the file may not be available.\n" >&2
-        printf "Expected checksum file content, but got: %s...\n" "${expected_checksum:0:100}" >&2
-        return 1
-    fi
 
     # Calculate the actual checksum
     local actual_checksum
@@ -271,7 +308,7 @@ validate_checksum() {
 }
 
 # Function to expand/unpack archive files
-expand_aspire_cli_archive() {
+expand_archive() {
     local archive_file="$1"
     local destination_path="$2"
     local os="$3"
@@ -312,7 +349,7 @@ expand_aspire_cli_archive() {
 
 # Main script
 main() {
-    local os arch runtimeIdentifier url filename checksum_url checksum_filename
+    local os arch runtimeIdentifier url filename checksum_url checksum_filename extension
     local cli_exe cli_path
 
     # Parse command line arguments
@@ -332,14 +369,7 @@ main() {
     # Create a temporary directory for downloads
     local temp_dir
     temp_dir=$(mktemp -d -t aspire-cli-download-XXXXXXXX)
-
-    if [[ ! -d "$temp_dir" ]]; then
-        say_verbose "Creating temporary directory: $temp_dir"
-        if ! mkdir -p "$temp_dir"; then
-            printf "Error: Failed to create temporary directory: %s\n" "$temp_dir" >&2
-            return 1
-        fi
-    fi
+    say_verbose "Creating temporary directory: $temp_dir"
 
     # Cleanup function for temporary directory
     cleanup() {
@@ -357,26 +387,23 @@ main() {
     trap cleanup EXIT
 
     # Detect OS and architecture if not provided
-    local detected_os detected_arch
-
     if [[ -z "$OS" ]]; then
-        if ! detected_os=$(get_os); then
+        if ! os=$(detect_os); then
             printf "Error: Unsupported operating system. Current platform: %s\n" "$(uname -s)" >&2
             return 1
         fi
-        os="$detected_os"
     else
         os="$OS"
     fi
 
     if [[ -z "$ARCH" ]]; then
-        if ! detected_arch=$(get_arch); then
-            printf "Error: Unsupported architecture. Current architecture: %s\n" "$(uname -m)" >&2
+        if ! arch=$(get_cli_architecture_from_architecture "<auto>"); then
             return 1
         fi
-        arch="$detected_arch"
     else
-        arch="$ARCH"
+        if ! arch=$(get_cli_architecture_from_architecture "$ARCH"); then
+            return 1
+        fi
     fi
 
     # Construct the runtime identifier
@@ -396,17 +423,17 @@ main() {
     filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}"
     checksum_filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}.sha512"
 
-    # Download the archive file
-    if ! download_aspire_cli "$url" "$filename"; then
+    # Download the Aspire CLI archive
+    printf "Downloading from: %s\n" "$url"
+    if ! download_file "$url" "$filename" 300 5 true true; then
         return 1
     fi
 
-    # Download the checksum file and validate
-    if ! download_checksum "$checksum_url" "$checksum_filename"; then
+    # Download and test the checksum
+    if ! download_file "$checksum_url" "$checksum_filename" 60 5 true true; then
         return 1
     fi
 
-    # Validate the checksum
     if ! validate_checksum "$filename" "$checksum_filename"; then
         return 1
     fi
@@ -414,7 +441,7 @@ main() {
     say_verbose "Successfully downloaded and validated: $filename"
 
     # Unpack the archive
-    if ! expand_aspire_cli_archive "$filename" "$OUTPUT_PATH" "$os"; then
+    if ! expand_archive "$filename" "$OUTPUT_PATH" "$os"; then
         return 1
     fi
 
