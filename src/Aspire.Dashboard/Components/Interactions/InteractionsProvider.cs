@@ -256,7 +256,6 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 });
 
                 Debug.Assert(currentDialogReference != null, "Dialog should have been created in UI thread.");
-
                 _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference, CreateTelemetryContext(dialogComponentId));
             }
             finally
