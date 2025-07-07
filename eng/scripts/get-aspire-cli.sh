@@ -34,7 +34,7 @@ OPTIONS:
     -c, --channel CHANNEL       Channel of the Aspire CLI to download (default: 9.0)
     -q, --quality QUALITY       Build quality to download (default: daily)
     --os OS                     Operating system (default: auto-detect)
-    --architecture ARCH         Architecture (default: auto-detect)
+    --arch ARCH                 Architecture (default: auto-detect)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
     -v, --verbose               Enable verbose output
     -h, --help                  Show this help message
@@ -42,8 +42,8 @@ OPTIONS:
 EXAMPLES:
     ./get-aspire-cli.sh
     ./get-aspire-cli.sh --output-path "/tmp"
-    ./get-aspire-cli.sh --channel "8.0" --quality "release"
-    ./get-aspire-cli.sh --os "linux" --architecture "x64"
+    ./get-aspire-cli.sh --channel "9.0" --quality "release"
+    ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --keep-archive
     ./get-aspire-cli.sh --help
 
@@ -70,7 +70,7 @@ parse_args() {
                 OS="$2"
                 shift 2
                 ;;
-            --architecture)
+            --arch)
                 ARCH="$2"
                 shift 2
                 ;;
@@ -166,6 +166,7 @@ secure_curl() {
         --show-error \
         --location \
         --tlsv1.2 \
+        --tls-max 1.3 \
         --max-time "$timeout" \
         --user-agent "$user_agent" \
         --max-redirs 10 \
