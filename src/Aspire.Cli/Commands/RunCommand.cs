@@ -185,8 +185,6 @@ internal sealed class RunCommand : BaseCommand
             }
             topGrid.AddRow(Text.Empty, Text.Empty);
             topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-            topGrid.AddRow(new Text(string.Empty), new Text(string.Empty));
-            topGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
 
             _ansiConsole.Write(topPadder);
 
@@ -229,6 +227,30 @@ internal sealed class RunCommand : BaseCommand
                 {
                     // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
+
+                // Display CTRL+C message after endpoints in codespaces/remote containers
+                var ctrlCGrid = new Grid();
+                ctrlCGrid.AddColumn();
+                ctrlCGrid.AddColumn();
+                ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+                ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+                ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+
+                var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
+                _ansiConsole.Write(ctrlCPadder);
+            }
+            else
+            {
+                // Display CTRL+C message immediately if not in codespaces/remote containers
+                var ctrlCGrid = new Grid();
+                ctrlCGrid.AddColumn();
+                ctrlCGrid.AddColumn();
+                ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+                ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+                ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+
+                var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
+                _ansiConsole.Write(ctrlCPadder);
             }
 
             await pendingLogCapture;
