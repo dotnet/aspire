@@ -433,7 +433,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     /// <summary>
-    /// Normalizes the application name for use in physical container resource names.
+    /// Normalizes the application name for use in physical container resource names (only guaranteed valid as a suffix).
     /// Removes the ".AppHost" suffix if present and takes only characters that are valid in resource names.
     /// Invalid characters are simply omitted from the name as the result doesn't need to be identical.
     /// </summary>
@@ -455,24 +455,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var normalizedName = new StringBuilder();
         for (var i = 0; i < applicationName.Length; i++)
         {
-            if (normalizedName.Length == 0)
+            if ((applicationName[i] is >= 'a' and <= 'z') ||
+                (applicationName[i] is >= 'A' and <= 'Z') ||
+                (applicationName[i] is >= '0' and <= '9') ||
+                (applicationName[i] is '_' or '-' or '.'))
             {
-                if ((applicationName[i] is >= 'a' and <= 'z') ||
-                    (applicationName[i] is >= 'A' and <= 'Z') ||
-                    (applicationName[i] is >= '0' and <= '9'))
-                {
-                    normalizedName.Append(applicationName[i]);
-                }
-            }
-            else
-            {
-                if ((applicationName[i] is >= 'a' and <= 'z') ||
-                    (applicationName[i] is >= 'A' and <= 'Z') ||
-                    (applicationName[i] is >= '0' and <= '9') ||
-                    (applicationName[i] is '_' or '-' or '.'))
-                {
-                    normalizedName.Append(applicationName[i]);
-                }
+                normalizedName.Append(applicationName[i]);
             }
         }
 
