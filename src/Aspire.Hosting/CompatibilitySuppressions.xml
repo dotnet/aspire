@@ -45,7 +45,14 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImagesAsync(System.Collections.Generic.IEnumerable{Aspire.Hosting.ApplicationModel.IResource},System.Threading.CancellationToken)</Target>
+    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImageAsync(Aspire.Hosting.ApplicationModel.IResource,Aspire.Hosting.Publishing.ContainerBuildOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImagesAsync(System.Collections.Generic.IEnumerable{Aspire.Hosting.ApplicationModel.IResource},Aspire.Hosting.Publishing.ContainerBuildOptions,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
