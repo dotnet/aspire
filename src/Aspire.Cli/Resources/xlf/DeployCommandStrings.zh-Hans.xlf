@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <source>Deploy an Aspire Apphost project to its supported deployment targets. (Preview)</source>
         <target state="needs-review-translation">将 Aspire 应用主机项目部署到其支持的部署目标。</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">部署工件的输出路径。</target>
+        <source>The output path for deployment artifacts</source>
+        <target state="needs-review-translation">部署工件的输出路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">

@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <source>Deploy an Aspire Apphost project to its supported deployment targets. (Preview)</source>
         <target state="needs-review-translation">Desteklenen dağıtım hedeflerine bir Aspire uygulama ana işlemi projesi dağıtın.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Dağıtım yapıtları için çıktı yolu.</target>
+        <source>The output path for deployment artifacts</source>
+        <target state="needs-review-translation">Dağıtım yapıtları için çıktı yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="SuccessfullyDeployed">

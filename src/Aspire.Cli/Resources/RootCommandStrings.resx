@@ -110,13 +110,13 @@
       <value>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</value>
   </data>
   <data name="DebugArgumentDescription" xml:space="preserve">
-    <value>Enable debug logging to the console.</value>
+    <value>Enable debug logging to the console</value>
   </data>
   <data name="WaitForDebuggerArgumentDescription" xml:space="preserve">
-    <value>Wait for a debugger to attach before executing the command.</value>
+    <value>Wait for a debugger to attach before executing the command</value>
   </data>
   <data name="CliWaitForDebuggerArgumentDescription" xml:space="preserve">
-    <value>Wait for a debugger to attach before executing the command.</value>
+    <value>Wait for a debugger to attach before executing the command</value>
   </data>
   <data name="WaitingForDebugger" xml:space="preserve">
     <value>Waiting for debugger to attach to CLI process ID: {0}</value>

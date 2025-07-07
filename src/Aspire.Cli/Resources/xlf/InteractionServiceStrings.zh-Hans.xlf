@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">应用主机不兼容。请考虑升级应用主机或 Aspire CLI。</target>
+        <source>The Apphost is not compatible. Consider upgrading the Apphost or Aspire CLI.</source>
+        <target state="needs-review-translation">应用主机不兼容。请考虑升级应用主机或 Aspire CLI。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">正在生成应用主机...</target>
+        <source>Building Apphost...</source>
+        <target state="needs-review-translation">正在生成应用主机...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -53,13 +53,13 @@
         <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
-        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
-        <target state="translated">连接到应用主机时出错。应用主机可能在可用之前发生故障: {0}。</target>
+        <source>An error occurred while connecting to the Apphost. The Apphost possibly crashed before it was available: {0}.</source>
+        <target state="needs-review-translation">连接到应用主机时出错。应用主机可能在可用之前发生故障: {0}。</target>
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">正在查找应用主机...</target>
+        <source>Finding Apphosts...</source>
+        <target state="needs-review-translation">正在查找应用主机...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -83,8 +83,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">未指定 --project 选项，并且检测到多个应用主机项目文件。</target>
+        <source>The --project option was not specified and multiple Apphost project files were detected.</source>
+        <target state="needs-review-translation">未指定 --project 选项，并且检测到多个应用主机项目文件。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -103,13 +103,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">选择要运行的应用主机</target>
+        <source>Select Apphost to run</source>
+        <target state="needs-review-translation">选择要运行的应用主机</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定的项目文件不是 Aspire 应用主机项目。</target>
+        <source>The specified project file is not an Aspire Apphost project.</source>
+        <target state="needs-review-translation">指定的项目文件不是 Aspire 应用主机项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -128,8 +128,8 @@
         <note>{0} is the exception message</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
-        <source>Waiting for debugger to attach to app host process</source>
-        <target state="translated">正在等待调试程序附加到应用主机进程</target>
+        <source>Waiting for debugger to attach to Apphost process</source>
+        <target state="needs-review-translation">正在等待调试程序附加到应用主机进程</target>
         <note />
       </trans-unit>
     </body>

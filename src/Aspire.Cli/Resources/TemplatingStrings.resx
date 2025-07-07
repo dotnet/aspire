@@ -127,7 +127,7 @@
     <value>Aspire Empty App</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
-    <value>Aspire App Host</value>
+    <value>Aspire Apphost</value>
   </data>
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
     <value>Aspire Service Defaults</value>

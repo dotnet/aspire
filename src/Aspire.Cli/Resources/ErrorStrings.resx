@@ -154,7 +154,7 @@
     <value>The project could not be analyzed due to a build error. For more information run with --debug switch.</value>
   </data>
   <data name="ProjectIsNotAppHost" xml:space="preserve">
-    <value>The project is not an Aspire app host project.</value>
+    <value>The project is not an Aspire Apphost project.</value>
   </data>
   <data name="CouldNotParseAspireSDKVersion" xml:space="preserve">
     <value>Could not parse Aspire.Hosting package version.</value>
@@ -178,7 +178,7 @@
     <value>No project file found.</value>
   </data>
   <data name="ProjectFileNotAppHostProject" xml:space="preserve">
-    <value>Project file is not an Aspire app host project.</value>
+    <value>Project file is not an Aspire Apphost project.</value>
   </data>
   <data name="AspireHostingVersionNull" xml:space="preserve">
     <value>AspireHostingVersion is null</value>
