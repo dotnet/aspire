@@ -26,7 +26,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityReporter progressReporter,
+    IPublishingActivityReporter activityReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -126,7 +126,7 @@ internal sealed class DockerComposePublishingContext(
             await ImageBuilder.BuildImagesAsync(containerImagesToBuild, cancellationToken).ConfigureAwait(false);
         }
 
-        var step = await progressReporter.CreateStepAsync(
+        var step = await activityReporter.CreateStepAsync(
             "Writing Docker Compose file.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
