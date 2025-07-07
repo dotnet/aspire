@@ -6,6 +6,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -16,7 +17,8 @@ internal sealed class ParameterProcessor(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
-    ILogger<ParameterProcessor> logger)
+    ILogger<ParameterProcessor> logger,
+    DistributedApplicationOptions options)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -138,37 +140,45 @@ internal sealed class ParameterProcessor(
             if (result.Data)
             {
                 // Now we build up a new form base on the unresolved parameters.
-                var inputs = new List<InteractionInput>();
+                var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
 
                 foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    inputs.Add(new InteractionInput
+                    var input = new InteractionInput
                     {
                         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
                         Label = parameter.Name,
-                        Placeholder = "Enter value for " + parameter.Name,
-                    });
+                        Placeholder = $"Enter value for {parameter.Name}",
+                    };
+                    resourceInputs.Add((parameter, input));
                 }
+
+                var saveParameters = new InteractionInput
+                {
+                    InputType = InputType.Boolean,
+                    Label = "Save to user secrets"
+                };
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
                     "Set unresolved parameters",
-                    "Please provide values for the unresolved parameters.",
-                    inputs,
+                    "Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.",
+                    [.. resourceInputs.Select(i => i.Input), saveParameters],
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = "Save",
-                        ShowDismiss = true
+                        ShowDismiss = true,
+                        EnableMessageMarkdown = true,
                     })
                     .ConfigureAwait(false);
 
                 if (!valuesPrompt.Canceled)
                 {
                     // Iterate through the unresolved parameters and set their values based on user input.
-                    for (var i = unresolvedParameters.Count - 1; i >= 0; i--)
+                    for (var i = resourceInputs.Count - 1; i >= 0; i--)
                     {
-                        var parameter = unresolvedParameters[i];
-                        var inputValue = valuesPrompt.Data[i].Value;
+                        var (parameter, input) = (resourceInputs[i].ParameterResource, resourceInputs[i].Input);
+                        var inputValue = input.Value;
 
                         if (string.IsNullOrEmpty(inputValue))
                         {
@@ -188,6 +198,12 @@ internal sealed class ParameterProcessor(
                             };
                         })
                         .ConfigureAwait(false);
+
+                        // Persist the parameter value to user secrets if requested.
+                        if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)
+                        {
+                            SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
+                        }
 
                         // Remove the parameter from unresolved parameters list.
                         unresolvedParameters.RemoveAt(i);

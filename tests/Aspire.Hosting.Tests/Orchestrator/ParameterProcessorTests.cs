@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Threading.Channels;
 using Xunit;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -192,12 +191,13 @@ public class ParameterProcessorTests
         Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(true, false)); // Data = true (user clicked Enter Values)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", inputsInteraction.Title);
-        Assert.Equal("Please provide values for the unresolved parameters.", inputsInteraction.Message);
+        Assert.Equal("Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.", inputsInteraction.Message);
+        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
 
         Assert.Collection(inputsInteraction.Inputs,
             input =>
@@ -217,13 +217,19 @@ public class ParameterProcessorTests
                 Assert.Equal("secretParam", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.False(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[0].SetValue("value1");
         inputsInteraction.Inputs[1].SetValue("value2");
         inputsInteraction.Inputs[2].SetValue("secretValue");
 
-        inputsInteraction.CompletionTcs.SetResult(new InteractionResult<IReadOnlyList<InteractionInput>>(inputsInteraction.Inputs, false));
+        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
         await handleTask;
@@ -270,7 +276,7 @@ public class ParameterProcessorTests
         Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
-        messageBarInteraction.CompletionTcs.SetResult(new InteractionResult<bool>(false, false)); // Data = false (user dismissed/cancelled)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -302,7 +308,8 @@ public class ParameterProcessorTests
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
-            logger ?? new NullLogger<ParameterProcessor>()
+            logger ?? new NullLogger<ParameterProcessor>(),
+            new DistributedApplicationOptions { DisableDashboard = disableDashboard }
         );
     }
 
@@ -331,48 +338,5 @@ public class ParameterProcessorTests
     private static ParameterResource CreateParameterWithGenericError(string name)
     {
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
-    }
-
-    private sealed record InteractionData(string Title, string? Message, IReadOnlyList<InteractionInput> Inputs, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
-
-    private sealed class TestInteractionService : IInteractionService
-    {
-        public Channel<InteractionData> Interactions { get; } = Channel.CreateUnbounded<InteractionData>();
-
-        public bool IsAvailable { get; set; } = true;
-
-        public Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            var data = new InteractionData(title, message, inputs, options, new TaskCompletionSource<object>());
-            Interactions.Writer.TryWrite(data);
-            return (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
-        }
-
-        public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            var data = new InteractionData(title, message, [], options, new TaskCompletionSource<object>());
-            Interactions.Writer.TryWrite(data);
-            return (InteractionResult<bool>)await data.CompletionTcs.Task;
-        }
-
-        public Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
