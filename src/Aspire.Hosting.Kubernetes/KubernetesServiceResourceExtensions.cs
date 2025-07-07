@@ -101,7 +101,7 @@ internal static class KubernetesServiceResourceExtensions
         {
             EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{servicePort}"),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => servicePort?.ToString(CultureInfo.InvariantCulture) ?? "8080",
+            EndpointProperty.Port => servicePort?.ToString(CultureInfo.InvariantCulture) ?? "80",
             EndpointProperty.HostAndPort => GetHostValue(suffix: $":{servicePort}"),
             EndpointProperty.TargetPort => containerPort?.ToString(CultureInfo.InvariantCulture) ?? "8080",
             EndpointProperty.Scheme => scheme,
