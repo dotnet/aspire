@@ -20,7 +20,7 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    PublishingActivityProgressReporter activityReporter,
+    PublishingActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options)
 {
