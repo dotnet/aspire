@@ -607,11 +607,12 @@ fluent-switch.table-switch::part(label) {
 }
 
 .wrap-log-container .log-line-row-container {
-    overflow: inherit;
+    overflow: visible;
 }
 
 .wrap-log-container .log-content {
-    text-wrap-mode: nowrap;
+    white-space: nowrap;
+    overflow-wrap: normal;
 }
 
 .log-line-row-container {
