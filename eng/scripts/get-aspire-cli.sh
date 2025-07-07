@@ -159,7 +159,7 @@ secure_curl() {
     local user_agent="${4:-$USER_AGENT}"
     local max_retries="${5:-5}"
 
-    # FIXME: --cert-status is failiing with `curl: (91) No OCSP response received`
+    # FIXME: --cert-status is failing with `curl: (91) No OCSP response received`
     curl \
         --fail \
         --silent \
