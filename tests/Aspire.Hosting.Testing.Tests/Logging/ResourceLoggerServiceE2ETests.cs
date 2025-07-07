@@ -18,13 +18,13 @@ public class ResourceLoggerServiceE2ETests(ITestOutputHelper output)
     {
         var app = await BuildAppAsync(args: [], builder => {
             var webapp = new TestingAppHost1_MyWebApp();
-            builder.AddExecutable("ping-executable", "dotnet", Path.GetDirectoryName(webapp.ProjectPath)!, "--list-sdks");
+            builder.AddExecutable("list-sdks-executable", "dotnet", Path.GetDirectoryName(webapp.ProjectPath)!, "--list-sdks");
         });
 
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var rls = app.Services.GetRequiredService<ResourceLoggerService>();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var exec = model.Resources.FirstOrDefault(x => x.Name == "ping-executable");
+        var exec = model.Resources.FirstOrDefault(x => x.Name == "list-sdks-executable");
 
         var startApp = app.StartAsync();
 

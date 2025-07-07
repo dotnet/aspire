@@ -110,11 +110,6 @@ internal class ExecResourceManager
         //    _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
         //}, cancellationToken);
 
-        yield return new CommandOutput
-        {
-            Text = "waiting for logs from " + dcpExecResourceName
-        };
-
         await foreach (var logs in _resourceLoggerService.WatchAsync(dcpExecResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             foreach (var log in logs)
