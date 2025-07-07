@@ -180,9 +180,8 @@ function Get-CLIArchitecture-From-Architecture([string]$Architecture) {
     switch ($Architecture.ToLowerInvariant()) {
         { ($_ -eq "amd64") -or ($_ -eq "x64") } { return "x64" }
         { $_ -eq "x86" } { return "x86" }
-        { $_ -eq "arm" } { return "arm" }
         { $_ -eq "arm64" } { return "arm64" }
-        default { throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/install-scripts/issues" }
+        default { throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues" }
     }
 }
 
@@ -260,12 +259,12 @@ function Invoke-SecureWebRequest {
             MaximumRedirection = 10
             TimeoutSec = $TimeoutSec
             UserAgent = $UserAgent
-            MaximumRetryCount = $MaxRetries
         }
 
         if ($isModernPowerShell) {
             $downloadParams.SslProtocol = @('Tls12', 'Tls13')
             $downloadParams.OperationTimeoutSeconds = $OperationTimeoutSec
+            $downloadParams.MaximumRetryCount = $MaxRetries
         }
 
         $webResponse = Invoke-WebRequest @downloadParams
@@ -295,12 +294,12 @@ function Test-ContentTypeViaHead {
             MaximumRedirection = 10
             TimeoutSec = $TimeoutSec
             UserAgent = $UserAgent
-            MaximumRetryCount = $MaxRetries
         }
 
         if ($IsModernPowerShell) {
             $headParams.SslProtocol = @('Tls12', 'Tls13')
             $headParams.OperationTimeoutSeconds = $OperationTimeoutSec
+            $headParams.MaximumRetryCount = $MaxRetries
         }
 
         $headResponse = Invoke-WebRequest @headParams
