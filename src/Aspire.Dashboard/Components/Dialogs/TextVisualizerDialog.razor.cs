@@ -67,8 +67,11 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
         // We need to make users perform an explicit action once before being able to see secret values
         // We do this by making them agree to a warning in the text visualizer dialog.
-        var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
-        ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
+        if (Content.ContainsSecret)
+        {
+            var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
+            ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
+        }
 
         // Don't display content until it is loaded.
         // This is required because rendering uses the theme manager, and we don't want to call that code until we know it's finished initializing.
