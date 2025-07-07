@@ -13,6 +13,7 @@ param(
 
 # Global constants
 $Script:UserAgent = "get-aspire-cli.ps1/1.0"
+$Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
 
 # Show help if requested
 if ($Help) {
@@ -55,7 +56,7 @@ function Say-Verbose($str) {
 
 # Function to detect OS
 function Get-OperatingSystem {
-    if ($PSVersionTable.PSVersion.Major -ge 6) {
+    if ($Script:IsModernPowerShell) {
         if ($IsWindows) {
             return "win"
         }
@@ -105,7 +106,7 @@ function Get-Machine-Architecture() {
     Say-Verbose $MyInvocation
 
     # On Windows PowerShell, use environment variables
-    if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
+    if (-not $Script:IsModernPowerShell -or $IsWindows) {
         # On PS x86, PROCESSOR_ARCHITECTURE reports x86 even on x64 systems.
         # To get the correct architecture, we need to use PROCESSOR_ARCHITEW6432.
         # PS x64 doesn't define this, so we fall back to PROCESSOR_ARCHITECTURE.
@@ -132,7 +133,7 @@ function Get-Machine-Architecture() {
     }
 
     # For PowerShell 6+ on Unix systems, use .NET runtime information
-    if ($PSVersionTable.PSVersion.Major -ge 6) {
+    if ($Script:IsModernPowerShell) {
         try {
             $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
             switch ($runtimeArch) {
@@ -188,8 +189,7 @@ function Get-CLIArchitecture-From-Architecture([string]$Architecture) {
 # Helper function to extract Content-Type from response headers
 function Get-ContentTypeFromHeaders {
     param(
-        [object]$Headers,
-        [bool]$IsModernPowerShell = $true
+        [object]$Headers
     )
 
     if (-not $Headers) {
@@ -197,7 +197,7 @@ function Get-ContentTypeFromHeaders {
     }
 
     try {
-        if ($IsModernPowerShell) {
+        if ($Script:IsModernPowerShell) {
             # PowerShell 6+: Try different case variations
             if ($Headers.ContainsKey('Content-Type')) {
                 return $Headers['Content-Type'] -join ', '
@@ -235,137 +235,89 @@ function Invoke-SecureWebRequest {
     param(
         [string]$Uri,
         [string]$OutFile,
+        [string]$Method = 'Get',
         [int]$TimeoutSec = 60,
         [int]$OperationTimeoutSec = 30,
-        [string]$UserAgent = $Script:UserAgent,
         [int]$MaxRetries = 5
     )
 
-    $isModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
-
     # Configure TLS for PowerShell 5
-    if (-not $isModernPowerShell) {
+    if (-not $Script:IsModernPowerShell) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
     }
 
     try {
-        # Check content type via HEAD request first
-        Test-ContentTypeViaHead -Uri $Uri -IsModernPowerShell $isModernPowerShell -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -UserAgent $UserAgent -MaxRetries $MaxRetries
-
-        # Download the actual file
-        $downloadParams = @{
+        # Build request parameters
+        $requestParams = @{
             Uri = $Uri
-            OutFile = $OutFile
+            Method = $Method
             MaximumRedirection = 10
             TimeoutSec = $TimeoutSec
-            UserAgent = $UserAgent
+            UserAgent = $Script:UserAgent
         }
 
-        if ($isModernPowerShell) {
-            $downloadParams.SslProtocol = @('Tls12', 'Tls13')
-            $downloadParams.OperationTimeoutSeconds = $OperationTimeoutSec
-            $downloadParams.MaximumRetryCount = $MaxRetries
+        # Add OutFile only for GET requests
+        if ($Method -eq 'Get' -and $OutFile) {
+            $requestParams.OutFile = $OutFile
         }
 
-        $webResponse = Invoke-WebRequest @downloadParams
+        if ($Script:IsModernPowerShell) {
+            $requestParams.SslProtocol = @('Tls12', 'Tls13')
+            $requestParams.OperationTimeoutSeconds = $OperationTimeoutSec
+            $requestParams.MaximumRetryCount = $MaxRetries
+        }
+
+        $webResponse = Invoke-WebRequest @requestParams
+        return $webResponse
     }
     catch {
         throw $_.Exception
     }
 }
 
-# Helper function to test content type via HEAD request
-function Test-ContentTypeViaHead {
+# General-purpose file download wrapper
+function Invoke-FileDownload {
     param(
+        [Parameter(Mandatory = $true)]
         [string]$Uri,
-        [bool]$IsModernPowerShell,
-        [int]$TimeoutSec,
-        [int]$OperationTimeoutSec,
-        [string]$UserAgent,
-        [int]$MaxRetries
+        [Parameter(Mandatory = $true)]
+        [string]$OutputPath,
+        [int]$TimeoutSec = 60,
+        [int]$OperationTimeoutSec = 30,
+        [int]$MaxRetries = 5,
+        [switch]$ValidateContentType,
+        [switch]$UseTempFile
     )
 
-    $contentType = ""
-
     try {
-        $headParams = @{
-            Uri = $Uri
-            Method = 'Head'
-            MaximumRedirection = 10
-            TimeoutSec = $TimeoutSec
-            UserAgent = $UserAgent
+        # Validate content type via HEAD request if requested
+        if ($ValidateContentType) {
+            Say-Verbose "Validating content type for $Uri"
+            $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method 'Head' -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
+            $contentType = Get-ContentTypeFromHeaders -Headers $headResponse.Headers
+
+            if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
+                throw "Server returned HTML content (Content-Type: $contentType) instead of expected file."
+            }
         }
 
-        if ($IsModernPowerShell) {
-            $headParams.SslProtocol = @('Tls12', 'Tls13')
-            $headParams.OperationTimeoutSeconds = $OperationTimeoutSec
-            $headParams.MaximumRetryCount = $MaxRetries
+        $targetFile = $OutputPath
+        if ($UseTempFile) {
+            $targetFile = "$OutputPath.tmp"
         }
 
-        $headResponse = Invoke-WebRequest @headParams
-        $contentType = Get-ContentTypeFromHeaders -Headers $headResponse.Headers -IsModernPowerShell $IsModernPowerShell
-    }
-    catch {
-        Say-Verbose "Content-Type: Unable to determine via HEAD request ($($_.Exception.Message))"
-        # Continue with download even if HEAD request fails
-        return
-    }
+        Say-Verbose "Downloading $Uri to $targetFile"
+        Invoke-SecureWebRequest -Uri $Uri -OutFile $targetFile -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
 
-    Say-Verbose "Content-Type: $contentType"
-
-    # Throw if we detect HTML content (error page)
-    if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-        Say-Verbose "Server returned HTML content (Content-Type: $contentType) instead of expected file."
-        throw "Could not find the file."
-    }
-}
-
-# Download the Aspire CLI for the current platform
-function Invoke-AspireCliDownload {
-    param(
-        [string]$Url,
-        [string]$Filename
-    )
-
-    Write-Host "Downloading from: $Url"
-
-    # Use temporary file and move on success to avoid partial downloads
-    $tempFilename = "$Filename.tmp"
-
-    try {
-        Invoke-SecureWebRequest -Uri $Url -OutFile $tempFilename
-
-        # Check if the downloaded file is actually HTML (error page) instead of the expected archive
-        $fileContent = Get-Content $tempFilename -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
-        if ($fileContent -and ($fileContent.StartsWith("<!DOCTYPE html", [System.StringComparison]::OrdinalIgnoreCase) -or $fileContent.StartsWith("<html", [System.StringComparison]::OrdinalIgnoreCase))) {
-            throw "Downloaded file appears to be an HTML error page instead of the expected archive. The URL may be incorrect or the file may not be available: $Url"
+        # Move temp file to final location if using temp file
+        if ($UseTempFile) {
+            Move-Item $targetFile $OutputPath
         }
 
-        Move-Item $tempFilename $Filename
+        Say-Verbose "Successfully downloaded file to: $OutputPath"
     }
     catch {
-        throw "Failed to download $Url - $($_.Exception.Message)"
-    }
-}
-
-# Download the checksum file
-function Invoke-ChecksumDownload {
-    param(
-        [string]$Url,
-        [string]$Filename
-    )
-
-    Say-Verbose "Downloading checksum from: $Url"
-
-    # Use temporary file and move on success to avoid partial downloads
-    $tempFilename = "$Filename.tmp"
-
-    try {
-        Invoke-SecureWebRequest -Uri $Url -OutFile $tempFilename -TimeoutSec 60
-        Move-Item $tempFilename $Filename
-    }
-    catch {
-        throw "Failed to download checksum $Url - $($_.Exception.Message)"
+        throw "Failed to download $Uri to $OutputPath - $($_.Exception.Message)"
     }
 }
 
@@ -382,13 +334,6 @@ function Test-FileChecksum {
     }
 
     $expectedChecksum = (Get-Content $ChecksumFile -Raw).Trim().ToLower()
-
-    # Check if the checksum file contains HTML (error page) instead of a checksum
-    if ($expectedChecksum.StartsWith("<!doctype html", [System.StringComparison]::OrdinalIgnoreCase) -or $expectedChecksum.StartsWith("<html", [System.StringComparison]::OrdinalIgnoreCase)) {
-        $expectedChecksumDisplay = if ($expectedChecksum.Length -gt 100) { $expectedChecksum.Substring(0, 100) } else { $expectedChecksum }
-        throw "Checksum file contains HTML error page instead of checksum. The URL may be incorrect or the file may not be available.`nExpected checksum file content, but got: $expectedChecksumDisplay..."
-    }
-
     $actualChecksum = (Get-FileHash -Path $ArchiveFile -Algorithm SHA512).Hash.ToLower()
 
     # Limit expected checksum display to 128 characters for output
@@ -467,27 +412,21 @@ function Main {
             }
         }
 
-        # Detect OS and architecture
-        $detectedOS = if ([string]::IsNullOrWhiteSpace($OS)) { Get-OperatingSystem } else { $OS }
+        # Determine OS and architecture (either detected or user-specified)
+        $targetOS = if ([string]::IsNullOrWhiteSpace($OS)) { Get-OperatingSystem } else { $OS }
 
         # Check for unsupported OS
-        if ($detectedOS -eq "unsupported") {
+        if ($targetOS -eq "unsupported") {
             throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
         }
 
-        $detectedArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitecture-From-Architecture '<auto>' } else { Get-CLIArchitecture-From-Architecture $Architecture }
-        if ($detectedArch -eq "unsupported") {
-            throw "Unsupported architecture. Current architecture: $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)"
-        }
-
-        $os = $detectedOS
-        $arch = $detectedArch
+        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitecture-From-Architecture '<auto>' } else { Get-CLIArchitecture-From-Architecture $Architecture }
 
         # Construct the runtime identifier
-        $runtimeIdentifier = "$os-$arch"
+        $runtimeIdentifier = "$targetOS-$targetArch"
 
         # Determine file extension based on OS
-        $extension = if ($os -eq "win") { "zip" } else { "tar.gz" }
+        $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
 
         # Construct the URLs
         $url = "https://aka.ms/dotnet/$Channel/$BuildQuality/aspire-cli-$runtimeIdentifier.$extension"
@@ -497,16 +436,19 @@ function Main {
         $checksumFilename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension.sha512"
 
         try {
-            Invoke-AspireCliDownload -Url $url -Filename $filename
-            Invoke-ChecksumDownload -Url $checksumUrl -Filename $checksumFilename
+            # Download the Aspire CLI archive
+            Invoke-FileDownload -Uri $url -OutputPath $filename -ValidateContentType -UseTempFile
+
+            # Download and test the checksum
+            Invoke-FileDownload -Uri $checksumUrl -OutputPath $checksumFilename -ValidateContentType -UseTempFile
             Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
 
             Say-Verbose "Successfully downloaded and validated: $filename"
 
             # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $OutputPath -OS $os
+            Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $OutputPath -OS $targetOS
 
-            $cliExe = if ($os -eq "win") { "aspire.exe" } else { "aspire" }
+            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
             $cliPath = Join-Path $OutputPath $cliExe
 
             Write-Host "Aspire CLI successfully unpacked to: $cliPath" -ForegroundColor Green
