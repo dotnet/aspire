@@ -142,7 +142,7 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    Port = new(mapping.Port),
+                    Port = new(mapping.ServicePort),
                     TargetPort = new(mapping.Name),
                     Protocol = "TCP",
                 });
@@ -269,12 +269,40 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.TargetPort),
+                    ContainerPort = new(mapping.ContainerPort),
                     Protocol = "TCP",
+                });
+
+            container.Env.Add(
+                new()
+                {
+                    Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Url",
+                    Value = $"{mapping.Scheme}://+:{mapping.ContainerPort}"
+                });
+
+            container.Env.Add(
+                new()
+                {
+                    Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Protocols",
+                    Value = $"{mapping.Transport.ToKestrelProtocol(mapping.Name)}"
                 });
         }
 
         return container;
+    }
+
+    private static string ToKestrelProtocol(this string transport, string endpointName)
+    {
+        var defaultProcotol = String.Equals(endpointName, "http", StringComparison.CurrentCultureIgnoreCase) ? "Http1" : "Http1AndHttp2";
+        var protocol = transport.ToLowerInvariant() switch
+        {
+            "http" => defaultProcotol,
+            "http1" => "Http1",
+            "http2" => "Http2",
+            "http3" => "Http3",
+            _ => defaultProcotol
+        };
+        return protocol;
     }
 
     private static ContainerV1 WithContainerImage(this ContainerV1 container, KubernetesResource context)
