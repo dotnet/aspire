@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -19,7 +19,7 @@
     <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
     <Compile Include="$(SharedDir)PortAllocator.cs" LinkBase="Shared" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes.Tests" />
   </ItemGroup>
