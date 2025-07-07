@@ -9,7 +9,9 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
@@ -24,18 +26,19 @@ using k8s;
 using k8s.Autorest;
 using k8s.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
+internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     // The resource name for the Aspire network resource.
-    internal const string DefaultAspireNetworkResource = "aspire-network";
+    internal const string DefaultAspireNetworkResourceName = "aspire-network";
 
     // The base name for ephemeral networks
     internal const string DefaultAspireNetworkName = "aspire-session-network";
@@ -47,6 +50,10 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
     // it probably means DCP crashed and there is no point trying further.
     private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(10);
+
+    // Regex for normalizing application names.
+    [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
+    private static partial Regex ApplicationNameRegex();
 
     private readonly ILogger<DistributedApplication> _distributedApplicationLogger;
     private readonly IKubernetesService _kubernetesService;
@@ -67,6 +74,8 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
 
+    private readonly string _normalizedApplicationName;
+
     // Internal for testing.
     internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline CreateServiceRetryPipeline { get; set; }
@@ -84,6 +93,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
     public DcpExecutor(ILogger<DcpExecutor> logger,
                        ILogger<DistributedApplication> distributedApplicationLogger,
                        DistributedApplicationModel model,
+                       IHostEnvironment hostEnvironment,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
                        IDistributedApplicationEventing distributedApplicationEventing,
@@ -110,6 +120,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
+        _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
@@ -419,6 +430,53 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Normalizes the application name for use in physical container resource names.
+    /// Removes the ".AppHost" suffix if present and takes only characters that are valid in resource names.
+    /// Invalid characters are simply omitted from the name as the result doesn't need to be identical.
+    /// </summary>
+    /// <param name="applicationName">The application name to normalize.</param>
+    /// <returns>The normalized application name with invalid characters removed.</returns>
+    private static string NormalizeApplicationName(string applicationName)
+    {
+        applicationName = ApplicationNameRegex().Match(applicationName) switch
+        {
+            Match { Success: true } match => match.Groups["name"].Value,
+            _ => applicationName
+        };
+
+        if (string.IsNullOrEmpty(applicationName))
+        {
+            return applicationName;
+        }
+
+        var normalizedName = new StringBuilder();
+        for (var i = 0; i < applicationName.Length; i++)
+        {
+            if (normalizedName.Length == 0)
+            {
+                if ((applicationName[i] is >= 'a' and <= 'z') ||
+                    (applicationName[i] is >= 'A' and <= 'Z') ||
+                    (applicationName[i] is >= '0' and <= '9'))
+                {
+                    normalizedName.Append(applicationName[i]);
+                }
+            }
+            else
+            {
+                if ((applicationName[i] is >= 'a' and <= 'z') ||
+                    (applicationName[i] is >= 'A' and <= 'Z') ||
+                    (applicationName[i] is >= '0' and <= '9') ||
+                    (applicationName[i] is '_' or '-' or '.'))
+                {
+                    normalizedName.Append(applicationName[i]);
+                }
+            }
+        }
+
+        return normalizedName.ToString();
     }
 
     private static string GetResourceType<T>(T resource, IResource appModelResource) where T : CustomResource
@@ -1182,7 +1240,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             {
                 new ContainerNetworkConnection
                 {
-                    Name = DefaultAspireNetworkResource,
+                    Name = DefaultAspireNetworkResourceName,
                     Aliases = new List<string> { container.Name },
                 }
             };
@@ -1247,7 +1305,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
             // Create a custom container network for Aspire if there are container resources
             if (containerResources.Any())
             {
-                var network = ContainerNetwork.Create(DefaultAspireNetworkResource);
+                var network = ContainerNetwork.Create(DefaultAspireNetworkResourceName);
                 if (containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent))
                 {
                     // If we have any persistent container resources
@@ -1259,6 +1317,12 @@ internal sealed class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDis
                 else
                 {
                     network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{DcpNameGenerator.GetRandomNameSuffix()}";
+                }
+
+                if (!string.IsNullOrEmpty(_normalizedApplicationName))
+                {
+                    var shortApplicationName = _normalizedApplicationName.Length < 32 ? _normalizedApplicationName : _normalizedApplicationName.Substring(0, 32);
+                    network.Spec.NetworkName += $"-{shortApplicationName}"; // Limit to 32 characters to avoid exceeding resource name length limits.
                 }
 
                 tasks.Add(_kubernetesService.CreateAsync(network, cancellationToken));
