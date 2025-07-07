@@ -5,7 +5,9 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
 using Markdig;
@@ -22,8 +24,20 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
     private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
 
-    internal record InteractionMessageBarReference(int InteractionId, Message Message);
-    internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog);
+    internal record InteractionMessageBarReference(int InteractionId, Message Message, ComponentTelemetryContext TelemetryContext) : IDisposable
+    {
+        public void Dispose()
+        {
+            TelemetryContext?.Dispose();
+        }
+    }
+    internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog, ComponentTelemetryContext TelemetryContext) : IDisposable
+    {
+        public void Dispose()
+        {
+            TelemetryContext?.Dispose();
+        }
+    }
 
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
@@ -52,6 +66,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ILogger<InteractionsProvider> Logger { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     protected override void OnInitialized()
     {
@@ -119,6 +136,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 _pendingInteractions.RemoveAt(0);
 
                 Func<IDialogService, Task<IDialogReference>> openDialog;
+                string dialogComponentId;
 
                 if (item.MessageBox is { } messageBox)
                 {
@@ -184,6 +202,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             break;
                     }
 
+                    dialogComponentId = TelemetryComponentIds.InteractionMessageBox;
                     openDialog = dialogService => ShowMessageBoxAsync(dialogService, content, dialogParameters);
                 }
                 else if (item.InputsDialog is { } inputs)
@@ -222,6 +241,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         }
                     });
 
+                    dialogComponentId = TelemetryComponentIds.InteractionInputsDialog;
                     openDialog = dialogService => dialogService.ShowDialogAsync<InteractionsInputDialog>(vm, dialogParameters);
                 }
                 else
@@ -236,7 +256,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 });
 
                 Debug.Assert(currentDialogReference != null, "Dialog should have been created in UI thread.");
-                _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference);
+
+                _interactionDialogReference = new InteractionDialogReference(item.InteractionId, currentDialogReference, CreateTelemetryContext(dialogComponentId));
             }
             finally
             {
@@ -254,6 +275,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     {
                         if (_interactionDialogReference?.Dialog == currentDialogReference)
                         {
+                            _interactionDialogReference.Dispose();
                             _interactionDialogReference = null;
                         }
                     }
@@ -268,6 +290,13 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                 // Ignore any exceptions that occur while waiting for the dialog to close.
             }
         }
+    }
+
+    private ComponentTelemetryContext CreateTelemetryContext(string componentId)
+    {
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Control, componentId);
+        TelemetryContextProvider.Initialize(telemetryContext);
+        return telemetryContext;
     }
 
     private static string GetMessageHtml(WatchInteractionsResponseUpdate item)
@@ -401,6 +430,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                         }
 
                                         _openMessageBars.Remove(item.InteractionId);
+                                        openMessageBar.Dispose();
 
                                         await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
                                     }
@@ -409,7 +439,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         });
 
                         Debug.Assert(message != null, "Message should have been created in UI thread.");
-                        _openMessageBars.Add(new InteractionMessageBarReference(item.InteractionId, message));
+                        _openMessageBars.Add(new InteractionMessageBarReference(item.InteractionId, message, CreateTelemetryContext(TelemetryComponentIds.InteractionMessageBar)));
                         break;
                     case WatchInteractionsResponseUpdate.KindOneofCase.Complete:
                         // Complete interaction.
@@ -428,6 +458,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             }
                             finally
                             {
+                                _interactionDialogReference.Dispose();
                                 _interactionDialogReference = null;
                             }
                         }
