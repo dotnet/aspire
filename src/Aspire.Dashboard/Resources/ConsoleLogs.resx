@@ -177,4 +177,10 @@
   <data name="ConsoleLogsErrorWatchingLogs" xml:space="preserve">
     <value>Error watching logs</value>
   </data>
+  <data name="ConsoleLogsWrapLogs" xml:space="preserve">
+    <value>Wrap log lines</value>
+  </data>
+  <data name="ConsoleLogsNoWrapLogs" xml:space="preserve">
+    <value>No wrap log lines</value>
+  </data>
 </root>

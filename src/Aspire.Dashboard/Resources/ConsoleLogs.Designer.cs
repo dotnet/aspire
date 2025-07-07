@@ -115,6 +115,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No wrap log lines.
+        /// </summary>
+        public static string ConsoleLogsNoWrapLogs {
+            get {
+                return ResourceManager.GetString("ConsoleLogsNoWrapLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} console logs.
         /// </summary>
         public static string ConsoleLogsPageTitle {
@@ -210,6 +219,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ConsoleLogsWatchingLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsWatchingLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Wrap log lines.
+        /// </summary>
+        public static string ConsoleLogsWrapLogs {
+            get {
+                return ResourceManager.GetString("ConsoleLogsWrapLogs", resourceCulture);
             }
         }
         

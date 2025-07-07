@@ -40,6 +40,9 @@ public sealed partial class LogViewer
     public bool IsTimestampUtc { get; set; }
 
     [Parameter]
+    public bool NoWrapLogs { get; set; }
+
+    [Parameter]
     public string? ApplicationName { get; set; }
 
     protected override void OnParametersSet()

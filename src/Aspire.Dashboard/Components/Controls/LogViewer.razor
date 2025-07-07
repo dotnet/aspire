@@ -10,7 +10,7 @@
 @implements IAsyncDisposable
 
 <div class="log-overflow console-overflow continuous-scroll-overflow">
-    <div class="log-container console-container" id="logContainer">
+    <div class="@($"log-container console-container {(NoWrapLogs ? "wrap-log-container" : null)}")" id="logContainer">
         @if (LogEntries is { } logEntries)
         {
             <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="200" TItem="LogEntry">
