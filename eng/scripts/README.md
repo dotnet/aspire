@@ -112,24 +112,20 @@ The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies whe
 .\get-aspire-cli.ps1 -OutputPath "C:\temp\aspire" -Verbose -KeepArchive
 ```
 
-## Supported Platforms
+## Supported Runtime Identifiers
 
-### Operating Systems
-- **Windows** (`win`)
-- **Linux** (`linux`)
-- **Linux with musl** (`linux-musl`) - for Alpine Linux and similar distributions
-- **macOS** (`osx`)
+The following runtime identifier (RID) combinations are available:
 
-### Architectures
-- **x64** (`x64`) - Intel/AMD 64-bit
-- **ARM64** (`arm64`) - ARM 64-bit (Apple Silicon, ARM servers)
-- **x86** (`x86`) - Intel/AMD 32-bit (limited support)
-
-## Features
-
-### Automatic Detection
-- **Platform Detection**: Automatically detects your operating system and architecture
-- **Runtime Validation**: Chooses the correct archive format (ZIP for Windows, tar.gz for Unix)
+| Runtime Identifier | AOT Support |
+|-------------------|-------------|
+| `win-x64` | ✅ |
+| `win-arm64` | ✅ |
+| `win-x86` | ❌ |
+| `linux-x64` | ✅ |
+| `linux-arm64` | ❌ |
+| `linux-musl-x64` | ❌ |
+| `osx-x64` | ✅ |
+| `osx-arm64` | ✅ |
 
 ## Troubleshooting
 
