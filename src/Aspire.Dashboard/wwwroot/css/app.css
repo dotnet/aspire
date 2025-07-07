@@ -606,6 +606,14 @@ fluent-switch.table-switch::part(label) {
     width: 100%;
 }
 
+.wrap-log-container .log-line-row-container {
+    overflow: inherit;
+}
+
+.wrap-log-container .log-content {
+    text-wrap-mode: nowrap;
+}
+
 .log-line-row-container {
     width: 100%;
     overflow: hidden;

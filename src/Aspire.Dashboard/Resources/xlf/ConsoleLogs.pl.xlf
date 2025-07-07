@@ -32,6 +32,11 @@
         <target state="translated">Nie wybrano zasobu</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>No wrap log lines</source>
+        <target state="new">No wrap log lines</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">Dzienniki konsoli: {0}</target>
@@ -85,6 +90,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Trwa oglądanie dzienników...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="new">Wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">
