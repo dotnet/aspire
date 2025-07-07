@@ -243,7 +243,9 @@ builder.Build().Run();
                 var temp = tempDirectory?.Path;
                 if (temp is not null)
                 {
-                    line = line.Replace(temp, "{AspirePath}");
+                    line = line.Replace($"/private{temp}", "{AspirePath}") // Handle macOS temp symlinks
+                               .Replace(temp, "{AspirePath}")
+                               .Replace(Path.DirectorySeparatorChar, '/');
                 }
                 return line;
             });
