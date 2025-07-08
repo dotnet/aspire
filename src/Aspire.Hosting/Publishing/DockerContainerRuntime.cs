@@ -13,73 +13,105 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     public string Name => "Docker";
     private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+        string? builderName = null;
 
-        // Add platform support if specified
-        if (options?.TargetPlatform.HasValue == true)
+        // Docker requires a custom buildkit instance for the image when
+        // targeting the OCI format so we construct it and remove it here.
+        if (options?.ImageFormat == ContainerImageFormat.Oci)
         {
-            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
-        }
-
-        // Add output format support if specified
-        if (options?.ImageFormat.HasValue == true || !string.IsNullOrEmpty(options?.OutputPath))
-        {
-            // Validate that OutputPath is provided when ImageFormat is Oci
-            if (options?.ImageFormat == ContainerImageFormat.Oci && string.IsNullOrEmpty(options?.OutputPath))
+            if (string.IsNullOrEmpty(options?.OutputPath))
             {
                 throw new ArgumentException("OutputPath must be provided when ImageFormat is Oci.", nameof(options));
             }
 
-            var outputType = options?.ImageFormat switch
-            {
-                ContainerImageFormat.Oci => "type=oci",
-                ContainerImageFormat.Docker => "type=docker",
-                null => "type=docker",
-                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-            };
+            builderName = $"{imageName.Replace('/', '-').Replace(':', '-')}-builder";
+            var createBuilderResult = await CreateBuildkitInstanceAsync(builderName, cancellationToken).ConfigureAwait(false);
 
-            if (!string.IsNullOrEmpty(options?.OutputPath))
+            if (createBuilderResult != 0)
             {
-                outputType += $",dest=\"{options.OutputPath}/{imageName}.tar\"";
+                logger.LogError("Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, createBuilderResult);
+                return createBuilderResult;
             }
-
-            arguments += $" --output \"{outputType}\"";
         }
 
-        arguments += $" \"{contextPath}\"";
-
-        var spec = new ProcessSpec("docker")
+        try
         {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("docker buildx (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("docker buildx (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
+            var arguments = $"buildx build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
-        logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
+            // Use the specific builder for OCI builds
+            if (!string.IsNullOrEmpty(builderName))
             {
-                logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
-                return processResult.ExitCode;
+                arguments += $" --builder \"{builderName}\"";
             }
 
-            logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
-            return processResult.ExitCode;
+            // Add platform support if specified
+            if (options?.TargetPlatform is not null)
+            {
+                arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
+            }
+
+            // Add output format support if specified
+            if (options?.ImageFormat is not null || !string.IsNullOrEmpty(options?.OutputPath))
+            {
+                var outputType = options?.ImageFormat switch
+                {
+                    ContainerImageFormat.Oci => "type=oci",
+                    ContainerImageFormat.Docker => "type=docker",
+                    null => "type=docker",
+                    _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                };
+
+                if (!string.IsNullOrEmpty(options?.OutputPath))
+                {
+                    outputType += $",dest=\"{options.OutputPath}/{imageName}.tar\"";
+                }
+
+                arguments += $" --output \"{outputType}\"";
+            }
+
+            arguments += $" \"{contextPath}\"";
+
+            var spec = new ProcessSpec("docker")
+            {
+                Arguments = arguments,
+                OnOutputData = output =>
+                {
+                    logger.LogInformation("docker buildx (stdout): {Output}", output);
+                },
+                OnErrorData = error =>
+                {
+                    logger.LogInformation("docker buildx (stderr): {Error}", error);
+                },
+                ThrowOnNonZeroReturnCode = false,
+                InheritEnv = true
+            };
+
+            logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
+            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+            await using (processDisposable)
+            {
+                var processResult = await pendingProcessResult
+                    .WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (processResult.ExitCode != 0)
+                {
+                    logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                    return processResult.ExitCode;
+                }
+
+                logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
+                return processResult.ExitCode;
+            }
+        }
+        finally
+        {
+            // Clean up the buildkit instance if we created one
+            if (!string.IsNullOrEmpty(builderName))
+            {
+                await RemoveBuildkitInstanceAsync(builderName, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -135,6 +167,88 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 logger.LogInformation("Docker buildx is available and running.");
                 return true;
             }
+        }
+    }
+
+    private async Task<int> CreateBuildkitInstanceAsync(string builderName, CancellationToken cancellationToken)
+    {
+        var arguments = $"buildx create --name \"{builderName}\" --driver docker-container";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker buildx create (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker buildx create (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Creating buildkit instance with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, processResult.ExitCode);
+            }
+            else
+            {
+                logger.LogInformation("Successfully created buildkit instance {BuilderName}.", builderName);
+            }
+
+            return processResult.ExitCode;
+        }
+    }
+
+    private async Task<int> RemoveBuildkitInstanceAsync(string builderName, CancellationToken cancellationToken)
+    {
+        var arguments = $"buildx rm \"{builderName}\"";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker buildx rm (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker buildx rm (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Removing buildkit instance with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogWarning("Failed to remove buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, processResult.ExitCode);
+            }
+            else
+            {
+                logger.LogInformation("Successfully removed buildkit instance {BuilderName}.", builderName);
+            }
+
+            return processResult.ExitCode;
         }
     }
 }

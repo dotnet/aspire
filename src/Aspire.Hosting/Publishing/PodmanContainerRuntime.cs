@@ -16,13 +16,13 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
         // Add platform support if specified
-        if (options?.TargetPlatform.HasValue == true)
+        if (options?.TargetPlatform is not null)
         {
             arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
         }
 
         // Add format support if specified
-        if (options?.ImageFormat.HasValue == true)
+        if (options?.ImageFormat is not null)
         {
             var format = options.ImageFormat.Value switch
             {
