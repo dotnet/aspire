@@ -35,7 +35,7 @@ Make sure you [build the repo](#build-the-repo) from command line at least once.
 
 The default build includes native builds for `Aspire.Cli` which produces Native AOT binaries for some platforms. These projects are in `eng/clipack/Aspire.Cli.*`.
 
-By default it builds the cli native project for the current Runtime Identifier. A specific RID can be specified too by setting `$(TargetRid)`.
+By default it builds the cli native project for the current Runtime Identifier. A specific RIDs can be specified too by setting `$(TargetRids)` to a colon separated list like `$(TargetRids) = osx-x64:osx-arm64`.
 
 Native build can be disabled with `$(BuildNative) = false`. And to only the native bits use `$(BuildNativeOnly) = true`.
 

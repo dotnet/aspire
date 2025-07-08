@@ -67,7 +67,7 @@ jobs:
               --build
               --restore
               /p:BuildNativeOnly=true
-              /p:TargetRid=${{ targetRid }}
+              /p:TargetRids=${{ targetRid }}
               $(_buildArgs)
               ${{ parameters.extraBuildArgs }}
               /bl:$(Build.Arcade.LogsPath)Build.binlog

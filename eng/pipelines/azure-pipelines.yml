@@ -134,8 +134,6 @@ extends:
           agentOs: linux
           targetRidsForSameOS:
             - linux-x64
-            - linux-arm64
-            - linux-musl-x64
           # no need to sign ELF binaries on linux
           codeSign: false
           teamName: $(_TeamName)
@@ -207,7 +205,7 @@ extends:
                 inputs:
                   targetType: 'inline'
                   script: |
-                    Get-ChildItem -Path "$(Build.SourcesDirectory)\artifacts\packages" -File -Recurse | Select-Object -ExpandProperty FullName
+                    Get-ChildItem -Path "$(Build.SourcesDirectory)\artifacts\packages" -File -Recurse | Select-Object FullName, @{Name="Size(MB)";Expression={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
 
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
@@ -218,6 +216,14 @@ extends:
                   repoLogPath: $(Build.Arcade.LogsPath)
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
+                  targetRids:
+                    # aot
+                    - win-x64
+                    - win-arm64
+                    # non-aot - single file builds
+                    - win-x86
+                    - linux-arm64
+                    - linux-musl-x64
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
