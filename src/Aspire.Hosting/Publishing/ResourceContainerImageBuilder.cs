@@ -59,7 +59,12 @@ public enum ContainerTargetPlatform
     /// <summary>
     /// Windows AMD64 (windows/amd64).
     /// </summary>
-    WindowsAmd64
+    WindowsAmd64,
+
+    /// <summary>
+    /// Windows ARM64 (windows/arm64).
+    /// </summary>
+    WindowsArm64
 }
 
 /// <summary>
@@ -460,6 +465,7 @@ public static class ContainerTargetPlatformExtensions
         ContainerTargetPlatform.LinuxArm => "linux/arm",
         ContainerTargetPlatform.Linux386 => "linux/386",
         ContainerTargetPlatform.WindowsAmd64 => "windows/amd64",
+        ContainerTargetPlatform.WindowsArm64 => "windows/arm64",
         _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
     };
 
@@ -475,6 +481,7 @@ public static class ContainerTargetPlatformExtensions
         ContainerTargetPlatform.LinuxArm => "linux-arm",
         ContainerTargetPlatform.Linux386 => "linux-x86",
         ContainerTargetPlatform.WindowsAmd64 => "win-x64",
+        ContainerTargetPlatform.WindowsArm64 => "win-arm64",
         _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, "Unknown container target platform")
     };
 }
