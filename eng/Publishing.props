@@ -23,7 +23,6 @@
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
-    <_CliFilesToPublish Include="$(ArtifactsShippingPackagesDir)\aspire-cli-*" />
   </ItemGroup>
 
   <Target Name="_PublishBlobItems">
@@ -38,6 +37,27 @@
       Properties="SuppressFinalPackageVersion=true">
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
+
+    <ItemGroup>
+      <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.zip" />
+      <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.tar.gz" />
+
+      <_CliPackProjects Include="$(RepoRoot)eng\clipack\Aspire.Cli.*.csproj" />
+      <_ExpectedRuntimeIdentifiers Include="@(_CliPackProjects->'%(Filename)'->Replace('Aspire.Cli.', ''))" />
+    </ItemGroup>
+
+    <CheckExpectedAspireCliArchives ArchiveFiles="@(_ArchiveFiles)" ExpectedRuntimeIdentifiers="@(_ExpectedRuntimeIdentifiers)" />
+
+    <!-- Generate checksums for aspire-cli packages -->
+    <ItemGroup>
+      <_CliFileToPublish Include="@(_ArchiveFiles)" />
+      <GenerateChecksumItems Include="@(_CliFileToPublish)" DestinationPath="%(FullPath).sha512" />
+    </ItemGroup>
+
+    <GenerateChecksums Items="@(GenerateChecksumItems)" />
+    <ItemGroup>
+      <_CliFileToPublish Include="@(GenerateChecksumItems->'%(DestinationPath)')" />
+    </ItemGroup>
 
     <ItemGroup>
       <ItemsToPushToBlobFeed Include="@(_InstallersToPublish)">
@@ -55,11 +75,85 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
-      <ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">
+      <ItemsToPushToBlobFeed Include="@(_CliFileToPublish)">
         <IsShipping>false</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
     </ItemGroup>
   </Target>
+
+  <UsingTask TaskName="CheckExpectedAspireCliArchives" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ArchiveFiles ParameterType="System.String[]" Required="true" />
+      <ExpectedRuntimeIdentifiers ParameterType="System.String[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+        if (ArchiveFiles.Length == 0)
+        {
+          Log.LogError($"Missing {nameof(ArchiveFiles)} argument.");
+          return false;
+        }
+
+        if (ExpectedRuntimeIdentifiers.Length == 0)
+        {
+          Log.LogError($"Missing {nameof(ExpectedRuntimeIdentifiers)} argument.");
+          return false;
+        }
+
+        var archiveFileNames = ArchiveFiles.Select(filepath => Path.GetFileName(filepath)).ToArray();
+
+        var missingRids = new List<string>();
+        var matchedFiles = new HashSet<string>();
+
+        foreach (var rid in ExpectedRuntimeIdentifiers)
+        {
+            // filenames are like aspire-cli-linux-musl-x64-9.4.0-dev.tar.gz
+            var pattern = $"aspire-cli-{rid}-";
+            var matchingArchives = archiveFileNames
+                .Where(filename => filename.StartsWith(pattern, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (matchingArchives.Length == 0)
+            {
+                missingRids.Add(rid);
+                Log.LogMessage(MessageImportance.Low, $"Missing CLI files for runtime identifier: {rid}");
+            }
+            else
+            {
+                foreach (var archive in matchingArchives)
+                {
+                    matchedFiles.Add(archive);
+                }
+                Log.LogMessage(MessageImportance.Low, $"Found CLI files for {rid}: {string.Join(", ", matchingArchives)}");
+            }
+        }
+
+        // Find unexpected files - CLI archives that don't match any expected runtime identifier
+        var unexpectedFiles = archiveFileNames
+            .Where(filename => !matchedFiles.Contains(filename))
+            .ToArray();
+
+        // Emit errors and warnings
+        if (unexpectedFiles.Length > 0)
+        {
+            Log.LogWarning($"Found unexpected CLI files: {string.Join(", ", unexpectedFiles)}");
+        }
+
+        if (missingRids.Count > 0)
+        {
+          Log.LogError($"Missing CLI archive(s) for runtime identifier(s): {string.Join(", ", missingRids)}. Found {string.Join(", ", matchedFiles)} .");
+        }
+
+        Success = !Log.HasLoggedErrors;
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
 </Project>
