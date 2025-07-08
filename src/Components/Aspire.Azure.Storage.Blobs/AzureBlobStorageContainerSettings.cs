@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using System.Text.RegularExpressions;
 using Aspire.Azure.Common;
 
 namespace Aspire.Azure.Storage.Blobs;
@@ -11,6 +12,9 @@ namespace Aspire.Azure.Storage.Blobs;
 /// </summary>
 public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlobsSettings, IConnectionStringSettings
 {
+    [GeneratedRegex(@"(?i)ContainerName\s*=\s*([^;]+);?", RegexOptions.IgnoreCase)]
+    private static partial Regex ContainerNameRegex();
+
     /// <summary>
     ///  Gets or sets the name of the blob container.
     /// </summary>
@@ -27,14 +31,10 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
 
         if (builder.TryGetValue("ContainerName", out var containerName))
         {
-            var stableBuilder = new StableConnectionStringBuilder(connectionString);
-
             BlobContainerName = containerName?.ToString();
 
             // Remove the ContainerName property from the connection string as BlobServiceClient would fail to parse it.
-            stableBuilder.Remove("ContainerName");
-
-            connectionString = stableBuilder.ConnectionString;
+            connectionString = ContainerNameRegex().Replace(connectionString, "");
 
             // NB: we can't remove ContainerName by using the DbConnectionStringBuilder as it would escape the AccountKey value
             // when the connection string is built and BlobServiceClient doesn't support escape sequences. 

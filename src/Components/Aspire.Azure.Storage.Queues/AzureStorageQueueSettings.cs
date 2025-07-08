@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using System.Text.RegularExpressions;
 using Aspire.Azure.Common;
 
 namespace Aspire.Azure.Storage.Queues;
@@ -11,6 +12,9 @@ namespace Aspire.Azure.Storage.Queues;
 /// </summary>
 public sealed partial class AzureStorageQueueSettings : AzureStorageQueuesSettings, IConnectionStringSettings
 {
+    [GeneratedRegex(@"(?i)QueueName\s*=\s*([^;]+);?", RegexOptions.IgnoreCase)]
+    private static partial Regex QueueNameRegex();
+
     /// <summary>
     ///  Gets or sets the name of the blob container.
     /// </summary>
@@ -27,14 +31,13 @@ public sealed partial class AzureStorageQueueSettings : AzureStorageQueuesSettin
 
         if (builder.TryGetValue("QueueName", out var queueName))
         {
-            var stableBuilder = new StableConnectionStringBuilder(connectionString);
-
             QueueName = queueName?.ToString();
 
             // Remove the QueueName property from the connection string as QueueServiceClient would fail to parse it.
-            stableBuilder.Remove("QueueName");
+            connectionString = QueueNameRegex().Replace(connectionString, "");
 
-            connectionString = stableBuilder.ConnectionString;
+            // NB: we can't remove QueueName by using the DbConnectionStringBuilder as it would escape the AccountKey value
+            // when the connection string is built and QueueServiceClient doesn't support escape sequences. 
         }
 
         // Connection string built from a URI? E.g., Endpoint=https://{account_name}.queue.core.windows.net;QueueName=...;
