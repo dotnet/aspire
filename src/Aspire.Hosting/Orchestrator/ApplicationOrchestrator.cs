@@ -222,6 +222,11 @@ internal sealed class ApplicationOrchestrator
                         url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{address}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
                         urls.Add(url);
                     }
+                    else if (endpoint.TargetHost.Length > 10 && endpoint.TargetHost.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+                    {
+                        url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
+                        urls.Add(url);
+                    }
                 }
             }
 
