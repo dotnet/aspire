@@ -124,10 +124,11 @@ public sealed class SpanWaterfallViewModel
     public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, List<OtlpLogEntry> logs, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
+        var groupedLogs = logs.GroupBy(l => l.SpanId).ToDictionary(l => l.Key, g => g.ToList());
 
         TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            var spanLogs = logs.Where(l => l.SpanId == span.SpanId).ToList();
+            groupedLogs.TryGetValue(span.SpanId, out var spanLogs);
             var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, spanLogs);
             orderedSpans.Add(viewModel);
 
@@ -138,7 +139,7 @@ public sealed class SpanWaterfallViewModel
 
         return orderedSpans;
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, List<OtlpLogEntry> spanLogs)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, List<OtlpLogEntry>? spanLogs)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -157,15 +158,18 @@ public sealed class SpanWaterfallViewModel
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
             var spanLogVms = new List<SpanLogEntry>();
-            foreach (var log in spanLogs)
+            if (spanLogs != null)
             {
-                var logRelativeStart = log.TimeStamp - traceStart;
-
-                spanLogVms.Add(new SpanLogEntry
+                foreach (var log in spanLogs)
                 {
-                    LogEntry = log,
-                    LeftOffset = logRelativeStart.TotalMilliseconds / rootDuration * 100
-                });
+                    var logRelativeStart = log.TimeStamp - traceStart;
+
+                    spanLogVms.Add(new SpanLogEntry
+                    {
+                        LogEntry = log,
+                        LeftOffset = logRelativeStart.TotalMilliseconds / rootDuration * 100
+                    });
+                }
             }
 
             var viewModel = new SpanWaterfallViewModel

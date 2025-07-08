@@ -241,15 +241,15 @@
                                                             </div>
                                                             <table class="log-tooltip-table">
                                                                 <tr>
-                                                                    <td>Level</td>
+                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]</td>
                                                                     <td>@item.LogEntry.Severity</td>
                                                                 </tr>
                                                                 <tr>
-                                                                    <td>Timestamp</td>
+                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]</td>
                                                                     <td>@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, item.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)</td>
                                                                 </tr>
                                                                 <tr>
-                                                                    <td>Message</td>
+                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
                                                                     <td>@OtlpHelpers.TruncateString(item.LogEntry.Message, maxLength: 200)</td>
                                                                 </tr>
                                                             </table>
