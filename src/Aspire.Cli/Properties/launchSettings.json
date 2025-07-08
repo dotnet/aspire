@@ -30,5 +30,62 @@
       "environmentVariables": {
       }
     },
+    "publishers": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "publish",
+      "workingDirectory": "../../playground/publishers/Publishers.AppHost",
+      "environmentVariables": {
+        "Deployment:Target": "publish-test"
+      }
+    },
+    "run-testapphost": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-add-migration": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api --postgres -- dotnet ef migrations add AddVersion --project ../DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-database-update": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet ef database update",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-dotnet-listsdks": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- dotnet --list-sdks",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-ping-googlecom": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- ping google.com",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "exec-non-zero-exit-code": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- cmd /c \"exit 99\"",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    }
   }
 }

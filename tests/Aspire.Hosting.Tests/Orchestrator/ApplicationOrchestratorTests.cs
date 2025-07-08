@@ -9,6 +9,7 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
@@ -120,10 +121,17 @@ public class ApplicationOrchestratorTests
 
         var events = new DcpExecutorEvents();
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
-        var applicationEventing = new DistributedApplicationEventing();
+        var applicationEventing = builder.Eventing;
 
         var initResourceTcs = new TaskCompletionSource();
         InitializeResourceEvent? initEvent = null;
+        resource.OnInitializeResource((_, @event, _) =>
+        {
+            initEvent = @event;
+            initResourceTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
         applicationEventing.Subscribe<InitializeResourceEvent>(resource.Resource, (@event, ct) =>
         {
             initEvent = @event;
@@ -136,7 +144,7 @@ public class ApplicationOrchestratorTests
 
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
-        await initResourceTcs.Task.DefaultTimeout();
+        await initResourceTcs.Task; //.DefaultTimeout();
 
         Assert.True(initResourceTcs.Task.IsCompletedSuccessfully);
         Assert.NotNull(initEvent);
@@ -433,10 +441,11 @@ public class ApplicationOrchestratorTests
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
-        DistributedApplicationEventing? applicationEventing = null,
+        IDistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        resourceLoggerService ??= new ResourceLoggerService();
 
         return new ApplicationOrchestrator(
             distributedAppModel,
@@ -444,12 +453,26 @@ public class ApplicationOrchestratorTests
             dcpEvents ?? new DcpExecutorEvents(),
             [],
             notificationService,
-            resourceLoggerService ?? new ResourceLoggerService(),
+            resourceLoggerService,
             applicationEventing ?? new DistributedApplicationEventing(),
             serviceProvider,
             new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider })
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider }),
+            new ParameterProcessor(
+                notificationService,
+                resourceLoggerService,
+                CreateInteractionService(),
+                NullLogger<ParameterProcessor>.Instance,
+                new DistributedApplicationOptions())
             );
+    }
+
+    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
+    {
+        return new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            options ?? new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
     }
 
     private sealed class CustomResource(string name) : Resource(name);

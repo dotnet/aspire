@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import forge from 'node-forge';
 
 export function generateSelfSignedCert(commonName: string = 'localhost') {
@@ -14,10 +15,26 @@ export function generateSelfSignedCert(commonName: string = 'localhost') {
   cert.setSubject(attrs);
   cert.setIssuer(attrs);
 
+  // Add SAN extension for localhost
+  cert.setExtensions([
+    {
+      name: 'subjectAltName',
+      altNames: [
+        { type: 2, value: 'localhost' }, // DNS
+        { type: 7, ip: '127.0.0.1' }    // IP
+      ]
+    }
+  ]);
+
   cert.sign(keys.privateKey);
 
   return {
     key: pki.privateKeyToPem(keys.privateKey),
     cert: pki.certificateToPem(cert)
   };
+}
+
+export function generateToken(): string {
+    const key = randomBytes(16);
+    return key.toString('base64');
 }
