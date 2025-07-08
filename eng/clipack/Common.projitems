@@ -50,14 +50,8 @@
         RemoveProperties="OutputPath;TargetFramework" />
 
     <PropertyGroup>
-      <_ShouldCodeSignOnMacOS Condition="$([System.OperatingSystem]::IsMacOS()) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real' and '$(PublishNativeAot)' == 'true'" />
       <_OutputBinaryPath>$(OutputPath)/aspire</_OutputBinaryPath>
     </PropertyGroup>
-
-    <!-- Codesign on macos -->
-    <Message Text="Codesigning $(_OutputBinaryPath) .." Importance="High" Condition="'$(_ShouldCodeSignOnMacOS)' == 'true'" />
-    <!-- '-o runtime' is to enable hardened runtime -->
-    <Exec Command="codesign -s - -o runtime -f $(_OutputBinaryPath)" Condition="'$(_ShouldCodeSignOnMacOS)' == 'true'" />
 
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
     <Delete Files="$(_OutputBinaryPath).xml" Condition="Exists('$(_OutputBinaryPath).xml')" />
