@@ -56,7 +56,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         var options = new ContainerBuildOptions
         {
-            ImageFormat = ContainerImageFormat.OciTar,
+            ImageFormat = ContainerImageFormat.Oci,
             OutputPath = "/tmp/test-output",
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
@@ -71,28 +71,26 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     {
         var options = new ContainerBuildOptions
         {
-            ImageFormat = ContainerImageFormat.DockerTar,
+            ImageFormat = ContainerImageFormat.Oci,
             OutputPath = "/custom/path",
             TargetPlatform = ContainerTargetPlatform.LinuxArm64
         };
 
-        Assert.Equal(ContainerImageFormat.DockerTar, options.ImageFormat);
+        Assert.Equal(ContainerImageFormat.Oci, options.ImageFormat);
         Assert.Equal("/custom/path", options.OutputPath);
         Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
 
     [Theory]
     [InlineData(ContainerImageFormat.Docker, "Docker")]
-    [InlineData(ContainerImageFormat.OciTar, "OciTar")]
-    [InlineData(ContainerImageFormat.DockerTar, "DockerTar")]
+    [InlineData(ContainerImageFormat.Oci, "OCI")]
     public void ContainerImageFormat_EnumValues_AreCorrect(ContainerImageFormat format, string expectedValue)
     {
         // This test ensures that the enum values match what's expected for MSBuild properties
         var formatString = format switch
         {
             ContainerImageFormat.Docker => "Docker",
-            ContainerImageFormat.OciTar => "OciTar",
-            ContainerImageFormat.DockerTar => "DockerTar",
+            ContainerImageFormat.Oci => "OCI",
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
 

@@ -24,18 +24,25 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         // Add output format support if specified
         if (options?.ImageFormat.HasValue == true || !string.IsNullOrEmpty(options?.OutputPath))
         {
-            var outputType = options.ImageFormat switch
+            // Validate that OutputPath is provided when ImageFormat is Oci
+            if (options?.ImageFormat == ContainerImageFormat.Oci && string.IsNullOrEmpty(options?.OutputPath))
             {
-                ContainerImageFormat.OciTar => "type=oci",
-                ContainerImageFormat.DockerTar => "type=docker",
-                ContainerImageFormat.Docker => "type=docker",
+                throw new ArgumentException("OutputPath must be provided when ImageFormat is Oci.", nameof(options));
+            }
+
+            var outputType = options?.ImageFormat switch
+            {
+                ContainerImageFormat.Oci => "type=oci",
+                ContainerImageFormat.Docker => "type=docker,compression=gzip",
                 null => "type=docker",
                 _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
             };
 
             if (!string.IsNullOrEmpty(options?.OutputPath))
             {
-                outputType += $",dest=\"{options.OutputPath}\"";
+                // Extract resource name from imageName for the file name
+                var resourceName = imageName.Split('/').Last().Split(':').First();
+                outputType += $",dest=\"{options.OutputPath}/{resourceName}.tar\"";
             }
 
             arguments += $" --output \"{outputType}\"";
@@ -48,11 +55,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("docker build (stdout): {Output}", output);
+                logger.LogInformation("docker builds (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("docker build (stderr): {Error}", error);
+                logger.LogInformation("docker builds (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -69,11 +76,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
             if (processResult.ExitCode != 0)
             {
-                logger.LogError("Docker build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                logger.LogError("Docker builds for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
 
-            logger.LogInformation("Docker build for {ImageName} succeeded.", imageName);
+            logger.LogInformation("Docker builds for {ImageName} succeeded.", imageName);
             return processResult.ExitCode;
         }
     }

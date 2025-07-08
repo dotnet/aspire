@@ -26,33 +26,33 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         {
             var format = options.ImageFormat.Value switch
             {
-                ContainerImageFormat.OciTar => "oci",
-                ContainerImageFormat.DockerTar => "docker-archive",
+                ContainerImageFormat.Oci => "oci",
                 ContainerImageFormat.Docker => "docker",
                 _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
             };
             arguments += $" --format \"{format}\"";
         }
 
-        arguments += $" \"{contextPath}\"";
-
-        // Note: Podman doesn't support --output like Docker buildx, so OutputPath is not directly supported
-        // For Podman, users would need to save/export the image separately after building
+        // Add output support if specified
         if (!string.IsNullOrEmpty(options?.OutputPath))
         {
-            logger.LogWarning("OutputPath is not directly supported by Podman build. The image will be built and tagged, but not exported to the specified path.");
+            // Extract resource name from imageName for the file name
+            var resourceName = imageName.Split('/').Last().Split(':').First();
+            arguments += $" --output \"{options.OutputPath}/{resourceName}.tar\"";
         }
+
+        arguments += $" \"{contextPath}\"";
 
         var spec = new ProcessSpec("podman")
         {
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("podman build (stdout): {Output}", output);
+                logger.LogInformation("podman builds (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("podman build (stderr): {Error}", error);
+                logger.LogInformation("podman builds (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -69,11 +69,11 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
 
             if (processResult.ExitCode != 0)
             {
-                logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                logger.LogError("Podman builds for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
 
-            logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
+            logger.LogInformation("Podman builds for {ImageName} succeeded.", imageName);
             return processResult.ExitCode;
         }
     }
