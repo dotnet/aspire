@@ -95,7 +95,7 @@ internal static class KubernetesServiceResourceExtensions
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
-        var (scheme, host, containerPort, servicePort, _, _, _) = mapping;
+        var (scheme, host, containerPort, servicePort, _, _) = mapping;
 
         return property switch
         {

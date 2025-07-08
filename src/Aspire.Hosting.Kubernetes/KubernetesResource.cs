@@ -16,7 +16,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Host, int? ContainerPort, int? ServicePort, string Name, string Transport, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Host, int? ContainerPort, int? ServicePort, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
@@ -202,7 +202,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             var servicePort = resolvePort(endpoint);
 
             EndpointMappings.Add(endpoint.Name, new(
-                endpoint.UriScheme, resource.Name.ToServiceName(), containerPort, servicePort, endpoint.Name, endpoint.Transport));
+                endpoint.UriScheme, resource.Name.ToServiceName(), containerPort, servicePort, endpoint.Name));
         }
     }
 
