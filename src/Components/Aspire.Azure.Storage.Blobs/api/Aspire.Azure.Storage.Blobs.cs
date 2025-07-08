@@ -31,18 +31,12 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireBlobStorageExtensions
     {
-        [System.Obsolete("Use AddAzureBlobServiceClient instead. This method will be removed in a future version.")]
         public static void AddAzureBlobClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobServiceClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
 
         public static void AddAzureBlobContainerClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Blobs.AzureBlobStorageContainerSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobContainerClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
 
-        public static void AddAzureBlobServiceClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobServiceClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
-
-        [System.Obsolete("Use AddKeyedAzureBlobServiceClient instead. This method will be removed in a future version.")]
         public static void AddKeyedAzureBlobClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobServiceClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
 
         public static void AddKeyedAzureBlobContainerClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Blobs.AzureBlobStorageContainerSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobContainerClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
-
-        public static void AddKeyedAzureBlobServiceClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Blobs.BlobServiceClient, global::Azure.Storage.Blobs.BlobClientOptions>>? configureClientBuilder = null) { }
     }
 }
