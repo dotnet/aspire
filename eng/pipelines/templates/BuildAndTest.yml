@@ -18,6 +18,7 @@ parameters:
     type: string
   - name: targetRids
     type: object
+    default: ''
   - name: runHelixTests
     type: boolean
     default: false
