@@ -80,14 +80,11 @@ public static class AzureStorageExtensions
                 blobService.Parent = storageAccount;
                 infrastructure.Add(blobService);
 
-                if (azureResource.BlobContainers.Count > 0)
+                foreach (var blobContainer in azureResource.BlobContainers)
                 {
-                    foreach (var blobContainer in azureResource.BlobContainers)
-                    {
-                        var cdkBlobContainer = blobContainer.ToProvisioningEntity();
-                        cdkBlobContainer.Parent = blobService;
-                        infrastructure.Add(cdkBlobContainer);
-                    }
+                    var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                    cdkBlobContainer.Parent = blobService;
+                    infrastructure.Add(cdkBlobContainer);
                 }
             }
 
@@ -97,14 +94,11 @@ public static class AzureStorageExtensions
                 queueService.Parent = storageAccount;
                 infrastructure.Add(queueService);
 
-                if (azureResource.Queues.Count > 0)
+                foreach (var queue in azureResource.Queues)
                 {
-                    foreach (var queue in azureResource.Queues)
-                    {
-                        var cdkQueue = queue.ToProvisioningEntity();
-                        cdkQueue.Parent = queueService;
-                        infrastructure.Add(cdkQueue);
-                    }
+                    var cdkQueue = queue.ToProvisioningEntity();
+                    cdkQueue.Parent = queueService;
+                    infrastructure.Add(cdkQueue);
                 }
             }
 
