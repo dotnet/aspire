@@ -1,11 +1,14 @@
-<Project>
+<Project TreatAsLocalProperty="TargetRids">
   <PropertyGroup>
     <_AspireOnlyBuild Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">true</_AspireOnlyBuild>
 
     <BuildNative>true</BuildNative>
 
     <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
-    <TargetRid Condition="'$(TargetRid)' == ''">$(BuildRid)</TargetRid>
+
+    <!-- this property is meant only for CI use. Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
+         It is helpful to allow building the non-aot cli builds on a single CI job -->
+    <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(BuildNativeOnly)' != 'true'">
@@ -13,7 +16,8 @@
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
 
-    <ProjectToBuild Condition="'$(BuildNative)' == 'true'" Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(TargetRid).csproj" />
+    <_TargetRidItem Include="$(TargetRids.Split(':'))" />
+    <ProjectToBuild Condition="'$(BuildNative)' == 'true'" Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
 
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
 
@@ -27,7 +31,8 @@
   <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(BuildNativeOnly)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\Aspire.Cli.$(TargetRid).csproj" />
+    <_TargetRidItem Include="$(TargetRids.Split(':'))" />
+    <ProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->

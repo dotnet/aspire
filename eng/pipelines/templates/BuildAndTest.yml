@@ -16,6 +16,8 @@ parameters:
     type: string
   - name: dotnetScript
     type: string
+  - name: targetRids
+    type: object
   - name: runHelixTests
     type: boolean
     default: false
@@ -38,6 +40,7 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
+              /p:TargetRids=${{ join(':', parameters.targetRids) }}
               /p:SkipTestProjects=true
       displayName: 🟣Build
 
