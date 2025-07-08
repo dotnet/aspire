@@ -28,15 +28,6 @@ spec:
             - name: "https"
               protocol: "TCP"
               containerPort: 8081
-          env:
-            - name: "Kestrel__Endpoints__http__Url"
-              value: "http://+:8080"
-            - name: "Kestrel__Endpoints__http__Protocols"
-              value: "Http1"
-            - name: "Kestrel__Endpoints__https__Url"
-              value: "https://+:8081"
-            - name: "Kestrel__Endpoints__https__Protocols"
-              value: "Http1AndHttp2"
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
