@@ -12,7 +12,6 @@ public class MSBuildTests
     /// Tests that when an AppHost has a ProjectReference to a library project, a warning is emitted.
     /// </summary>
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8467")]
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
@@ -90,11 +89,12 @@ builder.Build().Run();
 </Project>
 """);
 
+        var binlogPath = Path.Join(repoRoot, "artifacts", "log", "Debug", $"{nameof(EnsureWarningsAreEmittedWhenProjectReferencingLibraries)}.binlog");
         var output = new StringBuilder();
         var outputDone = new ManualResetEvent(false);
         using var process = new Process();
         // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers")
+        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers -bl:{binlogPath}")
         {
             RedirectStandardOutput = true,
             UseShellExecute = false,
@@ -200,11 +200,12 @@ builder.Build().Run();
 </Project>
 """);
 
+        var binlogPath = Path.Join(repoRoot, "artifacts", "log", "Debug", $"{nameof(ValidateMetadataSources)}.binlog");
         var output = new StringBuilder();
         var outputDone = new ManualResetEvent(false);
         using var process = new Process();
         // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers")
+        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers -bl:{binlogPath}")
         {
             RedirectStandardOutput = true,
             UseShellExecute = false,
