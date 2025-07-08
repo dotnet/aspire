@@ -14,6 +14,8 @@ param(
 # Global constants
 $Script:UserAgent = "get-aspire-cli.ps1/1.0"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
+$Script:ArchiveDownloadTimeoutSec = 600
+$Script:ChecksumDownloadTimeoutSec = 120
 
 # Show help if requested
 if ($Help) {
@@ -293,7 +295,7 @@ function Invoke-FileDownload {
         # Validate content type via HEAD request if requested
         if ($ValidateContentType) {
             Say-Verbose "Validating content type for $Uri"
-            $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method 'Head' -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
+            $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method 'Head' -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
             $contentType = Get-ContentTypeFromHeaders -Headers $headResponse.Headers
 
             if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
@@ -437,10 +439,10 @@ function Main {
 
         try {
             # Download the Aspire CLI archive
-            Invoke-FileDownload -Uri $url -OutputPath $filename -ValidateContentType -UseTempFile
+            Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename -ValidateContentType -UseTempFile
 
             # Download and test the checksum
-            Invoke-FileDownload -Uri $checksumUrl -OutputPath $checksumFilename -ValidateContentType -UseTempFile
+            Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename -ValidateContentType -UseTempFile
             Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
 
             Say-Verbose "Successfully downloaded and validated: $filename"
