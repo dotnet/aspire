@@ -35,7 +35,7 @@ PARAMETERS:
 EXAMPLES:
     .\get-aspire-cli.ps1
     .\get-aspire-cli.ps1 -OutputPath "C:\temp"
-    .\get-aspire-cli.ps1 -Channel "8.0" -BuildQuality "release"
+    .\get-aspire-cli.ps1 -Channel "9.0" -BuildQuality "release"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -Help
