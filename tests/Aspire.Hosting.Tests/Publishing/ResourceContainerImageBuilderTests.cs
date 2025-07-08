@@ -80,20 +80,4 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Equal("/custom/path", options.OutputPath);
         Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
-
-    [Theory]
-    [InlineData(ContainerImageFormat.Docker, "Docker")]
-    [InlineData(ContainerImageFormat.Oci, "OCI")]
-    public void ContainerImageFormat_EnumValues_AreCorrect(ContainerImageFormat format, string expectedValue)
-    {
-        // This test ensures that the enum values match what's expected for MSBuild properties
-        var formatString = format switch
-        {
-            ContainerImageFormat.Docker => "Docker",
-            ContainerImageFormat.Oci => "OCI",
-            _ => throw new ArgumentOutOfRangeException(nameof(format))
-        };
-
-        Assert.Equal(expectedValue, formatString);
-    }
 }

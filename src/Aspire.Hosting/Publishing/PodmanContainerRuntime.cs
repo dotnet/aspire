@@ -48,11 +48,11 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("podman builds (stdout): {Output}", output);
+                logger.LogInformation("podman build (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("podman builds (stderr): {Error}", error);
+                logger.LogInformation("podman build (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -69,11 +69,11 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
 
             if (processResult.ExitCode != 0)
             {
-                logger.LogError("Podman builds for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
 
-            logger.LogInformation("Podman builds for {ImageName} succeeded.", imageName);
+            logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
             return processResult.ExitCode;
         }
     }
