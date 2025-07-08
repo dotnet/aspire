@@ -22,9 +22,11 @@
 </FluentDialogHeader>
 
 <FluentDialogBody Class="interaction-input-dialog">
-    @if (!string.IsNullOrEmpty(Content.Interaction.Message))
+    @if (!string.IsNullOrEmpty(Content.Message))
     {
-        <p>@Content.Interaction.Message</p>
+        <div style="margin-bottom: 1rem;">
+            @((MarkupString)Content.Message)
+        </div>
     }
 
     <EditForm EditContext="@_editContext" OnValidSubmit="@SubmitAsync">

@@ -152,7 +152,7 @@ public static class AzureAIFoundryExtensions
                 }
                 catch (Exception e)
                 {
-                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started. Error: {Error}", e.Message);
+                    logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started (Error: {Error}).", e.Message);
                 }
 
                 if (manager.IsServiceRunning)
@@ -184,7 +184,8 @@ public static class AzureAIFoundryExtensions
     {
         ArgumentNullException.ThrowIfNull(deployment, nameof(deployment));
 
-        builder.OnResourceReady((foundryResource, @event, ct) =>
+        var foundryResource = builder.Resource.Parent;
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(foundryResource, (@event, ct) =>
         {
             var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = @event.Services.GetRequiredService<ResourceLoggerService>();
@@ -313,12 +314,16 @@ public static class AzureAIFoundryExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-        var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
-            (BicepExpression)cogServicesAccount.Properties.Endpoints!,
-            "AI Foundry API");
         infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
         {
-            Value = inferenceEndpoint
+            Value = (BicepValue<string>)new IndexExpression(
+                (BicepExpression)cogServicesAccount.Properties.Endpoints!,
+                "AI Foundry API")
+        });
+
+        infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
+        {
+            Value = cogServicesAccount.Properties.Endpoint
         });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;

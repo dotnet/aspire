@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
@@ -44,22 +43,25 @@ internal class ExtensionInteractionService : IInteractionService
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         var task = action();
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
 
         var value = await task.ConfigureAwait(false);
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
+        result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken));
+        Debug.Assert(result);
         return value;
     }
 
     public void ShowStatus(string statusText, Action action)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.ShowStatus(statusText, action);
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken)));
+        result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.ShowStatusAsync(null, _cancellationToken));
+        Debug.Assert(result);
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null,
-        bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -70,11 +72,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -102,12 +99,7 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.ConfirmAsync(promptText.RemoveSpectreFormatting(), defaultValue, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
-                    tcs.SetResult(result.Value);
+                    tcs.SetResult(result);
                 }
                 catch (Exception ex)
                 {
@@ -136,11 +128,6 @@ internal class ExtensionInteractionService : IInteractionService
                 try
                 {
                     var result = await _backchannel.PromptForSelectionAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
-                    if (result is null)
-                    {
-                        throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
-                    }
-
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -160,61 +147,71 @@ internal class ExtensionInteractionService : IInteractionService
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken));
+        Debug.Assert(result);
         return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
 
     public void DisplayError(string errorMessage)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayErrorAsync(errorMessage.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayErrorAsync(errorMessage.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
     public void DisplayMessage(string emoji, string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayMessageAsync(emoji, message.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayMessageAsync(emoji, message.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayMessage(emoji, message);
     }
 
     public void DisplaySuccess(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySuccessAsync(message.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySuccessAsync(message.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplaySuccess(message);
     }
 
     public void DisplaySubtleMessage(string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplaySubtleMessage(message);
     }
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayDashboardUrlsAsync(dashboardUrls, _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayDashboardUrlsAsync(dashboardUrls, _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayDashboardUrls(dashboardUrls);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => new DisplayLineState(line.Stream.RemoveSpectreFormatting(), line.Line.RemoveSpectreFormatting())), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayLinesAsync(lines.Select(line => new DisplayLineState(line.Stream.RemoveSpectreFormatting(), line.Line.RemoveSpectreFormatting())), _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayLines(lines);
     }
 
     public void DisplayCancellationMessage()
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayCancellationMessageAsync(_cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayCancellationMessageAsync(_cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayEmptyLineAsync(_cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayEmptyLineAsync(_cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayEmptyLine();
     }
 
     public void OpenNewProject(string projectPath)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenProjectAsync(projectPath, _cancellationToken));
+        Debug.Assert(result);
     }
 
     public void DisplayPlainText(string text)
@@ -225,5 +222,15 @@ internal class ExtensionInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
+    }
+
+    public void LogMessage(LogLevel logLevel, string message)
+    {
+        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
+    }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
     }
 }

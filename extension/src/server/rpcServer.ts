@@ -2,13 +2,12 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError, rpcServerListening, rpcServerError } from '../loc/strings';
-import * as crypto from 'crypto';
+import { rpcServerAddressError, rpcServerError } from '../loc/strings';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
-import { IOutputChannelWriter } from '../utils/vsc';
 import * as tls from 'tls';
-import { generateSelfSignedCert } from './cert-util';
+import { generateSelfSignedCert, generateToken } from '../utils/security';
+import { extensionLogOutputChannel } from '../utils/logging';
 
 export type RpcServerInformation = {
     address: string;
@@ -18,7 +17,7 @@ export type RpcServerInformation = {
     cert: string;
 };
 
-export function setupRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
+export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerInformation> {
     const token = generateToken();
     const { key, cert } = generateSelfSignedCert();
 
@@ -38,6 +37,7 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
 
     return new Promise<RpcServerInformation>((resolve, reject) => {
         const rpcServer = tls.createServer({ key, cert }, (socket) => {
+            extensionLogOutputChannel.info('Client connected to RPC server');
             const connection = createMessageConnection(
                 new StreamMessageReader(socket),
                 new StreamMessageWriter(socket)
@@ -56,11 +56,18 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
             connection.listen();
         });
 
+        extensionLogOutputChannel.info(`Setting up RPC server with token: ${token}`);
         rpcServer.listen(0, () => {
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
-                const fullAddress = (addressInfo.address === "::" ? "localhost" : `${addressInfo.address}`) + ":" + addressInfo.port;
-                outputChannelWriter.appendLine(rpcServerListening(fullAddress));
+                const fullAddress = `localhost:${addressInfo.port}`;
+                extensionLogOutputChannel.info(`RPC server listening on ${fullAddress}`);
+
+                function disposeRpcServer(rpcServer: net.Server) {
+                    extensionLogOutputChannel.info(`Disposing RPC server`);
+                    rpcServer.close();
+                }
+
                 resolve({
                     token: token,
                     server: rpcServer,
@@ -70,24 +77,15 @@ export function setupRpcServer(interactionService: (connection: MessageConnectio
                 });
             }
             else {
-                outputChannelWriter.appendLine(rpcServerAddressError);
+                extensionLogOutputChannel.error(rpcServerAddressError);
                 vscode.window.showErrorMessage(rpcServerAddressError);
                 reject(new Error(rpcServerAddressError));
             }
         });
-        
+
         rpcServer.on('error', (err) => {
-            outputChannelWriter.appendLine(rpcServerError(err));
+            extensionLogOutputChannel.error(rpcServerError(err));
             reject(err);
         });
     });
-}
-
-function disposeRpcServer(rpcServer: net.Server) {
-    rpcServer.close();
-}
-
-function generateToken(): string {
-    const key = crypto.randomBytes(16);
-    return key.toString('base64');
 }

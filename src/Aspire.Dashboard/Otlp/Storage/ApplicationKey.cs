@@ -7,6 +7,13 @@ public readonly record struct ApplicationKey(string Name, string? InstanceId) : 
 {
     public static ApplicationKey Create(string name, string instanceId)
     {
+        if (string.Equals(name, instanceId, StringComparisons.ResourceName))
+        {
+            // If the name and instanceId are the same, we can just return the name.
+            // This is useful for resources that do not have an instanceId.
+            return new ApplicationKey(Name: name, InstanceId: null);
+        }
+
         // Check if instanceId combines name, e.g.
         // name = api
         // instanceId = api-123

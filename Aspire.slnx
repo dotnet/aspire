@@ -168,6 +168,10 @@
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.AppHost/GitHubModelsEndToEnd.AppHost.csproj" />
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj" />
   </Folder>
+  <Folder Name="/playground/ExternalServices/">
+    <Project Path="playground/ExternalServices/ExternalServices.AppHost/ExternalServices.AppHost.csproj" />
+    <Project Path="playground/ExternalServices/WebFrontEnd/WebFrontEnd.csproj" />
+  </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
   </Folder>

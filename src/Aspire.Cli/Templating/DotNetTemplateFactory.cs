@@ -108,7 +108,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         if (useRedisCache ?? false)
         {
-            interactionService.DisplayMessage("french_fries", TemplatingStrings.UseRedisCache_UsingRedisCache);
+            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseRedisCache_UsingRedisCache);
             extraArgs.Add("--use-redis-cache");
         }
     }
@@ -147,7 +147,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
             }
 
-            interactionService.DisplayMessage("french_fries", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
+            interactionService.DisplayMessage("check_mark", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
 
             extraArgs.Add("--test-framework");
             extraArgs.Add(testFramework);

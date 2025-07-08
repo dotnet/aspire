@@ -25,11 +25,11 @@ public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
     ILogger logger,
-    IPublishingActivityProgressReporter progressReporter)
+    IPublishingActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityProgressReporter ProgressReporter => progressReporter;
+    private IPublishingActivityReporter ActivityReporter => activityReporter;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -75,7 +75,7 @@ public sealed class AzurePublishingContext(
             return;
         }
 
-        var step = await ProgressReporter.CreateStepAsync(
+        var step = await ActivityReporter.CreateStepAsync(
             "Publishing Azure Bicep templates",
             cancellationToken
         ).ConfigureAwait(false);
@@ -92,7 +92,7 @@ public sealed class AzurePublishingContext(
 
                     await SaveToDiskAsync(outputPath).ConfigureAwait(false);
 
-                    await writeTask.CompleteAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
+                    await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -105,7 +105,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(PublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -269,12 +269,7 @@ public sealed class AzurePublishingContext(
         };
 
         // Report the completion of the compute environment task.
-        await ProgressReporter.CompleteTaskAsync(
-            computeEnvironmentTask,
-            state,
-            message,
-            cancellationToken: cancellationToken
-        ).ConfigureAwait(false);
+        await computeEnvironmentTask.CompleteAsync(message, state, cancellationToken).ConfigureAwait(false);
 
         var outputs = new Dictionary<string, BicepOutputReference>();
 
@@ -300,8 +295,7 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
-                var task = await ProgressReporter.CreateTaskAsync(
-                    step,
+                var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default
                 )

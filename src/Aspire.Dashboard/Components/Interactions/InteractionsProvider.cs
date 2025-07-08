@@ -8,6 +8,7 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
+using Markdig;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -19,6 +20,8 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
+    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
+
     internal record InteractionMessageBarReference(int InteractionId, Message Message);
     internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog);
 
@@ -152,7 +155,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var content = new MessageBoxContent
                     {
                         Title = item.Title,
-                        MarkupMessage = new MarkupString(WebUtility.HtmlEncode(item.Message)),
+                        MarkupMessage = new MarkupString(GetMessageHtml(item)),
                     };
                     switch (messageBox.Intent)
                     {
@@ -188,6 +191,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     var vm = new InteractionsInputsDialogViewModel
                     {
                         Interaction = item,
+                        Message = GetMessageHtml(item),
                         OnSubmitCallback = async savedInteraction =>
                         {
                             var request = new WatchInteractionsRequestUpdate
@@ -266,6 +270,19 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         }
     }
 
+    private static string GetMessageHtml(WatchInteractionsResponseUpdate item)
+    {
+        if (!item.EnableMessageMarkdown)
+        {
+            return WebUtility.HtmlEncode(item.Message);
+        }
+
+        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
+        var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
+
+        return MarkdownHelpers.ToHtml(item.Message, s_markdownPipeline, suppressSurroundingParagraph: !hasNewline);
+    }
+
     private async Task WatchInteractionsAsync()
     {
         var interactions = DashboardClient.SubscribeInteractionsAsync(_cts.Token);
@@ -313,7 +330,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             message = await MessageService.ShowMessageBarAsync(options =>
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
-                                options.Body = WebUtility.HtmlEncode(item.Message);
+                                options.Body = GetMessageHtml(item);
                                 options.Intent = MapMessageIntent(messageBar.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;
