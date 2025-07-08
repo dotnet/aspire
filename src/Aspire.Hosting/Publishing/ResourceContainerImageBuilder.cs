@@ -76,17 +76,17 @@ public class ContainerBuildOptions
     /// <summary>
     /// Gets or sets the output path for the container archive.
     /// </summary>
-    public string? OutputPath { get; init; }
+    public string? OutputPath { get; set; }
 
     /// <summary>
     /// Gets or sets the container image format.
     /// </summary>
-    public ContainerImageFormat? ImageFormat { get; init; }
+    public ContainerImageFormat? ImageFormat { get; set; }
 
     /// <summary>
     /// Gets or sets the target platform for the container.
     /// </summary>
-    public ContainerTargetPlatform? TargetPlatform { get; init; }
+    public ContainerTargetPlatform? TargetPlatform { get; set; }
 }
 
 /// <summary>
@@ -226,156 +226,103 @@ internal sealed class ResourceContainerImageBuilder(
         {
             await using (publishingTask.ConfigureAwait(false))
             {
-                // This is a resource project so we'll use the .NET SDK to build the container image.
-                if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
+                var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
+                
+                if (!success)
                 {
-                    throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
+                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
+                    throw new DistributedApplicationException($"Failed to build container image.");
                 }
-
-                var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
-
-                // Add additional arguments based on options
-                if (options is not null)
+                else
                 {
-                    if (!string.IsNullOrEmpty(options.OutputPath))
-                    {
-                        arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
-                    }
-
-                    if (options.ImageFormat is not null)
-                    {
-                        var format = options.ImageFormat.Value switch
-                        {
-                            ContainerImageFormat.Docker => "Docker",
-                            ContainerImageFormat.Oci => "OCI",
-                            _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-                        };
-                        arguments += $" /p:ContainerImageFormat=\"{format}\"";
-                    }
-
-                    if (options.TargetPlatform is not null)
-                    {
-                        arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
-                    }
-                }
-
-                var spec = new ProcessSpec("dotnet")
-                {
-                    Arguments = arguments,
-                    OnOutputData = output =>
-                    {
-                        logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
-                    },
-                    OnErrorData = error =>
-                    {
-                        logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
-                    }
-                };
-
-                logger.LogInformation(
-                    "Starting .NET CLI with arguments: {Arguments}",
-                    string.Join(" ", spec.Arguments)
-                    );
-
-                var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-                await using (processDisposable)
-                {
-                    var processResult = await pendingProcessResult
-                        .WaitAsync(cancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (processResult.ExitCode != 0)
-                    {
-                        logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-
-                        await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
-                        throw new DistributedApplicationException($"Failed to build container image.");
-                    }
-                    else
-                    {
-                        await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
-
-                        logger.LogDebug(
-                            ".NET CLI completed with exit code: {ExitCode}",
-                            processResult.ExitCode);
-                    }
+                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
                 }
             }
         }
         else
         {
             // Handle case when publishingTask is null (no step provided)
-            // This is a resource project so we'll use the .NET SDK to build the container image.
-            if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
+            var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
+            
+            if (!success)
             {
-                throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
+                throw new DistributedApplicationException($"Failed to build container image.");
+            }
+        }
+    }
+
+    private async Task<bool> ExecuteDotnetPublishAsync(IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    {
+        // This is a resource project so we'll use the .NET SDK to build the container image.
+        if (!resource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
+        {
+            throw new DistributedApplicationException($"The resource '{projectMetadata}' does not have a project metadata annotation.");
+        }
+
+        var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
+
+        // Add additional arguments based on options
+        if (options is not null)
+        {
+            if (!string.IsNullOrEmpty(options.OutputPath))
+            {
+                arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
             }
 
-            var arguments = $"publish \"{projectMetadata.ProjectPath}\" --configuration Release /t:PublishContainer /p:ContainerRepository=\"{resource.Name}\"";
-
-            // Add additional arguments based on options
-            if (options is not null)
+            if (options.ImageFormat is not null)
             {
-                if (!string.IsNullOrEmpty(options.OutputPath))
+                var format = options.ImageFormat.Value switch
                 {
-                    arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
-                }
-
-                if (options.ImageFormat is not null)
-                {
-                    var format = options.ImageFormat.Value switch
-                    {
-                        ContainerImageFormat.Docker => "Docker",
-                        ContainerImageFormat.Oci => "OCI",
-                        _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
-                    };
-                    arguments += $" /p:ContainerImageFormat=\"{format}\"";
-                }
-
-                if (options.TargetPlatform.HasValue)
-                {
-                    arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
-                }
+                    ContainerImageFormat.Docker => "Docker",
+                    ContainerImageFormat.Oci => "OCI",
+                    _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+                };
+                arguments += $" /p:ContainerImageFormat=\"{format}\"";
             }
 
-            var spec = new ProcessSpec("dotnet")
+            if (options.TargetPlatform is not null)
             {
-                Arguments = arguments,
-                OnOutputData = output =>
-                {
-                    logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
-                },
-                OnErrorData = error =>
-                {
-                    logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
-                }
-            };
+                arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
+            }
+        }
 
-            logger.LogInformation(
-                "Starting .NET CLI with arguments: {Arguments}",
-                string.Join(" ", spec.Arguments)
-                );
-
-            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-            await using (processDisposable)
+        var spec = new ProcessSpec("dotnet")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
             {
-                var processResult = await pendingProcessResult
-                    .WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
+            }
+        };
 
-                if (processResult.ExitCode != 0)
-                {
-                    logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-                    throw new DistributedApplicationException($"Failed to build container image.");
-                }
-                else
-                {
-                    logger.LogDebug(
-                        ".NET CLI completed with exit code: {ExitCode}",
-                        processResult.ExitCode);
-                }
+        logger.LogInformation(
+            "Starting .NET CLI with arguments: {Arguments}",
+            string.Join(" ", spec.Arguments)
+            );
+
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
+                return false;
+            }
+            else
+            {
+                logger.LogDebug(
+                    ".NET CLI completed with exit code: {ExitCode}",
+                    processResult.ExitCode);
+                return true;
             }
         }
     }
@@ -451,7 +398,7 @@ internal sealed class ResourceContainerImageBuilder(
 /// Extension methods for <see cref="ContainerTargetPlatform"/>.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class ContainerTargetPlatformExtensions
+internal static class ContainerTargetPlatformExtensions
 {
     /// <summary>
     /// Converts the target platform to the format used by container runtimes (Docker/Podman).
