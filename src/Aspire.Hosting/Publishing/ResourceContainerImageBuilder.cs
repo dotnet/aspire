@@ -237,7 +237,7 @@ internal sealed class ResourceContainerImageBuilder(
                         arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
                     }
 
-                    if (options.ImageFormat.HasValue)
+                    if (options.ImageFormat is not null)
                     {
                         var format = options.ImageFormat.Value switch
                         {
@@ -248,7 +248,7 @@ internal sealed class ResourceContainerImageBuilder(
                         arguments += $" /p:ContainerImageFormat=\"{format}\"";
                     }
 
-                    if (options.TargetPlatform.HasValue)
+                    if (options.TargetPlatform is not null)
                     {
                         arguments += $" /p:ContainerRuntimeIdentifier=\"{options.TargetPlatform.Value.ToMSBuildRuntimeIdentifierString()}\"";
                     }
@@ -317,7 +317,7 @@ internal sealed class ResourceContainerImageBuilder(
                     arguments += $" /p:ContainerArchiveOutputPath=\"{options.OutputPath}\"";
                 }
 
-                if (options.ImageFormat.HasValue)
+                if (options.ImageFormat is not null)
                 {
                     var format = options.ImageFormat.Value switch
                     {
