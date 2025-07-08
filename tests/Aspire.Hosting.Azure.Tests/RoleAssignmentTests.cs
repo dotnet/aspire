@@ -54,7 +54,7 @@ public class RoleAssignmentTests()
                 var openai = builder.AddAzureOpenAI("openai");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
-                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
+                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser, CognitiveServicesBuiltInRole.CognitiveServicesFaceRecognizer);
             });
     }
 
