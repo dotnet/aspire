@@ -12,7 +12,7 @@ readonly CHECKSUM_DOWNLOAD_TIMEOUT_SEC=120
 
 # Default values
 OUTPUT_PATH=""
-CHANNEL="9.0"
+VERSION="9.0"
 BUILD_QUALITY="daily"
 OS=""
 ARCH=""
@@ -26,14 +26,14 @@ show_help() {
 Aspire CLI Download Script
 
 DESCRIPTION:
-    Downloads and unpacks the Aspire CLI for the current platform from the specified channel and build quality.
+    Downloads and unpacks the Aspire CLI for the current platform from the specified version and build quality.
 
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
 OPTIONS:
     -o, --output-path PATH      Directory to unpack the CLI (default: aspire-cli directory under current directory)
-    -c, --channel CHANNEL       Channel of the Aspire CLI to download (default: 9.0)
+    --version VERSION           Version of the Aspire CLI to download (default: 9.0)
     -q, --quality QUALITY       Build quality to download (default: daily)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
@@ -44,7 +44,7 @@ OPTIONS:
 EXAMPLES:
     ./get-aspire-cli.sh
     ./get-aspire-cli.sh --output-path "/tmp"
-    ./get-aspire-cli.sh --channel "9.0" --quality "release"
+    ./get-aspire-cli.sh --version "9.0" --quality "release"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --keep-archive
     ./get-aspire-cli.sh --help
@@ -60,8 +60,8 @@ parse_args() {
                 OUTPUT_PATH="$2"
                 shift 2
                 ;;
-            -c|--channel)
-                CHANNEL="$2"
+            --version)
+                VERSION="$2"
                 shift 2
                 ;;
             -q|--quality)
@@ -419,7 +419,7 @@ main() {
     fi
 
     # Construct the URLs
-    url="https://aka.ms/dotnet/${CHANNEL}/${BUILD_QUALITY}/aspire-cli-${runtimeIdentifier}.${extension}"
+    url="https://aka.ms/dotnet/${VERSION}/${BUILD_QUALITY}/aspire-cli-${runtimeIdentifier}.${extension}"
     checksum_url="${url}.sha512"
 
     filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}"

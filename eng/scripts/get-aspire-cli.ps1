@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
     [string]$OutputPath = "",
-    [string]$Channel = "9.0",
+    [string]$Version = "9.0",
     [string]$BuildQuality = "daily",
     [string]$OS = "",
     [string]$Architecture = "",
@@ -27,7 +27,7 @@ DESCRIPTION:
 
 PARAMETERS:
     -OutputPath <string>        Directory to unpack the CLI (default: aspire-cli directory under current directory)
-    -Channel <string>           Channel of the Aspire CLI to download (default: 9.0)
+    -Version <string>           Version of the Aspire CLI to download (default: 9.0)
     -BuildQuality <string>      Build quality to download (default: daily)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
@@ -37,7 +37,7 @@ PARAMETERS:
 EXAMPLES:
     .\get-aspire-cli.ps1
     .\get-aspire-cli.ps1 -OutputPath "C:\temp"
-    .\get-aspire-cli.ps1 -Channel "9.0" -BuildQuality "release"
+    .\get-aspire-cli.ps1 -Version "9.0" -BuildQuality "release"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -Help
@@ -431,7 +431,7 @@ function Main {
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
 
         # Construct the URLs
-        $url = "https://aka.ms/dotnet/$Channel/$BuildQuality/aspire-cli-$runtimeIdentifier.$extension"
+        $url = "https://aka.ms/dotnet/$Version/$BuildQuality/aspire-cli-$runtimeIdentifier.$extension"
         $checksumUrl = "$url.sha512"
 
         $filename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension"
