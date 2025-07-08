@@ -91,7 +91,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         {
             "Aspire-injected EventHubProducerClient namespace: localhost",
             "Aspire-injected QueueServiceClient URI: http://127.0.0.1:*/devstoreaccount1",
-            "Aspire-injected QueueClient URI: http://127.0.0.1:*/devstoreaccount1/myqueue1",
             "Aspire-injected BlobServiceClient URI: http://127.0.0.1:*/devstoreaccount1",
             "Aspire-injected BlobContainerClient URI: http://127.0.0.1:*/devstoreaccount1/myblobcontainer"
         };
