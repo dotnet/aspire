@@ -168,10 +168,11 @@ public class RoleAssignmentTests()
         return RoleAssignmentTest("sql",
             builder =>
             {
-                var redis = builder.AddAzureSqlServer("sql");
+                var sql = builder.AddAzureSqlServer("sql")
+                    .AddDatabase("db");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
-                    .WithReference(redis);
+                    .WithReference(sql);
             });
     }
 
