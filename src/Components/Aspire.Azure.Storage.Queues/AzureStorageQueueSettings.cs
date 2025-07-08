@@ -23,16 +23,13 @@ public sealed partial class AzureStorageQueueSettings : AzureStorageQueuesSettin
             return;
         }
 
-        var builder = new DbConnectionStringBuilder
-        {
-            ConnectionString = connectionString
-        };
+        var builder = new DbConnectionStringBuilder() { ConnectionString = connectionString };
 
-        if (builder.TryGetValue("QueueName", out var containerName))
+        if (builder.TryGetValue("QueueName", out var queueName))
         {
             var stableBuilder = new StableConnectionStringBuilder(connectionString);
 
-            QueueName = containerName?.ToString();
+            QueueName = queueName?.ToString();
 
             // Remove the QueueName property from the connection string as QueueServiceClient would fail to parse it.
             stableBuilder.Remove("QueueName");
