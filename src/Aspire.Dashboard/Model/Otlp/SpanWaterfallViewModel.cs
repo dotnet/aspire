@@ -6,6 +6,12 @@ using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
+public sealed class SpanLogEntry
+{
+    public required OtlpLogEntry LogEntry { get; init; }
+    public required double LeftOffset { get; init; }
+}
+
 public sealed class SpanWaterfallViewModel
 {
     public required List<SpanWaterfallViewModel> Children { get; init; }
@@ -15,6 +21,7 @@ public sealed class SpanWaterfallViewModel
     public required int Depth { get; init; }
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
+    public required List<SpanLogEntry> SpanLogs { get; init; }
     public bool IsHidden { get; set; }
     [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
@@ -114,13 +121,14 @@ public sealed class SpanWaterfallViewModel
         return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
     }
 
-    public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, TraceDetailState state)
+    public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, List<OtlpLogEntry> logs, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
 
         TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
-            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state);
+            var spanLogs = logs.Where(l => l.SpanId == span.SpanId).ToList();
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, spanLogs);
             orderedSpans.Add(viewModel);
 
             s.Parent?.Children.Add(viewModel);
@@ -130,7 +138,7 @@ public sealed class SpanWaterfallViewModel
 
         return orderedSpans;
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, List<OtlpLogEntry> spanLogs)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -148,6 +156,18 @@ public sealed class SpanWaterfallViewModel
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
+            var spanLogVms = new List<SpanLogEntry>();
+            foreach (var log in spanLogs)
+            {
+                var logRelativeStart = log.TimeStamp - traceStart;
+
+                spanLogVms.Add(new SpanLogEntry
+                {
+                    LogEntry = log,
+                    LeftOffset = logRelativeStart.TotalMilliseconds / rootDuration * 100
+                });
+            }
+
             var viewModel = new SpanWaterfallViewModel
             {
                 Children = [],
@@ -156,7 +176,8 @@ public sealed class SpanWaterfallViewModel
                 Width = width,
                 Depth = depth,
                 LabelIsRight = labelIsRight,
-                UninstrumentedPeer = uninstrumentedPeer
+                UninstrumentedPeer = uninstrumentedPeer,
+                SpanLogs = spanLogVms
             };
 
             // Restore hidden/collapsed state to new view model.
