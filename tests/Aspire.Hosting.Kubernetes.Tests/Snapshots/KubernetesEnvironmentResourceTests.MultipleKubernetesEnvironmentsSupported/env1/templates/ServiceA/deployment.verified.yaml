@@ -29,13 +29,13 @@ spec:
               protocol: "TCP"
               containerPort: 8081
           env:
-            - name: "ASPNETCORE_Kestrel__Endpoints__http__Url"
+            - name: "Kestrel__Endpoints__http__Url"
               value: "http://+:8080"
-            - name: "ASPNETCORE_Kestrel__Endpoints__http__Protocols"
+            - name: "Kestrel__Endpoints__http__Protocols"
               value: "Http1"
-            - name: "ASPNETCORE_Kestrel__Endpoints__https__Url"
+            - name: "Kestrel__Endpoints__https__Url"
               value: "https://+:8081"
-            - name: "ASPNETCORE_Kestrel__Endpoints__https__Protocols"
+            - name: "Kestrel__Endpoints__https__Protocols"
               value: "Http1AndHttp2"
           imagePullPolicy: "IfNotPresent"
   selector:
