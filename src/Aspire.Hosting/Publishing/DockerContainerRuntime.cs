@@ -33,16 +33,14 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             var outputType = options?.ImageFormat switch
             {
                 ContainerImageFormat.Oci => "type=oci",
-                ContainerImageFormat.Docker => "type=docker,compression=gzip",
+                ContainerImageFormat.Docker => "type=docker",
                 null => "type=docker",
                 _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
             };
 
             if (!string.IsNullOrEmpty(options?.OutputPath))
             {
-                // Extract resource name from imageName for the file name
-                var resourceName = imageName.Split('/').Last().Split(':').First();
-                outputType += $",dest=\"{options.OutputPath}/{resourceName}.tar\"";
+                outputType += $",dest=\"{options.OutputPath}/{imageName}.tar\"";
             }
 
             arguments += $" --output \"{outputType}\"";
@@ -55,11 +53,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("docker builds (stdout): {Output}", output);
+                logger.LogInformation("docker buildx (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("docker builds (stderr): {Error}", error);
+                logger.LogInformation("docker buildx (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -76,11 +74,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
             if (processResult.ExitCode != 0)
             {
-                logger.LogError("Docker builds for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                 return processResult.ExitCode;
             }
 
-            logger.LogInformation("Docker builds for {ImageName} succeeded.", imageName);
+            logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
             return processResult.ExitCode;
         }
     }
