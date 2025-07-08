@@ -7,6 +7,8 @@ set -euo pipefail
 
 # Global constants
 readonly USER_AGENT="get-aspire-cli.sh/1.0"
+readonly ARCHIVE_DOWNLOAD_TIMEOUT_SEC=600
+readonly CHECKSUM_DOWNLOAD_TIMEOUT_SEC=120
 
 # Default values
 OUTPUT_PATH=""
@@ -425,12 +427,12 @@ main() {
 
     # Download the Aspire CLI archive
     printf "Downloading from: %s\n" "$url"
-    if ! download_file "$url" "$filename" 300 5 true true; then
+    if ! download_file "$url" "$filename" $ARCHIVE_DOWNLOAD_TIMEOUT_SEC 5 true true; then
         return 1
     fi
 
     # Download and test the checksum
-    if ! download_file "$checksum_url" "$checksum_filename" 60 5 true true; then
+    if ! download_file "$checksum_url" "$checksum_filename" $CHECKSUM_DOWNLOAD_TIMEOUT_SEC 5 true true; then
         return 1
     fi
 
