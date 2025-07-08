@@ -173,12 +173,15 @@ public class RoleAssignmentTests()
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithReference(sql);
-            });
+            },
+            // scrub new lines since the test needs to run on Windows and Linux, and the new lines are different.
+            s => s.Replace("\\r\\n", "\\n"));
     }
 
     private static async Task RoleAssignmentTest(
         string azureResourceName,
-        Action<IDistributedApplicationBuilder> configureBuilder
+        Action<IDistributedApplicationBuilder> configureBuilder,
+        Func<string, string?>? scrubLines = null
         )
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -196,9 +199,15 @@ public class RoleAssignmentTests()
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRoles);
 
-        await Verify(rolesManifest.ToString(), "json")
+        var verify = Verify(rolesManifest.ToString(), "json")
             .AppendContentAsFile(rolesBicep, "bicep");
-            
+
+        if (scrubLines is not null)
+        {
+            verify = verify.ScrubLinesWithReplace(scrubLines);
+        }
+
+        await verify;
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
