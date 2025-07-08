@@ -278,14 +278,14 @@ internal static class ResourceExtensions
                 container.Env.Add(
                     new()
                     {
-                        Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Url",
+                        Name = $"Kestrel__Endpoints__{mapping.Name}__Url",
                         Value = $"{mapping.Scheme}://+:{mapping.ContainerPort}"
                     });
 
                 container.Env.Add(
                     new()
                     {
-                        Name = $"ASPNETCORE_Kestrel__Endpoints__{mapping.Name}__Protocols",
+                        Name = $"Kestrel__Endpoints__{mapping.Name}__Protocols",
                         Value = $"{mapping.Transport.ToKestrelProtocol(mapping.Name)}"
                     });
             }
