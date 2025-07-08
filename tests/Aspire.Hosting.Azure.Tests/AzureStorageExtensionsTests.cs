@@ -341,8 +341,8 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var queues = storage.AddQueueService("queues");
         var queue = storage.AddQueue(name: "myqueue", queueName);
 
-        string? conntionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
-        string expected = $"{conntionString};QueueName={queueName}";
+        string? connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
+        string expected = $"{connectionString};QueueName={queueName}";
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
     }
