@@ -188,7 +188,9 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(topPadder);
 
-            var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
+            // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
+            // than environment variables since it comes from the same backend detection logic
+            var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
 
             if (isCodespaces || isRemoteContainers)
