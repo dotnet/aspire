@@ -8,6 +8,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
     container.WithDataBindMount();
 });
 
+var blobs = storage.AddBlobService("blobs");
 storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
 storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
@@ -22,6 +23,7 @@ var blobContainer2 = storage2.AddBlobContainer("foocontainer", blobContainerName
 
 builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
+       .WithReference(blobs).WaitFor(blobs)
        .WithReference(blobContainer2).WaitFor(blobContainer2)
        .WithReference(myqueue).WaitFor(myqueue);
 

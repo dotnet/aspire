@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.AddAzureBlobServiceClient("blobs");
+
 builder.AddKeyedAzureBlobContainerClient("foocontainer");
 
 builder.AddKeyedAzureQueue("myqueue");
