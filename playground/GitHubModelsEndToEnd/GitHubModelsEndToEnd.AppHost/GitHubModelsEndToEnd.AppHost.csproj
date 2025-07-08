@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.GitHub.Models\Aspire.Hosting.GitHub.Models.csproj" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.GitHub.Models" />
     <ProjectReference Include="..\GitHubModelsEndToEnd.WebStory\GitHubModelsEndToEnd.WebStory.csproj" />
   </ItemGroup>
 
