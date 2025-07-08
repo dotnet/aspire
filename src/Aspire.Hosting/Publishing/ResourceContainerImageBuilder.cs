@@ -25,14 +25,9 @@ public enum ContainerImageFormat
     Docker,
 
     /// <summary>
-    /// OCI tar format.
+    /// OCI format.
     /// </summary>
-    OciTar,
-
-    /// <summary>
-    /// Docker tar format.
-    /// </summary>
-    DockerTar
+    Oci
 }
 
 /// <summary>
@@ -247,8 +242,7 @@ internal sealed class ResourceContainerImageBuilder(
                         var format = options.ImageFormat.Value switch
                         {
                             ContainerImageFormat.Docker => "Docker",
-                            ContainerImageFormat.OciTar => "OciTar",
-                            ContainerImageFormat.DockerTar => "DockerTar",
+                            ContainerImageFormat.Oci => "OCI",
                             _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
                         };
                         arguments += $" /p:ContainerImageFormat=\"{format}\"";
@@ -328,8 +322,7 @@ internal sealed class ResourceContainerImageBuilder(
                     var format = options.ImageFormat.Value switch
                     {
                         ContainerImageFormat.Docker => "Docker",
-                        ContainerImageFormat.OciTar => "OciTar",
-                        ContainerImageFormat.DockerTar => "DockerTar",
+                        ContainerImageFormat.Oci => "OCI",
                         _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
                     };
                     arguments += $" /p:ContainerImageFormat=\"{format}\"";
