@@ -6,18 +6,18 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.GitHub.Models;
 
 /// <summary>
-/// Represents a GitHub Models resource.
+/// Represents a GitHub Model resource.
 /// </summary>
-public class GitHubModelsResource : Resource, IResourceWithConnectionString
+public class GitHubModelResource : Resource, IResourceWithConnectionString, IResourceWithoutLifetime
 {
     internal const string GitHubModelsEndpoint = "https://models.github.ai/inference";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="GitHubModelsResource"/> class.
+    /// Initializes a new instance of the <see cref="GitHubModelResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="model">The model name.</param>
-    public GitHubModelsResource(string name, string model) : base(name)
+    public GitHubModelResource(string name, string model) : base(name)
     {
         Model = model;
     }

@@ -19,7 +19,7 @@ dotnet add package Aspire.Hosting.GitHub.Models
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, add a GitHub Models resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a GitHub Model resource and consume the connection using the following methods:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -45,7 +45,7 @@ builder.AddAzureChatCompletionsClient("chat")
 
 ## Configuration
 
-The GitHub Models resource can be configured with the following options:
+The GitHub Model resource can be configured with the following options:
 
 ### API Key
 
