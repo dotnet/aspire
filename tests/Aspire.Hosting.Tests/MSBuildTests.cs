@@ -93,8 +93,8 @@ builder.Build().Run();
         var output = new StringBuilder();
         var outputDone = new ManualResetEvent(false);
         using var process = new Process();
-        // set '-nodereuse:false -p:UseSharedCompilation=false' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", $"build -nodereuse:false -p:UseSharedCompilation=false")
+        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
+        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers")
         {
             RedirectStandardOutput = true,
             UseShellExecute = false,
@@ -203,8 +203,8 @@ builder.Build().Run();
         var output = new StringBuilder();
         var outputDone = new ManualResetEvent(false);
         using var process = new Process();
-        // set '-nodereuse:false -p:UseSharedCompilation=false' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", $"build -nodereuse:false -p:UseSharedCompilation=false")
+        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
+        process.StartInfo = new ProcessStartInfo("dotnet", $"build --disable-build-servers")
         {
             RedirectStandardOutput = true,
             UseShellExecute = false,
