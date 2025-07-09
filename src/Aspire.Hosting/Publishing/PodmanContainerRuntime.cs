@@ -38,7 +38,7 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         {
             // Extract resource name from imageName for the file name
             var resourceName = imageName.Split('/').Last().Split(':').First();
-            arguments += $" --output \"{options.OutputPath}/{resourceName}.tar\"";
+            arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
         }
 
         arguments += $" \"{contextPath}\"";
