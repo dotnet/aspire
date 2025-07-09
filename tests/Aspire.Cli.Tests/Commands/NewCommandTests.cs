@@ -232,7 +232,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     {
                         Id = "Aspire.ProjectTemplates",
                         Source = "internalfeed",
-                        Version = "9.5.0-preview.1234"
+                        Version = "9.4.0-preview.1234"
                     };
 
                     var package93 = new NuGetPackage()
@@ -261,7 +261,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
-            package => Assert.Equal("9.5.0-preview.1234", package.Version),
+            package => Assert.Equal("9.4.0-preview.1234", package.Version),
             package => Assert.Equal("9.3.0", package.Version),
             package => Assert.Equal("9.2.0", package.Version)
         );

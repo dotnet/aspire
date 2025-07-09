@@ -30,11 +30,11 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                     // Should be ignored because its lower that current prerelease version.
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.3.1", Source = "nuget.org" },
 
-                    // Should be selected because it is higher than 9.5.0-dev (dev and preview sort using alphabetical sort).
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    // Should be selected because it is higher than 9.4.0-dev (dev and preview sort using alphabetical sort).
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" }, 
 
-                    // Should be ignored because it is lower than 9.5.0-dev (dev and preview sort using alpha).
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-beta", Source = "nuget.org" }
+                    // Should be ignored because it is lower than 9.4.0-dev (dev and preview sort using alpha).
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-beta", Source = "nuget.org" }
                 ]);
 
                 return cache;
@@ -58,7 +58,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var interactionService = sp.GetRequiredService<IInteractionService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.5.0-dev", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, interactionService);
             };
         });
 
@@ -68,7 +68,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
-        Assert.Equal("9.5.0-preview", suggestedVersion);
+        Assert.Equal("9.4.0-preview", suggestedVersion);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
                     // Should be selected because stable sorts higher than preview.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0", Source = "nuget.org" },
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0", Source = "nuget.org" },
 
                     // Should be ignored because its prerelease but in a higher version family.
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
@@ -112,7 +112,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var interactionService = sp.GetRequiredService<IInteractionService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.5.0-dev", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0-dev", logger, nuGetPackageCache, interactionService);
             };
         });
 
@@ -122,7 +122,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
-        Assert.Equal("9.5.0", suggestedVersion);
+        Assert.Equal("9.4.0", suggestedVersion);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var interactionService = sp.GetRequiredService<IInteractionService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.5.0", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, interactionService);
             };
         });
 
@@ -191,7 +191,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
             {
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" }, 
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
                 ]);
 
@@ -216,7 +216,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var interactionService = sp.GetRequiredService<IInteractionService>();
 
                 // Use a custom notifier that overrides the current version
-                return new CliUpdateNotifierWithPackageVersionOverride("9.5.0", logger, nuGetPackageCache, interactionService);
+                return new CliUpdateNotifierWithPackageVersionOverride("9.4.0", logger, nuGetPackageCache, interactionService);
             };
         });
 
