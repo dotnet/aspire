@@ -234,7 +234,7 @@ public class KubernetesPublisherTests()
 
         builder.AddProject<TestProject>("myapp", launchProfileName: null)
             .WithHttpEndpoint()
-            .WithHttpEndpoint(name: "grpc", transport: "http2")
+            .WithHttpEndpoint(name: "grpc", transport: "http2", port: 80)
             .WithHttpsEndpoint();
 
         var app = builder.Build();

@@ -27,7 +27,6 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     internal List<PersistentVolume> PersistentVolumes { get; } = [];
     internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
     internal PortAllocator ContainerPortAllocator { get; } = new(8080);
-    internal PortAllocator ServicePortAllocator { get; } = new(80);
 
     /// <summary>
     /// </summary>
@@ -169,7 +168,6 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         {
             if (endpoint.TargetPort is int port)
             {
-                ContainerPortAllocator.AddUsedPort(port);
                 return port;
             }
 
@@ -183,23 +181,10 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             return dynamicTargetPort;
         }
 
-        int resolvePort(EndpointAnnotation endpoint)
-        {
-            if (endpoint.Port is int port)
-            {
-                ServicePortAllocator.AddUsedPort(port);
-                return port;
-            }
-
-            var dynamicServicePort = ServicePortAllocator.AllocatePort();
-            ServicePortAllocator.AddUsedPort(dynamicServicePort);
-            return dynamicServicePort;
-        }
-
         foreach(var endpoint in endpoints)
         {
             var containerPort = resolveTargetPort(endpoint);
-            var servicePort = resolvePort(endpoint);
+            var servicePort = endpoint.Port ?? containerPort;
 
             EndpointMappings.Add(endpoint.Name, new(
                 endpoint.UriScheme, resource.Name.ToServiceName(), containerPort, servicePort, endpoint.Name));
