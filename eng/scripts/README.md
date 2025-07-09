@@ -10,37 +10,37 @@ This directory contains scripts to download and install the Aspire CLI for diffe
 ## Current Limitations
 
 ⚠️ **Important**: Currently, only the following combination works:
-- **Channel**: `9.0`
+- **Version**: `9.0`
 - **Build Quality**: `daily`
 
-Other channel/quality combinations are not yet available through the download URLs.
+Other version/quality combinations are not yet available through the download URLs.
 
 ## Parameters
 
 ### Bash Script (`get-aspire-cli.sh`)
 
-| Parameter | Short | Description | Default |
-|-----------|-------|-------------|---------|
-| `--output-path` | `-o` | Directory to unpack the CLI | `./aspire-cli` |
-| `--channel` | `-c` | Channel of the Aspire CLI to download | `9.0` |
-| `--quality` | `-q` | Build quality to download | `daily` |
-| `--os` | | Operating system (auto-detected if not specified) | auto-detect |
-| `--architecture` | | Architecture (auto-detected if not specified) | auto-detect |
-| `--keep-archive` | `-k` | Keep downloaded archive files after installation | `false` |
-| `--verbose` | `-v` | Enable verbose output | `false` |
-| `--help` | `-h` | Show help message | |
+| Parameter        | Short | Description                                       | Default        |
+|------------------|-------|---------------------------------------------------|----------------|
+| `--output-path`  | `-o`  | Directory to unpack the CLI                       | `./aspire-cli` |
+| `--version`      |       | Version of the Aspire CLI to download             | `9.0`          |
+| `--quality`      | `-q`  | Build quality to download                         | `daily`        |
+| `--os`           |       | Operating system (auto-detected if not specified) | auto-detect    |
+| `--architecture` |       | Architecture (auto-detected if not specified)     | auto-detect    |
+| `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`        |
+| `--verbose`      | `-v`  | Enable verbose output                             | `false`        |
+| `--help`         | `-h`  | Show help message                                 |                |
 
 ### PowerShell Script (`get-aspire-cli.ps1`)
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `-OutputPath` | Directory to unpack the CLI | `./aspire-cli` |
-| `-Channel` | Channel of the Aspire CLI to download | `9.0` |
-| `-BuildQuality` | Build quality to download | `daily` |
-| `-OS` | Operating system (auto-detected if not specified) | auto-detect |
-| `-Architecture` | Architecture (auto-detected if not specified) | auto-detect |
-| `-KeepArchive` | Keep downloaded archive files after installation | `false` |
-| `-Help` | Show help message | |
+| Parameter       | Description                                       | Default        |
+|-----------------|---------------------------------------------------|----------------|
+| `-OutputPath`   | Directory to unpack the CLI                       | `./aspire-cli` |
+| `-Version`      | Version of the Aspire CLI to download             | `9.0`          |
+| `-BuildQuality` | Build quality to download                         | `daily`        |
+| `-OS`           | Operating system (auto-detected if not specified) | auto-detect    |
+| `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect    |
+| `-KeepArchive`  | Keep downloaded archive files after installation  | `false`        |
+| `-Help`         | Show help message                                 |                |
 
 ## Output Path Parameter
 
