@@ -231,6 +231,14 @@ jobs:
           --timeout ${{ inputs.testSessionTimeout }}
           ${{ inputs.extraTestArgs }}
 
+      # This ensures that the tests running from the repo always use
+      # restored dotnet.
+      # For tests run from outside the repo we install system dotnet
+      # earlier in the build
+      - name: Add .dotnet to PATH
+        if: ${{ ! inputs.requiresNugets }}
+        run: echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
+
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
         id: run-tests
