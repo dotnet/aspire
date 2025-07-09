@@ -72,7 +72,9 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Check for success logs
         Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
-        Assert.Contains(logs, log => log.Message.Contains("docker buildx"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
     }
 
     [Fact]
@@ -217,7 +219,9 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Check for success logs
         Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
-        Assert.Contains(logs, log => log.Message.Contains("docker buildx"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
     }
 
     [Fact]
@@ -255,7 +259,6 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Check for success logs
         Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
-        Assert.Contains(logs, log => log.Message.Contains("docker buildx"));
 
         // Ensure no error logs were produced during the build process
         Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&

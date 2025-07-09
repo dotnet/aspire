@@ -74,19 +74,19 @@ public enum ContainerTargetPlatform
 public class ContainerBuildOptions
 {
     /// <summary>
-    /// Gets or sets the output path for the container archive.
+    /// Gets the output path for the container archive.
     /// </summary>
-    public string? OutputPath { get; set; }
+    public string? OutputPath { get; init; }
 
     /// <summary>
-    /// Gets or sets the container image format.
+    /// Gets the container image format.
     /// </summary>
-    public ContainerImageFormat? ImageFormat { get; set; }
+    public ContainerImageFormat? ImageFormat { get; init; }
 
     /// <summary>
-    /// Gets or sets the target platform for the container.
+    /// Gets the target platform for the container.
     /// </summary>
-    public ContainerTargetPlatform? TargetPlatform { get; set; }
+    public ContainerTargetPlatform? TargetPlatform { get; init; }
 }
 
 /// <summary>
@@ -222,16 +222,15 @@ internal sealed class ResourceContainerImageBuilder(
             cancellationToken
             ).ConfigureAwait(false);
 
+        var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
+
         if (publishingTask is not null)
         {
             await using (publishingTask.ConfigureAwait(false))
             {
-                var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
-                
                 if (!success)
                 {
                     await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
-                    throw new DistributedApplicationException($"Failed to build container image.");
                 }
                 else
                 {
@@ -239,15 +238,10 @@ internal sealed class ResourceContainerImageBuilder(
                 }
             }
         }
-        else
+
+        if (!success)
         {
-            // Handle case when publishingTask is null (no step provided)
-            var success = await ExecuteDotnetPublishAsync(resource, options, cancellationToken).ConfigureAwait(false);
-            
-            if (!success)
-            {
-                throw new DistributedApplicationException($"Failed to build container image.");
-            }
+            throw new DistributedApplicationException($"Failed to build container image.");
         }
     }
 
