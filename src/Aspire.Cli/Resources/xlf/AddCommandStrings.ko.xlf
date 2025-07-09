@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="NoPackagesMatchedSearchTerm">
         <source>No packages matched your search term '{0}'. Showing all available packages.</source>
-        <target state="new">No packages matched your search term '{0}'. Showing all available packages.</target>
+        <target state="translated">검색어 '{0}'와(과) 일치하는 패키지가 없습니다. 사용 가능한 모든 패키지를 표시합니다.</target>
         <note>{0} is the search term provided by the user.</note>
       </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
