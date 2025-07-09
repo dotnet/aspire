@@ -855,4 +855,33 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("storage-tables", tableService.Resource.Name);
     }
+
+    [Fact]
+    public async Task AddMultipleStorageServiceGeneratesSingleResource()
+    {
+        // Ensures the bicep file doesn't contain duplicate service resources
+        // and blobs/queues are associated to the last created one.
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        var blobService1 = storage.AddBlobService("blobService1");
+        var container1 = storage.AddBlobContainer(name: "container1");
+
+        var blobService2 = storage.AddBlobService("blobService2");
+        var container2 = storage.AddBlobContainer(name: "container2");
+
+        var queueService1 = storage.AddQueueService("queueService1");
+        var queue1 = storage.AddQueue(name: "queue1");
+
+        var queueService2 = storage.AddQueueService("queueService2");
+        var queue2 = storage.AddQueue(name: "queue2");
+
+        var tableService1 = storage.AddTableService("tableService1");
+        var tableService2 = storage.AddTableService("tableService2");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
 }

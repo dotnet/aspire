@@ -39,7 +39,6 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
-    .WithReference(myBlobContainer).WaitFor(myBlobContainer)
     .WithReference(queue)
     .WithReference(blob)
     .WithReference(funcApp);
