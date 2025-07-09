@@ -12,10 +12,10 @@ internal class ExtensionHelper
 {
     public static bool IsExtensionHost(
         IServiceProvider serviceProvider,
-        [NotNullWhen(true)] out ExtensionInteractionService? interactionService,
+        [NotNullWhen(true)] out IExtensionInteractionService? interactionService,
         [NotNullWhen(true)] out IExtensionBackchannel? extensionBackchannel)
     {
-        if (serviceProvider.GetRequiredService<IInteractionService>() is ExtensionInteractionService extensionInteractionService)
+        if (serviceProvider.GetRequiredService<IInteractionService>() is IExtensionInteractionService extensionInteractionService)
         {
             interactionService = extensionInteractionService;
             extensionBackchannel = serviceProvider.GetRequiredService<IExtensionBackchannel>();

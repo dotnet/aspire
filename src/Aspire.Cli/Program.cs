@@ -191,7 +191,7 @@ public class Program
 
         if (extensionEndpoint is not null)
         {
-            builder.Services.AddSingleton<ExtensionRpcTarget>();
+            builder.Services.AddSingleton<IExtensionRpcTarget, ExtensionRpcTarget>();
             builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
 
             var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";

@@ -10,7 +10,14 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal class ExtensionInteractionService : IInteractionService
+internal interface IExtensionInteractionService : IInteractionService
+{
+    void OpenNewProject(string projectPath);
+    Task RequestAppHostAttachAsync(int processId, string projectName);
+    void LogMessage(LogLevel logLevel, string message);
+}
+
+internal class ExtensionInteractionService : IExtensionInteractionService
 {
     private readonly ConsoleInteractionService _consoleInteractionService;
     private readonly IExtensionBackchannel _backchannel;

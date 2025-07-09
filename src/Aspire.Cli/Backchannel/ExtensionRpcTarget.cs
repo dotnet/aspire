@@ -14,6 +14,7 @@ internal interface IExtensionRpcTarget
 {
     Task<string> GetCliVersionAsync(string token);
     Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input);
+    Func<string, ValidationResult>? ValidationFunction { get; set; }
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget

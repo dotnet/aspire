@@ -41,7 +41,7 @@ internal interface IExtensionBackchannel
     Task RequestAppHostAttachAsync(int processId, string projectName, CancellationToken cancellationToken);
 }
 
-internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
+internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, IExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
     private const string BaselineCapability = "baseline.v1";
@@ -192,7 +192,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
                 [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
                     Justification = "AddLocalRpcTarget closes on generic types if there are events on the target, which is explicitly disabled.")]
-                static void AddLocalRpcTarget(JsonRpc rpc, ExtensionRpcTarget target)
+                static void AddLocalRpcTarget(JsonRpc rpc, IExtensionRpcTarget target)
                 {
                     // We don't want to notify the client of events because we are not using the
                     // event system in the extension.

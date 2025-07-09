@@ -605,7 +605,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         } while (await timer.WaitForNextTickAsync(cancellationToken));
     }
 
-    private async Task StartDebuggingAsync(string appHostPortPath, string appHostDirectoryPath, ExtensionInteractionService interactionService, CancellationToken cancellationToken)
+    private async Task StartDebuggingAsync(string appHostPortPath, string appHostDirectoryPath, IExtensionInteractionService interactionService, CancellationToken cancellationToken)
     {
         logger.LogDebug("Waiting for AppHost to write port to {Path}", appHostPortPath);
 
