@@ -2,7 +2,7 @@ parameters:
   # values: windows/mac/linux
   agentOs: 'windows'
   targetRidsForSameOS:
-    - win_x64
+    - linux-x64
   extraBuildArgs: ''
   codeSign: false
   teamName: ''
