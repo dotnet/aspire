@@ -1,23 +1,18 @@
 <Project TreatAsLocalProperty="TargetRids">
   <PropertyGroup>
-    <_AspireOnlyBuild Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">true</_AspireOnlyBuild>
-
-    <BuildNative>true</BuildNative>
-
     <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
 
     <!-- Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
          It is helpful to allow building the non-aot cli builds on a single CI job -->
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
+    <SkipManagedBuild Condition="'$(SkipManagedBuild)' == ''">false</SkipManagedBuild>
+    <SkipNativeBuild Condition="'$(SkipNativeBuild)' == ''">false</SkipNativeBuild>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(BuildNativeOnly)' != 'true'">
+  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
-
-    <_TargetRidItem Include="$(TargetRids.Split(':'))" />
-    <ProjectToBuild Condition="'$(BuildNative)' == 'true'" Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
 
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
 
@@ -28,8 +23,11 @@
   </ItemGroup>
 
   <!-- Native build only -->
-  <ItemGroup Condition="'$(_AspireOnlyBuild)' == 'true' and '$(BuildNativeOnly)' == 'true'">
-    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
+  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true'">
+    <!-- Add Aspire.Cli project here for native-only builds so it gets picked
+         up Restore, because Aspire.Cli.$(RID).csproj uses MSBuild task to build
+         instead of a ProjectReference -->
+    <ProjectToBuild Condition="'$(SkipManagedBuild)' == 'true'" Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
     <_TargetRidItem Include="$(TargetRids.Split(':'))" />
     <ProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />

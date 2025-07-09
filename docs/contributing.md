@@ -37,7 +37,7 @@ The default build includes native builds for `Aspire.Cli` which produces Native 
 
 By default it builds the cli native project for the current Runtime Identifier. A specific RIDs can be specified too by setting `$(TargetRids)` to a colon separated list like `/p:TargetRids=osx-x64:osx-arm64`.
 
-Native build can be disabled with `/p:BuildNative=false`. And to only the native bits use `/p:BuildNativeOnly=true`.
+Native build can be disabled with `/p:SkipNativeBuild=true`. And to only the native bits use `/p:SkipManagedBuild=true`.
 
 ## View Dashboard
 
