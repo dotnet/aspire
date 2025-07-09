@@ -22,6 +22,7 @@ using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.VersionChecking;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -58,7 +59,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
     private readonly DistributedApplicationOptions _options;
-
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -168,6 +168,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
+
+        ApplyLocaleOverride(_innerBuilder);
 
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
@@ -655,4 +657,29 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <returns>The metadata value if found; otherwise, null.</returns>
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
+
+    private static void ApplyLocaleOverride(HostApplicationBuilder hostApplicationBuilder)
+    {
+        var localeOverride = LocaleHelpers.GetLocaleOverride(hostApplicationBuilder.Configuration);
+        if (localeOverride != null)
+        {
+            var result = LocaleHelpers.TrySetLocaleOverride(localeOverride);
+
+            var errorMessage = result switch
+            {
+                SetLocaleResult.InvalidLocale => $"Invalid locale '{localeOverride}' specified.",
+                SetLocaleResult.UnsupportedLocale => $"Unsupported locale '{localeOverride}' specified. Supported locales are: {string.Join(", ", LocaleHelpers.SupportedLocales)}.",
+                _ => null
+            };
+            if (errorMessage != null)
+            {
+                hostApplicationBuilder.Configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["AppHost:LocalOverrideError"] = errorMessage
+                    }
+                );
+            }
+        }
+    }
 }

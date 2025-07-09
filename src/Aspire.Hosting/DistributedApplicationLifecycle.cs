@@ -43,6 +43,11 @@ internal sealed class DistributedApplicationLifecycle(
             logger.LogInformation("Application host directory is: {AppHostDirectory}", configuration["AppHost:Directory"]);
         }
 
+        if (configuration["AppHost:LocalOverrideError"] is { Length: > 0 } localOverrideError)
+        {
+            logger.LogWarning(localOverrideError);
+        }
+
         return Task.CompletedTask;
     }
 

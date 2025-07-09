@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Properties;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -85,7 +85,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpDependencyCheckFailedMessage,
+                        MessageStrings.DcpDependencyCheckFailedMessage,
                         $"'dcp {arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                     ));
                 }
@@ -113,7 +113,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             {
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
-                    Resources.DcpDependencyCheckFailedMessage,
+                    MessageStrings.DcpDependencyCheckFailedMessage,
                     $"{ex.Message} {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                 ));
             }
@@ -162,7 +162,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooLowMessage,
+                        MessageStrings.DcpVersionCheckTooLowMessage,
                         GetCurrentPackageVersion(typeof(DcpDependencyCheck).Assembly)
                     ));
                 }
