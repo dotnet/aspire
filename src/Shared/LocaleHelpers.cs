@@ -10,7 +10,7 @@ namespace Aspire.Shared;
 internal static class LocaleHelpers
 {
     // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-    public static readonly string[] SupportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
+    public static readonly string[] SupportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-Hans", "zh-Hant"];
 
     public static SetLocaleResult TrySetLocaleOverride(string localeOverride)
     {
