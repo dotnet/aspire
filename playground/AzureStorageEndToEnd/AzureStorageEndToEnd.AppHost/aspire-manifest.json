@@ -17,15 +17,19 @@
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-2"
     },
-    "queues": {
+    "storage-queues": {
       "type": "value.v0",
       "connectionString": "{storage.outputs.queueEndpoint}"
+    },
+    "myqueue": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.queueEndpoint};QueueName=my-queue"
     },
     "storage2": {
       "type": "azure.bicep.v0",
       "path": "storage2.module.bicep"
     },
-    "blobs2": {
+    "storage2-blobs": {
       "type": "value.v0",
       "connectionString": "{storage2.outputs.blobEndpoint}"
     },
@@ -44,7 +48,7 @@
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
-        "ConnectionStrings__queues": "{queues.connectionString}"
+        "ConnectionStrings__myqueue": "{myqueue.connectionString}"
       },
       "bindings": {
         "http": {
