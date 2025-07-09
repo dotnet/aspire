@@ -11,7 +11,7 @@ This directory contains scripts to download and install the Aspire CLI for diffe
 
 ⚠️ **Important**: Currently, only the following combination works:
 - **Version**: `9.0`
-- **Build Quality**: `daily`
+- **Quality**: `daily`
 
 Other version/quality combinations are not yet available through the download URLs.
 
@@ -23,7 +23,7 @@ Other version/quality combinations are not yet available through the download UR
 |------------------|-------|---------------------------------------------------|----------------|
 | `--output-path`  | `-o`  | Directory to unpack the CLI                       | `./aspire-cli` |
 | `--version`      |       | Version of the Aspire CLI to download             | `9.0`          |
-| `--quality`      | `-q`  | Build quality to download                         | `daily`        |
+| `--quality`      | `-q`  | Quality to download                               | `daily`        |
 | `--os`           |       | Operating system (auto-detected if not specified) | auto-detect    |
 | `--architecture` |       | Architecture (auto-detected if not specified)     | auto-detect    |
 | `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`        |
@@ -36,7 +36,7 @@ Other version/quality combinations are not yet available through the download UR
 |-----------------|---------------------------------------------------|----------------|
 | `-OutputPath`   | Directory to unpack the CLI                       | `./aspire-cli` |
 | `-Version`      | Version of the Aspire CLI to download             | `9.0`          |
-| `-BuildQuality` | Build quality to download                         | `daily`        |
+| `-Quality`      | Quality to download                               | `daily`        |
 | `-OS`           | Operating system (auto-detected if not specified) | auto-detect    |
 | `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect    |
 | `-KeepArchive`  | Keep downloaded archive files after installation  | `false`        |
