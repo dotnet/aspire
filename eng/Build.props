@@ -6,7 +6,7 @@
 
     <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
 
-    <!-- this property is meant only for CI use. Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
+    <!-- Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
          It is helpful to allow building the non-aot cli builds on a single CI job -->
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
   </PropertyGroup>
