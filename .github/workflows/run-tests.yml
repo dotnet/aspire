@@ -237,6 +237,7 @@ jobs:
       # earlier in the build
       - name: Add .dotnet to PATH
         if: ${{ ! inputs.requiresNugets }}
+        shell: bash
         run: echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
       - name: Run tests
