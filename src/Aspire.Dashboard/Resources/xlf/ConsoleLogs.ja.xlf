@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
-        <source>No wrap log lines</source>
-        <target state="new">No wrap log lines</target>
+        <source>Don't wrap log lines</source>
+        <target state="new">Don't wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
