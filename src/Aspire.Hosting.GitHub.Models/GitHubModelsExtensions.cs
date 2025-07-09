@@ -25,7 +25,18 @@ public static class GitHubModelsExtensions
         ArgumentException.ThrowIfNullOrEmpty(model);
 
         var resource = new GitHubModelResource(name, model);
-        return builder.AddResource(resource);
+
+        return builder.AddResource(resource)
+            .WithInitialState(new()
+            {
+                ResourceType = "GitHubModel",
+                CreationTimeStamp = DateTime.UtcNow,
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success),
+                Properties =
+                    [
+                        new(CustomResourceKnownProperties.Source, "Github Models")
+                    ]
+            });
     }
 
     /// <summary>
