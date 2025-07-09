@@ -229,6 +229,8 @@
                                                         var isSelected = SelectedData?.LogEntryViewModel?.LogEntry.InternalId == item.LogEntry.InternalId;
 
                                                         <button id="@buttonId"
+                                                                title="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
+                                                                aria-label="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
                                                                 class="@($"span-log-entry-button {(isSelected ? "span-log-entry-selected" : null)}")"
                                                                 data-span-color="@spanColor"
                                                                 style="@($"left: {@item.LeftOffset.ToString("F2", CultureInfo.InvariantCulture)}%; --span-color: {spanColor}")"
