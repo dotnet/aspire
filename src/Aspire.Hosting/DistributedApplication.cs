@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Shared;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -369,6 +372,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // Apply locale override before starting the host.
+        var localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
+        var configuration = _host.Services.GetRequiredService<IConfiguration>();
+        ApplyLocaleOverride(configuration, localeOverrideContext);
+
         // We only run the start lifecycle hook if we are in run mode or
         // publish mode. In inspect mode we try to avoid lifecycle hooks
         // kickings. Eventing will still work generally since they are more
@@ -386,6 +394,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public virtual async Task StopAsync(CancellationToken cancellationToken = default)
     {
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+
+        // Reset locale override after stopping the host.
+        var localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
+        ResetLocaleOverride(localeOverrideContext);
     }
 
     /// <summary>
@@ -478,6 +490,42 @@ public class DistributedApplication : IHost, IAsyncDisposable
         finally
         {
             AspireEventSource.Instance.AppBeforeStartHooksStop();
+        }
+    }
+
+    /// <summary>
+    /// Apply locale from configuration early. At this point it is too early to write to the console so
+    /// any error from applying the locale is saved to configuration and written once the host is built.
+    /// </summary>
+    private static void ApplyLocaleOverride(IConfiguration configuration, LocaleOverrideContext context)
+    {
+        context.LocaleOverride = LocaleHelpers.GetLocaleOverride(configuration);
+        if (!string.IsNullOrEmpty(context.LocaleOverride))
+        {
+            context.OriginalCurrentCulture = CultureInfo.CurrentCulture;
+            context.OriginalCurrentUICulture = CultureInfo.CurrentUICulture;
+            context.OriginalDefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentCulture;
+            context.OriginalDefaultThreadCurrentUICulture = CultureInfo.DefaultThreadCurrentUICulture;
+
+            var result = LocaleHelpers.TrySetLocaleOverride(context.LocaleOverride);
+
+            context.OverrideErrorMessage = result switch
+            {
+                SetLocaleResult.InvalidLocale => $"Invalid locale '{context.LocaleOverride}' specified.",
+                SetLocaleResult.UnsupportedLocale => $"Unsupported locale '{context.LocaleOverride}' specified. Supported locales are: {string.Join(", ", LocaleHelpers.SupportedLocales)}.",
+                _ => null
+            };
+        }
+    }
+
+    private static void ResetLocaleOverride(LocaleOverrideContext context)
+    {
+        if (!string.IsNullOrEmpty(context.LocaleOverride))
+        {
+            CultureInfo.CurrentCulture = context.OriginalCurrentCulture!;
+            CultureInfo.CurrentUICulture = context.OriginalCurrentUICulture!;
+            CultureInfo.DefaultThreadCurrentCulture = context.OriginalDefaultThreadCurrentCulture!;
+            CultureInfo.DefaultThreadCurrentUICulture = context.OriginalDefaultThreadCurrentUICulture!;
         }
     }
 
