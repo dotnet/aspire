@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
-        <target state="new">Dashboard</target>
+        <target state="translated">Pulpit nawigacyjny</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
-        <target state="new">Logs</target>
+        <target state="translated">Dzienniki</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">

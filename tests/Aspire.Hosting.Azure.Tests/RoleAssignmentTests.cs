@@ -59,6 +59,19 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
+    public Task AzureFoundrySupport()
+    {
+        return RoleAssignmentTest("ai",
+            builder =>
+            {
+                var openai = builder.AddAzureAIFoundry("ai");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesFaceRecognizer);
+            });
+    }
+
+    [Fact]
     public Task EventHubsSupport()
     {
         return RoleAssignmentTest("eventhubs",
