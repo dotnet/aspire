@@ -11,13 +11,13 @@ spec:
   ports:
     - name: "http"
       protocol: "TCP"
-      port: 80
+      port: 8080
       targetPort: "http"
     - name: "grpc"
       protocol: "TCP"
-      port: 81
+      port: 80
       targetPort: "grpc"
     - name: "https"
       protocol: "TCP"
-      port: 82
+      port: 8082
       targetPort: "https"
