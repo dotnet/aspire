@@ -13,7 +13,7 @@ readonly CHECKSUM_DOWNLOAD_TIMEOUT_SEC=120
 # Default values
 OUTPUT_PATH=""
 VERSION="9.0"
-BUILD_QUALITY="daily"
+QUALITY="daily"
 OS=""
 ARCH=""
 SHOW_HELP=false
@@ -26,7 +26,7 @@ show_help() {
 Aspire CLI Download Script
 
 DESCRIPTION:
-    Downloads and unpacks the Aspire CLI for the current platform from the specified version and build quality.
+    Downloads and unpacks the Aspire CLI for the current platform from the specified version and quality.
 
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
@@ -34,7 +34,7 @@ USAGE:
 OPTIONS:
     -o, --output-path PATH      Directory to unpack the CLI (default: aspire-cli directory under current directory)
     --version VERSION           Version of the Aspire CLI to download (default: 9.0)
-    -q, --quality QUALITY       Build quality to download (default: daily)
+    -q, --quality QUALITY       Quality to download (default: daily)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
@@ -65,7 +65,7 @@ parse_args() {
                 shift 2
                 ;;
             -q|--quality)
-                BUILD_QUALITY="$2"
+                QUALITY="$2"
                 shift 2
                 ;;
             --os)
@@ -419,7 +419,7 @@ main() {
     fi
 
     # Construct the URLs
-    url="https://aka.ms/dotnet/${VERSION}/${BUILD_QUALITY}/aspire-cli-${runtimeIdentifier}.${extension}"
+    url="https://aka.ms/dotnet/${VERSION}/${QUALITY}/aspire-cli-${runtimeIdentifier}.${extension}"
     checksum_url="${url}.sha512"
 
     filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}"
