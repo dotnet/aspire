@@ -57,7 +57,7 @@ jobs:
           # Installing Microbuild plugin fails due to https://github.com/dotnet/arcade/issues/15946#issuecomment-3045780552
           # because of the preview sdk. To fix that `restore` from `global.json` so the above step
           # does not have to install anything.
-          - script: $(Build.SourcesDirectory)/$(scriptName) -restore
+          - script: $(Build.SourcesDirectory)/$(scriptName) -restore /p:Configuration=$(_BuildConfig)
             displayName: 🟣Restore
 
         steps:
@@ -66,7 +66,7 @@ jobs:
               --ci
               --build
               --restore
-              /p:BuildNativeOnly=true
+              /p:SkipManagedBuild=true
               /p:TargetRids=${{ targetRid }}
               $(_buildArgs)
               ${{ parameters.extraBuildArgs }}
