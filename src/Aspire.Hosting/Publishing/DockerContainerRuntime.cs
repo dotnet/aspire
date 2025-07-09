@@ -14,6 +14,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         string? builderName = null;
+        var resourceName = imageName.Replace('/', '-').Replace(':', '-');
 
         // Docker requires a custom buildkit instance for the image when
         // targeting the OCI format so we construct it and remove it here.
@@ -24,7 +25,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 throw new ArgumentException("OutputPath must be provided when ImageFormat is Oci.", nameof(options));
             }
 
-            builderName = $"{imageName.Replace('/', '-').Replace(':', '-')}-builder";
+            builderName = $"{resourceName}-builder";
             var createBuilderResult = await CreateBuildkitInstanceAsync(builderName, cancellationToken).ConfigureAwait(false);
 
             if (createBuilderResult != 0)
@@ -63,7 +64,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
                 if (!string.IsNullOrEmpty(options?.OutputPath))
                 {
-                    outputType += $",dest={Path.Combine(options.OutputPath, imageName)}.tar";
+                    outputType += $",dest={Path.Combine(options.OutputPath, resourceName)}.tar";
                 }
 
                 arguments += $" --output \"{outputType}\"";
