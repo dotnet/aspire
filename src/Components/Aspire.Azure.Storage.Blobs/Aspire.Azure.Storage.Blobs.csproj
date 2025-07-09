@@ -13,7 +13,6 @@
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
-    <Compile Include="..\..\Shared\StableConnectionStringBuilder.cs" Link="StableConnectionStringBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>
