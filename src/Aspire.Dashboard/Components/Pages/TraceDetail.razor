@@ -227,9 +227,10 @@
                                                         var buttonId = $"{context.Span.SpanId}-{item.LogEntry.InternalId}";
                                                         var eventName = StructureLogsDetailsViewModel.GetEventName(item.LogEntry, StructuredLogsLoc);
                                                         var isSelected = SelectedData?.LogEntryViewModel?.LogEntry.InternalId == item.LogEntry.InternalId;
+                                                        var htmlTooltip = item.Index < 500;
 
                                                         <button id="@buttonId"
-                                                                title="@($"{eventName} - {item.LogEntry.Scope.Name}")"
+                                                                title="@(!htmlTooltip ? $"{eventName} - {item.LogEntry.Scope.Name}" : string.Empty)"
                                                                 aria-label="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
                                                                 class="@($"span-log-entry-button {(isSelected ? "span-log-entry-selected" : null)}")"
                                                                 data-span-color="@spanColor"
@@ -242,7 +243,7 @@
                                                             The button continues to be displayed and clicking on it opens the details view.
                                                             A standard browser tooltip is displayed instead of the FluentTooltip.
                                                         *@
-                                                        @if (item.Index < 500)
+                                                        @if (htmlTooltip)
                                                         {
                                                             <FluentTooltip Anchor="@buttonId" MaxWidth="400px">
                                                                 <div class="log-tooltip-title-container">
