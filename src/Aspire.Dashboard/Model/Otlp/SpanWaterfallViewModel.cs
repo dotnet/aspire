@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public sealed class SpanLogEntry
 {
+    public required int Index { get; init; }
     public required OtlpLogEntry LogEntry { get; init; }
     public required double LeftOffset { get; init; }
 }
@@ -125,11 +126,12 @@ public sealed class SpanWaterfallViewModel
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
         var groupedLogs = logs.GroupBy(l => l.SpanId).ToDictionary(l => l.Key, g => g.ToList());
+        var currentSpanLogIndex = 0;
 
         TraceHelpers.VisitSpans(trace, (OtlpSpan span, SpanWaterfallViewModelState s) =>
         {
             groupedLogs.TryGetValue(span.SpanId, out var spanLogs);
-            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, spanLogs);
+            var viewModel = CreateViewModel(span, s.Depth, s.Hidden, state, spanLogs, ref currentSpanLogIndex);
             orderedSpans.Add(viewModel);
 
             s.Parent?.Children.Add(viewModel);
@@ -139,7 +141,7 @@ public sealed class SpanWaterfallViewModel
 
         return orderedSpans;
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, List<OtlpLogEntry>? spanLogs)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state, List<OtlpLogEntry>? spanLogs, ref int currentSpanLogIndex)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -166,6 +168,7 @@ public sealed class SpanWaterfallViewModel
 
                     spanLogVms.Add(new SpanLogEntry
                     {
+                        Index = currentSpanLogIndex++,
                         LogEntry = log,
                         LeftOffset = logRelativeStart.TotalMilliseconds / rootDuration * 100
                     });

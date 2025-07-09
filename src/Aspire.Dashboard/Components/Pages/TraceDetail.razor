@@ -229,7 +229,7 @@
                                                         var isSelected = SelectedData?.LogEntryViewModel?.LogEntry.InternalId == item.LogEntry.InternalId;
 
                                                         <button id="@buttonId"
-                                                                title="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
+                                                                title="@($"{eventName} - {item.LogEntry.Scope.Name}")"
                                                                 aria-label="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
                                                                 class="@($"span-log-entry-button {(isSelected ? "span-log-entry-selected" : null)}")"
                                                                 data-span-color="@spanColor"
@@ -237,25 +237,33 @@
                                                                 @onclick="@(() => ToggleSpanLogsAsync(item.LogEntry))"
                                                                 @onclick:stopPropagation="true">
                                                         </button>
-                                                        <FluentTooltip Anchor="@buttonId" MaxWidth="400px">
-                                                            <div class="log-tooltip-title-container">
-                                                                <span class="log-tooltip-title">@eventName</span> <span class="log-tooltip-subtitle">@item.LogEntry.Scope.Name</span><br />
-                                                            </div>
-                                                            <table class="log-tooltip-table">
-                                                                <tr>
-                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]</td>
-                                                                    <td>@item.LogEntry.Severity</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]</td>
-                                                                    <td>@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, item.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
-                                                                    <td>@OtlpHelpers.TruncateString(item.LogEntry.Message, maxLength: 200)</td>
-                                                                </tr>
-                                                            </table>
-                                                        </FluentTooltip>
+                                                        @*
+                                                            There is a performance impact to having many tooltips on the page. Limit to 500 tooltips.
+                                                            The button continues to be displayed and clicking on it opens the details view.
+                                                            A standard browser tooltip is displayed instead of the FluentTooltip.
+                                                        *@
+                                                        @if (item.Index < 500)
+                                                        {
+                                                            <FluentTooltip Anchor="@buttonId" MaxWidth="400px">
+                                                                <div class="log-tooltip-title-container">
+                                                                    <span class="log-tooltip-title">@eventName</span> <span class="log-tooltip-subtitle">@item.LogEntry.Scope.Name</span><br />
+                                                                </div>
+                                                                <table class="log-tooltip-table">
+                                                                    <tr>
+                                                                        <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]</td>
+                                                                        <td>@item.LogEntry.Severity</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]</td>
+                                                                        <td>@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, item.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
+                                                                        <td>@OtlpHelpers.TruncateString(item.LogEntry.Message, maxLength: 200)</td>
+                                                                    </tr>
+                                                                </table>
+                                                            </FluentTooltip>
+                                                        }
                                                     }
                                                 </div>
                                                 <div class="span-bar" style="grid-column: 2; background: @spanColor;"></div>
