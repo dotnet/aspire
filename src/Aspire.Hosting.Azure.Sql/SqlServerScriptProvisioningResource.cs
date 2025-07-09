@@ -2,89 +2,37 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Provisioning;
-using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure;
 
-// The existing class doesn't expose necessary properties like EnvironmentVariables and Kind.
-// This class is a workaround until the Azure SDK for .NET exposes these properties in the CDK
-// c.f. https://github.com/Azure/azure-sdk-for-net/issues/49283
+// The AzurePowerShellScript class doesn't work correctly.
+// See https://github.com/Azure/azure-sdk-for-net/issues/51135
 // Reference: https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-script-template
-sealed class SqlServerScriptProvisioningResource : ArmDeploymentScript
+sealed class SqlServerScriptProvisioningResource : AzurePowerShellScript
 {
-    private BicepValue<string>? _scriptContent;
-    private BicepValue<string>? _kind;
-    private BicepValue<string>? _azCliVersion;
-    private BicepValue<string>? _azPowerShellVersion;
-    private BicepValue<TimeSpan>? _retentionInterval;
-    private BicepList<EnvironmentVariable>? _environmentVariables;
+    private BicepValue<TimeSpan>? _retentionIntervalOverride;
 
     public SqlServerScriptProvisioningResource(string bicepIdentifier) : base(bicepIdentifier)
     {
         RetentionInterval = TimeSpan.FromHours(1);
-    }
-
-    /// <summary>
-    /// Type of the script. e.g., AzurePowerShell, .
-    /// </summary>
-    public BicepValue<string> Kind
-    {
-        get { Initialize(); return _kind!; }
-        set { Initialize(); _kind!.Assign(value); }
-    }
-
-    /// <summary>
-    /// Script body.
-    /// </summary>
-    public BicepValue<string> ScriptContent
-    {
-        get { Initialize(); return _scriptContent!; }
-        set { Initialize(); _scriptContent!.Assign(value); }
-    }
-
-    /// <summary>
-    /// Azure CLI module version to be used.
-    /// </summary>
-    public BicepValue<string> AZCliVersion
-    {
-        get { Initialize(); return _azCliVersion!; }
-        set { Initialize(); _azCliVersion!.Assign(value); }
-    }
-
-    /// <summary>
-    /// Azure CLI module version to be used.
-    /// </summary>
-    public BicepValue<string> AZPowerShellVersion
-    {
-        get { Initialize(); return _azPowerShellVersion!; }
-        set { Initialize(); _azPowerShellVersion!.Assign(value); }
+        RetentionIntervalOverride = TimeSpan.FromHours(1);
     }
 
     /// <summary>
     /// Interval for which the service retains the script resource after it reaches a terminal state. Resource will be deleted when this duration expires. Duration is based on ISO 8601 pattern (for example P1D means one day).
     /// </summary>
-    public BicepValue<TimeSpan> RetentionInterval
+    public BicepValue<TimeSpan> RetentionIntervalOverride
     {
-        get { Initialize(); return _retentionInterval!; }
-        set { Initialize(); _retentionInterval!.Assign(value); }
-    }
-
-    public BicepList<EnvironmentVariable> EnvironmentVariables
-    {
-        get { Initialize(); return _environmentVariables!; }
-        set { Initialize(); _environmentVariables!.Assign(value); }
+        get { Initialize(); return _retentionIntervalOverride!; }
+        set { Initialize(); _retentionIntervalOverride!.Assign(value); }
     }
 
     protected override void DefineProvisionableProperties()
     {
         base.DefineProvisionableProperties();
 
-        _kind = DefineProperty<string>(nameof(Kind), ["kind"], isRequired: true);
-        _scriptContent = DefineProperty<string>(nameof(ScriptContent), ["properties", "scriptContent"]);
-        _azCliVersion = DefineProperty<string>(nameof(AZCliVersion), ["properties", "azCliVersion"]);
-        _azPowerShellVersion = DefineProperty<string>(nameof(AZPowerShellVersion), ["properties", "azPowerShellVersion"]);
-        _retentionInterval = DefineProperty<TimeSpan>(nameof(RetentionInterval), ["properties", "retentionInterval"], format: "P");
-        _environmentVariables = DefineListProperty<EnvironmentVariable>(nameof(EnvironmentVariables), ["properties", "environmentVariables"]);
+        DefineProperty<string>("Kind", ["kind"], defaultValue: "AzurePowerShell");
+        _retentionIntervalOverride = DefineProperty<TimeSpan>(nameof(RetentionInterval), ["properties", "retentionInterval"], format: "P");
     }
 }
