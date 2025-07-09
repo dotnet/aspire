@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -392,5 +393,5 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(TraceDetail));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.TraceDetail);
 }

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 internal class Publisher(
-    IPublishingActivityProgressReporter progressReporter,
+    IPublishingActivityReporter progressReporter,
     ILogger<Publisher> logger,
     IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,

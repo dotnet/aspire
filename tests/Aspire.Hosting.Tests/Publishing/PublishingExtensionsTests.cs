@@ -10,13 +10,13 @@ namespace Aspire.Hosting.Tests.Publishing;
 
 public class PublishingExtensionsTests
 {
-    private readonly InteractionService _interactionService = PublishingActivityProgressReporterTests.CreateInteractionService();
+    private readonly InteractionService _interactionService = PublishingActivityReporterTests.CreateInteractionService();
 
     [Fact]
     public async Task PublishingStepExtensions_CreateTask_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -35,7 +35,7 @@ public class PublishingExtensionsTests
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -53,7 +53,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_UpdateStatus_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -72,7 +72,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -90,7 +90,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Warn_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -108,7 +108,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Fail_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityProgressReporter(_interactionService);
+        var reporter = new PublishingActivityReporter(_interactionService);
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 

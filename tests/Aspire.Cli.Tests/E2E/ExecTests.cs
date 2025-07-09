@@ -92,6 +92,26 @@ public class ExecTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    public async Task Exec_NonExistingCommand_ShouldProduceLogs()
+    {
+        string[] args = [
+            "--operation", "run",
+            "--project", DatabaseMigrationsAppHostProjectPath,
+            "--resource", "api",
+                         // not existing command. Executable should fail without start basically
+            "--command", "\"randombuildcommand doit\"",
+            "--postgres"
+        ];
+
+        var app = await BuildAppAsync(args);
+        var logs = await ExecAndCollectLogsAsync(app);
+
+        Assert.True(logs.Count > 0, "No logs were produced during the exec operation.");
+        Assert.Contains(logs, x => x.Text.Contains("Aspire exec failed to start"));
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Exec_DotnetHelp_ShouldProduceLogs()
     {
         string[] args = [
