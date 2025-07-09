@@ -24,8 +24,8 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
                 {
                     // Simulate a search that returns packages that do not match Aspire.Cli
                     return (0, [
-                        new NuGetPackage { Id = "CommunityToolkit.Aspire.Hosting.Foo", Version = "9.4.0-xyz", Source = "nuget.org" },
-                        new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" }
+                        new NuGetPackage { Id = "CommunityToolkit.Aspire.Hosting.Foo", Version = "9.5.0-xyz", Source = "nuget.org" },
+                        new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }
                     ]);
                 };
 
