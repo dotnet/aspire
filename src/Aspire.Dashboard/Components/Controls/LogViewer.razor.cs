@@ -90,6 +90,11 @@ public sealed partial class LogViewer
             : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
     }
 
+    private string GetLogContainerClass()
+    {
+        return $"log-container console-container {(NoWrapLogs ? "wrap-log-container" : null)}";
+    }
+
     public ValueTask DisposeAsync()
     {
         Logger.LogDebug("Disposing log viewer.");
