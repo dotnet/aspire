@@ -38,3 +38,5 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
 }
 
 output aiFoundryApiEndpoint string = foundry.properties.endpoints['AI Foundry API']
+
+output endpoint string = foundry.properties.endpoint

@@ -86,6 +86,14 @@
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
+    },
+    "exec-nonexisting-command": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "exec --project ../../../../../playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj --resource api -- randomnonexistingcommand builddoit",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
     }
   }
 }
