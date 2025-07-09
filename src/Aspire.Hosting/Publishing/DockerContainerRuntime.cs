@@ -63,7 +63,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
                 if (!string.IsNullOrEmpty(options?.OutputPath))
                 {
-                    outputType += $",dest=\"{options.OutputPath}/{imageName}.tar\"";
+                    outputType += $",dest={Path.Combine(options.OutputPath, imageName)}.tar";
                 }
 
                 arguments += $" --output \"{outputType}\"";
