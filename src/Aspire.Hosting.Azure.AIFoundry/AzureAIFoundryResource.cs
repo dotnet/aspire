@@ -31,6 +31,11 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public BicepOutputReference Endpoint => new("endpoint", this);
 
     /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
@@ -52,11 +57,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// The API key to access Foundry Local
     /// </summary>
     public string? ApiKey { get; internal set; }
-
-    /// <summary>
-    /// Gets the "name" output reference for the resource.
-    /// </summary>
-    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
