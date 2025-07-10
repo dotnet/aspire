@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -190,5 +191,18 @@ public class GitHubModelsExtensionTests
 
         resource.Organization = orgParameter.Resource;
         Assert.Equal(orgParameter.Resource, resource.Organization);
+    }
+
+    [Fact]
+    public void WithHealthCheckAddsHealthCheckAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+
+        // Verify that the health check annotation is added
+        var healthCheckAnnotations = github.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
+        Assert.Single(healthCheckAnnotations);
+        Assert.Equal("github_github_models_check", healthCheckAnnotations[0].Key);
     }
 }
