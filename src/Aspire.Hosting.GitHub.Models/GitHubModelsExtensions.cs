@@ -37,7 +37,7 @@ public static class GitHubModelsExtensions
                 State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success),
                 Properties =
                     [
-                        new(CustomResourceKnownProperties.Source, "Github Models")
+                        new(CustomResourceKnownProperties.Source, "GitHub Models")
                     ]
             });
     }
