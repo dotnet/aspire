@@ -3,8 +3,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
@@ -128,14 +130,14 @@ internal sealed class ParameterProcessor(
         {
             // First we show a notification that there are unresolved parameters.
             var result = await interactionService.PromptMessageBarAsync(
-                 "Unresolved parameters",
-                 "There are unresolved parameters that need to be set. Please provide values for them.",
-                 new MessageBarInteractionOptions
-                 {
-                     Intent = MessageIntent.Warning,
-                     PrimaryButtonText = "Enter values"
-                 })
-                 .ConfigureAwait(false);
+                InteractionStrings.ParametersBarTitle,
+                InteractionStrings.ParametersBarMessage,
+                new MessageBarInteractionOptions
+                {
+                    Intent = MessageIntent.Warning,
+                    PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                })
+                .ConfigureAwait(false);
 
             if (result.Data)
             {
@@ -149,7 +151,7 @@ internal sealed class ParameterProcessor(
                     {
                         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
                         Label = parameter.Name,
-                        Placeholder = $"Enter value for {parameter.Name}",
+                        Placeholder = string.Format(CultureInfo.InvariantCulture, InteractionStrings.ParametersInputsParameterPlaceholder, parameter.Name),
                     };
                     resourceInputs.Add((parameter, input));
                 }
@@ -157,16 +159,16 @@ internal sealed class ParameterProcessor(
                 var saveParameters = new InteractionInput
                 {
                     InputType = InputType.Boolean,
-                    Label = "Save to user secrets"
+                    Label = InteractionStrings.ParametersInputsRememberLabel
                 };
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
-                    "Set unresolved parameters",
-                    "Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.",
+                    InteractionStrings.ParametersInputsTitle,
+                    InteractionStrings.ParametersInputsMessage,
                     [.. resourceInputs.Select(i => i.Input), saveParameters],
                     new InputsDialogInteractionOptions
                     {
-                        PrimaryButtonText = "Save",
+                        PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
                         ShowDismiss = true,
                         EnableMessageMarkdown = true,
                     })

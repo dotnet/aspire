@@ -11,7 +11,8 @@ namespace Aspire.Hosting;
 internal sealed class DistributedApplicationLifecycle(
     ILogger<DistributedApplication> logger,
     IConfiguration configuration,
-    DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
+    DistributedApplicationExecutionContext executionContext,
+    LocaleOverrideContext localeOverrideContext) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -41,6 +42,11 @@ internal sealed class DistributedApplicationLifecycle(
         {
             logger.LogInformation("Distributed application starting.");
             logger.LogInformation("Application host directory is: {AppHostDirectory}", configuration["AppHost:Directory"]);
+        }
+
+        if (localeOverrideContext.OverrideErrorMessage is { Length: > 0 } localOverrideError)
+        {
+            logger.LogWarning(localOverrideError);
         }
 
         return Task.CompletedTask;
