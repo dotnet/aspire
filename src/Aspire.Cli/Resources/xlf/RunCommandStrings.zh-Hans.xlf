@@ -33,7 +33,7 @@
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <source>Press [bold white on red]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="needs-review-translation">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>

@@ -193,6 +193,8 @@ internal sealed class RunCommand : BaseCommand
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
 
+            AppendCtrlCMessage(longestLocalizedLength);
+
             if (isCodespaces || isRemoteContainers)
             {
                 bool firstEndpoint = true;
@@ -204,6 +206,13 @@ internal sealed class RunCommand : BaseCommand
                     {
                         ProcessResourceState(resourceState, (resource, endpoint) =>
                         {
+                            // When we are appending endpoints we need
+                            // to remove the CTRL-C message that was appended
+                            // previously. So we can write the endpoint.
+                            // We will append the CTRL-C message again after
+                            // writing the endpoint.
+                            ClearLines(2);
+
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
@@ -222,6 +231,8 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
                             _ansiConsole.Write(endpointsPadder);
                             firstEndpoint = false;
+
+                            AppendCtrlCMessage(longestLocalizedLength);
                         });
                     }
                 }
@@ -229,30 +240,6 @@ internal sealed class RunCommand : BaseCommand
                 {
                     // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
-
-                // Display CTRL+C message after endpoints in codespaces/remote containers
-                var ctrlCGrid = new Grid();
-                ctrlCGrid.AddColumn();
-                ctrlCGrid.AddColumn();
-                ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
-                ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-                ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
-
-                var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
-                _ansiConsole.Write(ctrlCPadder);
-            }
-            else
-            {
-                // Display CTRL+C message immediately if not in codespaces/remote containers
-                var ctrlCGrid = new Grid();
-                ctrlCGrid.AddColumn();
-                ctrlCGrid.AddColumn();
-                ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
-                ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-                ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
-
-                var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
-                _ansiConsole.Write(ctrlCPadder);
             }
 
             await pendingLogCapture;
@@ -302,6 +289,34 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+    }
+
+    private void ClearLines(int lines)
+    {
+        if (lines <= 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < lines; i++)
+        {
+            _ansiConsole.Write("\u001b[1A");
+            _ansiConsole.Write("\u001b[2K"); // Clear the line
+        }
+    }
+
+    private void AppendCtrlCMessage(int longestLocalizedLength)
+    {
+
+        var ctrlCGrid = new Grid();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+        ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+
+        var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
+        _ansiConsole.Write(ctrlCPadder);
     }
 
     private static FileInfo GetAppHostLogFile()
