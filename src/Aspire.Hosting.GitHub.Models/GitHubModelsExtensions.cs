@@ -17,14 +17,15 @@ public static class GitHubModelsExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="model">The model name to use with GitHub Models.</param>
+    /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, string model)
+    public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, string model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(model);
 
-        var resource = new GitHubModelResource(name, model);
+        var resource = new GitHubModelResource(name, model, organization?.Resource);
 
         return builder.AddResource(resource)
             .WithInitialState(new()
