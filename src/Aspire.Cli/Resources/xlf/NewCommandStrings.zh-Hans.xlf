@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../NewCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Create a new Aspire sample project.</source>
-        <target state="translated">创建新的 Aspire 示例项目。</target>
+        <source>Create a new Aspire project.</source>
+        <target state="translated">创建新的 Aspire 项目。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">

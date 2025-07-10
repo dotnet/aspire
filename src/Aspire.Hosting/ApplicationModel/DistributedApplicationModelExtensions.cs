@@ -18,12 +18,12 @@ public static class DistributedApplicationModelExtensions
     {
         foreach (var r in model.Resources)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            if (r.IsExcludedFromPublish())
             {
                 continue;
             }
 
-            if (!r.IsContainer() && r is not ProjectResource)
+            if (!r.IsContainer() && !r.IsEmulator() && r is not ProjectResource)
             {
                 continue;
             }

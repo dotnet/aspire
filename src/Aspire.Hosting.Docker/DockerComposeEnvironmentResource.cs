@@ -7,6 +7,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker;
@@ -62,13 +63,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PublishingContext context)
     {
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
             imageBuilder,
-            context.OutputPath,
+            outputPath,
             context.Logger,
-            context.ProgressReporter,
+            context.ActivityReporter,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

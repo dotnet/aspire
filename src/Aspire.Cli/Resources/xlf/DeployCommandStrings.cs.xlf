@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">Nasazení se nezdařilo s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="translated">Nasaďte projekt hostitele aplikace Aspire do svých podporovaných cílů nasazení.</target>
+        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <target state="translated">Nasaďte projekt hostitele aplikace Aspire do svých podporovaných cílů nasazení. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

@@ -30,6 +30,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private List<SelectViewModel<string>> _options = null!;
     private string? _currentValue;
     private string _formattedText = string.Empty;
+    private bool _isLoading = true;
 
     public HashSet<string?> EnabledOptions { get; } = [];
     internal bool? ShowSecretsWarning { get; private set; }
@@ -66,8 +67,15 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
         // We need to make users perform an explicit action once before being able to see secret values
         // We do this by making them agree to a warning in the text visualizer dialog.
-        var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
-        ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
+        if (Content.ContainsSecret)
+        {
+            var settingsResult = await LocalStorage.GetUnprotectedAsync<TextVisualizerDialogSettings>(BrowserStorageKeys.TextVisualizerDialogSettings);
+            ShowSecretsWarning = settingsResult.Value is not { SecretsWarningAcknowledged: true };
+        }
+
+        // Don't display content until it is loaded.
+        // This is required because rendering uses the theme manager, and we don't want to call that code until we know it's finished initializing.
+        _isLoading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -115,7 +123,18 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool IsTextContentDisplayed => !Content.ContainsSecret || ShowSecretsWarning is false;
+    private bool IsTextContentDisplayed
+    {
+        get
+        {
+            if (_isLoading)
+            {
+                return false;
+            }
+
+            return !Content.ContainsSecret || ShowSecretsWarning is false;
+        }
+    }
 
     private string GetLogContentClass()
     {

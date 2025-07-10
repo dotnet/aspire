@@ -67,6 +67,16 @@
         <target state="translated">Ошибка при задании настройки конфигурации: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionIncompatibleWithCli">
+        <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
+        <target state="translated">Расширение Aspire несовместимо с CLI. Расширение необходимо обновить до версии, которая поддерживает возможность {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionTokenMustBeSet">
+        <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
+        <target state="translated">Необходимо задать токен расширения Aspire, если настроено ASPIRE_EXTENSION_ENDPOINT. Задайте ASPIRE_EXTENSION_TOKEN</target>
+        <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
+      </trans-unit>
       <trans-unit id="FailedToParseTemplateVersionFromStdout">
         <source>Failed to parse template version from stdout.</source>
         <target state="translated">Не удалось проделать разбор версии шаблона из stdout.</target>
@@ -87,6 +97,11 @@
         <target state="translated">Указанный недопустимый языковой стандарт {0} не будет использован.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidSocketPath">
+        <source>The provided extension socket path needs two valid parts.</source>
+        <target state="translated">Для указанного пути сокета расширения требуется две действительные части.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">Обнаружено несколько файлов проектов.</target>
@@ -95,6 +110,11 @@
       <trans-unit id="NoProjectFileFound">
         <source>No project file found.</source>
         <target state="translated">Файл проекта не найден.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSelectionMade">
+        <source>Input was required for prompt '{0}' but not provided.</source>
+        <target state="translated">Для запроса "{0}" требовались входные данные, но они не были предоставлены.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">

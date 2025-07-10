@@ -15,7 +15,6 @@ using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
-using Aspire.TestUtilities;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -563,7 +562,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9214")]
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
@@ -599,6 +597,10 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Assert initial state
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
 
+        logger.LogInformation("Check logs are empty.");
+        PrintCurrentLogEntries(cut.Instance._logEntries);
+        Assert.Empty(cut.Instance._logEntries.GetEntries());
+
         logger.LogInformation("Pause logs.");
         var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>().WaitForElement("fluent-button");
         pauseResumeButton.Click();
@@ -607,21 +609,24 @@ public partial class ConsoleLogsTests : DashboardTestContext
         logger.LogInformation("Wait for pause log.");
         var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
 
-        // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
+        logger.LogInformation("Adding filtered logs during pause.");
+        // Add new logs while paused and assert that the log viewer shows correct filtered count
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
-
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(3, pauseContent, IsErrorMessage: false)]);
 
-        logger.LogInformation("Assert that the last log is the pause log.");
-        cut.WaitForAssertion(() => Assert.Equal(
-            string.Format(
-                loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
-                FormatHelpers.FormatTimeWithOptionalDate(timeProvider,
-                    cut.Instance._logEntries.GetEntries().Last().Pause!.StartTime, MillisecondsDisplay.Truncated),
-                3),
-            pauseConsoleLogLine.TextContent));
+        logger.LogInformation("Assert that the only log is still the pause log.");
+        cut.WaitForAssertion(() =>
+        {
+            var pauseLog = Assert.Single(cut.Instance._logEntries.GetEntries());
+            Assert.Equal(
+                string.Format(
+                    loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pauseLog.Pause!.StartTime, MillisecondsDisplay.Truncated),
+                    3),
+                pauseConsoleLogLine.TextContent);
+        });
 
         logger.LogInformation("Resume logs.");
         // Check that
@@ -631,16 +636,12 @@ public partial class ConsoleLogsTests : DashboardTestContext
         pauseResumeButton.Click();
         cut.WaitForAssertion(() => Assert.False(pauseManager.ConsoleLogsPaused));
 
-        logger.LogInformation("Write a new log.");
-        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
-        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
-
         logger.LogInformation("Assert that pause log has expected content.");
         cut.WaitForAssertion(() =>
         {
             PrintCurrentLogEntries(cut.Instance._logEntries);
 
-            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries());
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);
@@ -652,6 +653,10 @@ public partial class ConsoleLogsTests : DashboardTestContext
                     3),
                 pauseConsoleLogLine.TextContent);
         });
+
+        logger.LogInformation("Write a new log after resume.");
+        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
 
         logger.LogInformation("Assert that log entries discarded aren't in log viewer and log entries that should be logged are in log viewer.");
         cut.WaitForAssertion(() =>

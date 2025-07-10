@@ -32,6 +32,11 @@
         <target state="translated">パッケージが見つかりませんでした。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">検索語句 '{0}' に一致するパッケージはありません。使用可能なすべてのパッケージを表示しています。</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">パッケージ {0}::{1} が正常に追加されました。</target>

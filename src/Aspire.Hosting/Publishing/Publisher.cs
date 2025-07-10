@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 internal class Publisher(
-    IPublishingActivityProgressReporter progressReporter,
+    IPublishingActivityReporter progressReporter,
     ILogger<Publisher> logger,
     IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,
@@ -30,73 +30,62 @@ internal class Publisher(
         // Add a step to do model analysis before publishing/deploying
         var step = await progressReporter.CreateStepAsync(
             "Analyzing model.",
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
-        var task = await progressReporter.CreateTaskAsync(
-            step,
-            "Analyzing the distributed application model for publishing and deployment capabilities.",
-            cancellationToken)
-            .ConfigureAwait(false);
-
-        var publishingResources = new List<IResource>();
-        var deployingResources = new List<IResource>();
-
-        foreach (var resource in model.Resources)
+        await using (step.ConfigureAwait(false))
         {
-            if (resource.HasAnnotationOfType<PublishingCallbackAnnotation>())
-            {
-                publishingResources.Add(resource);
-            }
 
-            if (resource.HasAnnotationOfType<DeployingCallbackAnnotation>())
-            {
-                deployingResources.Add(resource);
-            }
-        }
-
-        (string Message, TaskCompletionState State) taskInfo;
-
-        if (options.Value.Deploy)
-        {
-            taskInfo = deployingResources.Count switch
-            {
-                0 => ("No resources in the distributed application model support deployment.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
-            };
-        }
-        else
-        {
-            taskInfo = publishingResources.Count switch
-            {
-                0 => ("No resources in the distributed application model support publishing.", TaskCompletionState.CompletedWithError),
-                _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", TaskCompletionState.Completed)
-            };
-        }
-
-        await progressReporter.CompleteTaskAsync(
-                    task,
-                    taskInfo.State,
-                    taskInfo.Message,
-                    cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-        // This should be automagically handled by the progress reporter
-        await progressReporter.CompleteStepAsync(
-                    step,
-                    "Model analysis completed.",
-                    isError: taskInfo.State == TaskCompletionState.CompletedWithError,
-                    cancellationToken)
-                    .ConfigureAwait(false);
-
-        if (taskInfo.State == TaskCompletionState.CompletedWithError)
-        {
-            // TOOD: This should be automatically handled (if any steps fail)
-            await progressReporter.CompletePublishAsync(false, cancellationToken)
+            var task = await step.CreateTaskAsync(
+                "Analyzing the distributed application model for publishing and deployment capabilities.",
+                cancellationToken)
                 .ConfigureAwait(false);
 
-            // If there are no resources to publish or deploy, we can exit early
-            return;
+            var publishingResources = new List<IResource>();
+            var deployingResources = new List<IResource>();
+
+            foreach (var resource in model.Resources)
+            {
+                if (resource.HasAnnotationOfType<PublishingCallbackAnnotation>())
+                {
+                    publishingResources.Add(resource);
+                }
+
+                if (resource.HasAnnotationOfType<DeployingCallbackAnnotation>())
+                {
+                    deployingResources.Add(resource);
+                }
+            }
+
+            (string Message, CompletionState State) taskInfo;
+
+            if (options.Value.Deploy)
+            {
+                taskInfo = deployingResources.Count switch
+                {
+                    0 => ("No resources in the distributed application model support deployment.", CompletionState.CompletedWithError),
+                    _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
+                };
+            }
+            else
+            {
+                taskInfo = publishingResources.Count switch
+                {
+                    0 => ("No resources in the distributed application model support publishing.", CompletionState.CompletedWithError),
+                    _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
+                };
+            }
+
+            await task.CompleteAsync(
+                        taskInfo.Message,
+                        taskInfo.State,
+                        cancellationToken)
+                        .ConfigureAwait(false);
+
+            if (taskInfo.State == CompletionState.CompletedWithError)
+            {
+                // If there are no resources to publish or deploy, we can exit early
+                return;
+            }
         }
 
         var publishingContext = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);

@@ -191,7 +191,7 @@ public class WithReferenceTests
                               .WithReference(missingResource);
 
         // Call environment variable callbacks.
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
         {
             var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         }).DefaultTimeout();

@@ -1,14 +1,10 @@
-import * as vscode from 'vscode';
-import { getAspireTerminal } from '../utils/terminal';
-import { isWorkspaceOpen } from '../utils/vsc';
+import { sendToAspireTerminal } from '../utils/terminal';
+import { isWorkspaceOpen } from '../utils/workspace';
 
 export async function configCommand() {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    const terminal = getAspireTerminal();
-    
-    terminal.sendText(`aspire config`);
-    terminal.show();
+    sendToAspireTerminal("aspire config");
 }

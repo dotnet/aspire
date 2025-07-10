@@ -1,14 +1,5 @@
-import * as vscode from 'vscode';
-import { getAspireTerminal } from '../utils/terminal';
-import { isWorkspaceOpen } from '../utils/vsc';
+import { sendToAspireTerminal } from '../utils/terminal';
 
 export async function newCommand() {
-    if (!isWorkspaceOpen()) {
-        return;
-    }
-
-    const terminal = getAspireTerminal();
-
-    terminal.sendText(`aspire new`);
-    terminal.show();
+    sendToAspireTerminal("aspire new");
 };

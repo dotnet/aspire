@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Aspire.Dashboard.Telemetry;
@@ -13,6 +13,7 @@ public static class TelemetryPropertyKeys
 
     // IComponentWithTelemetry properties
     public const string DashboardComponentId = AspireDashboardPropertyPrefix + "ComponentId";
+    public const string DashboardComponentType = AspireDashboardPropertyPrefix + "ComponentType";
     public const string UserAgent = AspireDashboardPropertyPrefix + "UserAgent";
 
     // ConsoleLogs properties

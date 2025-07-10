@@ -11,6 +11,11 @@ namespace Aspire.Cli.Interaction;
 
 internal class ConsoleInteractionService : IInteractionService
 {
+    private static readonly Style s_exitCodeMessageStyle = new Style(foreground: Color.RoyalBlue1, background: null, decoration: Decoration.None);
+    private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
+    private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
+    private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
+
     private readonly IAnsiConsole _ansiConsole;
 
     public ConsoleInteractionService(IAnsiConsole ansiConsole)
@@ -33,10 +38,14 @@ internal class ConsoleInteractionService : IInteractionService
             .Start(statusText, (context) => action());
     }
 
-    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
-        var prompt = new TextPrompt<string>(promptText);
+        var prompt = new TextPrompt<string>(promptText)
+        {
+            IsSecret = isSecret,
+            AllowEmpty = !required
+        };
 
         if (defaultValue is not null)
         {
@@ -98,6 +107,27 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine($":{emoji}:  {message}");
     }
 
+    public void DisplayPlainText(string message)
+    {
+        _ansiConsole.WriteLine(message);
+    }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var style = isErrorMessage ? s_errorMessageStyle
+            : type switch
+            {
+                "waiting" => s_waitingMessageStyle,
+                "running" => s_infoMessageStyle,
+                "exitCode" => s_exitCodeMessageStyle,
+                "failedToStart" => s_errorMessageStyle,
+                _ => s_infoMessageStyle
+            };
+
+        var prefix = lineNumber.HasValue ? $"#{lineNumber.Value}: " : "";
+        _ansiConsole.WriteLine($"{prefix}{message}", style);
+    }
+
     public void DisplaySuccess(string message)
     {
         DisplayMessage("thumbs_up", message);
@@ -155,6 +185,16 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayEmptyLine()
     {
+        _ansiConsole.WriteLine();
+    }
+
+    private const string UpdateUrl = "https://aka.ms/aspire/update";
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
+    {
+        _ansiConsole.WriteLine();
+        _ansiConsole.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
+        _ansiConsole.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
         _ansiConsole.WriteLine();
     }
 }

@@ -32,6 +32,11 @@
         <target state="translated">Nessun pacchetto trovato.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">Nessun pacchetto corrisponde al termine di ricerca '{0}'. Visualizzazione di tutti i pacchetti disponibili.</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">Caricamento del pacchetto {0}::{1} completato.</target>

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Dashboard</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">Esegui un host dell'app Aspire in modalità di sviluppo.</target>
@@ -20,6 +25,11 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost è null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Log</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">

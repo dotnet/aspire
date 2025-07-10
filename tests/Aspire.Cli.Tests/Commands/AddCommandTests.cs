@@ -494,6 +494,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+
+            // Makes it easier to isolate behavior in test case by disabling one
+            // of the concurrent calls to the NuGetCache from the prefetcher.
+            options.DisabledFeatures = [KnownFeatures.UpdateNotificationsEnabled];
+
             options.AddCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
@@ -585,6 +590,77 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
         Assert.Contains("No integration packages were found", displayedErrorMessage);
+    }
+
+    [Fact]
+    public async Task AddCommand_NoMatchingPackages_DisplaysNoMatchesMessage()
+    {
+        string? displayedSubtleMessage = null;
+        bool promptedForIntegration = false;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+            options.InteractionServiceFactory = (sp) => {
+                var testInteractionService = new TestConsoleInteractionService();
+                testInteractionService.DisplaySubtleMessageCallback = (message) => {
+                    displayedSubtleMessage = message;
+                };
+                return testInteractionService;
+            };
+
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestAddCommandPrompter(interactionService);
+                prompter.PromptForIntegrationCallback = (packages) =>
+                {
+                    promptedForIntegration = true;
+                    return packages.First();
+                };
+                return prompter;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var dockerPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Docker",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { dockerPackage, redisPackage });
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add nonexistentpackage");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        Assert.True(promptedForIntegration);
+        Assert.Contains("No packages matched your search term 'nonexistentpackage'", displayedSubtleMessage);
     }
 }
 

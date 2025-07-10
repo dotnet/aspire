@@ -205,11 +205,7 @@
       "type": "container.v0",
       "image": "mcr.microsoft.com/dotnet/nightly/yarp:latest",
       "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "services__basketservice__http__0": "{basketservice.bindings.http.url}",
-        "services__basketservice__https__0": "{basketservice.bindings.https.url}",
-        "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
-        "services__catalogservice__https__0": "{catalogservice.bindings.https.url}"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "bindings": {
         "http": {

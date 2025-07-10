@@ -128,9 +128,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "root-step",
                     StatusText = "Publishing artifacts",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = null
                 }
             };
@@ -141,9 +139,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-1",
                     StatusText = "Generating YAML goodness",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -154,9 +150,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-1",
                     StatusText = "Generating YAML goodness",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -167,9 +161,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 1",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -180,9 +172,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 1",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -193,9 +183,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 2",
-                    IsComplete = false,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.InProgress,
                     StepId = "root-step"
                 }
             };
@@ -206,9 +194,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "child-task-2",
                     StatusText = "Building image 2",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = "root-step"
                 }
             };
@@ -219,9 +205,7 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "root-step",
                     StatusText = "Publishing artifacts",
-                    IsComplete = true,
-                    IsError = false,
-                    IsWarning = false,
+                    CompletionState = CompletionStates.Completed,
                     StepId = null
                 }
             };
@@ -251,5 +235,16 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 yield return entry;
             }
         }
+    }
+
+    public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
     }
 }

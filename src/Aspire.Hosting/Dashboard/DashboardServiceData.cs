@@ -154,7 +154,7 @@ internal sealed class DashboardServiceData : IDisposable
     {
         await _interactionService.CompleteInteractionAsync(
             request.InteractionId,
-            async (interaction, serviceProvider, cancellationToken) =>
+            (interaction, serviceProvider) =>
             {
                 switch (request.KindCase)
                 {
@@ -174,30 +174,15 @@ internal sealed class DashboardServiceData : IDisposable
                             var incomingValue = requestInput.Value;
 
                             // Ensure checkbox value is either true or false.
-                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Checkbox)
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
                             {
                                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
                             }
 
                             modelInput.SetValue(incomingValue);
-                            modelInput.ValidationErrors.Clear();
                         }
 
-                        var hasErrors = false;
-                        if (options.ValidationCallback is { } validationCallback)
-                        {
-                            var context = new InputsDialogValidationContext
-                            {
-                                CancellationToken = cancellationToken,
-                                ServiceProvider = serviceProvider,
-                                Inputs = inputsInfo.Inputs
-                            };
-                            await validationCallback(context).ConfigureAwait(false);
-
-                            hasErrors = context.HasErrors;
-                        }
-
-                        return new InteractionCompletionState { Complete = !hasErrors, State = inputsInfo.Inputs };
+                        return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };
                     default:
                         return new InteractionCompletionState { Complete = true };
                 }

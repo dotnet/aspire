@@ -1,13 +1,16 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { IOutputChannelWriter } from '../utils/vsc';
-import { yesLabel, noLabel, directUrl, codespacesUrl, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability } from '../constants/strings';
+import { isFolderOpenInWorkspace } from '../utils/workspace';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
+import { extensionLogOutputChannel } from '../utils/logging';
+
+type CSLogLevel = 'Trace' | 'Debug' | 'Info' | 'Warn' | 'Error' | 'Critical';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
-    promptForString: (promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
@@ -19,6 +22,8 @@ export interface IInteractionService {
     displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
     displayCancellationMessage: (message: string) => void;
+    openProject: (projectPath: string) => void;
+    logMessage: (logLevel: CSLogLevel, message: string) => void;
 }
 
 type DashboardUrls = {
@@ -32,14 +37,11 @@ type ConsoleLine = {
 };
 
 export class InteractionService implements IInteractionService {
-    private _outputChannelWriter: IOutputChannelWriter;
     private _statusBarItem: vscode.StatusBarItem | undefined;
 
-    constructor(_outputChannelWriter: IOutputChannelWriter) {
-        this._outputChannelWriter = _outputChannelWriter;
-    }
-
     showStatus(statusText: string | null) {
+        extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
+
         if (!this._statusBarItem) {
             this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         }
@@ -52,17 +54,24 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    async promptForString(promptText: string, defaultValue: string | null, rpcClient: ICliRpcClient): Promise<string | null> {
+    async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
-            this._outputChannelWriter.appendLine(failedToShowPromptEmpty);
+            extensionLogOutputChannel.error(failedToShowPromptEmpty);
             return null;
         }
 
+        extensionLogOutputChannel.info(`Prompting for string: ${promptText} with default value: ${defaultValue ?? 'null'}`);
         const input = await vscode.window.showInputBox({
             prompt: formatText(promptText),
             value: formatText(defaultValue ?? ''),
             validateInput: async (value: string) => {
+                // Check required field validation first
+                if (required && (!value || value.trim() === '')) {
+                    return fieldRequired;
+                }
+
+                // Then check RPC validation
                 const validationResult = await rpcClient.validatePromptInputString(value);
                 if (validationResult) {
                     return validationResult.successful ? null : validationResult.message;
@@ -76,6 +85,7 @@ export class InteractionService implements IInteractionService {
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
+        extensionLogOutputChannel.info(`Confirming: ${promptText} with default value: ${defaultValue}`);
         const yes = yesLabel;
         const no = noLabel;
 
@@ -98,6 +108,8 @@ export class InteractionService implements IInteractionService {
     }
 
     async promptForSelection(promptText: string, choices: string[]): Promise<string | null> {
+        extensionLogOutputChannel.info(`Prompting for selection: ${promptText}`);
+
         const selected = await vscode.window.showQuickPick(choices, {
             placeHolder: formatText(promptText),
             canPickMany: false,
@@ -108,7 +120,9 @@ export class InteractionService implements IInteractionService {
     }
 
     async displayIncompatibleVersionError(requiredCapabilityStr: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) {
-        const cliInformationalVersion =  await rpcClient.getCliVersion();
+        extensionLogOutputChannel.info(`Displaying incompatible version error`);
+
+        const cliInformationalVersion = await rpcClient.getCliVersion();
 
         const errorLines = [
             incompatibleAppHostError,
@@ -120,46 +134,60 @@ export class InteractionService implements IInteractionService {
         vscode.window.showErrorMessage(formatText(errorLines.join('. ')));
 
         errorLines.forEach(line => {
-            this._outputChannelWriter.appendLine(formatText(line));
+            extensionLogOutputChannel.error(formatText(line));
         });
     }
 
     displayError(errorMessage: string) {
+        if (errorMessage.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty error message.');
+            return;
+        }
+
+        extensionLogOutputChannel.error(`Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
-        this._outputChannelWriter.appendLine(formatText(errorMessage));
+        this.clearStatusBar();
     }
 
     displayMessage(emoji: string, message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty message.');
+            return;
+        }
+
+        extensionLogOutputChannel.info(`Displaying message: ${emoji} ${message}`);
         vscode.window.showInformationMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // There is no need for a different success message handler, as a general informative message ~= success
     // in extension design philosophy.
     displaySuccess(message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty success message.');
+            return;
+        }
+
+        extensionLogOutputChannel.info(`Displaying success message: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     displaySubtleMessage(message: string) {
+        if (message.length === 0) {
+            extensionLogOutputChannel.warn('Attempted to display an empty subtle message.');
+            return;
+        }
+
+        extensionLogOutputChannel.info(`Displaying subtle message: ${message}`);
         vscode.window.setStatusBarMessage(formatText(message), 5000);
-        this._outputChannelWriter.appendLine(formatText(message));
     }
 
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
     displayEmptyLine() {
-        this._outputChannelWriter.append('\n');
+        extensionLogOutputChannel.append('\n');
     }
 
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
-        this._outputChannelWriter.appendLine('Dashboard:');
-        if (dashboardUrls.codespacesUrlWithLoginToken) {
-            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
-            this._outputChannelWriter.appendLine(`📈 ${codespacesUrl(dashboardUrls.codespacesUrlWithLoginToken)}`);
-        }
-        else {
-            this._outputChannelWriter.appendLine(`📈 ${directUrl(dashboardUrls.baseUrlWithLoginToken)}`);
-        }
+        extensionLogOutputChannel.info(`Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
         const actions: vscode.MessageItem[] = [
             { title: directLink }
@@ -178,6 +206,8 @@ export class InteractionService implements IInteractionService {
             return;
         }
 
+        extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
+
         if (selected.title === directLink) {
             vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.baseUrlWithLoginToken));
         }
@@ -189,27 +219,66 @@ export class InteractionService implements IInteractionService {
     displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.line).join('\n');
         vscode.window.showInformationMessage(formatText(displayText));
-        lines.forEach(line => this._outputChannelWriter.appendLine(formatText(line.line)));
+        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.line)));
     }
 
     displayCancellationMessage(message: string) {
+        extensionLogOutputChannel.info(`Displaying cancellation message: ${message}`);
         vscode.window.showWarningMessage(formatText(message));
-        this._outputChannelWriter.appendLine(formatText(message));
+    }
+
+    openProject(projectPath: string) {
+        extensionLogOutputChannel.info(`Opening project at path: ${projectPath}`);
+
+        if (isFolderOpenInWorkspace(projectPath)) {
+            return;
+        }
+
+        const uri = vscode.Uri.file(projectPath);
+        vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+    }
+
+    logMessage(logLevel: CSLogLevel, message: string) {
+        if (logLevel === 'Trace') {
+            extensionLogOutputChannel.trace(formatText(message));
+        }
+        else if (logLevel === 'Debug') {
+            extensionLogOutputChannel.debug(formatText(message));
+        }
+        else if (logLevel === 'Info') {
+            extensionLogOutputChannel.info(formatText(message));
+        }
+        else if (logLevel === 'Warn') {
+            extensionLogOutputChannel.warn(formatText(message));
+        }
+        else if (logLevel === 'Error' || logLevel === 'Critical') {
+            extensionLogOutputChannel.error(formatText(message));
+        }
+    }
+
+    clearStatusBar() {
+        if (this._statusBarItem) {
+            this._statusBarItem.hide();
+            this._statusBarItem.dispose();
+            this._statusBarItem = undefined;
+        }
     }
 }
 
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
     connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
-    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null) => interactionService.promptForString(promptText, defaultValue, rpcClient)));
+    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
     connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", withAuthentication((requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
     connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
     connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
     connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
-    connection.onRequest("displaySubtleMessage", withAuthentication( interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", withAuthentication(interactionService.displaySubtleMessage.bind(interactionService)));
     connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
     connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
+    connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
+    connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
 }

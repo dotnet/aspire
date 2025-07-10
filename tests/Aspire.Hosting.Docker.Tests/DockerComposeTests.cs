@@ -86,17 +86,73 @@ public class DockerComposeTests(ITestOutputHelper output)
         tempDir.Delete(recursive: true);
     }
 
+    [Fact]
+    public async Task PublishAsDockerComposeService_ThrowsIfNoEnvironment()
+    {
+        static async Task RunTest(Action<IDistributedApplicationBuilder> action)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+            // Do not add AddDockerComposeEnvironment
+
+            action(builder);
+
+            using var app = builder.Build();
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+            Assert.Contains("there are no 'DockerComposeEnvironmentResource' resources", ex.Message);
+        }
+
+        await RunTest(builder =>
+            builder.AddProject<Projects.ServiceA>("ServiceA")
+                .PublishAsDockerComposeService((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddContainer("api", "myimage")
+                .PublishAsDockerComposeService((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddExecutable("exe", "path/to/executable", ".")
+                .PublishAsDockerFile()
+                .PublishAsDockerComposeService((_, _) => { }));
+    }
+
+    [Fact]
+    public async Task MultipleDockerComposeEnvironmentsSupported()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        var env1 = builder.AddDockerComposeEnvironment("env1");
+        var env2 = builder.AddDockerComposeEnvironment("env2");
+
+        builder.AddContainer("api1", "myimage")
+            .WithComputeEnvironment(env1);
+
+        builder.AddContainer("api2", "myimage")
+            .WithComputeEnvironment(env2);
+
+        using var app = builder.Build();
+
+        // Publishing will stop the app when it is done
+        await app.RunAsync();
+
+        await VerifyDirectory(tempDir.Path);
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken)
+        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;

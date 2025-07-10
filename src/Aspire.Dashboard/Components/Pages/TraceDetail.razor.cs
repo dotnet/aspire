@@ -8,11 +8,14 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -64,12 +67,21 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.TraceDetail> Loc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.StructuredLogs> StructuredLogsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
+
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
 
         _gridColumns = [
-            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "6fr", MobileWidth: "6fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
         ];
@@ -195,8 +207,25 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             return;
         }
 
+        // Get logs for the trace. Note that there isn't a limit on this query so all logs are returned.
+        // There is a limit on the number of logs stored by the dashboard so this is implicitly limited.
+        // If there are performance issues with displaying all logs then consider adding a limit to this query.
+        var logsContext = new GetLogsContext
+        {
+            ApplicationKey = null,
+            Count = int.MaxValue,
+            StartIndex = 0,
+            Filters = [new TelemetryFilter
+            {
+                Field = KnownStructuredLogFields.TraceIdField,
+                Condition = FilterCondition.Equals,
+                Value = _trace.TraceId
+            }]
+        };
+        var result = TelemetryRepository.GetLogs(logsContext);
+
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
         var apps = new HashSet<OtlpApplication>();
@@ -213,7 +242,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private async Task HandleAfterFilterBindAsync()
     {
-        SelectedSpan = null;
+        SelectedData = null;
         await InvokeAsync(StateHasChanged);
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
@@ -242,7 +271,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string GetRowClass(SpanWaterfallViewModel viewModel)
     {
         // Test with id rather than the object reference because the data and view model objects are recreated on trace updates.
-        if (viewModel.Span.SpanId == SelectedSpan?.Span.SpanId)
+        if (viewModel.Span.SpanId == SelectedData?.SpanViewModel?.Span.SpanId)
         {
             return "selected-row";
         }
@@ -250,7 +279,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         return string.Empty;
     }
 
-    public SpanDetailsViewModel? SelectedSpan { get; set; }
+    public TraceDetailSelectedDataViewModel? SelectedData { get; set; }
 
     private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
@@ -275,7 +304,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedSpan?.Span.SpanId == viewModel.Span.SpanId)
+        if (SelectedData?.SpanViewModel?.Span.SpanId == viewModel.Span.SpanId)
         {
             await ClearSelectedSpanAsync();
         }
@@ -300,7 +329,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 Backlinks = backlinks,
             };
 
-            SelectedSpan = spanDetailsViewModel;
+            SelectedData = new TraceDetailSelectedDataViewModel
+            {
+                SpanViewModel = spanDetailsViewModel
+            };
         }
     }
 
@@ -323,7 +355,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
     {
-        SelectedSpan = null;
+        SelectedData = null;
 
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
@@ -334,6 +366,21 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
+
+    private async Task ToggleSpanLogsAsync(OtlpLogEntry logEntry)
+    {
+        if (SelectedData?.LogEntryViewModel?.LogEntry.InternalId == logEntry.InternalId)
+        {
+            await ClearSelectedSpanAsync();
+        }
+        else
+        {
+            SelectedData = new TraceDetailSelectedDataViewModel
+            {
+                LogEntryViewModel = new StructureLogsDetailsViewModel { LogEntry = logEntry }
+            };
+        }
+    }
 
     public void Dispose()
     {
@@ -346,5 +393,5 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.TraceDetail);
 }

@@ -47,6 +47,7 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
@@ -62,6 +63,7 @@
   <ItemGroup>
     <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
+    <Using Include="Aspire.Dashboard.ServiceClient" />
   </ItemGroup>
 
   <ItemGroup>

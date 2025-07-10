@@ -337,6 +337,7 @@ message WatchInteractionsResponseUpdate {
     string secondary_button_text = 5;
     bool show_secondary_button = 6;
     bool show_dismiss = 7;
+    bool enable_message_markdown = 8;
 
     oneof kind {
         InteractionComplete complete = 16;
@@ -385,9 +386,9 @@ enum MessageIntent {
 enum InputType {
     INPUT_TYPE_UNSPECIFIED = 0;
     INPUT_TYPE_TEXT = 1;
-    INPUT_TYPE_PASSWORD = 2;
-    INPUT_TYPE_SELECT = 3;
-    INPUT_TYPE_CHECKBOX = 4;
+    INPUT_TYPE_SECRET_TEXT = 2;
+    INPUT_TYPE_CHOICE = 3;
+    INPUT_TYPE_BOOLEAN = 4;
     INPUT_TYPE_NUMBER = 5;
 }
 

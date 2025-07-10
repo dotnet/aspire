@@ -32,6 +32,11 @@
         <target state="translated">找不到包。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">没有与搜索词“{0}”匹配的包。正在显示所有可用包。</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
         <source>The package {0}::{1} was added successfully.</source>
         <target state="translated">已成功添加包 {0}::{1}。</target>

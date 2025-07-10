@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="DeploymentFailed">
         <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="new">Deployment failed with exit code {0}. For more information run with --debug switch.</target>
+        <target state="translated">部署失败，退出代码为 {0}。有关详细信息，请使用 --debug 开关运行。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets.</source>
-        <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。</target>
+        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。(预览版)</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

@@ -7,12 +7,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnablePackageValidation>false</EnablePackageValidation>
-    <!-- This package needs to remain as preview. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>true</IsAotCompatible>
+    <PublishAot>true</PublishAot>
+    <DefineConstants>$(DefineConstants);CLI</DefineConstants>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+
+  <!-- Set the nuget properties when building as a global tool. -->
+  <PropertyGroup Condition="'$(IsCliToolProject)' == 'true'">
+    <!-- This package needs to remain as preview. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
@@ -20,10 +28,7 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
-    <!-- TODO: https://github.com/dotnet/aspire/issues/8677 - enable PublishAot when the build infrastructure supports all platforms. -->
-    <!--<PublishAot>true</PublishAot>--> 
-    <!--JsonSerializerIsReflectionEnabledByDefault can be removed when PublishAot is enabled. -->
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault> 
+    <PublishAot>false</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,6 +47,7 @@
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="StringComparers.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,6 +55,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\ExecCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ExecCommandStrings.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\InteractionServiceStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -102,6 +113,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Resources\ExecCommandStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ExecCommandStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="Resources\InteractionServiceStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>

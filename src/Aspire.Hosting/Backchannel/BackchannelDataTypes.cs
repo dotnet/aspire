@@ -1,7 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// These types are source shared between the CLI and the Aspire.Hosting projects.
+// The CLI sets the types in its own namespace.
+#if CLI
+namespace Aspire.Cli.Backchannel;
+#else
 namespace Aspire.Hosting.Backchannel;
+#endif
+
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -82,19 +90,24 @@ internal sealed class PublishingActivityData
     public required string StatusText { get; init; }
 
     /// <summary>
+    /// Gets the completion state of the publishing activity.
+    /// </summary>
+    public string CompletionState { get; init; } = CompletionStates.InProgress;
+
+    /// <summary>
     /// Gets a value indicating whether the publishing activity is complete.
     /// </summary>
-    public bool IsComplete { get; init; }
+    public bool IsComplete => CompletionState is not CompletionStates.InProgress;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity encountered an error.
     /// </summary>
-    public bool IsError { get; init; }
+    public bool IsError => CompletionState is CompletionStates.CompletedWithError;
 
     /// <summary>
     /// Gets a value indicating whether the publishing activity completed with warnings.
     /// </summary>
-    public bool IsWarning { get; init; }
+    public bool IsWarning => CompletionState is CompletionStates.CompletedWithWarning;
 
     /// <summary>
     /// Gets the identifier of the step this task belongs to (only applicable for tasks).
@@ -105,6 +118,47 @@ internal sealed class PublishingActivityData
     /// Gets the optional completion message for tasks (appears as dimmed child text).
     /// </summary>
     public string? CompletionMessage { get; init; }
+
+    /// <summary>
+    /// Gets the input information for prompt activities, if available.
+    /// </summary>
+    public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+}
+
+/// <summary>
+/// Represents an input for a publishing prompt.
+/// </summary>
+internal sealed class PublishingPromptInput
+{
+    /// <summary>
+    /// Gets the label for the input.
+    /// </summary>
+    public required string Label { get; init; }
+
+    /// <summary>
+    /// Gets the type of the input.
+    /// </summary>
+    public required string InputType { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the input is required.
+    /// </summary>
+    public bool Required { get; init; }
+
+    /// <summary>
+    /// Gets the options for the input. Only used by select inputs.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
+
+    /// <summary>
+    /// Gets the default value for the input.
+    /// </summary>
+    public string? Value { get; init; }
+
+    /// <summary>
+    /// Gets the validation errors for the input.
+    /// </summary>
+    public IReadOnlyList<string>? ValidationErrors { get; init; }
 }
 
 /// <summary>
@@ -115,4 +169,39 @@ internal static class PublishingActivityTypes
     public const string Step = "step";
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
+    public const string Prompt = "prompt";
+}
+
+/// <summary>
+/// Constants for completion state values.
+/// </summary>
+internal static class CompletionStates
+{
+    public const string InProgress = "InProgress";
+    public const string Completed = "Completed";
+    public const string CompletedWithWarning = "CompletedWithWarning";
+    public const string CompletedWithError = "CompletedWithError";
+}
+
+internal class BackchannelLogEntry
+{
+    public required EventId EventId { get; set; }
+    public required LogLevel LogLevel { get; set; }
+    public required string Message { get; set; }
+    public required DateTimeOffset Timestamp { get; set; }
+    public required string CategoryName { get; set; }
+}
+
+internal struct CommandOutput
+{
+    public required string Text { get; init; }
+    public bool IsErrorMessage { get; init; }
+    public int? LineNumber { get; init; }
+    /// <summary>
+    /// Additional info about type of the message.
+    /// Should be used for controlling the display style.
+    /// </summary>
+    public string? Type { get; init; }
+
+    public int? ExitCode { get; init; }
 }

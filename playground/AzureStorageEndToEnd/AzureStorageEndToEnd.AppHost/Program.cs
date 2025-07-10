@@ -5,24 +5,24 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage");
 
-var blobs = storage.AddBlobs("blobs");
-blobs.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
-blobs.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
+var blobs = storage.AddBlobService("blobs");
+storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
+storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
-var queues = storage.AddQueues("queues");
+var myqueue = storage.AddQueue("myqueue", queueName: "my-queue");
 
 var storage2 = builder.AddAzureStorage("storage2").RunAsEmulator(container =>
 {
     container.WithDataBindMount();
 });
-var blobs2 = storage2.AddBlobs("blobs2");
-var blobContainer2 = blobs2.AddBlobContainer("foocontainer", blobContainerName: "foo-container");
+
+var blobContainer2 = storage2.AddBlobContainer("foocontainer", blobContainerName: "foo-container");
 
 builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs).WaitFor(blobs)
        .WithReference(blobContainer2).WaitFor(blobContainer2)
-       .WithReference(queues).WaitFor(queues);
+       .WithReference(myqueue).WaitFor(myqueue);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
-using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +38,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var resourceLoggerService = new ResourceLoggerService();
         resourceLoggerService.SetConsoleLogsService(consoleLogsService);
 
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardServiceImpl>.Instance);
 
@@ -91,7 +91,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         // Arrange
         const int LongLineCharacters = DashboardServiceImpl.LogMaxBatchCharacters / 3;
         var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardServiceImpl>.Instance);
 
@@ -143,7 +143,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
         var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(loggerFactory.CreateLogger<ResourceNotificationService>(), new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
+        var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -210,6 +210,212 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task WatchInteractions_PromptMessageBoxAsync_CompleteOnResponse(bool? result)
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
+        var interactionService = new InteractionService(
+            loggerFactory.CreateLogger<InteractionService>(),
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchInteractionsResponseUpdate>(context);
+        var reader = new TestAsyncStreamReader<WatchInteractionsRequestUpdate>(context);
+
+        // Act
+        logger.LogInformation("Calling WatchInteractions.");
+        var task = dashboardService.WatchInteractions(
+            reader,
+            writer,
+            context);
+
+        var resultTask = interactionService.PromptMessageBoxAsync(
+            title: "Title!",
+            message: "Message!");
+
+        // Assert
+        logger.LogInformation("Reading result from writer.");
+        var update = await writer.ReadNextAsync().DefaultTimeout();
+
+        Assert.NotEqual(0, update.InteractionId);
+        Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.MessageBox, update.KindCase);
+
+        Assert.False(resultTask.IsCompleted);
+
+        logger.LogInformation("Send result to reader.");
+        if (result != null)
+        {
+            update.MessageBox.Result = result.Value;
+            reader.AddMessage(new WatchInteractionsRequestUpdate
+            {
+                InteractionId = update.InteractionId,
+                MessageBox = update.MessageBox
+            });
+
+            Assert.Equal(result, (await resultTask.DefaultTimeout()).Data);
+        }
+        else
+        {
+            reader.AddMessage(new WatchInteractionsRequestUpdate
+            {
+                InteractionId = update.InteractionId,
+                Complete = new InteractionComplete()
+            });
+
+            Assert.True((await resultTask.DefaultTimeout()).Canceled);
+        }
+
+        await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WatchInteractions_PromptInputAsync_CompleteOnCancelResponse()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
+        var interactionService = new InteractionService(
+            loggerFactory.CreateLogger<InteractionService>(),
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchInteractionsResponseUpdate>(context);
+        var reader = new TestAsyncStreamReader<WatchInteractionsRequestUpdate>(context);
+
+        // Act
+        logger.LogInformation("Calling WatchInteractions.");
+        var task = dashboardService.WatchInteractions(
+            reader,
+            writer,
+            context);
+
+        var resultTask = interactionService.PromptInputAsync(
+            title: "Title!",
+            message: "Message!",
+            new Aspire.Hosting.InteractionInput { InputType = Aspire.Hosting.InputType.Text, Label = "Input" });
+
+        // Assert
+        logger.LogInformation("Reading result from writer.");
+        var update = await writer.ReadNextAsync().DefaultTimeout();
+
+        Assert.NotEqual(0, update.InteractionId);
+        Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog, update.KindCase);
+
+        Assert.False(resultTask.IsCompleted);
+
+        logger.LogInformation("Send result to reader.");
+        reader.AddMessage(new WatchInteractionsRequestUpdate
+        {
+            InteractionId = update.InteractionId,
+            Complete = new InteractionComplete()
+        });
+
+        var result = await resultTask.DefaultTimeout();
+        Assert.True(result.Canceled);
+        Assert.Null(result.Data);
+
+        await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WatchInteractions_ReaderError_CompleteWithError()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
+        var interactionService = new InteractionService(
+            loggerFactory.CreateLogger<InteractionService>(),
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchInteractionsResponseUpdate>(context);
+        var reader = new TestAsyncStreamReader<WatchInteractionsRequestUpdate>(context);
+
+        // Act
+        logger.LogInformation("Calling WatchInteractions.");
+        var task = dashboardService.WatchInteractions(
+            reader,
+            writer,
+            context);
+
+        reader.Complete(new InvalidOperationException("Error!"));
+
+        // Assert
+        await Assert.ThrowsAnyAsync<Exception>(() => task).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WatchInteractions_WriterError_CompleteWithError()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddXunit(testOutputHelper);
+        });
+
+        var logger = loggerFactory.CreateLogger<DashboardServiceTests>();
+        var interactionService = new InteractionService(
+            loggerFactory.CreateLogger<InteractionService>(),
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
+        using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+
+        var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchInteractionsResponseUpdate>(context);
+        var reader = new TestAsyncStreamReader<WatchInteractionsRequestUpdate>(context);
+
+        // Act
+        logger.LogInformation("Calling WatchInteractions.");
+        var task = dashboardService.WatchInteractions(
+            reader,
+            writer,
+            context);
+
+        writer.Complete(new InvalidOperationException("Error!"));
+
+        _ = interactionService.PromptMessageBoxAsync(
+            title: "Title!",
+            message: "Message!");
+
+        // Assert
+        await Assert.ThrowsAnyAsync<Exception>(() => task).DefaultTimeout();
+    }
+
     [Fact]
     public void WithCommandOverloadNotAmbiguous()
     {
@@ -226,21 +432,30 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     private static DashboardServiceData CreateDashboardServiceData(
-        ResourceLoggerService resourceLoggerService,
-        ResourceNotificationService resourceNotificationService,
-        ILoggerFactory? loggerFactory = null)
+        ResourceLoggerService? resourceLoggerService = null,
+        ResourceNotificationService? resourceNotificationService = null,
+        ILoggerFactory? loggerFactory = null,
+        InteractionService? interactionService = null)
     {
+        resourceLoggerService ??= new ResourceLoggerService();
         loggerFactory ??= NullLoggerFactory.Instance;
+        resourceNotificationService ??= CreateResourceNotificationService(resourceLoggerService);
+        interactionService ??= new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider());
 
         return new DashboardServiceData(
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory.CreateLogger<DashboardServiceData>(),
             new ResourceCommandService(resourceNotificationService, resourceLoggerService, new ServiceCollection().BuildServiceProvider()),
-            new InteractionService(
-                NullLogger<InteractionService>.Instance,
-                new DistributedApplicationOptions(),
-                new ServiceCollection().BuildServiceProvider()));
+            interactionService);
+    }
+
+    private static ResourceNotificationService CreateResourceNotificationService(ResourceLoggerService resourceLoggerService)
+    {
+        return new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment
