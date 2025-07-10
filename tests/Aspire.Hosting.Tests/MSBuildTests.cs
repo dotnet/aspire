@@ -52,9 +52,9 @@ public class Class1
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
 
-    <!-- 
+    <!--
       Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
-      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
+      the Aspire.AppHost.SDK targets that will automatically add these references to projects.
     -->
     <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
     <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
@@ -73,54 +73,12 @@ var builder = DistributedApplication.CreateBuilder();
 builder.Build().Run();
 """);
 
-        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.props"), $"""
-<Project>
-  <PropertyGroup>
-    <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
-  </PropertyGroup>
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
 
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
-</Project>
-""");
-        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
-<Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
-  <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
-</Project>
-""");
-
-        var output = new StringBuilder();
-        var outputDone = new ManualResetEvent(false);
-        using var process = new Process();
-        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", "build --disable-build-servers")
-        {
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = appHostDirectory
-        };
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data == null)
-            {
-                outputDone.Set();
-            }
-            else
-            {
-                output.AppendLine(e.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-
-        Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
-        Assert.True(process.ExitCode == 0, $"Build failed: {Environment.NewLine}{output}");
-
-        Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+        var output = BuildProject(appHostDirectory);
 
         // Ensure a warning is emitted when an AppHost references a Library project
-        Assert.Contains("warning ASPIRE004", output.ToString());
+        Assert.Contains("warning ASPIRE004", output);
     }
 
     /// <summary>
@@ -163,9 +121,9 @@ Console.WriteLine("Hello, Aspire!");
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
 
-    <!-- 
+    <!--
       Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
-      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
+      the Aspire.AppHost.SDK targets that will automatically add these references to projects.
     -->
     <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
     <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
@@ -183,51 +141,9 @@ var builder = DistributedApplication.CreateBuilder();
 builder.Build().Run();
 """);
 
-        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.props"), $"""
-<Project>
-  <PropertyGroup>
-    <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
-  </PropertyGroup>
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
 
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
-</Project>
-""");
-        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
-<Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
-  <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
-</Project>
-""");
-
-        var output = new StringBuilder();
-        var outputDone = new ManualResetEvent(false);
-        using var process = new Process();
-        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-        process.StartInfo = new ProcessStartInfo("dotnet", "build --disable-build-servers")
-        {
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = appHostDirectory
-        };
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data == null)
-            {
-                outputDone.Set();
-            }
-            else
-            {
-                output.AppendLine(e.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-
-        Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
-        Assert.True(process.ExitCode == 0, $"Build failed: {Environment.NewLine}{output}");
-
-        Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+        var output = BuildProject(appHostDirectory);
 
         var metadataDirectory = Path.Combine(appHostDirectory, "obj", "Debug", "net8.0", "Aspire", "references");
         var appHostMetadata = await File.ReadAllTextAsync(Path.Combine(metadataDirectory, "_AppHost.ProjectMetadata.g.cs"));
@@ -248,5 +164,61 @@ builder.Build().Run();
                 }
                 return line;
             });
+    }
+
+    private static void CreateDirectoryBuildFiles(string appHostDirectory, string repoRoot)
+    {
+        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.props"),
+        $"""
+        <Project>
+          <PropertyGroup>
+            <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
+          </PropertyGroup>
+
+          <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
+        </Project>
+        """);
+        File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"),
+        $"""
+        <Project>
+          <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
+          <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
+        </Project>
+        """);
+    }
+
+    private static string BuildProject(string workingDirectory)
+    {
+        var output = new StringBuilder();
+        var outputDone = new ManualResetEvent(false);
+        using var process = new Process();
+        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
+        process.StartInfo = new ProcessStartInfo("dotnet", "build --disable-build-servers")
+        {
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workingDirectory
+        };
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data == null)
+            {
+                outputDone.Set();
+            }
+            else
+            {
+                output.AppendLine(e.Data);
+            }
+        };
+        process.Start();
+        process.BeginOutputReadLine();
+
+        Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
+        Assert.True(process.ExitCode == 0, $"Build failed: {Environment.NewLine}{output}");
+
+        Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+
+        return output.ToString();
     }
 }
