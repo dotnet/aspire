@@ -207,6 +207,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             return;
         }
 
+        // Get logs for the trace. Note that there isn't a limit on this query so all logs are returned.
+        // There is a limit on the number of logs stored by the dashboard so this is implicitly limited.
+        // If there are performance issues with displaying all logs then consider adding a limit to this query.
         var logsContext = new GetLogsContext
         {
             ApplicationKey = null,
