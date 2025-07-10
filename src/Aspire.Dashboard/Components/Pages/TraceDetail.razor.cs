@@ -276,13 +276,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         return string.Empty;
     }
 
-    public SelectedDataItem? SelectedData { get; set; }
-
-    public class SelectedDataItem
-    {
-        public SpanDetailsViewModel? SpanViewModel { get; init; }
-        public StructureLogsDetailsViewModel? LogEntryViewModel { get; init; }
-    }
+    public TraceDetailSelectedDataViewModel? SelectedData { get; set; }
 
     private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
@@ -332,7 +326,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 Backlinks = backlinks,
             };
 
-            SelectedData = new SelectedDataItem { SpanViewModel = spanDetailsViewModel };
+            SelectedData = new TraceDetailSelectedDataViewModel
+            {
+                SpanViewModel = spanDetailsViewModel
+            };
         }
     }
 
@@ -375,7 +372,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
         else
         {
-            SelectedData = new SelectedDataItem
+            SelectedData = new TraceDetailSelectedDataViewModel
             {
                 LogEntryViewModel = new StructureLogsDetailsViewModel { LogEntry = logEntry }
             };

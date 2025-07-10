@@ -6,13 +6,6 @@ using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
-public sealed class SpanLogEntry
-{
-    public required int Index { get; init; }
-    public required OtlpLogEntry LogEntry { get; init; }
-    public required double LeftOffset { get; init; }
-}
-
 public sealed class SpanWaterfallViewModel
 {
     public required List<SpanWaterfallViewModel> Children { get; init; }
@@ -22,7 +15,7 @@ public sealed class SpanWaterfallViewModel
     public required int Depth { get; init; }
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
-    public required List<SpanLogEntry> SpanLogs { get; init; }
+    public required List<SpanLogEntryViewModel> SpanLogs { get; init; }
     public bool IsHidden { get; set; }
     [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
@@ -159,14 +152,14 @@ public sealed class SpanWaterfallViewModel
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
-            var spanLogVms = new List<SpanLogEntry>();
+            var spanLogVms = new List<SpanLogEntryViewModel>();
             if (spanLogs != null)
             {
                 foreach (var log in spanLogs)
                 {
                     var logRelativeStart = log.TimeStamp - traceStart;
 
-                    spanLogVms.Add(new SpanLogEntry
+                    spanLogVms.Add(new SpanLogEntryViewModel
                     {
                         Index = currentSpanLogIndex++,
                         LogEntry = log,
