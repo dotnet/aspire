@@ -39,7 +39,7 @@ internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueT
 
             // Add required headers
             request.Headers.Add("Accept", "application/vnd.github+json");
-            request.Headers.Add("Authorization", $"Bearer {builder["Key"]?.ToString()}");
+            request.Headers.Add("Authorization", $"Bearer {builder["Key"]}");
             request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
             // Create test payload with empty messages to minimize API usage
