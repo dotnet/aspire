@@ -98,7 +98,7 @@ internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueT
         {
         }
 
-        return HealthCheckResult.Unhealthy($"GitHub Models returned an unsupported resonse: ({response.StatusCode}) {errorResponse?.Error?.Message}");
+        return HealthCheckResult.Unhealthy($"GitHub Models returned an unsupported response: ({response.StatusCode}) {errorResponse?.Error?.Message}");
     }
 
     /// <summary>

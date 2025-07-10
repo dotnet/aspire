@@ -57,7 +57,7 @@ var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
                   .WithApiKey(apiKey);
 ```
 
-The in user secrets:
+Then in user secrets:
 
 ```json
 {
