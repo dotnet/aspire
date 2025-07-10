@@ -36,6 +36,7 @@ public class OtlpTrace
     }
 
     public OtlpSpanCollection Spans { get; } = new OtlpSpanCollection();
+    public DateTime LastUpdatedDate { get; private set; }
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -51,7 +52,7 @@ public class OtlpTrace
 
     public int CalculateMaxDepth() => Spans.Max(CalculateDepth);
 
-    public void AddSpan(OtlpSpan span)
+    public void AddSpan(OtlpSpan span, bool skipLastUpdatedDate = false)
     {
         if (Spans.Contains(span.SpanId))
         {
@@ -97,6 +98,11 @@ public class OtlpTrace
         {
             // If there isn't a root span then the first span is used as the trace name.
             FullName = BuildFullName(span);
+        }
+
+        if (!skipLastUpdatedDate)
+        {
+            LastUpdatedDate = DateTime.UtcNow;
         }
 
         AssertSpanOrder();
@@ -148,19 +154,20 @@ public class OtlpTrace
         }
     }
 
-    public OtlpTrace(ReadOnlyMemory<byte> traceId)
+    public OtlpTrace(ReadOnlyMemory<byte> traceId, DateTime lastUpdatedDate)
     {
         Key = traceId;
         TraceId = OtlpHelpers.ToHexString(traceId);
         FullName = string.Empty;
+        LastUpdatedDate = lastUpdatedDate;
     }
 
     public static OtlpTrace Clone(OtlpTrace trace)
     {
-        var newTrace = new OtlpTrace(trace.Key);
+        var newTrace = new OtlpTrace(trace.Key, trace.LastUpdatedDate);
         foreach (var item in trace.Spans)
         {
-            newTrace.AddSpan(OtlpSpan.Clone(item, newTrace));
+            newTrace.AddSpan(OtlpSpan.Clone(item, newTrace), skipLastUpdatedDate: true);
         }
 
         return newTrace;
@@ -169,6 +176,17 @@ public class OtlpTrace
     private string DebuggerToString()
     {
         return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan?.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan?.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
+    }
+
+    public void SetSpanUninstrumentedPeer(OtlpSpan span, OtlpApplication? app)
+    {
+        if (span.Trace != this)
+        {
+            throw new ArgumentException("Span does not belong to this trace.", nameof(span));
+        }
+
+        span.SetUninstrumentedPeer(app);
+        LastUpdatedDate = DateTime.UtcNow;
     }
 
     private sealed class SpanStartDateComparer : IComparer<OtlpSpan>
