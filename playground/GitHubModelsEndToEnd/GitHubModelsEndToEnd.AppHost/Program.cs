@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = DistributedApplication.CreateBuilder(args);
+builder.AddAzureContainerAppEnvironment("env");
 
 var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini");
 
@@ -11,7 +12,7 @@ chat.WithApiKey(builder.AddParameter("github-api-key", secret: true));
 
 builder.AddProject<Projects.GitHubModelsEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
-       .WithReference(chat);
+       .WithReference(chat).WaitFor(chat);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
