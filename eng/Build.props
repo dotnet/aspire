@@ -27,8 +27,11 @@
          instead of a ProjectReference -->
     <ProjectToBuild Condition="'$(SkipManagedBuild)' == 'true'" Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
 
+    <!-- Skip any unknown target rids.
+         TODO: Map unknown rids to the available native projects -->
     <_TargetRidItem Include="$(TargetRids.Split(':'))" />
-    <ProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
+    <_NativeProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
+    <ProjectToBuild Include="@(_NativeProjectToBuild->Exists())" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
