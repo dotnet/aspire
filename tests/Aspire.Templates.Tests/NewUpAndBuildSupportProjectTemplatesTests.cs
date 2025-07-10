@@ -61,12 +61,8 @@ public abstract class NewUpAndBuildSupportProjectTemplatesBase(ITestOutputHelper
     }
 }
 
-public class NUnit_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+public class NUnit_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : NewUpAndBuildSupportProjectTemplatesBase(testOutput)
 {
-    public NUnit_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
-    {
-    }
-
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
     public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
