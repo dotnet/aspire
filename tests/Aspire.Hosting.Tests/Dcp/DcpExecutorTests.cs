@@ -13,6 +13,8 @@ using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -1241,6 +1243,7 @@ public class DcpExecutorTests
 
     private static DcpExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
+        IHostEnvironment? hostEnvironment = null,
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null,
         DcpOptions? dcpOptions = null,
@@ -1267,6 +1270,7 @@ public class DcpExecutorTests
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
+            hostEnvironment ?? new TestHostEnvironment(),
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
@@ -1280,6 +1284,14 @@ public class DcpExecutorTests
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents());
+    }
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string ApplicationName { get; set; } = default!;
+        public IFileProvider ContentRootFileProvider { get; set; } = default!;
+        public string ContentRootPath { get; set; } = default!;
+        public string EnvironmentName { get; set; } = default!;
     }
 
     private sealed class TestProject : IProjectMetadata

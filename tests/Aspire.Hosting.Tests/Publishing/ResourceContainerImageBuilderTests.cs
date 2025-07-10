@@ -9,6 +9,7 @@ using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
@@ -19,13 +20,28 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     public async Task CanBuildImageFromProjectResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
         var servicea = builder.AddProject<Projects.ServiceA>("servicea");
 
         using var app = builder.Build();
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
     }
 
     [Fact]
@@ -34,6 +50,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
 
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
         var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
         var servicea = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
 
@@ -41,6 +63,322 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        await imageBuilder.BuildImageAsync(servicea.Resource, cts.Token);
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromProjectResourceWithOptions()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            ImageFormat = ContainerImageFormat.Oci,
+            OutputPath = "/tmp/test-output",
+            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromProjectResource_WithDockerImageFormat()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            ImageFormat = ContainerImageFormat.Docker
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromProjectResource_WithLinuxArm64Platform()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            TargetPlatform = ContainerTargetPlatform.LinuxArm64
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        var tempOutputPath = Path.GetTempPath();
+        var options = new ContainerBuildOptions
+        {
+            OutputPath = tempOutputPath,
+            ImageFormat = ContainerImageFormat.Oci
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(container.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        var tempOutputPath = Path.GetTempPath();
+        var options = new ContainerBuildOptions
+        {
+            ImageFormat = ContainerImageFormat.Oci,
+            OutputPath = tempOutputPath,
+            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(container.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+    }
+
+    [Theory]
+    [InlineData(ContainerImageFormat.Docker)]
+    [InlineData(ContainerImageFormat.Oci)]
+    [RequiresDocker]
+    public async Task CanBuildImageFromProjectResource_WithDifferentImageFormats(ContainerImageFormat imageFormat)
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            ImageFormat = imageFormat
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Theory]
+    [InlineData(ContainerTargetPlatform.LinuxAmd64)]
+    [InlineData(ContainerTargetPlatform.LinuxArm64)]
+    [RequiresDocker]
+    public async Task CanBuildImageFromProjectResource_WithDifferentTargetPlatforms(ContainerTargetPlatform targetPlatform)
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        var options = new ContainerBuildOptions
+        {
+            TargetPlatform = targetPlatform
+        };
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(servicea.Resource, options, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task BuildImageAsync_WithNullOptions_UsesDefaults()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // Test with null options - should use defaults
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource servicea"));
+        Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
+    }
+
+    [Fact]
+    public void ContainerBuildOptions_CanSetAllProperties()
+    {
+        var options = new ContainerBuildOptions
+        {
+            ImageFormat = ContainerImageFormat.Oci,
+            OutputPath = "/custom/path",
+            TargetPlatform = ContainerTargetPlatform.LinuxArm64
+        };
+
+        Assert.Equal(ContainerImageFormat.Oci, options.ImageFormat);
+        Assert.Equal("/custom/path", options.OutputPath);
+        Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
 }
