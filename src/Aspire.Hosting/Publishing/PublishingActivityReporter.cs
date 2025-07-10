@@ -8,18 +8,17 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class PublishingActivityProgressReporter : IPublishingActivityProgressReporter, IAsyncDisposable
+internal sealed class PublishingActivityReporter : IPublishingActivityReporter, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
     private readonly InteractionService _interactionService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Task _interactionServiceSubscriber;
 
-    public PublishingActivityProgressReporter(InteractionService interactionService)
+    public PublishingActivityReporter(InteractionService interactionService)
     {
         _interactionService = interactionService;
         _interactionServiceSubscriber = Task.Run(() => SubscribeToInteractionsAsync(_cancellationTokenSource.Token));

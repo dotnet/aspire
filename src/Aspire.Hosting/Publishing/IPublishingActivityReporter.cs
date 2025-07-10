@@ -6,10 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// Interface for reporting publishing activity progress.
+/// Interface for reporting publishing activities.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IPublishingActivityProgressReporter
+public interface IPublishingActivityReporter
 {
     /// <summary>
     /// Creates a new publishing step with the specified title.

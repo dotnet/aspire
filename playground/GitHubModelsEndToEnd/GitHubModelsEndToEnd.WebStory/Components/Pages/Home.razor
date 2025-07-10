@@ -1,0 +1,40 @@
+@page "/"
+@using Microsoft.Extensions.AI
+@inject IChatClient chatClient
+@inject ILogger<Home> logger
+
+<div class="storybox" style="margin: 25%">
+    @foreach (var message in chatMessages.Where(m => m.Role == ChatRole.Assistant))
+    {
+        <p style="font-size: 3em;">@message.Text</p>
+    }
+
+    <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
+    
+    <p style="margin-top: 20px; font-size: 1em; color: #666;">
+        Powered by GitHub Models
+    </p>
+</div>
+
+@code {
+    private List<ChatMessage> chatMessages = new List<ChatMessage>
+    {
+        new(ChatRole.System, "Pick a random topic and write a sentence of a fictional story about it.")
+    };
+
+    private async Task GenerateNextParagraph()
+    {
+        if (chatMessages.Count > 1)
+        {
+            chatMessages.Add(new ChatMessage(ChatRole.User, "Write the next sentence in the story."));
+        }
+
+        var response = await chatClient.GetResponseAsync(chatMessages);
+        chatMessages.AddMessages(response);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerateNextParagraph();
+    }
+}

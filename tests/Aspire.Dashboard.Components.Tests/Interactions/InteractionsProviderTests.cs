@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Aspire.DashboardService.Proto.V1;
 using Bunit;
 using Microsoft.AspNetCore.InternalTesting;
@@ -346,5 +349,8 @@ public partial class InteractionsProviderTests : DashboardTestContext
         Services.AddSingleton<IDialogService>(dialogService ?? new TestDialogService());
         Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
+        Services.AddSingleton<DashboardTelemetryService>();
+        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 }

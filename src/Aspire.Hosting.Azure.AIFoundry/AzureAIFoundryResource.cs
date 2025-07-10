@@ -21,15 +21,27 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
 
     /// <summary>
-    /// Gets the "connectionString" output reference from the Azure AI Foundry resource.
+    /// Gets the "aiFoundryApiEndpoint" output reference from the Azure AI Foundry resource.
     /// </summary>
     public BicepOutputReference AIFoundryApiEndpoint => new("aiFoundryApiEndpoint", this);
+
+    /// <summary>
+    /// Gets the "endpoint" output reference from the Azure AI Foundry resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("endpoint", this);
+
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint={AIFoundryApiEndpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
+        IsEmulator
+        ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey}")
+        : ReferenceExpression.Create($"Endpoint={Endpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
 
     /// <summary>
     /// Gets the list of deployment resources associated with the Azure AI Foundry.
@@ -45,11 +57,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// The API key to access Foundry Local
     /// </summary>
     public string? ApiKey { get; internal set; }
-
-    /// <summary>
-    /// Gets the "name" output reference for the resource.
-    /// </summary>
-    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
@@ -68,7 +75,5 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     }
 
     internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        IsEmulator
-            ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey};DeploymentId={deploymentName};Model={deploymentName}")
-            : ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
+        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }
