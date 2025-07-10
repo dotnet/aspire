@@ -140,8 +140,8 @@ public sealed class SpanWaterfallViewModel
             var relativeStart = span.StartTime - traceStart;
             var rootDuration = span.Trace.Duration.TotalMilliseconds;
 
-            var leftOffset = relativeStart.TotalMilliseconds / rootDuration * 100;
-            var width = span.Duration.TotalMilliseconds / rootDuration * 100;
+            var leftOffset = CalculatePercent(relativeStart.TotalMilliseconds, rootDuration);
+            var width = CalculatePercent(span.Duration.TotalMilliseconds, rootDuration);
 
             // Figure out if the label is displayed to the left or right of the span.
             // If the label position is based on whether more than half of the span is on the left or right side of the trace.
@@ -163,7 +163,7 @@ public sealed class SpanWaterfallViewModel
                     {
                         Index = currentSpanLogIndex++,
                         LogEntry = log,
-                        LeftOffset = logRelativeStart.TotalMilliseconds / rootDuration * 100
+                        LeftOffset = CalculatePercent(logRelativeStart.TotalMilliseconds, rootDuration)
                     });
                 }
             }
@@ -191,6 +191,15 @@ public sealed class SpanWaterfallViewModel
             }
 
             return viewModel;
+        }
+
+        static double CalculatePercent(double value, double total)
+        {
+            if (total == 0)
+            {
+                return 0;
+            }
+            return value / total * 100;
         }
     }
 
