@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -66,7 +65,6 @@ internal interface IUserSecretsManager
 /// </summary>
 internal interface IProvisioningContextProvider
 {
-    void AddProvisioningCommand(IAzureResource resource);
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>

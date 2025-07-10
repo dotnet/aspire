@@ -145,7 +145,6 @@ internal sealed class AzureProvisioner(
         foreach (var r in azureResources)
         {
             r.AzureResource!.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            provisioningContextProvider.AddProvisioningCommand(r.AzureResource);
 
             await UpdateStateAsync(r, s => s with
             {
