@@ -57,7 +57,6 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
             services.TryAddSingleton<DnsClient.LookupClient>();
         }
 
-        services.TryAddSingleton<IDnsResolver, DnsResolver>();
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
