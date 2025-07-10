@@ -203,6 +203,6 @@ public class GitHubModelsExtensionTests
         // Verify that the health check annotation is added
         var healthCheckAnnotations = github.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
         Assert.Single(healthCheckAnnotations);
-        Assert.Equal("github_github_models_check", healthCheckAnnotations[0].Key);
+        Assert.Equal("github_check", healthCheckAnnotations[0].Key);
     }
 }
