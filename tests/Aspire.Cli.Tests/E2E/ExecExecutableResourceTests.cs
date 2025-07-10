@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Aspire.Cli.Tests.E2E;
 
-public class ExecTests(ITestOutputHelper output)
+public class ExecExecutableResourceTests(ITestOutputHelper output)
 {
     private static string DatabaseMigrationsAppHostProjectPath =>
         Path.Combine(DatabaseMigration_AppHost.ProjectPath, "DatabaseMigration.AppHost.csproj");

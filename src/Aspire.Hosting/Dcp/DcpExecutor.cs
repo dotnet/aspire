@@ -774,7 +774,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable);
+        var toCreate = _appResources.Where(r => r.DcpResource is Container or Executable or ContainerExec);
         AddAllocatedEndpointInfo(toCreate);
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
@@ -788,8 +788,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
+        // var containerExecsTask = CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken);
 
+        // await Task.WhenAll(containersTask, executablesTask, containerExecsTask).ConfigureAwait(false);
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
+
+        // for now to not figure out states of container
+        await CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken).ConfigureAwait(false);
     }
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
@@ -881,6 +886,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     {
         PrepareProjectExecutables();
         PreparePlainExecutables();
+        PrepareContainerExecutables();
+    }
+
+    private void PrepareContainerExecutables()
+    {
+        var modelContainerExecutableResources = _model.GetContainerExecutableResources();
+        foreach (var container in modelContainerExecutableResources)
+        {
+            EnsureRequiredAnnotations(container);
+
+            var exeInstance = GetDcpInstance(container, instanceIndex: 0);
+
+            // todo initialize container exec here
+            var containerExec = ContainerExec.Create(exeInstance.Name, containerName: container.ContainerName, container.Command, container.Args?.ToList());
+            containerExec.Spec.WorkingDirectory = container.WorkingDirectory;
+            SetInitialResourceState(container, containerExec);
+
+            var exeAppResource = new AppResource(container, containerExec);
+            AddServicesProducedInfo(container, containerExec, exeAppResource);
+            _appResources.Add(exeAppResource);
+        }
     }
 
     private void PreparePlainExecutables()
@@ -1016,6 +1042,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             initial.InitialSnapshot.State?.Text is string state && !string.IsNullOrEmpty(state))
         {
             annotationHolder.Annotate(CustomResource.ResourceStateAnnotation, state);
+        }
+    }
+
+    private async Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
+    {
+        try
+        {
+            AspireEventSource.Instance.DcpExecutablesCreateStart();
+
+            foreach (var appResource in containerExecAppResources)
+            {
+                if (appResource.DcpResource is not ContainerExec containerExec)
+                {
+                    throw new InvalidOperationException($"Expected an Executable resource, but got {appResource.DcpResource.Kind} instead");
+                }
+
+                await _kubernetesService.CreateAsync(containerExec, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpExecutablesCreateStop();
         }
     }
 

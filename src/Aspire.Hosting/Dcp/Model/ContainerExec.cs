@@ -117,13 +117,15 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     /// <param name="name">Resource name of the ContainerExec instance</param>
     /// <param name="containerName">Resource name of the Container to run the command in</param>
     /// <param name="command">The command name to run</param>
+    /// <param name="args">Arguments of the command to run</param>
     /// <returns>A new ContainerExec instance</returns>
-    public static ContainerExec Create(string name, string containerName, string command)
+    public static ContainerExec Create(string name, string containerName, string command, List<string>? args = null)
     {
         var containerExec = new ContainerExec(new ContainerExecSpec
         {
             ContainerName = containerName,
             Command = command,
+            Args = args
         })
         {
             Kind = Dcp.ContainerExecKind,
