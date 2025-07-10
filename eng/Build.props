@@ -5,8 +5,6 @@
     <!-- Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
          It is helpful to allow building the non-aot cli builds on a single CI job -->
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
-    <SkipManagedBuild Condition="'$(SkipManagedBuild)' == ''">false</SkipManagedBuild>
-    <SkipNativeBuild Condition="'$(SkipNativeBuild)' == ''">false</SkipNativeBuild>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(SkipManagedBuild)' != 'true'">
