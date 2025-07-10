@@ -80,7 +80,7 @@ public sealed class AzureEnvironmentResource : Resource
         var azureProvisionerOptions = context.Services.GetRequiredService<IOptions<AzureProvisionerOptions>>();
         var bicepProvisioner = context.Services.GetRequiredService<BicepProvisioner>();
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        var progressReporter = context.ProgressReporter;
+        var activityReporter = context.ActivityReporter;
 
         Debug.Assert(PublishingContext != null, "PublishingContext should be initialized before deployment.");
 
@@ -181,7 +181,7 @@ public sealed class AzureEnvironmentResource : Resource
         }
 
         // Create step for deployment process
-        var mainDeploymentStep = await progressReporter.CreateStepAsync(
+        var mainDeploymentStep = await activityReporter.CreateStepAsync(
             "Deploying Azure resources",
             context.CancellationToken).ConfigureAwait(false);
 
@@ -366,9 +366,10 @@ public sealed class AzureEnvironmentResource : Resource
                 var containerRegistryEndpoint = mainResource.Outputs["infra_AZURE_CONTAINER_REGISTRY_ENDPOINT"];
 
                 // Build container images first
-                await imageBuilder.BuildImagesAsync(computeResources, context.CancellationToken).ConfigureAwait(false);
+                var options = new ContainerBuildOptions { TargetPlatform = ContainerTargetPlatform.LinuxAmd64 };
+                await imageBuilder.BuildImagesAsync(computeResources, options, context.CancellationToken).ConfigureAwait(false);
 
-                var imagePushStep = await progressReporter.CreateStepAsync(
+                var imagePushStep = await activityReporter.CreateStepAsync(
                     "Pushing images to Azure Container Registry",
                     context.CancellationToken).ConfigureAwait(false);
 
@@ -477,7 +478,7 @@ public sealed class AzureEnvironmentResource : Resource
             // Deploy compute resources
             if (PublishingContext.ComputeResources.Count > 0)
             {
-                var computeDeploymentStep = await progressReporter.CreateStepAsync(
+                var computeDeploymentStep = await activityReporter.CreateStepAsync(
                     "Deploying compute resources",
                     context.CancellationToken).ConfigureAwait(false);
 
