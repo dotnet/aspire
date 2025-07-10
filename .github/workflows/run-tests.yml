@@ -80,10 +80,7 @@ jobs:
         # Used for running tests outside the repo
         if: ${{ inputs.requiresNugets }}
         with:
-          dotnet-version: |
-            8.x
-            9.x
-            10.x
+          global-json-file: ${{ github.workspace }}/global.json
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
