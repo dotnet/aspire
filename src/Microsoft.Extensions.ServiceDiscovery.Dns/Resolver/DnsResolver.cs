@@ -978,7 +978,7 @@ internal sealed partial class DnsResolver : IDnsResolver, IDisposable
         }
     }
 
-    enum ReservedNameType
+    private enum ReservedNameType
     {
         None,
         Localhost,
