@@ -198,7 +198,7 @@ public class GitHubModelsExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini").WithHealthCheck();
 
         // Verify that the health check annotation is added
         var healthCheckAnnotations = github.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();

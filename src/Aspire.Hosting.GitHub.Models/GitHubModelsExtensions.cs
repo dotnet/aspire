@@ -30,7 +30,6 @@ public static class GitHubModelsExtensions
         var resource = new GitHubModelResource(name, model, organization?.Resource);
 
         return builder.AddResource(resource)
-            .WithHealthCheck()
             .WithInitialState(new()
             {
                 ResourceType = "GitHubModel",
@@ -74,12 +73,18 @@ public static class GitHubModelsExtensions
     /// <item>Return <see cref="HealthStatus.Unhealthy"/> with details when the API key is invalid (HTTP 401)</item>
     /// <item>Return <see cref="HealthStatus.Unhealthy"/> with error details when the model is unknown (HTTP 404)</item>
     /// </list>
+    /// <para>
+    /// Because health checks are included in the rate limit of the GitHub Models API,
+    /// it is recommended to use this health check sparingly, such as when you are having issues understanding the reason
+    /// the model is not working as expected. Furthermore, the health check will run a single time per application instance.
+    /// </para>
     /// </remarks>
-    internal static IResourceBuilder<GitHubModelResource> WithHealthCheck(this IResourceBuilder<GitHubModelResource> builder)
+    public static IResourceBuilder<GitHubModelResource> WithHealthCheck(this IResourceBuilder<GitHubModelResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var healthCheckKey = $"{builder.Resource.Name}_github_models_check";
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        GitHubModelsHealthCheck? healthCheck = null;
 
         // Register the health check
         builder.ApplicationBuilder.Services.AddHealthChecks()
@@ -87,11 +92,19 @@ public static class GitHubModelsExtensions
                 healthCheckKey,
                 sp =>
                 {
+                    // Cache the health check instance so we can reuse its result in order to avoid multiple API calls
+                    // that would exhaust the rate limit.
+                    
+                    if (healthCheck is not null)
+                    {
+                        return healthCheck;
+                    }
+
                     var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GitHubModelsHealthCheck");
 
                     var resource = builder.Resource;
 
-                    return new GitHubModelsHealthCheck(httpClient, async () => await resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false));
+                    return healthCheck = new GitHubModelsHealthCheck(httpClient, async () => await resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false));
                 },
                 failureStatus: default,
                 tags: default,

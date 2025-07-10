@@ -16,6 +16,8 @@ namespace Aspire.Hosting.GitHub.Models;
 /// <param name="connectionString">The connection string.</param>
 internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueTask<string?>> connectionString) : IHealthCheck
 {
+    private HealthCheckResult? _result;
+
     /// <summary>
     /// Checks the health of the GitHub Models endpoint by sending a test request.
     /// </summary>
@@ -24,6 +26,11 @@ internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueT
     /// <returns>A task that represents the asynchronous health check operation.</returns>
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
+        if (_result is not null)
+        {
+            return _result.Value;
+        }
+
         try
         {
             var builder = new DbConnectionStringBuilder() { ConnectionString = await connectionString().ConfigureAwait(false) };
@@ -34,20 +41,20 @@ internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueT
             request.Headers.Add("Accept", "application/vnd.github+json");
             request.Headers.Add("Authorization", $"Bearer {builder["Key"]?.ToString()}");
             request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
-            
+
             // Create test payload with empty messages to minimize API usage
             var payload = new
             {
                 model = builder["Model"]?.ToString(),
                 messages = Array.Empty<object>()
             };
-            
+
             var jsonPayload = JsonSerializer.Serialize(payload);
             request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
-            
+
             using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            
-            return response.StatusCode switch
+
+            _result = response.StatusCode switch
             {
                 HttpStatusCode.Unauthorized => HealthCheckResult.Unhealthy("GitHub Models API key is invalid or has insufficient permissions"),
                 HttpStatusCode.NotFound or HttpStatusCode.Forbidden or HttpStatusCode.BadRequest => await HandleErrorCode(response, cancellationToken).ConfigureAwait(false),
@@ -56,14 +63,16 @@ internal sealed class GitHubModelsHealthCheck(HttpClient httpClient, Func<ValueT
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy($"Failed to check GitHub Models endpoint: {ex.Message}", ex);
+            _result = HealthCheckResult.Unhealthy($"Failed to check GitHub Models endpoint: {ex.Message}", ex);
         }
+
+        return _result.Value;
     }
 
     private static async Task<HealthCheckResult> HandleErrorCode(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         GitHubErrorResponse? errorResponse = null;
-        
+
         try
         {
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
