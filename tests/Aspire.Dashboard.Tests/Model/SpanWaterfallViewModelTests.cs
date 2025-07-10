@@ -55,8 +55,8 @@ public sealed class SpanWaterfallViewModelTests
         var date = new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
-        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: TelemetryTestHelpers.GetHexId("1"), parentSpanId: null, startDate: date, endDate: date));
-        var log = new OtlpLogEntry(TelemetryTestHelpers.CreateLogRecord(traceId: trace.TraceId, spanId: TelemetryTestHelpers.GetHexId("1")), app1View, scope, context);
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "31", parentSpanId: null, startDate: date, endDate: date));
+        var log = new OtlpLogEntry(TelemetryTestHelpers.CreateLogRecord(traceId: trace.TraceId, spanId: "1"), app1View, scope, context);
 
         // Act
         var vm = SpanWaterfallViewModel.Create(trace, [log], new SpanWaterfallViewModel.TraceDetailState([], []));
@@ -65,7 +65,7 @@ public sealed class SpanWaterfallViewModelTests
         Assert.Collection(vm,
             e =>
             {
-                Assert.Equal(TelemetryTestHelpers.GetHexId("1"), e.Span.SpanId);
+                Assert.Equal("31", e.Span.SpanId);
                 Assert.Equal(0, e.LeftOffset);
                 Assert.Equal(0, e.Width);
 

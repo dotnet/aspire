@@ -157,7 +157,7 @@ internal static class TelemetryTestHelpers
     {
         var span = new Span
         {
-            TraceId = ConvertHexToId(traceId),
+            TraceId = ByteString.CopyFrom(Encoding.UTF8.GetBytes(traceId)),
             SpanId = ByteString.CopyFrom(Encoding.UTF8.GetBytes(spanId)),
             ParentSpanId = parentSpanId is null ? ByteString.Empty : ByteString.CopyFrom(Encoding.UTF8.GetBytes(parentSpanId)),
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
@@ -192,8 +192,8 @@ internal static class TelemetryTestHelpers
         var logRecord = new LogRecord
         {
             Body = (skipBody ?? false) ? null : new AnyValue { StringValue = message ?? "Test Value!" },
-            TraceId = (traceId != null) ? ConvertHexToId(traceId) : ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
-            SpanId = (spanId != null) ? ConvertHexToId(spanId) : ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
+            TraceId = (traceId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(traceId)) : ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
+            SpanId = (spanId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(spanId)) : ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
             TimeUnixNano = time != null ? DateTimeToUnixNanoseconds(time.Value) : 1000,
             ObservedTimeUnixNano = observedTime != null ? DateTimeToUnixNanoseconds(observedTime.Value) : 1000,
             SeverityNumber = severity ?? SeverityNumber.Info
@@ -339,10 +339,5 @@ internal static class TelemetryTestHelpers
             DateTimeOffset.Now.AddYears(1));
 
         return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
-    }
-
-    private static ByteString ConvertHexToId(string hexString)
-    {
-        return ByteString.CopyFrom(Convert.FromHexString(hexString));
     }
 }
