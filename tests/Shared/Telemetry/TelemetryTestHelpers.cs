@@ -50,11 +50,6 @@ internal static class TelemetryTestHelpers
         return new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context));
     }
 
-    public static OtlpLogEntry CreateOtlpLogEntry(LogRecord record, OtlpApplicationView app, OtlpScope scope, OtlpContext context)
-    {
-        return new OtlpLogEntry(record, app, scope, context);
-    }
-
     public static InstrumentationScope CreateScope(string? name = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
         var scope = new InstrumentationScope() { Name = name ?? "TestScope" };
