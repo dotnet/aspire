@@ -57,7 +57,8 @@ internal interface IUserSecretsManager
     /// <summary>
     /// Saves user secrets to the current application.
     /// </summary>
-    Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+    /// <returns>True if changes were actually saved, false if no changes were detected.</returns>
+    Task<bool> SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

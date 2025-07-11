@@ -290,10 +290,11 @@ internal sealed class TestUserSecretsManager : IUserSecretsManager
         return Task.FromResult(_userSecrets);
     }
 
-    public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task<bool> SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
+        var hasChanges = !JsonNode.DeepEquals(_userSecrets, userSecrets);
         _userSecrets = userSecrets;
-        return Task.CompletedTask;
+        return Task.FromResult(hasChanges);
     }
 }
 

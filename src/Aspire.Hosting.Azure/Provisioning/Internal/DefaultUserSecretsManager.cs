@@ -18,6 +18,9 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
     {
         WriteIndented = true
     };
+
+    // Static lock to prevent concurrent writes to user secrets across all instances
+    private static readonly SemaphoreSlim s_fileLock = new(1, 1);
     private static string? GetUserSecretsPath()
     {
         return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
@@ -44,8 +47,11 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         return userSecrets;
     }
 
-    public async Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public async Task<bool> SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
+        // Acquire lock to prevent concurrent modifications
+        await s_fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         try
         {
             var userSecretsPath = GetUserSecretsPath();
@@ -56,20 +62,41 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
             
             // Normalize to flat configuration format with colon separators
             var flattenedSecrets = FlattenJsonObject(userSecrets);
+            var newSecretsJson = flattenedSecrets.ToJsonString(s_jsonSerializerOptions);
             
-            // Ensure directory exists before attempting to create secrets file
-            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
+            // Check if user secrets have actually changed before saving
+            bool hasChanges = true;
+            if (File.Exists(userSecretsPath))
+            {
+                var existingContent = await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false);
+                hasChanges = !string.Equals(existingContent.Trim(), newSecretsJson.Trim(), StringComparison.Ordinal);
+            }
+            
+            if (hasChanges)
+            {
+                // Ensure directory exists before attempting to create secrets file
+                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
+                await File.WriteAllTextAsync(userSecretsPath, newSecretsJson, cancellationToken).ConfigureAwait(false);
 
-            logger.LogInformation("Azure resource connection strings saved to user secrets.");
+                logger.LogInformation("Azure resource connection strings saved to user secrets.");
+                return true;
+            }
+            
+            return false;
         }
         catch (JsonException ex)
         {
             logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            return false;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save user secrets.");
+            return false;
+        }
+        finally
+        {
+            s_fileLock.Release();
         }
     }
 

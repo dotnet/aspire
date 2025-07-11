@@ -172,7 +172,10 @@ internal sealed class AzureProvisioner(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
+        // The lazy initialization ensures the provisioning context (with credential logging)
+        // is only created when actual provisioning work is needed
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => 
+            provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -186,8 +189,8 @@ internal sealed class AzureProvisioner(
         // Suppress throwing so that we can save the user secrets even if the task fails
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-        // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        // Only save user secrets if there were changes made during provisioning
+        var secretsWereSaved = await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)
