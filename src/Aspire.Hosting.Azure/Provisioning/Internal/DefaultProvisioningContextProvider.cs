@@ -32,7 +32,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new();
 
-    private void EnsureProvisioningOptions()
+    private void EnsureProvisioningOptions(JsonObject userSecrets)
     {
         if (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId))
         {
@@ -48,7 +48,7 @@ internal sealed class DefaultProvisioningContextProvider(
             {
                 try
                 {
-                    await RetrieveAzureProvisioningOptions().ConfigureAwait(false);
+                    await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
 
                     logger.LogDebug("Azure provisioning options have been handled successfully.");
                 }
@@ -59,13 +59,15 @@ internal sealed class DefaultProvisioningContextProvider(
             });
         }
     }
-    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
-    { 
+    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
         while (_options.Location == null || _options.SubscriptionId == null)
         {
-            var locations = (typeof(AzureLocation).GetProperty("PublicCloudLocations", BindingFlags.NonPublic | BindingFlags.Static)
-                            ?.GetValue(null) as Dictionary<string, AzureLocation> ?? [])
-                            .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.DisplayName ?? kvp.Value.Name))
+            var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                            .Where(p => p.PropertyType == typeof(AzureLocation))
+                            .Select(p => (AzureLocation)p.GetValue(null)!)
+                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+                            .OrderBy(kvp => kvp.Value)
                             .ToList();
 
             var messageBarResult = await interactionService.PromptMessageBarAsync(
@@ -78,6 +80,13 @@ internal sealed class DefaultProvisioningContextProvider(
                  },
                  cancellationToken)
                  .ConfigureAwait(false);
+
+            if (messageBarResult.Canceled)
+            {
+                // User canceled the prompt, so we exit the loop
+                _provisioningOptionsAvailable.SetException(new MissingConfigurationException("Azure provisioning options were not provided."));
+                return;
+            }
 
             if (messageBarResult.Data)
             {
@@ -92,7 +101,7 @@ internal sealed class DefaultProvisioningContextProvider(
                     [
                         new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select Location", Required = true, Options = [..locations] },
                         new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select Subscription ID", Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = "Resource Group", Value = "GetResourceGroupDefault"},
+                        new InteractionInput { InputType = InputType.Text, Label = "Resource Group", Value = GetDefaultResourceGroupName()},
                     ],
                     new InputsDialogInteractionOptions { ShowDismiss = false, EnableMessageMarkdown = true },
                     cancellationToken).ConfigureAwait(false);
@@ -101,6 +110,14 @@ internal sealed class DefaultProvisioningContextProvider(
                 {
                     _options.Location = result.Data?[0].Value;
                     _options.SubscriptionId = result.Data?[1].Value;
+                    _options.ResourceGroup = result.Data?[2].Value;
+                    _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
+
+                    // Persist the parameter value to user secrets so they can be reused in the future
+                    userSecrets.Prop("Azure")["Location"] = _options.Location;
+                    userSecrets.Prop("Azure")["SubscriptionId"] = _options.SubscriptionId;
+                    userSecrets.Prop("Azure")["ResourceGroup"] = _options.ResourceGroup;
+
                     _provisioningOptionsAvailable.SetResult();
                 }
             }
@@ -109,7 +126,7 @@ internal sealed class DefaultProvisioningContextProvider(
 
     public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        EnsureProvisioningOptions();
+        EnsureProvisioningOptions(userSecrets);
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
@@ -142,26 +159,8 @@ internal sealed class DefaultProvisioningContextProvider(
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
             // Generate an resource group name since none was provided
-
-            var prefix = "rg-aspire";
-
-            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
-            {
-                prefix = _options.ResourceGroupPrefix;
-            }
-
-            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
-
-            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
-
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
-            if (normalizedApplicationName.Length > maxApplicationNameSize)
-            {
-                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
-            }
-
             // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
+            resourceGroupName = GetDefaultResourceGroupName();
 
             createIfAbsent = true;
 
@@ -215,5 +214,27 @@ internal sealed class DefaultProvisioningContextProvider(
                     location,
                     principal,
                     userSecrets);
+    }
+
+    private string GetDefaultResourceGroupName()
+    {
+        var prefix = "rg-aspire";
+
+        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+        {
+            prefix = _options.ResourceGroupPrefix;
+        }
+
+        var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+
+        var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
+
+        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
+        if (normalizedApplicationName.Length > maxApplicationNameSize)
+        {
+            normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
+        }
+
+        return $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 }
