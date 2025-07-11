@@ -371,12 +371,12 @@ public class ParameterProcessorTests
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true));
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].SetValue("testValue");
-        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
+        inputsInteraction.Inputs[0].Value = "testValue";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
         await handleTask;
