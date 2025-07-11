@@ -55,9 +55,8 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
 
 var messaging = builder.AddRabbitMQ("messaging")
                        .WithDataVolume()
-                       //.WithLifetime(ContainerLifetime.Persistent)
+                       .WithLifetime(ContainerLifetime.Persistent)
                        .WithManagementPlugin()
-                       .WithEndpoint("management", e => e.TargetHost = "0.0.0.0", createIfNotExists: false)
                        .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
