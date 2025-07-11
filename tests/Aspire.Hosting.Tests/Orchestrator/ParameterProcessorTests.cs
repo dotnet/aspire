@@ -191,7 +191,7 @@ public class ParameterProcessorTests
         Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true)); // Data = true (user clicked Enter Values)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -225,11 +225,11 @@ public class ParameterProcessorTests
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[0].SetValue("value1");
-        inputsInteraction.Inputs[1].SetValue("value2");
-        inputsInteraction.Inputs[2].SetValue("secretValue");
+        inputsInteraction.Inputs[0].Value = "value1";
+        inputsInteraction.Inputs[1].Value = "value2";
+        inputsInteraction.Inputs[2].Value = "secretValue";
 
-        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
         await handleTask;
@@ -276,7 +276,7 @@ public class ParameterProcessorTests
         Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Cancel<bool>());
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();

@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Tests;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,6 +30,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -63,6 +67,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -89,6 +94,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -115,6 +121,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -149,6 +156,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -177,6 +185,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -206,6 +215,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
+            new TestInteractionService(),
             options,
             environment,
             logger,
@@ -220,6 +230,81 @@ public class DefaultProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.Equal(Guid.Parse("87654321-4321-4321-4321-210987654321"), context.Tenant.TenantId);
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_PromptsIfNoOptions()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = CreateOptions(null, null, null);
+        var environment = CreateEnvironment();
+        var logger = CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var userSecrets = new JsonObject();
+
+        var provider = new DefaultProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider);
+
+        // Act
+        var createTask = provider.CreateProvisioningContextAsync(userSecrets);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
+
+        // Complete the message bar interaction to proceed to inputs dialog
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));// Data = true (user clicked Enter Values)
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning", inputsInteraction.Title);
+        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+
+        Assert.Collection(inputsInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Location", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal("Subscription ID", input.Label);
+                Assert.Equal(InputType.SecretText, input.InputType);
+                Assert.True(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
+        inputsInteraction.Inputs[2].Value = "rg-myrg";
+
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        // Wait for the create task to complete
+        var context = await createTask;
+
+        // Assert
+        Assert.NotNull(context.Tenant);
+        Assert.Equal(Guid.Parse("87654321-4321-4321-4321-210987654321"), context.Tenant.TenantId);
+        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
+        Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
+        Assert.Equal("westus", context.Location.Name);
+        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
     }
 
     private static IOptions<AzureProvisionerOptions> CreateOptions(
