@@ -145,15 +145,18 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     }
                 }
 
-                // Try to match against connection strings (both direct URLs and Endpoint= patterns)
+                // Try to match against connection strings using comprehensive parsing
                 if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
                     connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
-                    TryExtractEndpointFromConnectionString(connectionString, out var endpoint) &&
-                    DoesAddressMatch(endpoint, value))
+                    ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
                 {
-                    name = ResourceViewModel.GetResourceName(resource, resources);
-                    resourceMatch = resource;
-                    return true;
+                    var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+                    if (DoesAddressMatch(endpoint, value))
+                    {
+                        name = ResourceViewModel.GetResourceName(resource, resources);
+                        resourceMatch = resource;
+                        return true;
+                    }
                 }
 
                 // Try to match against parameter values (for Parameter resources that contain URLs)
@@ -172,41 +175,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             resourceMatch = null;
             return false;
         }
-    }
-
-    private static bool TryExtractEndpointFromConnectionString(string connectionString, [NotNullWhen(true)] out string? endpoint)
-    {
-        endpoint = null;
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            return false;
-        }
-
-        // First, check if the entire connection string is a URL (e.g., blob storage, key vault)
-        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var directUri))
-        {
-            endpoint = directUri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
-            return true;
-        }
-
-        // Parse connection string for Endpoint= pattern (used by GitHub Models and other resources)
-        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var part in parts)
-        {
-            var trimmedPart = part.Trim();
-            if (trimmedPart.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
-            {
-                var endpointValue = trimmedPart[9..]; // Remove "Endpoint="
-                if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var uri))
-                {
-                    endpoint = uri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private static bool TryParseUrlHostAndPort(string value, [NotNullWhen(true)] out string? hostAndPort)
