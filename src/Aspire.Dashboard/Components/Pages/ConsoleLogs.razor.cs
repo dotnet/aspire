@@ -815,7 +815,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(ConsoleLogs));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.ConsoleLogs);
 
     public void UpdateTelemetryProperties()
     {
