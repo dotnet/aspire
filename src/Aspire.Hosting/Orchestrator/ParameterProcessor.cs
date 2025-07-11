@@ -106,8 +106,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     State = new(stateText, KnownResourceStateStyles.Error),
-                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                    IsHidden = false
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
             .ConfigureAwait(false);
