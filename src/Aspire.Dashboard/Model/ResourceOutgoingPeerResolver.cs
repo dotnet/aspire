@@ -130,14 +130,14 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
         {
-            // First, try to match against resource URLs
             foreach (var (resourceName, resource) in resources)
             {
+                // Try to match against URL endpoints
                 foreach (var service in resource.Urls)
                 {
                     var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
 
-                    if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    if (DoesAddressMatch(hostAndPort, value))
                     {
                         name = ResourceViewModel.GetResourceName(resource, resources);
                         resourceMatch = resource;
@@ -145,7 +145,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     }
                 }
 
-                // Try to match against connection strings (for GitHub models and other resources with connection strings)
+                // Try to match against connection strings (both direct URLs and Endpoint= patterns)
                 if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
                     connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
                     TryExtractEndpointFromConnectionString(connectionString, out var endpoint) &&
@@ -160,7 +160,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                 if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
                     parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
                     TryParseUrlHostAndPort(parameterValue, out var parameterHostAndPort) &&
-                    string.Equals(parameterHostAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    DoesAddressMatch(parameterHostAndPort, value))
                 {
                     name = ResourceViewModel.GetResourceName(resource, resources);
                     resourceMatch = resource;
@@ -181,6 +181,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         if (string.IsNullOrEmpty(connectionString))
         {
             return false;
+        }
+
+        // First, check if the entire connection string is a URL (e.g., blob storage, key vault)
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var directUri))
+        {
+            endpoint = directUri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+            return true;
         }
 
         // Parse connection string for Endpoint= pattern (used by GitHub Models and other resources)

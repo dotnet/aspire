@@ -291,6 +291,36 @@ public class ResourceOutgoingPeerResolverTests
         Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:5000")], out _));
     }
 
+    [Fact]
+    public void ConnectionStringAsDirectUrl_Match()
+    {
+        // Arrange - Connection string that is itself a URL (e.g., blob storage)
+        var connectionString = "https://mystorageaccount.blob.core.windows.net/";
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["blob-storage"] = CreateResourceWithConnectionString("blob-storage", connectionString)
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "mystorageaccount.blob.core.windows.net:443")], out var value));
+        Assert.Equal("blob-storage", value);
+    }
+
+    [Fact]
+    public void ConnectionStringAsDirectUrlWithCustomPort_Match()
+    {
+        // Arrange - Connection string that is itself a URL with custom port
+        var connectionString = "https://myvault.vault.azure.net:8080/";
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["key-vault"] = CreateResourceWithConnectionString("key-vault", connectionString)
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "myvault.vault.azure.net:8080")], out var value));
+        Assert.Equal("key-vault", value);
+    }
+
     private static ResourceViewModel CreateResourceWithConnectionString(string name, string connectionString)
     {
         var properties = new Dictionary<string, ResourcePropertyViewModel>
