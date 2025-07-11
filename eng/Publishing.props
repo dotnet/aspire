@@ -23,10 +23,28 @@
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
-    <_CliFilesToPublish Include="$(ArtifactsShippingPackagesDir)\aspire-cli-*" />
   </ItemGroup>
 
   <Target Name="_PublishBlobItems">
+    <!-- Validate list of aspire-cli packages on disk vs expected ones.
+         And do this first to fail early -->
+    <ItemGroup>
+      <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.zip" />
+      <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.tar.gz" />
+
+      <_CliPackProjects Include="$(RepoRoot)eng\clipack\Aspire.Cli.*.csproj" />
+      <_ExpectedRids Include="@(_CliPackProjects->'%(Filename)'->Replace('Aspire.Cli.', ''))" />
+
+      <!-- Extract the rid from filenames like aspire-cli-linux-x64-9.0-dev.tar.gz and aspire-cli-linux-arm64-9.4.0-preview.1.25358.11.zip -->
+      <_FoundRidInCliArchiveFile Include="$([System.Text.RegularExpressions.Regex]::Match(%(_ArchiveFiles.FileName), 'aspire-cli-(.*)-\d+.*').Groups[1].Value)" />
+
+      <_MissingRids Include="@(_ExpectedRids)" Exclude="@(_FoundRidInCliArchiveFile)" />
+      <_UnexpectedRids Include="@(_FoundRidInCliArchiveFile)" Exclude="@(_ExpectedRids)" />
+    </ItemGroup>
+
+    <Warning Condition="@(_UnexpectedRids->Count()) > 0" Text="Found unexpected CLI archives for @(_UnexpectedRids, ',') . These are all the cli archives found - @(_ArchiveFiles, ', ')" />
+    <Error Condition="@(_MissingRids->Count()) > 0" Text="Missing CLI archive(s) for runtime identifiers: @(_MissingRids, ', '). These are all the cli archives found - @(_ArchiveFiles, ', ')" />
+
     <!--
       For blob items for the Dashboard, we want to make sure that the version we get back is not stable, even when the repo is producing stable versions.
       This is because we want to be able to re-spin the build if necessary without hitting issues of blob items clashing with each other. For this reason,
@@ -38,6 +56,17 @@
       Properties="SuppressFinalPackageVersion=true">
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
+
+    <!-- Generate checksums for aspire-cli packages -->
+    <ItemGroup>
+      <_CliFileToPublish Include="@(_ArchiveFiles)" />
+      <GenerateChecksumItems Include="@(_CliFileToPublish)" DestinationPath="%(FullPath).sha512" />
+    </ItemGroup>
+
+    <GenerateChecksums Items="@(GenerateChecksumItems)" />
+    <ItemGroup>
+      <_CliFileToPublish Include="@(GenerateChecksumItems->'%(DestinationPath)')" />
+    </ItemGroup>
 
     <ItemGroup>
       <ItemsToPushToBlobFeed Include="@(_InstallersToPublish)">
@@ -55,7 +84,7 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
-      <ItemsToPushToBlobFeed Include="@(_CliFilesToPublish)">
+      <ItemsToPushToBlobFeed Include="@(_CliFileToPublish)">
         <IsShipping>false</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>

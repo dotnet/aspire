@@ -315,7 +315,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var resultTask = interactionService.PromptInputAsync(
             title: "Title!",
             message: "Message!",
-            new ApplicationModel.InteractionInput { InputType = ApplicationModel.InputType.Text, Label = "Input" });
+            new Aspire.Hosting.InteractionInput { InputType = Aspire.Hosting.InputType.Text, Label = "Input" });
 
         // Assert
         logger.LogInformation("Reading result from writer.");

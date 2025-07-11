@@ -59,7 +59,7 @@
   <Target Name="_ProcessTextReplacementFiles"
     DependsOnTargets="GatherTextReplacementValues"
     Inputs="$(MSBuildAllProjects);@(_TextReplacementFile)"
-    Outputs="@(_TextReplacementFile->'%(_TextReplacementIntermediateFile))"
+    Outputs="@(_TextReplacementFile->'%(_TextReplacementIntermediateFile)')"
     >
     <ReplaceText
         Input="%(_TextReplacementFile.Identity)"

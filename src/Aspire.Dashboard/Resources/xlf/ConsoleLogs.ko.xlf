@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsErrorWatchingLogs">
         <source>Error watching logs</source>
-        <target state="new">Error watching logs</target>
+        <target state="translated">로그를 보는 동안 오류 발생</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -30,6 +30,11 @@
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
         <target state="translated">리소스를 선택하지 않음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="new">Don't wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -85,6 +90,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">로그를 보는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="new">Wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

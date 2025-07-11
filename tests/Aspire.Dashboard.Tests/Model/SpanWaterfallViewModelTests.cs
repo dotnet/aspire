@@ -5,7 +5,9 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Tests.Shared.Telemetry;
+using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -26,7 +28,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
 
         // Assert
         Assert.Collection(vm,
@@ -39,6 +41,36 @@ public sealed class SpanWaterfallViewModelTests
             {
                 Assert.Equal("1-1", e.Span.SpanId);
                 Assert.Empty(e.Children);
+            });
+    }
+
+    [Fact]
+    public void Create_RootSpanZeroDuration_ZeroPercentage()
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app1 = new OtlpApplication("app1", "instance", uninstrumentedPeer: false, context);
+        var app1View = new OtlpApplicationView(app1, new RepeatedField<KeyValue>());
+
+        var date = new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+        trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "31", parentSpanId: null, startDate: date, endDate: date));
+        var log = new OtlpLogEntry(TelemetryTestHelpers.CreateLogRecord(traceId: trace.TraceId, spanId: "1"), app1View, scope, context);
+
+        // Act
+        var vm = SpanWaterfallViewModel.Create(trace, [log], new SpanWaterfallViewModel.TraceDetailState([], []));
+
+        // Assert
+        Assert.Collection(vm,
+            e =>
+            {
+                Assert.Equal("31", e.Span.SpanId);
+                Assert.Equal(0, e.LeftOffset);
+                Assert.Equal(0, e.Width);
+
+                var spanLog = Assert.Single(e.SpanLogs);
+                Assert.Equal(0, spanLog.LeftOffset);
             });
     }
 
@@ -56,7 +88,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "2", parentSpanId: null, startDate: new DateTime(2001, 2, 1, 1, 1, 2, DateTimeKind.Utc), kind: OtlpSpanKind.Client));
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([new BrowserLinkOutgoingPeerResolver()], []));
+        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([new BrowserLinkOutgoingPeerResolver()], []));
 
         // Assert
         Assert.Collection(vm,
@@ -108,6 +140,7 @@ public sealed class SpanWaterfallViewModelTests
 
         var vm = SpanWaterfallViewModel.Create(
             trace,
+            [],
             new SpanWaterfallViewModel.TraceDetailState([], [])).First();
 
         // Act
@@ -130,7 +163,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
         var parent = vms[0];
         var child = vms[1];
 
@@ -152,7 +185,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
         var parent = vms[0];
         var child = vms[1];
 
