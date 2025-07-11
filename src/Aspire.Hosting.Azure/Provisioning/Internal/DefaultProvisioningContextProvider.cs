@@ -100,9 +100,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).
                     """,
                     [
-                        new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select Location", Required = true, Options = [..locations] },
-                        new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select Subscription ID", Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName()},
+                        new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select location", Required = true, Options = [..locations] },
+                        new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select subscription ID", Required = true },
+                        new InteractionInput { InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName() },
                     ],
                     new InputsDialogInteractionOptions
                     {
@@ -112,7 +112,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
                             var subscriptionInput = validationContext.Inputs[1];
                             if (!Guid.TryParse(subscriptionInput.Value, out var _))
                             {
-                                validationContext.AddValidationError(subscriptionInput, "Subscription ID must be a valid GUID");
+                                validationContext.AddValidationError(subscriptionInput, "Subscription ID must be a valid GUID.");
                             }
 
                             var resourceGroupInput = validationContext.Inputs[2];
