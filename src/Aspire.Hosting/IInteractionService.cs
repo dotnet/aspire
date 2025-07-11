@@ -103,8 +103,6 @@ public interface IInteractionService
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class InteractionInput
 {
-    private string? _value;
-
     /// <summary>
     /// Gets or sets the label for the input.
     /// </summary>
@@ -128,14 +126,12 @@ public sealed class InteractionInput
     /// <summary>
     /// Gets or sets the value of the input.
     /// </summary>
-    public string? Value { get => _value; init => _value = value; }
+    public string? Value { get; set; }
 
     /// <summary>
     /// Gets or sets the placeholder text for the input.
     /// </summary>
     public string? Placeholder { get; set; }
-
-    internal void SetValue(string value) => _value = value;
 
     internal List<string> ValidationErrors { get; } = [];
 }
@@ -327,6 +323,38 @@ public class InteractionOptions
     /// Setting this to <c>true</c> allows a message to contain Markdown elements such as links, text decoration and lists.
     /// </summary>
     public bool? EnableMessageMarkdown { get; set; }
+}
+
+/// <summary>
+/// Provides a set of static methods for the <see cref="InteractionResult{T}"/>.
+/// </summary>
+public static class InteractionResult
+{
+    /// <summary>
+    /// Creates a new <see cref="InteractionResult{T}"/> with the specified result and a flag indicating that the interaction was not canceled.
+    /// </summary>
+    /// <typeparam name="T">The type of the data associated with the interaction result.</typeparam>
+    /// <param name="result">The data returned from the interaction.</param>
+    /// <returns>The new <see cref="InteractionResult{T}"/>.</returns>
+    public static InteractionResult<T> Ok<T>(T result)
+    {
+        return new InteractionResult<T>(result, canceled: false);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="InteractionResult{T}"/> indicating a canceled interaction.
+    /// </summary>
+    /// <typeparam name="T">The type of the data associated with the interaction result.</typeparam>
+    /// <param name="data">Optional data to include with the interaction result. Defaults to the default value of type <typeparamref
+    /// name="T"/> if not provided.</param>
+    /// <returns>
+    /// An <see cref="InteractionResult{T}"/> with the <c>canceled</c> flag set to <see langword="true"/> and containing
+    /// the specified data.
+    /// </returns>
+    public static InteractionResult<T> Cancel<T>(T? data = default)
+    {
+        return new InteractionResult<T>(data ?? default, canceled: true);
+    }
 }
 
 /// <summary>

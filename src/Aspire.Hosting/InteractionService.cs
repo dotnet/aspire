@@ -67,8 +67,8 @@ internal class InteractionService : IInteractionService
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         var promptState = completion.State as bool?;
         return promptState == null
-            ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok(promptState.Value);
+            ? InteractionResult.Cancel<bool>()
+            : InteractionResult.Ok(promptState.Value);
     }
 
     public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -81,10 +81,10 @@ internal class InteractionService : IInteractionService
         var result = await PromptInputsAsync(title, message, [input], options, cancellationToken).ConfigureAwait(false);
         if (result.Canceled)
         {
-            return InteractionResultFactory.Cancel<InteractionInput>();
+            return InteractionResult.Cancel<InteractionInput>();
         }
 
-        return InteractionResultFactory.Ok(result.Data[0]);
+        return InteractionResult.Ok(result.Data[0]);
     }
 
     public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -103,8 +103,8 @@ internal class InteractionService : IInteractionService
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         var inputState = completion.State as IReadOnlyList<InteractionInput>;
         return inputState == null
-            ? InteractionResultFactory.Cancel<IReadOnlyList<InteractionInput>>()
-            : InteractionResultFactory.Ok(inputState);
+            ? InteractionResult.Cancel<IReadOnlyList<InteractionInput>>()
+            : InteractionResult.Ok(inputState);
     }
 
     public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -123,8 +123,8 @@ internal class InteractionService : IInteractionService
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         var promptState = completion.State as bool?;
         return promptState == null
-            ? InteractionResultFactory.Cancel<bool>()
-            : InteractionResultFactory.Ok(promptState.Value);
+            ? InteractionResult.Cancel<bool>()
+            : InteractionResult.Ok(promptState.Value);
     }
 
     // For testing.
@@ -310,19 +310,6 @@ internal class InteractionService : IInteractionService
 internal class InteractionCollection : KeyedCollection<int, Interaction>
 {
     protected override int GetKeyForItem(Interaction item) => item.InteractionId;
-}
-
-internal static class InteractionResultFactory
-{
-    internal static InteractionResult<T> Ok<T>(T result)
-    {
-        return new InteractionResult<T>(result, canceled: false);
-    }
-
-    internal static InteractionResult<T> Cancel<T>(T? data = default)
-    {
-        return new InteractionResult<T>(data ?? default, canceled: true);
-    }
 }
 
 [DebuggerDisplay("State = {State}, Complete = {Complete}")]
