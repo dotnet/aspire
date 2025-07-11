@@ -1,15 +1,37 @@
-<Project>
-  <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">
+<Project TreatAsLocalProperty="TargetRids">
+  <PropertyGroup>
+    <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
+
+    <!-- Use a colon separate list of RIDs here, like osx-x64:osx-arm64 .
+         It is helpful to allow building the non-aot cli builds on a single CI job -->
+    <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)eng\clipack\**\*.csproj" />
+
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
 
     <!-- `$(SkipTestProjects)` allows skipping test projects from being
           included in the build at all. This is useful for cases like when we are
           just building the packages, and don't need to build the test projects. -->
     <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />
+  </ItemGroup>
+
+  <!-- Native build only -->
+  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true'">
+    <!-- Add Aspire.Cli project here for native-only builds so it gets picked
+         up Restore, because Aspire.Cli.$(RID).csproj uses MSBuild task to build
+         instead of a ProjectReference -->
+    <ProjectToBuild Condition="'$(SkipManagedBuild)' == 'true'" Include="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
+
+    <!-- Skip any unknown target rids.
+         TODO: Map unknown rids to the available native projects -->
+    <_TargetRidItem Include="$(TargetRids.Split(':'))" />
+    <_NativeProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
+    <ProjectToBuild Include="@(_NativeProjectToBuild->Exists())" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
