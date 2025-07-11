@@ -221,6 +221,12 @@ internal class InteractionService : IInteractionService
         }
     }
 
+    /// <summary>
+    /// Runs validation for the inputs interaction.
+    /// </summary>
+    /// <returns>
+    /// true if validation passed, false if there were validation errors.
+    /// </returns>
     private async Task<bool> RunValidationAsync(Interaction interactionState, InteractionCompletionState result, CancellationToken cancellationToken)
     {
         if (result.Complete && interactionState.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
@@ -245,7 +251,7 @@ internal class InteractionService : IInteractionService
                     };
                     await validationCallback(context).ConfigureAwait(false);
 
-                    return context.HasErrors;
+                    return !context.HasErrors;
                 }
             }
         }
