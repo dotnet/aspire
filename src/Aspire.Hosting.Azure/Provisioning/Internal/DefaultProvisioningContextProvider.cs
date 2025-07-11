@@ -6,6 +6,7 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure.Utils;
 using Azure;
 using Azure.Core;
@@ -19,7 +20,7 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// <summary>
 /// Default implementation of <see cref="IProvisioningContextProvider"/>.
 /// </summary>
-internal sealed class DefaultProvisioningContextProvider(
+internal sealed partial class DefaultProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
@@ -55,10 +56,12 @@ internal sealed class DefaultProvisioningContextProvider(
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                    _provisioningOptionsAvailable.SetException(ex);
                 }
             });
         }
     }
+
     private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
@@ -71,7 +74,7 @@ internal sealed class DefaultProvisioningContextProvider(
                             .ToList();
 
             var messageBarResult = await interactionService.PromptMessageBarAsync(
-                 "Azure Provisioning",
+                 "Azure provisioning",
                  "The model contains Azure resources that require an Azure Subscription.",
                  new MessageBarInteractionOptions
                  {
@@ -91,19 +94,38 @@ internal sealed class DefaultProvisioningContextProvider(
             if (messageBarResult.Data)
             {
                 var result = await interactionService.PromptInputsAsync(
-                    "Azure Provisioning",
+                    "Azure provisioning",
                     """
                     The model contains Azure resources that require an Azure Subscription. 
                     Please provide the required Azure settings.
 
-                    If you do not have an Azure subscription, you can create a [free account](https://azure.com/free).
+                    If you do not have an Azure subscription, you can create a [free account](https://aka.ms/dotnet/aspire/azure-free-signup).
                     """,
                     [
                         new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select Location", Required = true, Options = [..locations] },
                         new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select Subscription ID", Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = "Resource Group", Value = GetDefaultResourceGroupName()},
+                        new InteractionInput { InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName()},
                     ],
-                    new InputsDialogInteractionOptions { ShowDismiss = false, EnableMessageMarkdown = true },
+                    new InputsDialogInteractionOptions
+                    {
+                        EnableMessageMarkdown = true,
+                        ValidationCallback = static (validationContext) =>
+                        {
+                            var subscriptionInput = validationContext.Inputs[1];
+                            if (!Guid.TryParse(subscriptionInput.Value, out var _))
+                            {
+                                validationContext.AddValidationError(subscriptionInput, "Subscription ID must be a valid GUID");
+                            }
+
+                            var resourceGroupInput = validationContext.Inputs[2];
+                            if (!IsValidResourceGroupName(resourceGroupInput.Value))
+                            {
+                                validationContext.AddValidationError(resourceGroupInput, "Resource group name must be a valid Azure resource group name.");
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    },
                     cancellationToken).ConfigureAwait(false);
 
                 if (!result.Canceled)
@@ -122,6 +144,38 @@ internal sealed class DefaultProvisioningContextProvider(
                 }
             }
         }
+    }
+
+    [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
+    private static partial Regex ResourceGroupValidCharacters();
+
+    private static bool IsValidResourceGroupName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 90)
+        {
+            return false;
+        }
+
+        // Only allow valid characters - letters, digits, underscores, hyphens, periods, and parentheses
+        if (!ResourceGroupValidCharacters().IsMatch(name))
+        {
+            return false;
+        }
+
+        // Must start with a letter
+        if (!char.IsLetter(name[0]))
+        {
+            return false;
+        }
+
+        // Cannot end with a period
+        if (name.EndsWith('.'))
+        {
+            return false;
+        }
+
+        // No consecutive periods
+        return !name.Contains("..");
     }
 
     public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
