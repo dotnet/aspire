@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Dashboard.Model;
@@ -44,7 +45,7 @@ public static class ConnectionStringParser
         ["kafka"] = 9092
     };
 
-    private static readonly string[] s_hostAliases = ["host", "server", "data source", "addr", "address", "endpoint"];
+    private static readonly string[] s_hostAliases = ["host", "server", "data source", "addr", "address", "endpoint", "contact points"];
 
     private static readonly Regex s_hostPortRegex = new(@"(\[[^\]]+\]|[^,:;\s]+)[:|,](\d{1,5})", RegexOptions.Compiled);
 
@@ -83,6 +84,17 @@ public static class ConnectionStringParser
         {
             if (keyValuePairs.TryGetValue(hostAlias, out var token))
             {
+                // First, check if the token is a complete URL
+                if (Uri.TryCreate(token, UriKind.Absolute, out var tokenUri) && !string.IsNullOrEmpty(tokenUri.Host))
+                {
+                    host = TrimBrackets(tokenUri.Host);
+                    port = tokenUri.Port != -1 ? tokenUri.Port : DefaultPortFromScheme(tokenUri.Scheme);
+                    return true;
+                }
+                
+                // Remove protocol prefixes like "tcp:", "udp:", etc. (but not from complete URLs)
+                token = RemoveProtocolPrefix(token);
+                
                 if (token.Contains(',') || token.Contains(':'))
                 {
                     var (hostPart, portPart) = SplitOnLast(token);
@@ -128,6 +140,29 @@ public static class ConnectionStringParser
     }
 
     private static string TrimBrackets(string s) => s.Trim('[', ']');
+
+    private static string RemoveProtocolPrefix(string value)
+    {
+        // Remove common protocol prefixes like "tcp:", "udp:", "ssl:", etc.
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        var colonIndex = value.IndexOf(':');
+        if (colonIndex > 0 && colonIndex < value.Length - 1)
+        {
+            var prefix = value[..colonIndex].ToLowerInvariant();
+            // Only remove known protocol prefixes, not arbitrary single letters
+            var knownProtocols = new[] { "tcp", "udp", "ssl", "tls", "http", "https", "ftp", "ssh" };
+            if (knownProtocols.Contains(prefix))
+            {
+                return value[(colonIndex + 1)..];
+            }
+        }
+
+        return value;
+    }
 
     private static int? DefaultPortFromScheme(string? scheme)
     {
