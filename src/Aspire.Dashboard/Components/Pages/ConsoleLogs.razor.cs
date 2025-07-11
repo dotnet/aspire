@@ -118,6 +118,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private bool _showHiddenResources;
     private bool _showTimestamp;
     private bool _isTimestampUtc;
+    private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
     private ConsoleLogsFilters _consoleLogFilters = new();
@@ -149,6 +150,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
+            _noWrapLogs = consoleSettings.NoWrapLogs;
         }
 
         var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
@@ -370,6 +372,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDisabled = !_showTimestamp
         });
 
+        _logsMenuItems.Add(new()
+        {
+            OnClick = () => ToggleWrapLogsAsync(noWrapLogs: !_noWrapLogs),
+            Text = _noWrapLogs ? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWrapLogs)] : Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoWrapLogs)],
+            Icon = _noWrapLogs ? new Icons.Regular.Size16.TextWrap() : new Icons.Regular.Size16.TextWrapOff()
+        });
+
         if (PageViewModel.SelectedResource != null)
         {
             if (ViewportInformation.IsDesktop)
@@ -400,10 +409,20 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task ToggleTimestampAsync(bool showTimestamp, bool isTimestampUtc)
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(showTimestamp, isTimestampUtc));
         _showTimestamp = showTimestamp;
         _isTimestampUtc = isTimestampUtc;
+        await UpdateConsoleLogSettingsAsync();
+    }
 
+    private async Task ToggleWrapLogsAsync(bool noWrapLogs)
+    {
+        _noWrapLogs = noWrapLogs;
+        await UpdateConsoleLogSettingsAsync();
+    }
+
+    private async Task UpdateConsoleLogSettingsAsync()
+    {
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
     }
@@ -749,7 +768,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc);
+    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc, bool NoWrapLogs);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {

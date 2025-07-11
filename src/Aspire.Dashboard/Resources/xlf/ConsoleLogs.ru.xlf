@@ -32,6 +32,11 @@
         <target state="translated">Нет выбранных ресурсов</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="new">Don't wrap log lines</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">Журналов консоли: {0}</target>
@@ -85,6 +90,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Просмотр журналов...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="new">Wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">
