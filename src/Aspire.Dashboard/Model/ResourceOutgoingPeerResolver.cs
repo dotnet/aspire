@@ -130,6 +130,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
         {
+            // First, try to match against resource URLs
             foreach (var (resourceName, resource) in resources)
             {
                 foreach (var service in resource.Urls)
@@ -143,12 +144,102 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                         return true;
                     }
                 }
+
+                // Try to match against connection strings (for GitHub models and other resources with connection strings)
+                if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+                    connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+                    TryExtractEndpointFromConnectionString(connectionString, out var endpoint) &&
+                    DoesAddressMatch(endpoint, value))
+                {
+                    name = ResourceViewModel.GetResourceName(resource, resources);
+                    resourceMatch = resource;
+                    return true;
+                }
+
+                // Try to match against parameter values (for Parameter resources that contain URLs)
+                if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+                    parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+                    TryParseUrlHostAndPort(parameterValue, out var parameterHostAndPort) &&
+                    string.Equals(parameterHostAndPort, value, StringComparison.OrdinalIgnoreCase))
+                {
+                    name = ResourceViewModel.GetResourceName(resource, resources);
+                    resourceMatch = resource;
+                    return true;
+                }
             }
 
             name = null;
             resourceMatch = null;
             return false;
         }
+    }
+
+    private static bool TryExtractEndpointFromConnectionString(string connectionString, [NotNullWhen(true)] out string? endpoint)
+    {
+        endpoint = null;
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            return false;
+        }
+
+        // Parse connection string for Endpoint= pattern (used by GitHub Models and other resources)
+        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            var trimmedPart = part.Trim();
+            if (trimmedPart.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
+            {
+                var endpointValue = trimmedPart[9..]; // Remove "Endpoint="
+                if (Uri.TryCreate(endpointValue, UriKind.Absolute, out var uri))
+                {
+                    endpoint = uri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryParseUrlHostAndPort(string value, [NotNullWhen(true)] out string? hostAndPort)
+    {
+        hostAndPort = null;
+
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        // Try to parse as a URL
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            hostAndPort = uri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool DoesAddressMatch(string endpoint, string value)
+    {
+        if (string.Equals(endpoint, value, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Apply the same transformations that are applied to the peer service value
+        var transformedEndpoint = endpoint;
+        foreach (var transformer in s_addressTransformers)
+        {
+            transformedEndpoint = transformer(transformedEndpoint);
+            if (string.Equals(transformedEndpoint, value, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static readonly List<Func<string, string>> s_addressTransformers = [

@@ -8,6 +8,7 @@ using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
+using Value = Google.Protobuf.WellKnownTypes.Value;
 
 namespace Aspire.Dashboard.Tests;
 
@@ -217,6 +218,113 @@ public class ResourceOutgoingPeerResolverTests
     private static bool TryResolvePeerName(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? peerName)
     {
         return ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, attributes, out peerName, out _);
+    }
+
+    [Fact]
+    public void ConnectionStringWithEndpoint_Match()
+    {
+        // Arrange - GitHub Models resource with connection string containing endpoint
+        var connectionString = "Endpoint=https://models.github.ai/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "models.github.ai:443")], out var value));
+        Assert.Equal("github-model", value);
+    }
+
+    [Fact]
+    public void ConnectionStringWithEndpointOrganization_Match()
+    {
+        // Arrange - GitHub Models resource with organization endpoint
+        var connectionString = "Endpoint=https://models.github.ai/orgs/myorg/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "models.github.ai:443")], out var value));
+        Assert.Equal("github-model", value);
+    }
+
+    [Fact]
+    public void ParameterWithUrlValue_Match()
+    {
+        // Arrange - Parameter resource with URL value
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["api-url-param"] = CreateResourceWithParameterValue("api-url-param", "https://api.example.com:8080/endpoint")
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "api.example.com:8080")], out var value));
+        Assert.Equal("api-url-param", value);
+    }
+
+    [Fact]
+    public void ConnectionStringWithoutEndpoint_NoMatch()
+    {
+        // Arrange - Connection string without Endpoint property
+        var connectionString = "Server=localhost;Database=test;User=admin;Password=secret";
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["sql-connection"] = CreateResourceWithConnectionString("sql-connection", connectionString)
+        };
+
+        // Act & Assert
+        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:1433")], out _));
+    }
+
+    [Fact]
+    public void ParameterWithNonUrlValue_NoMatch()
+    {
+        // Arrange - Parameter resource with non-URL value
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["config-param"] = CreateResourceWithParameterValue("config-param", "simple-config-value")
+        };
+
+        // Act & Assert
+        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:5000")], out _));
+    }
+
+    private static ResourceViewModel CreateResourceWithConnectionString(string name, string connectionString)
+    {
+        var properties = new Dictionary<string, ResourcePropertyViewModel>
+        {
+            [KnownProperties.Resource.ConnectionString] = new(
+                name: KnownProperties.Resource.ConnectionString,
+                value: Value.ForString(connectionString),
+                isValueSensitive: false,
+                knownProperty: null,
+                priority: 0)
+        };
+
+        return ModelTestHelpers.CreateResource(
+            appName: name,
+            resourceType: KnownResourceTypes.ConnectionString,
+            properties: properties);
+    }
+
+    private static ResourceViewModel CreateResourceWithParameterValue(string name, string value)
+    {
+        var properties = new Dictionary<string, ResourcePropertyViewModel>
+        {
+            [KnownProperties.Parameter.Value] = new(
+                name: KnownProperties.Parameter.Value,
+                value: Value.ForString(value),
+                isValueSensitive: false,
+                knownProperty: null,
+                priority: 0)
+        };
+
+        return ModelTestHelpers.CreateResource(
+            appName: name,
+            resourceType: KnownResourceTypes.Parameter,
+            properties: properties);
     }
 
     private sealed class MockDashboardClient(Task<ResourceViewModelSubscription> subscribeResult) : IDashboardClient
