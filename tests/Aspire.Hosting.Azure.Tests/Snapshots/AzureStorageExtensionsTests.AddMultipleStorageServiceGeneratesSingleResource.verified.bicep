@@ -51,10 +51,6 @@ resource queue2 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-
   parent: queueService2
 }
 
-resource tableService2 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
-  parent: storage
-}
-
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
 output queueEndpoint string = storage.properties.primaryEndpoints.queue
