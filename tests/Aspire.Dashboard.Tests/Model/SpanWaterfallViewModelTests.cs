@@ -53,7 +53,7 @@ public sealed class SpanWaterfallViewModelTests
         var app1View = new OtlpApplicationView(app1, new RepeatedField<KeyValue>());
 
         var date = new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc);
-        var trace = new OtlpTrace(new byte[] { 1, 2, 3 });
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "31", parentSpanId: null, startDate: date, endDate: date));
         var log = new OtlpLogEntry(TelemetryTestHelpers.CreateLogRecord(traceId: trace.TraceId, spanId: "1"), app1View, scope, context);
