@@ -297,6 +297,100 @@ public class ParameterProcessorTests
         await parameterProcessor.InitializeParametersAsync([]);
     }
 
+    [Fact]
+    public async Task InitializeParametersAsync_WithMissingParameterValue_LogsWarningWithoutException()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(
+            loggerService: loggerService, 
+            interactionService: interactionService);
+        var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithMissingValue);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log warning without exception details
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Parameter resource missingParam could not be initialized. Waiting for user input.", logEntry.Content);
+        Assert.False(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithNonMissingParameterException_LogsErrorWithException()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var parameterProcessor = CreateParameterProcessor(loggerService: loggerService);
+        var parameterWithError = CreateParameterWithGenericError("errorParam");
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithError);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithError]);
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log error message
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Failed to initialize parameter resource errorParam.", logEntry.Content);
+        Assert.True(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithResolvedParameter_LogsResolutionViaInteraction()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService, 
+            loggerService: loggerService,
+            interactionService: testInteractionService);
+        var parameter = CreateParameterWithMissingValue("testParam");
+
+        parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameter);
+
+        // Act - Start handling unresolved parameters
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([parameter]);
+
+        // Wait for the message bar interaction
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].SetValue("testValue");
+        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
+
+        // Wait for the handle task to complete
+        await handleTask;
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log that parameter was resolved via user interaction
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Parameter resource testParam has been resolved via user interaction.", logEntry.Content);
+        Assert.False(logEntry.IsErrorMessage);
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,
