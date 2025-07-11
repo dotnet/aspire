@@ -17,6 +17,8 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class DefaultProvisioningContextProviderTests
 {
+    private readonly TestInteractionService _defaultInteractionService = new() { IsAvailable = false };
+
     [Fact]
     public async Task CreateProvisioningContextAsync_ReturnsValidContext()
     {
@@ -30,7 +32,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,
@@ -67,7 +69,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,
@@ -94,7 +96,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            new TestInteractionService() { IsAvailable = false },
             options,
             environment,
             logger,
@@ -121,7 +123,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,
@@ -135,7 +137,7 @@ public class DefaultProvisioningContextProviderTests
         // Assert
         Assert.NotNull(context.ResourceGroup);
         Assert.NotNull(context.ResourceGroup.Name);
-        
+
         // Verify that the resource group name was saved to user secrets
         var azureSettings = userSecrets["Azure"] as JsonObject;
         Assert.NotNull(azureSettings);
@@ -156,7 +158,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,
@@ -185,7 +187,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,
@@ -215,7 +217,7 @@ public class DefaultProvisioningContextProviderTests
         var userSecrets = new JsonObject();
 
         var provider = new DefaultProvisioningContextProvider(
-            new TestInteractionService(),
+            _defaultInteractionService,
             options,
             environment,
             logger,

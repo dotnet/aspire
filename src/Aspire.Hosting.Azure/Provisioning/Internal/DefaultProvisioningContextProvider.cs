@@ -35,31 +35,30 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
     private void EnsureProvisioningOptions(JsonObject userSecrets)
     {
-        if (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId))
+        if (!interactionService.IsAvailable ||
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
         {
-            // If both options are already set, we can skip the prompt
+            // If the interaction service is not available, or 
+            // if both options are already set, we can skip the prompt
             _provisioningOptionsAvailable.TrySetResult();
             return;
         }
 
-        if (interactionService.IsAvailable)
+        // Start the loop that will allow the user to specify the Azure provisioning options
+        _ = Task.Run(async () =>
         {
-            // Start the loop that will allow the user to specify the Azure provisioning options
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
 
-                    logger.LogDebug("Azure provisioning options have been handled successfully.");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
-                    _provisioningOptionsAvailable.SetException(ex);
-                }
-            });
-        }
+                logger.LogDebug("Azure provisioning options have been handled successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                _provisioningOptionsAvailable.SetException(ex);
+            }
+        });
     }
 
     private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
