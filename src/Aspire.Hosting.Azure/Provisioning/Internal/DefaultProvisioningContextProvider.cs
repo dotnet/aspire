@@ -97,9 +97,8 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     "Azure provisioning",
                     """
                     The model contains Azure resources that require an Azure Subscription. 
-                    Please provide the required Azure settings.
 
-                    If you do not have an Azure subscription, you can create a [free account](https://aka.ms/dotnet/aspire/azure-free-signup).
+                    To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).
                     """,
                     [
                         new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select Location", Required = true, Options = [..locations] },
