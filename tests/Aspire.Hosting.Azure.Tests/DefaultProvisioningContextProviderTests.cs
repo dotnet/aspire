@@ -3,10 +3,12 @@
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Tests;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -307,6 +309,54 @@ public class DefaultProvisioningContextProviderTests
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
         Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_Prompt_ValidatesSubAndResourceGroup()
+    {
+        var testInteractionService = new TestInteractionService();
+        var options = CreateOptions(null, null, null);
+        var environment = CreateEnvironment();
+        var logger = CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var userSecrets = new JsonObject();
+
+        var provider = new DefaultProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider);
+
+        var createTask = provider.CreateProvisioningContextAsync(userSecrets);
+
+        // Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        // Complete the message bar interaction to proceed to inputs dialog
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));// Data = true (user clicked Enter Values)
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[1].Value = "not a guid";
+        inputsInteraction.Inputs[2].Value = "invalid group";
+
+        var context = new InputsDialogValidationContext
+        {
+            CancellationToken = CancellationToken.None,
+            ServiceProvider = new ServiceCollection().BuildServiceProvider(),
+            Inputs = inputsInteraction.Inputs
+        };
+
+        var inputOptions = Assert.IsType<InputsDialogInteractionOptions>(inputsInteraction.Options);
+        Assert.NotNull(inputOptions.ValidationCallback);
+        await inputOptions.ValidationCallback(context);
+
+        Assert.True((bool)context.GetType().GetProperty("HasErrors", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(context, null)!);
     }
 
     private static IOptions<AzureProvisionerOptions> CreateOptions(
