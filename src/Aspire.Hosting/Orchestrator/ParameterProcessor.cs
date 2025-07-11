@@ -86,7 +86,7 @@ internal sealed class ParameterProcessor(
                 _unresolvedParameters.Add(parameterResource);
 
                 loggerService.GetLogger(parameterResource)
-                    .LogWarning(ex, "Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
+                    .LogWarning("Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
             }
             else
             {
@@ -106,8 +106,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     State = new(stateText, KnownResourceStateStyles.Error),
-                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                    IsHidden = false
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
             .ConfigureAwait(false);
@@ -198,6 +197,10 @@ internal sealed class ParameterProcessor(
                             };
                         })
                         .ConfigureAwait(false);
+
+                        // Log that the parameter has been resolved
+                        loggerService.GetLogger(parameter)
+                            .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
                         // Persist the parameter value to user secrets if requested.
                         if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)

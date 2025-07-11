@@ -31,6 +31,14 @@ Or, if you are using Visual Studio:
 
 Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linux) or `.\start-code.cmd` to start VS Code.
 
+## Native build
+
+The default build includes native builds for `Aspire.Cli` which produces Native AOT binaries for some platforms. These projects are in `eng/clipack/Aspire.Cli.*`.
+
+By default it builds the cli native project for the current Runtime Identifier. A specific RIDs can be specified too by setting `$(TargetRids)` to a colon separated list like `/p:TargetRids=osx-x64:osx-arm64`.
+
+Native build can be disabled with `/p:SkipNativeBuild=true`. And to only the native bits use `/p:SkipManagedBuild=true`.
+
 ## View Dashboard
 
 When you start the sample app in Visual Studio, it will automatically open your browser to show the dashboard.

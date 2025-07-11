@@ -45,8 +45,6 @@ public static class ConnectionStringBuilderExtensions
                       {
                           ResourceType = KnownResourceTypes.ConnectionString,
                           State = KnownResourceStates.Waiting,
-                          // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
-                          IsHidden = true,
                           Properties = []
                       });
     }

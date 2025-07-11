@@ -327,7 +327,7 @@ internal sealed class ApplicationOrchestrator
                 await PublishConnectionStringAvailableEvent(connectionStringResource, cancellationToken).ConfigureAwait(false);
                 await _notificationService.PublishUpdateAsync(connectionStringResource, s => s with
                 {
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info),
+                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success),
                 }).ConfigureAwait(false);
             }, cancellationToken);
         }

@@ -112,11 +112,43 @@ extends:
 
     stages:
 
+    - stage: build_sign_native
+      displayName: Build+Sign native packages
+
+      jobs:
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
+        parameters:
+          agentOs: macos
+          targetRidsForSameOS:
+            - osx-arm64
+            - osx-x64
+          codeSign: true
+          teamName: $(_TeamName)
+          extraBuildArgs: >-
+            /p:Configuration=$(_BuildConfig)
+            $(_SignArgs)
+            $(_OfficialBuildIdArgs)
+
+      - template: /eng/pipelines/templates/build_sign_native.yml@self
+        parameters:
+          agentOs: linux
+          targetRidsForSameOS:
+            - linux-x64
+          # no need to sign ELF binaries on linux
+          codeSign: false
+          teamName: $(_TeamName)
+          extraBuildArgs: >-
+            /p:Configuration=$(_BuildConfig)
+            $(_SignArgs)
+            $(_OfficialBuildIdArgs)
+
     # ----------------------------------------------------------------
     # This stage performs build, test, packaging
     # ----------------------------------------------------------------
     - stage: build
       displayName: Build
+      dependsOn:
+      - build_sign_native
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
@@ -160,6 +192,21 @@ extends:
                 clean: true
 
             steps:
+              - task: DownloadPipelineArtifact@2
+                displayName: 🟣Download All Native Archives
+                inputs:
+                  itemPattern: |
+                    **/aspire-cli-*.zip
+                    **/aspire-cli-*.tar.gz
+                  targetPath: '$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)'
+
+              - task: PowerShell@2
+                displayName: 🟣List artifacts packages contents
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    Get-ChildItem -Path "$(Build.SourcesDirectory)\artifacts\packages" -File -Recurse | Select-Object FullName, @{Name="Size(MB)";Expression={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
+
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
                   dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
@@ -169,40 +216,14 @@ extends:
                   repoLogPath: $(Build.Arcade.LogsPath)
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
-
-          - ${{ if eq(variables._RunAsPublic, True) }}:
-            - job: Linux
-              ${{ if or(startswith(variables['Build.SourceBranch'], 'refs/heads/release/'), startswith(variables['Build.SourceBranch'], 'refs/heads/internal/release/'), eq(variables['Build.Reason'], 'Manual')) }}:
-                # If the build is getting signed, then the timeout should be increased.
-                timeoutInMinutes: 120
-              ${{ else }}:
-                # timeout accounts for wait times for helix agents up to 30mins
-                timeoutInMinutes: 90
-
-              pool:
-                name: NetCore1ESPool-Internal
-                image: 1es-mariner-2
-                os: linux
-
-              variables:
-                - name: _buildScript
-                  value: $(Build.SourcesDirectory)/build.sh --ci
-
-              preSteps:
-                - checkout: self
-                  fetchDepth: 1
-                  clean: true
-
-              steps:
-                - template: /eng/pipelines/templates/BuildAndTest.yml
-                  parameters:
-                    dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-                    buildScript: $(_buildScript)
-                    buildConfig: $(_BuildConfig)
-                    repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-                    repoLogPath: $(Build.Arcade.LogsPath)
-                    repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-                    isWindows: false
+                  targetRids:
+                    # aot
+                    - win-x64
+                    - win-arm64
+                    # non-aot - single file builds
+                    - win-x86
+                    - linux-arm64
+                    - linux-musl-x64
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
