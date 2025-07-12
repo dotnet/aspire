@@ -55,6 +55,21 @@
     <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
     <StreamJsonRpcPackageVersionForCli>2.23.32-alpha</StreamJsonRpcPackageVersionForCli>
   </PropertyGroup>
+  <!-- .NET 10.0 Package Versions -->
+  <PropertyGroup Label="Preview">
+    <!-- Runtime -->
+    <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsHostingPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHostingPreviewVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>
+    <MicrosoftExtensionsConfigurationBinderPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsConfigurationBinderPreviewVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>
+    <MicrosoftExtensionsLoggingAbstractionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsLoggingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsOptionsPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsOptionsPreviewVersion>
+    <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsPrimitivesPreviewVersion>
+    <MicrosoftExtensionsHttpPreviewVersion>10.0.0-preview.5.25277.114</MicrosoftExtensionsHttpPreviewVersion>
+    <SystemFormatsAsn1PreviewVersion>10.0.0-preview.5.25277.114</SystemFormatsAsn1PreviewVersion>
+    <SystemTextJsonPreviewVersion>10.0.0-preview.5.25277.114</SystemTextJsonPreviewVersion>
+  </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">
     <!-- EF -->
