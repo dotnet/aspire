@@ -105,9 +105,24 @@ public static class ExternalServiceBuilderExtensions
                 if (uri is null)
                 {
                     // If the URI is not set, it means we are using a parameterized URL
-                    var url = resource.UrlParameter is null
-                            ? null
-                            : await resource.UrlParameter.GetValueAsync(ct).ConfigureAwait(false);
+                    string? url;
+                    try
+                    {
+                        url = resource.UrlParameter is null
+                                ? null
+                                : await resource.UrlParameter.GetValueAsync(ct).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        e.Logger.LogError(ex, "Failed to get value for URL parameter '{ParameterName}'", resource.UrlParameter?.Name);
+
+                        await e.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
+                        {
+                            State = KnownResourceStates.FailedToStart
+                        }).ConfigureAwait(false);
+
+                        return;
+                    }
 
                     if (!ExternalServiceResource.UrlIsValidForExternalService(url, out uri, out var message))
                     {
