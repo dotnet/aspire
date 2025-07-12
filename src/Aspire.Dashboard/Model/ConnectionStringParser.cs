@@ -69,11 +69,11 @@ public static class ConnectionStringParser
             return false;
         }
 
-        // 1. URI parse
-        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host))
+        // 1. URI parse (including special handling for JDBC URLs)
+        if (TryParseAsUri(connectionString, out var uriHost, out var uriPort))
         {
-            host = TrimBrackets(uri.Host);
-            port = uri.Port != -1 ? uri.Port : DefaultPortFromScheme(uri.Scheme);
+            host = uriHost;
+            port = uriPort;
             return true;
         }
 
@@ -84,11 +84,18 @@ public static class ConnectionStringParser
             if (keyValuePairs.TryGetValue(hostAlias, out var token))
             {
                 // First, check if the token is a complete URL
-                if (Uri.TryCreate(token, UriKind.Absolute, out var tokenUri) && !string.IsNullOrEmpty(tokenUri.Host))
+                if (TryParseAsUri(token, out var tokenHost, out var tokenPort))
                 {
-                    host = TrimBrackets(tokenUri.Host);
-                    port = tokenUri.Port != -1 ? tokenUri.Port : DefaultPortFromScheme(tokenUri.Scheme);
+                    host = tokenHost;
+                    port = tokenPort;
                     return true;
+                }
+                
+                // Handle special case of multiple contact points (should return false)
+                if (hostAlias.Equals("contact points", StringComparison.OrdinalIgnoreCase) && 
+                    token.Contains(',') && token.Split(',').Length > 1)
+                {
+                    return false;
                 }
                 
                 // Remove protocol prefixes like "tcp:", "udp:", etc. (but not from complete URLs)
@@ -99,6 +106,27 @@ public static class ConnectionStringParser
                     var (hostPart, portPart) = SplitOnLast(token);
                     if (!string.IsNullOrEmpty(hostPart))
                     {
+                        // Special handling for IPv6 addresses in brackets - don't split if already properly formatted
+                        if (token.StartsWith('[') && token.Contains(']'))
+                        {
+                            var bracketEnd = token.IndexOf(']');
+                            if (bracketEnd > 0)
+                            {
+                                host = TrimBrackets(token[..(bracketEnd + 1)]);
+                                // Look for port after the bracket (could be colon or comma separated)
+                                var afterBracket = token[(bracketEnd + 1)..];
+                                if ((afterBracket.StartsWith(':') || afterBracket.StartsWith(',')) && afterBracket.Length > 1)
+                                {
+                                    port = ParseIntSafe(afterBracket[1..]) ?? PortFromKV(keyValuePairs);
+                                }
+                                else
+                                {
+                                    port = PortFromKV(keyValuePairs);
+                                }
+                                return true;
+                            }
+                        }
+                        
                         host = TrimBrackets(hostPart);
                         port = ParseIntSafe(portPart) ?? PortFromKV(keyValuePairs);
                         return true;
@@ -132,6 +160,48 @@ public static class ConnectionStringParser
         {
             host = TrimBrackets(connectionString);
             port = null;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseAsUri(string connectionString, [NotNullWhen(true)] out string? host, out int? port)
+    {
+        host = null;
+        port = null;
+
+        // Handle JDBC URLs specially since they're not recognized by Uri.TryCreate
+        if (connectionString.StartsWith("jdbc:", StringComparison.OrdinalIgnoreCase))
+        {
+            return TryParseJdbcUrl(connectionString, out host, out port);
+        }
+
+        // Standard URI parsing
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host))
+        {
+            host = TrimBrackets(uri.Host);
+            port = uri.Port != -1 ? uri.Port : DefaultPortFromScheme(uri.Scheme);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseJdbcUrl(string jdbcUrl, [NotNullWhen(true)] out string? host, out int? port)
+    {
+        host = null;
+        port = null;
+
+        // JDBC URL pattern: jdbc:subprotocol://host:port/database
+        var match = Regex.Match(jdbcUrl, @"^jdbc:[^:]+://([^:/\s]+)(?::(\d+))?(?:/.*)?", RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            host = match.Groups[1].Value;
+            if (match.Groups[2].Success && int.TryParse(match.Groups[2].Value, out var portValue))
+            {
+                port = portValue;
+            }
             return true;
         }
 
@@ -246,6 +316,7 @@ public static class ConnectionStringParser
 
         // Remove common file path indicators
         if (connectionString.StartsWith('/') || connectionString.StartsWith('\\') ||
+            connectionString.StartsWith("./") || connectionString.StartsWith("../") ||
             (connectionString.Length > 2 && connectionString[1] == ':' && char.IsLetter(connectionString[0])))
         {
             return false;
