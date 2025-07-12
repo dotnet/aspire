@@ -13,7 +13,7 @@
 
 @inject IStringLocalizer<Dialogs> Loc
 
-<FluentDialogHeader ShowDismiss="true">
+<FluentDialogHeader ShowDismiss="@Dialog.Instance.Parameters.ShowDismiss">
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
         <FluentLabel Typo="Typography.PaneHeader">
             @Dialog.Instance.Parameters.Title
