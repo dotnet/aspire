@@ -31,7 +31,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    private readonly TaskCompletionSource _provisioningOptionsAvailable = new();
+    private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private void EnsureProvisioningOptions(JsonObject userSecrets)
     {
@@ -63,15 +63,15 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
     private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        while (_options.Location == null || _options.SubscriptionId == null)
-        {
-            var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
+        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
                             .Where(p => p.PropertyType == typeof(AzureLocation))
                             .Select(p => (AzureLocation)p.GetValue(null)!)
                             .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
                             .OrderBy(kvp => kvp.Value)
                             .ToList();
 
+        while (_options.Location == null || _options.SubscriptionId == null)
+        {
             var messageBarResult = await interactionService.PromptMessageBarAsync(
                  "Azure provisioning",
                  "The model contains Azure resources that require an Azure Subscription.",
@@ -133,10 +133,12 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     _options.ResourceGroup = result.Data?[2].Value;
                     _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
 
+                    var azureSection = userSecrets.Prop("Azure");
+
                     // Persist the parameter value to user secrets so they can be reused in the future
-                    userSecrets.Prop("Azure")["Location"] = _options.Location;
-                    userSecrets.Prop("Azure")["SubscriptionId"] = _options.SubscriptionId;
-                    userSecrets.Prop("Azure")["ResourceGroup"] = _options.ResourceGroup;
+                    azureSection["Location"] = _options.Location;
+                    azureSection["SubscriptionId"] = _options.SubscriptionId;
+                    azureSection["ResourceGroup"] = _options.ResourceGroup;
 
                     _provisioningOptionsAvailable.SetResult();
                 }
