@@ -162,8 +162,6 @@ public static class ParameterResourceBuilderExtensions
         var state = new CustomResourceSnapshot
         {
             ResourceType = KnownResourceTypes.Parameter,
-            // hide parameters by default
-            IsHidden = true,
             Properties = [
                 new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)

@@ -170,6 +170,35 @@ public class InteractionServiceTests
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
     }
 
+    [Fact]
+    public async Task PromptInputAsync_InvalidData()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, };
+        var resultTask = interactionService.PromptInputAsync(
+            "Please provide", "please",
+            input,
+            new InputsDialogInteractionOptions
+            {
+                ValidationCallback = context =>
+                {
+                    // everything is invalid
+                    context.AddValidationError(input, "Invalid value");
+                    return Task.CompletedTask;
+                }
+            });
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+        Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
+
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new [] { input } });
+
+        // The interaction should still be in progress due to validation error
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted); 
+    }
+
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
     {
         await interactionService.CompleteInteractionAsync(interactionId, (_, _) => state, CancellationToken.None);
