@@ -469,7 +469,7 @@ public static partial class ConnectionStringParser
 
     /// <summary>
     /// Determines if a string looks like a hostname rather than a file path or other non-hostname string.
-    /// Uses RFC-compliant validation with conservative heuristics to avoid false positives.
+    /// Uses URI validation with conservative heuristics to avoid false positives.
     /// </summary>
     /// <param name="connectionString">The string to evaluate. Examples: "localhost" (valid), "/path/to/file.db" (invalid), "api.example.com" (valid)</param>
     /// <returns>True if the string appears to be a hostname; otherwise false.</returns>
@@ -497,88 +497,8 @@ public static partial class ConnectionStringParser
             return false;
         }
 
-        // Try to validate as hostname using more robust logic
-        return IsValidHostname(trimmed) || IsValidIPAddress(trimmed);
-    }
-
-    /// <summary>
-    /// Validates if a string conforms to hostname rules based on RFC 1123.
-    /// </summary>
-    /// <param name="hostname">The hostname to validate</param>
-    /// <returns>True if the hostname is valid; otherwise false.</returns>
-    private static bool IsValidHostname(string hostname)
-    {
-        // RFC 1123 hostname rules:
-        // - Can contain letters, digits, dots, and hyphens
-        // - Cannot start or end with hyphen
-        // - Each label (between dots) must be 1-63 characters
-        // - Total length must be ≤ 253 characters
-        
-        if (hostname.Length == 0 || hostname.Length > 253)
-        {
-            return false;
-        }
-
-        // Cannot start or end with dot or hyphen
-        if (hostname.StartsWith('.') || hostname.EndsWith('.') ||
-            hostname.StartsWith('-') || hostname.EndsWith('-'))
-        {
-            return false;
-        }
-
-        // Split into labels and validate each
-        var labels = hostname.Split('.');
-        
-        foreach (var label in labels)
-        {
-            if (!IsValidHostnameLabel(label))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Validates if a hostname label (part between dots) is valid.
-    /// </summary>
-    /// <param name="label">The label to validate</param>
-    /// <returns>True if the label is valid; otherwise false.</returns>
-    private static bool IsValidHostnameLabel(string label)
-    {
-        // Label must be 1-63 characters
-        if (label.Length == 0 || label.Length > 63)
-        {
-            return false;
-        }
-
-        // Cannot start or end with hyphen
-        if (label.StartsWith('-') || label.EndsWith('-'))
-        {
-            return false;
-        }
-
-        // Can only contain letters, digits, and hyphens
-        foreach (var c in label)
-        {
-            if (!char.IsLetterOrDigit(c) && c != '-')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Checks if a string is a valid IP address (IPv4 or IPv6).
-    /// </summary>
-    /// <param name="address">The address to validate</param>
-    /// <returns>True if the address is a valid IP; otherwise false.</returns>
-    private static bool IsValidIPAddress(string address)
-    {
-        // Use .NET's IPAddress parsing for robust IP validation
-        return System.Net.IPAddress.TryParse(address, out _);
+        // Use Uri parsing to validate hostname - create a fake URI and see if it parses
+        var fakeUri = $"scheme://{trimmed}";
+        return Uri.TryCreate(fakeUri, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host);
     }
 }
