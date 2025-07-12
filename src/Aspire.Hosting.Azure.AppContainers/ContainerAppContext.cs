@@ -14,6 +14,8 @@ namespace Aspire.Hosting.Azure;
 
 internal sealed class ContainerAppContext(IResource resource, ContainerAppEnvironmentContext containerAppEnvironmentContext)
 {
+    private const string LatestPreview = "2025-02-02-preview"; // some properties are currently only available in preview
+
     private readonly ContainerAppEnvironmentContext _containerAppEnvironmentContext = containerAppEnvironmentContext;
 
     public IResource Resource => resource;
@@ -112,6 +114,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer);
         AddVolumes(template, containerAppContainer);
 
+        if (resource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out var annotation))
+        {
+            AddAzureFunctionsConfiguration(annotation, containerAppResource);
+        }
+
         infra.Add(containerAppResource);
 
         if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
@@ -136,29 +143,84 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         };
         containerApp.Configuration = configuration;
 
-        const string latestPreview = "2025-02-02-preview"; // these properties are currently only available in preview
-
         // default autoConfigureDataProtection to true for .NET projects
         if (resource is ProjectResource)
         {
-            containerApp.ResourceVersion = latestPreview;
+            containerApp.ResourceVersion = LatestPreview;
 
             var value = new BicepValue<bool>(true);
             ((IBicepValue)value).Self = new BicepValueReference(configuration, "AutoConfigureDataProtection", ["runtime", "dotnet", "autoConfigureDataProtection"]);
             configuration.ProvisionableProperties["AutoConfigureDataProtection"] = value;
         }
 
-        // default kind to functionapp for Azure Functions
-        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
-        {
-            containerApp.ResourceVersion = latestPreview;
+        return containerApp;
+    }
 
-            var value = new BicepValue<string>("functionapp");
-            ((IBicepValue)value).Self = new BicepValueReference(containerApp, "Kind", ["kind"]);
-            containerApp.ProvisionableProperties["Kind"] = value;
+    private void AddAzureFunctionsConfiguration(AzureFunctionsAnnotation annotation, ContainerApp containerApp)
+    {
+        containerApp.ResourceVersion = LatestPreview;
+
+        var value = new BicepValue<string>("functionapp");
+        ((IBicepValue)value).Self = new BicepValueReference(containerApp, "Kind", ["kind"]);
+        containerApp.ProvisionableProperties["Kind"] = value;
+
+        EnvironmentVariables["AzureWebJobsSecretStorageType"] = "ContainerApps";
+
+        ProcessFunctionsSecretVolumes(annotation, containerApp);
+    }
+
+    private void ProcessFunctionsSecretVolumes(AzureFunctionsAnnotation annotation, ContainerApp app)
+    {
+        const string volumeName = "functions-keys";
+        const string mountPath = "/run/secrets/functions-keys";
+
+        if (annotation.Keys.Count == 0)
+        {
+            return;
         }
 
-        return containerApp;
+        var containerAppSecretsVolume = new ContainerAppVolume
+        {
+            Name = volumeName,
+            StorageType = ContainerAppStorageType.Secret
+        };
+
+        foreach (var functionKey in annotation.Keys)
+        {
+            var paramSecret = functionKey.SecretParameter;
+
+            if (!paramSecret.Secret)
+            {
+                continue;
+            }
+
+            //todo? we could match k8s secret repo by using "." instead of "-" for keys but need to replace here
+            var secretName = paramSecret.Name.Replace("_", "-").ToLowerInvariant();
+
+            var containerAppSecret = new ContainerAppWritableSecret()
+            {
+                Name = secretName,
+                Value = paramSecret.AsProvisioningParameter(Infra)
+            };
+
+            app.Configuration.Secrets.Add(containerAppSecret);
+
+            containerAppSecretsVolume.Secrets.Add(new SecretVolumeItem
+            {
+                Path = paramSecret.Name,
+                SecretRef = secretName
+            });
+        }
+
+        var containerAppSecretsVolumeMount = new ContainerAppVolumeMount
+        {
+            VolumeName = volumeName,
+            MountPath = mountPath
+        };
+
+        // TODO: will there always be 1 Container?
+        app.Template.Containers[0].Value!.VolumeMounts.Add(containerAppSecretsVolumeMount);
+        app.Template.Volumes.Add(containerAppSecretsVolume);
     }
 
     private void AddVolumes(ContainerAppTemplate template, ContainerAppContainer containerAppContainer)
