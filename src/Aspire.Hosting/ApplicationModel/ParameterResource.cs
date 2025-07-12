@@ -31,7 +31,9 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value
+    public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
+
+    internal string ValueInternal
     {
         get
         {
@@ -79,7 +81,12 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// </summary>
     internal TaskCompletionSource<string>? WaitForValueTcs { get; set; }
 
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for the value.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the value of the parameter.</returns>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
         if (WaitForValueTcs is not null)
         {
@@ -87,6 +94,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
             return await WaitForValueTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return Value;
+        // In publish mode, there's no WaitForValueTcs set.
+        return ValueInternal;
     }
 }

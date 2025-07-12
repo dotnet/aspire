@@ -62,7 +62,7 @@ internal sealed class ParameterProcessor(
     {
         try
         {
-            var value = parameterResource.Value ?? "";
+            var value = parameterResource.ValueInternal ?? "";
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {

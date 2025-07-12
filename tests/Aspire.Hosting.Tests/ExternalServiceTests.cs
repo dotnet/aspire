@@ -289,6 +289,87 @@ public class ExternalServiceTests
         Assert.Contains("absolute path must be \"/\"", pathMessage);
     }
 
+    [Fact]
+    public async Task ExternalServiceWithParameterGetValueAsyncErrorMarksAsFailedToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter with a broken value callback
+        var urlParam = builder.AddParameter("failing-url", () => throw new InvalidOperationException("Parameter resolution failed"));
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as FailedToStart
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.FailedToStart
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.FailedToStart, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithParameterInvalidUrlMarksAsFailedToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter that returns an invalid URL
+        var urlParam = builder.AddParameter("invalid-url", () => "invalid-url-not-absolute");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as FailedToStart
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.FailedToStart
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.FailedToStart, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithValidParameterMarksAsRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter that returns a valid URL
+        var urlParam = builder.AddParameter("valid-url", () => "https://example.com/");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as Running
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.Running
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.Running, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "testproject";
