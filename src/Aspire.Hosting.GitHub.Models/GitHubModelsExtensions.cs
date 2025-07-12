@@ -34,11 +34,29 @@ public static class GitHubModelsExtensions
             {
                 ResourceType = "GitHubModel",
                 CreationTimeStamp = DateTime.UtcNow,
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success),
+                State = KnownResourceStates.Waiting,
                 Properties =
-                    [
-                        new(CustomResourceKnownProperties.Source, "GitHub Models")
-                    ]
+                [
+                    new(CustomResourceKnownProperties.Source, "GitHub Models")
+                ]
+            })
+            .OnInitializeResource(async (r, evt, ct) =>
+            {
+                // Connection string resolution is dependent on parameters being resolved
+                // We use this to wait for the parameters to be resolved before we can compute the connection string.
+                var cs = await r.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+                // Publish the update with the connection string value and the state as running.
+                // This will allow health checks to start running.
+                await evt.Notifications.PublishUpdateAsync(r, s => s with
+                {
+                    State = KnownResourceStates.Running,
+                    Properties = [.. s.Properties, new(CustomResourceKnownProperties.ConnectionString, cs) { IsSensitive = true }]
+                }).ConfigureAwait(false);
+
+                // Publish the connection string available event for other resources that may depend on this resource.
+                await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                  .ConfigureAwait(false);
             });
     }
 
@@ -94,7 +112,7 @@ public static class GitHubModelsExtensions
                 {
                     // Cache the health check instance so we can reuse its result in order to avoid multiple API calls
                     // that would exhaust the rate limit.
-                    
+
                     if (healthCheck is not null)
                     {
                         return healthCheck;

@@ -132,11 +132,40 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             foreach (var (resourceName, resource) in resources)
             {
+                // Try to match against URL endpoints
                 foreach (var service in resource.Urls)
                 {
                     var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
 
-                    if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    if (DoesAddressMatch(hostAndPort, value))
+                    {
+                        name = ResourceViewModel.GetResourceName(resource, resources);
+                        resourceMatch = resource;
+                        return true;
+                    }
+                }
+
+                // Try to match against connection strings using comprehensive parsing
+                if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+                    connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+                    ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
+                {
+                    var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+                    if (DoesAddressMatch(endpoint, value))
+                    {
+                        name = ResourceViewModel.GetResourceName(resource, resources);
+                        resourceMatch = resource;
+                        return true;
+                    }
+                }
+
+                // Try to match against parameter values (for Parameter resources that contain URLs or host:port values)
+                if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+                    parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+                    ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
+                {
+                    var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+                    if (DoesAddressMatch(parameterEndpoint, value))
                     {
                         name = ResourceViewModel.GetResourceName(resource, resources);
                         resourceMatch = resource;
@@ -149,6 +178,27 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             resourceMatch = null;
             return false;
         }
+    }
+
+    private static bool DoesAddressMatch(string endpoint, string value)
+    {
+        if (string.Equals(endpoint, value, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Apply the same transformations that are applied to the peer service value
+        var transformedEndpoint = endpoint;
+        foreach (var transformer in s_addressTransformers)
+        {
+            transformedEndpoint = transformer(transformedEndpoint);
+            if (string.Equals(transformedEndpoint, value, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static readonly List<Func<string, string>> s_addressTransformers = [
