@@ -11,7 +11,7 @@ namespace Aspire.Dashboard.Model;
 /// Provides utilities for parsing connection strings to extract host and port information.
 /// Supports various connection string formats including URIs, key-value pairs, and delimited lists.
 /// </summary>
-public static partial class ConnectionStringParser
+internal static partial class ConnectionStringParser
 {
     private static readonly Dictionary<string, int> s_schemeDefaultPorts = new(StringComparer.OrdinalIgnoreCase)
     {
