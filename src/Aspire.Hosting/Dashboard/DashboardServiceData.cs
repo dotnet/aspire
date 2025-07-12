@@ -179,7 +179,7 @@ internal sealed class DashboardServiceData : IDisposable
                                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
                             }
 
-                            modelInput.SetValue(incomingValue);
+                            modelInput.Value = incomingValue;
                         }
 
                         return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };
