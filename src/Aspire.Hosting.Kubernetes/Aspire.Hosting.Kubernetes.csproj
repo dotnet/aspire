@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)PublishingContextUtils.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
+    <Compile Include="$(SharedDir)PortAllocator.cs" LinkBase="Shared" />
   </ItemGroup>
 
   <ItemGroup>

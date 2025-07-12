@@ -2,12 +2,12 @@
 apiVersion: "v1"
 kind: "Service"
 metadata:
-  name: "myapp-service"
+  name: "special-app-service"
 spec:
   type: "ClusterIP"
   selector:
     app: "aspire"
-    component: "myapp"
+    component: "SpeciaL-ApP"
   ports:
     - name: "http"
       protocol: "TCP"
