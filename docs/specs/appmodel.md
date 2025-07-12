@@ -218,7 +218,7 @@ Aspire defines standard events to orchestrate resource lifecycles:
 | Event                          | When Emitted                             | Purpose                                                 |
 | ------------------------------ | ---------------------------------------- | ------------------------------------------------------- |
 | InitializeResourceEvent        | The first event fired for any resource.  | Kick the resource's lifecycle.                          |
-| ResourceEndpointsAllocatedEvent| Fired when endpoints have been allocated | Can succesfully evaluate endpoint values at this point  |
+| ResourceEndpointsAllocatedEvent| Fired when endpoints have been allocated | Can successfully evaluate endpoint values at this point  |
 | BeforeResourceStartedEvent     | Just before execution begins.            | Last-chance dynamic setup or validation before startup  |
 | ResourceReadyEvent             | When the resource is considered "ready." | Unblocks dependents waiting for readiness.              |
 | ConnectionStringAvailableEvent | When a connection string is ready.       | Enables dependent resources to be wired dynamically.    |
