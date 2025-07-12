@@ -35,4 +35,19 @@ public class SeqPublicApiTests
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
+
+    // Temporary test failures for GitHub Checks validation
+    [Fact]
+    public void ArtificialFailureForTesting1()
+    {
+        // This test intentionally fails to validate GitHub Checks integration
+        Assert.Fail("This test is intentionally failing to test GitHub Checks integration");
+    }
+
+    [Fact]
+    public void ArtificialFailureForTesting2()
+    {
+        // This test intentionally fails to validate GitHub Checks integration
+        Assert.Equal("expected", "actual");
+    }
 }
