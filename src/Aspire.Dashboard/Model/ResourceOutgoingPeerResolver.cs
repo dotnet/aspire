@@ -159,15 +159,18 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     }
                 }
 
-                // Try to match against parameter values (for Parameter resources that contain URLs)
+                // Try to match against parameter values (for Parameter resources that contain URLs or host:port values)
                 if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
                     parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
-                    TryParseUrlHostAndPort(parameterValue, out var parameterHostAndPort) &&
-                    DoesAddressMatch(parameterHostAndPort, value))
+                    ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
                 {
-                    name = ResourceViewModel.GetResourceName(resource, resources);
-                    resourceMatch = resource;
-                    return true;
+                    var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+                    if (DoesAddressMatch(parameterEndpoint, value))
+                    {
+                        name = ResourceViewModel.GetResourceName(resource, resources);
+                        resourceMatch = resource;
+                        return true;
+                    }
                 }
             }
 
@@ -175,25 +178,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             resourceMatch = null;
             return false;
         }
-    }
-
-    private static bool TryParseUrlHostAndPort(string value, [NotNullWhen(true)] out string? hostAndPort)
-    {
-        hostAndPort = null;
-
-        if (string.IsNullOrEmpty(value))
-        {
-            return false;
-        }
-
-        // Try to parse as a URL
-        if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
-        {
-            hostAndPort = uri.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
-            return true;
-        }
-
-        return false;
     }
 
     private static bool DoesAddressMatch(string endpoint, string value)
