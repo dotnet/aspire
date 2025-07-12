@@ -21,14 +21,19 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+resource blob 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }
 
 resource myblobcontainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'myblobcontainer'
-  parent: blobs
+  parent: blob
+}
+
+resource queue 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
+  name: 'default'
+  parent: storage
 }
 
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
