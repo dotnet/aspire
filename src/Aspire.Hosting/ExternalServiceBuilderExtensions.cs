@@ -80,6 +80,7 @@ public static class ExternalServiceBuilderExtensions
             .WithInitialState(new CustomResourceSnapshot
             {
                 ResourceType = "ExternalService",
+                State = KnownResourceStates.Waiting,
                 Properties = []
             })
             .ExcludeFromManifest();
@@ -104,7 +105,9 @@ public static class ExternalServiceBuilderExtensions
                 if (uri is null)
                 {
                     // If the URI is not set, it means we are using a parameterized URL
-                    var url = resource.UrlParameter?.Value;
+                    var url = resource.UrlParameter is null
+                            ? null
+                            : await resource.UrlParameter.GetValueAsync(ct).ConfigureAwait(false);
 
                     if (!ExternalServiceResource.UrlIsValidForExternalService(url, out uri, out var message))
                     {
@@ -181,6 +184,8 @@ public static class ExternalServiceBuilderExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
         {
             var uri = builder.Resource.Uri;
+
+            // OK accessing the paramter here synchronously as this should only activate once the resource is running
 
             if (uri is null && !Uri.TryCreate(builder.Resource.UrlParameter?.Value, UriKind.Absolute, out uri)
                 || (uri?.Scheme != "http" && uri?.Scheme != "https"))
