@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Projects;
-using Xunit;
 
 namespace Aspire.Cli.Tests.E2E;
 

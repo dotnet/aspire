@@ -5,7 +5,6 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Xunit;
 using Xunit.Sdk;
 
 namespace Aspire.Hosting.NodeJs.Tests;

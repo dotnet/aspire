@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
-using Xunit;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 

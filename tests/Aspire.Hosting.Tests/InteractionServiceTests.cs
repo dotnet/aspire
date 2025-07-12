@@ -5,7 +5,6 @@ using System.Threading.Channels;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

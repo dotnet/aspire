@@ -58,12 +58,17 @@ jobs:
             exit 1
           }
 
+      # Adding .dotnet to GITHUB_PATH as this ensures that the tests running
+      # from the repo always use restored dotnet. For tests run from outside
+      # the repo we install system dotnet earlier in the build
+
       - name: Setup vars (Linux)
         if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
+          echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
       - name: Setup vars (Windows)
         if: ${{ inputs.os == 'windows-latest' }}
@@ -71,6 +76,7 @@ jobs:
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
           echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
+          echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
 
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
 
