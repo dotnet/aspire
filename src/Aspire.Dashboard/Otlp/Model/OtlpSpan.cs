@@ -42,12 +42,18 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
-    public OtlpApplication? UninstrumentedPeer { get; internal set; }
+    public OtlpApplication? UninstrumentedPeer { get => _uninstrumentedPeer; init => _uninstrumentedPeer = value; }
 
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
 
     private string? _cachedDisplaySummary;
+    private OtlpApplication? _uninstrumentedPeer;
+
+    public void SetUninstrumentedPeer(OtlpApplication? peer)
+    {
+        _uninstrumentedPeer = peer;
+    }
 
     public OtlpSpan? GetParentSpan()
     {
