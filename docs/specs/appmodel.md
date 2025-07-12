@@ -61,14 +61,14 @@ graph LR
   - [Structured vs Literal Values](#structured-vs-literal-values)
   - [Value Providers and Deferred Evaluation](#value-providers-and-deferred-evaluation)
   - [Core Value Types (Expanded)](#core-value-types-expanded)
-  - [Publish and Run Phases](#publish-and-run-phases)
+  - [Core Value Types (Expanded)](#core-value-types-expanded)
 - [ReferenceExpression](#referenceexpression)
 - [Endpoint Primitives](#endpoint-primitives)
 - [Context-Based Endpoint Resolution](#context-based-endpoint-resolution)
 - [API Patterns](#api-patterns)
 - [Full Examples](#full-examples)
   - [Example: Derived Container Resource (Redis)](#example-derived-container-resource-redis)
-  - [Example: Custom Resource (Talking Clock)](#example-custom-resource-talking-clock)
+  - [Example: Custom Resource - Talking Clock](#example-custom-resource---talking-clock)
 - [Glossary](#glossary)
 
 ---
@@ -258,9 +258,9 @@ Snapshots:
 
 Aspire integrates with .NET health checks to monitor the status of resources after they have started. The health check mechanism is tied into the resource lifecycle:
 
-1.  When a resource transitions to the `Running` state, Aspire checks if it has any associated health check annotations (typically added via `.WithHealthCheck(...)`).
-2.  **If health checks are configured:** Aspire begins executing these checks periodically. The resource is considered fully "ready" only after its health checks pass successfully. Once healthy, Aspire automatically publishes the `ResourceReadyEvent`.
-3.  **If no health checks are configured:** The resource is considered "ready" as soon as it enters the `Running` state. Aspire automatically publishes the `ResourceReadyEvent` immediately in this case.
+1. When a resource transitions to the `Running` state, Aspire checks if it has any associated health check annotations (typically added via `.WithHealthCheck(...)`).
+2. **If health checks are configured:** Aspire begins executing these checks periodically. The resource is considered fully "ready" only after its health checks pass successfully. Once healthy, Aspire automatically publishes the `ResourceReadyEvent`.
+3. **If no health checks are configured:** The resource is considered "ready" as soon as it enters the `Running` state. Aspire automatically publishes the `ResourceReadyEvent` immediately in this case.
 
 This automatic handling ensures that dependent resources (using mechanisms like `WaitFor`) only proceed when the target resource is truly ready, either by simply running or by passing its defined health checks.
 
@@ -287,7 +287,7 @@ logger.LogInformation("Starting provisioning…");
 
 See the Talking Clock example for a full implementation of a custom resource with logging.
 
-> **Note:** A full example demonstrating custom resource logging with the Talking Clock resource can be found in the [Full Examples](#example-custom-resource-talking-clock) section.
+> **Note:** A full example demonstrating custom resource logging with the Talking Clock resource can be found in the [Full Examples](#example-custom-resource---talking-clock) section.
 
 #### Key APIs
 
@@ -573,13 +573,13 @@ builder.WithEnvironment("HEALTH_URL",
 
 *Publish manifest excerpt*
 
-```
+```env
 HEALTH_URL=https://{api.bindings.http.host}:{api.bindings.http.port}/health
 ```
 
 *Run‑time value*
 
-```
+```env
 HEALTH_URL=https://localhost:5000/health
 ```
 
@@ -679,7 +679,7 @@ In **publish mode**, endpoints are not allocated with concrete values. Instead, 
 
 Use the `IsAllocated` property on an `EndpointReference` to check if an endpoint has been allocated before accessing its runtime values.
 
---- 
+---
 
 ### Accessing Allocated Endpoints Safely
 
@@ -727,19 +727,19 @@ builder.Build().Run();
 #### Output
 
 - **Run Mode**:
-  ```
+  ```text
   IsAllocated: True
   Resolved Url: http://localhost:6379
   ```
 - **Publish Mode**:
-  ```
+  ```text
   IsAllocated: False
   Error accessing Url: Endpoint has not been allocated.
   ```
 
 **NOTE: The overloads of [WithEnvironment](https://learn.microsoft.com/en-us/dotnet/api/aspire.hosting.resourcebuilderextensions.withenvironment) that take a callback run after endpoints have been allocated.** 
 
---- 
+---
 
 ## Referencing Endpoints from Other Resources
 
@@ -857,8 +857,7 @@ Key members:
 
 `EndpointReferenceExpression` implements the same `IManifestExpressionProvider` / `IValueProvider` pair, so it can be embedded in a `ReferenceExpression` or resolved directly with `GetValueAsync()`.
 
-
---- 
+---
 
 ## Context-Based Endpoint Resolution
 
@@ -872,7 +871,7 @@ Aspire resolves endpoints differently based on the relationship between the sour
 | **Executable/Project**    | **Container**            | Host network (`localhost:port`).             | `localhost:6379`                        |
 | **Container**             | **Executable/Project**   | Host network (`host.docker.internal:port`).  | `host.docker.internal:5000`             |
 
---- 
+---
 
 #### Advanced Scenario: Dynamic Endpoint Resolution Across Contexts
 
@@ -929,7 +928,7 @@ Aspire separates **resource data models** from **behavior** using **fluent exten
 
 This guide describes each pattern and shows a **verbatim Redis example** at the end. It also covers how to publish manifests via custom resources.
 
---- 
+---
 
 ## Adding Resources with `AddX(...)`
 
@@ -999,7 +998,7 @@ public static IResourceBuilder<TResource> AddX(
 | **Register**       | `builder.AddResource(resource)`     | Add resource to the application model            |
 | **Optional wiring**| `.WithEndpoint…`, `.WithHealthCheck…`, `.WithImage…`, `.WithEnvironment…`, `.WithArgs…`, `Eventing.Subscribe…` | Configure container details, wiring, and runtime hooks |
 
---- 
+---
 
 ## Configuring Resources with `WithX(...)`
 
@@ -1025,7 +1024,7 @@ public static IResourceBuilder<TResource> WithFoo(
 | `WithX(...)`  | `IResourceBuilder<TResource>` | Attaches `XAnnotation` via `WithAnnotation`    |
 | Returns       | `IResourceBuilder<TResource>` | Enables fluent chaining                        |
 
---- 
+---
 
 ## Annotations
 
@@ -1051,7 +1050,7 @@ builder.WithAnnotation(new PersistenceAnnotation(
 | Attach           | `builder.WithAnnotation(new XAnnotation(...))`       | Adds metadata to resource builder                 |
 | Query            | `resource.TryGetLastAnnotation<XAnnotation>(out var a)` | Consumers inspect annotations as needed            |
 
---- 
+---
 
 ## Custom Value Objects
 
@@ -1105,7 +1104,7 @@ public static IResourceBuilder<T> WithEnvironment<T>(
 | `IValueWithReferences` _(opt.)_  | `References`                                   | Declare resource dependencies                |
 | `WithEnvironment(...)`           | `new("NAME", valueProvider)`                 | Attach structured values unflattened         |
 
---- 
+---
 
 ## Manifest Publishing & Resource Serialization
 
@@ -1157,7 +1156,7 @@ public virtual void WriteToManifest(ManifestPublishingContext context)
 | Implement `WriteToManifest`| Use `context.Writer` to emit JSON properties  | Define resource manifest representation  |
 | Structured fields          | `IManifestExpressionProvider.ValueExpression`| Ensure publish-time placeholders are preserved |
 
---- 
+---
 
 ## Key Conventions
 
@@ -1169,7 +1168,7 @@ public virtual void WriteToManifest(ManifestPublishingContext context)
 | `[ResourceName]` attribute        | Enforces valid resource naming at compile time  |
 | Preserve parameter/value objects | Ensures deferred evaluation of secrets/outputs  |
 
---- 
+---
 
 ## Full Examples
 
@@ -1506,7 +1505,7 @@ public static class TalkingClockExtensions
 }
 ```
 
---- 
+---
 
 ## Glossary
 
