@@ -197,6 +197,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+            var framework = parseResult.GetValue<string?>("--framework");
 
             // Some templates have additional arguments that need to be applied to the `dotnet new` command
             // when it is executed. This callback will get those arguments and potentially prompt for them.
@@ -244,6 +245,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                                 template.Name,
                                 name,
                                 outputPath,
+                                framework,
                                 extraArgs,
                                 options,
                                 cancellationToken);

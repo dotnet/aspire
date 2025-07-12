@@ -17,6 +17,11 @@
         <target state="translated">輸入專案名稱:</target>
         <note />
       </trans-unit>
+      <trans-unit id="FrameworkArgumentDescription">
+        <source>The target framework for the project.</source>
+        <target state="new">The target framework for the project.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidProjectName">
         <source>Invalid project name.</source>
         <target state="translated">無效的專案名稱。</target>
