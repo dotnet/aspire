@@ -176,7 +176,8 @@ public class KubernetesPublisherTests()
         using var tempDir = new TempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
 
-        builder.AddKubernetesEnvironment("env");
+        builder.AddKubernetesEnvironment("env")
+                   .WithProperties(k => k.HelmChartName = "my-chart");
 
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
