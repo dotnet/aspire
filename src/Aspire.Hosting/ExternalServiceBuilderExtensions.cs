@@ -185,7 +185,7 @@ public static class ExternalServiceBuilderExtensions
         {
             var uri = builder.Resource.Uri;
 
-            // OK accessing the paramter here synchronously as this should only activate once the resource is running
+            // OK accessing the parameter here synchronously as this should only activate once the resource is running
 
             if (uri is null && !Uri.TryCreate(builder.Resource.UrlParameter?.Value, UriKind.Absolute, out uri)
                 || (uri?.Scheme != "http" && uri?.Scheme != "https"))
