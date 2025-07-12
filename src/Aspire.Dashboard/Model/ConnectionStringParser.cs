@@ -47,6 +47,8 @@ public static partial class ConnectionStringParser
 
     private static readonly string[] s_hostAliases = ["host", "server", "data source", "addr", "address", "endpoint", "contact points"];
 
+    private static readonly string[] s_knownProtocols = ["tcp", "udp", "ssl", "tls", "http", "https", "ftp", "ssh"];
+
     /// <summary>
     /// Matches host:port or host,port patterns with optional IPv6 bracket notation.
     /// Examples: "localhost:5432", "127.0.0.1,1433", "[::1]:6379"
@@ -359,8 +361,7 @@ public static partial class ConnectionStringParser
         {
             var prefix = value[..colonIndex].ToLowerInvariant();
             // Only remove known protocol prefixes, not arbitrary single letters
-            var knownProtocols = new[] { "tcp", "udp", "ssl", "tls", "http", "https", "ftp", "ssh" };
-            if (knownProtocols.Contains(prefix))
+            if (s_knownProtocols.Contains(prefix))
             {
                 return value[(colonIndex + 1)..];
             }
@@ -489,16 +490,8 @@ public static partial class ConnectionStringParser
             return false;
         }
 
-        var trimmed = connectionString.Trim();
-        
-        // Basic sanity checks
-        if (string.IsNullOrEmpty(trimmed) || trimmed.Contains(' ') || trimmed.Contains('\t'))
-        {
-            return false;
-        }
-
         // Use Uri parsing to validate hostname - create a fake URI and see if it parses
-        var fakeUri = $"scheme://{trimmed}";
+        var fakeUri = $"scheme://{connectionString.Trim()}";
         return Uri.TryCreate(fakeUri, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host);
     }
 }
