@@ -143,7 +143,7 @@
     <value>Endpoints</value>
   </data>
   <data name="PressCtrlCToStopAppHost" xml:space="preserve">
-    <value>Press [bold]Ctrl+C[/] to stop the app host and exit.</value>
+    <value>Press [bold]CTRL+C[/] to stop the apphost and exit.</value>
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
