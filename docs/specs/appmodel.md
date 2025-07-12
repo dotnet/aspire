@@ -881,7 +881,6 @@ Aspire resolves endpoints differently based on the execution context (e.g., run 
 
 Below example shows a project that is going to setup up grafana and keycloak. We need to give the project the address for container-to-container communication between grafana and keycloak even though the target resource is a project. The project isn’t directly talking to keycloak or grafana, it's a mediator that is just setting URLs in the appropriate configuration of each container.
 
-
 ### Example: Cross-Context Communication
 
 #### Code Example
