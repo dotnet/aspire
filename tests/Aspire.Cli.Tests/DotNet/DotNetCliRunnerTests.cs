@@ -35,7 +35,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
+            (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
 
@@ -75,7 +75,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -190,7 +190,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
                 // or should be null if no env was provided
@@ -234,7 +234,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -266,113 +266,52 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task RunAsync_SetsExtensionPidFilePath_WhenApphostDebugCapabilityAndExtensionMode()
+    public async Task ExecuteAsyncLaunchesAppHostInExtensionHostIfConnected()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
+        var runDotNetProjectCalled = new TaskCompletionSource();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestExtensionInteractionService();
-            options.ExtensionBackchannelFactory
+            options.InteractionServiceFactory = _ => new TestExtensionInteractionService
+            {
+                RunDotNetProjectCallback = () => runDotNetProjectCalled.SetResult()
+            };
+            options.ConfigurationCallback = configBuilder =>
+            {
+                configBuilder["ASPIRE_EXTENSION_TOKEN"] = "extension-token";
+            };
+            options.ExtensionBackchannelFactory = _ => new TestExtensionBackchannel
+            {
+                GetCapabilitiesAsyncCallback = () => Task.FromResult<string[]>(["apphost-debug"])
+            };
+            options.AppHostBackchannelFactory = _ => new TestAppHostBackchannel();
         });
+
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
 
-        var options = new DotNetCliRunnerInvocationOptions();
-        var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-
-        var runner = new AssertingDotNetCliRunner(
+        var runner = new DotNetCliRunner(
             logger,
             provider,
             new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _, _) =>
-            {
-                Assert.NotNull(env);
-                Assert.Contains("ASPIRE_EXTENSION_PID_PATH", env.Keys);
-                Assert.False(string.IsNullOrWhiteSpace(env[KnownConfigNames.ExtensionPidFilePath]));
-            },
-            0
+            provider.GetRequiredService<IConfiguration>()
         );
 
-        await runner.RunAsync(
-            projectFile,
-            watch: false,
-            noBuild: false,
-            args: [],
-            env: new Dictionary<string, string>(),
-            backchannelCompletionSource,
-            options,
-            CancellationToken.None
-        );
-    }
-
-    [Fact]
-    public async Task RunAsync_DoesNotSetExtensionPidFilePath_IfNoApphostDebugCapabilityOrNotExtensionMode()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
-        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
-
-        // No apphost-debug capability
-        var services1 = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.AppHostBackchannelFactory = _ => new FakeAppHostBackchannel([]);
-            options.InteractionServiceFactory = _ => new DummyInteractionService();
-        });
-        var provider1 = services1.BuildServiceProvider();
-        var logger1 = provider1.GetRequiredService<ILogger<DotNetCliRunner>>();
-        var runner1 = new AssertingDotNetCliRunner(
-            logger1,
-            provider1,
-            new AspireCliTelemetry(),
-            provider1.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _, _) =>
-            {
-                Assert.NotNull(env);
-                Assert.DoesNotContain("ASPIRE_EXTENSION_PID_PATH", env.Keys);
-            },
-            0
-        );
-        await runner1.RunAsync(
-            projectFile,
-            watch: false,
-            noBuild: false,
-            args: [],
-            env: new Dictionary<string, string>(),
-            new TaskCompletionSource<IAppHostBackchannel>(),
-            new DotNetCliRunnerInvocationOptions(),
-            CancellationToken.None
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: null,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: new TaskCompletionSource<IAppHostBackchannel>(),
+            options: new DotNetCliRunnerInvocationOptions(),
+            cancellationToken: CancellationToken.None
         );
 
-        // Not in extension mode
-        var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider2 = services2.BuildServiceProvider();
-        var logger2 = provider2.GetRequiredService<ILogger<DotNetCliRunner>>();
-        var runner2 = new AssertingDotNetCliRunner(
-            logger2,
-            provider2,
-            new AspireCliTelemetry(),
-            provider2.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _, _) =>
-            {
-                Assert.NotNull(env);
-                Assert.DoesNotContain(KnownConfigNames.ExtensionPidFilePath, env.Keys);
-            },
-            0
-        );
-        await runner2.RunAsync(
-            projectFile,
-            watch: false,
-            noBuild: false,
-            args: [],
-            env: new Dictionary<string, string>(),
-            null,
-            new DotNetCliRunnerInvocationOptions(),
-            CancellationToken.None
-        );
+        await runDotNetProjectCalled.Task;
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }
 
