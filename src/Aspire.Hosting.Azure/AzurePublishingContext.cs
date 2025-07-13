@@ -235,7 +235,7 @@ public sealed class AzurePublishingContext(
             BicepValue<string> scope = resource.Scope?.ResourceGroup switch
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterLookup[p].Value.Compile()),
+                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new IdentifierExpression(ParameterLookup[p].BicepIdentifier)),
                 _ => new IdentifierExpression(rg.BicepIdentifier)
             };
 
