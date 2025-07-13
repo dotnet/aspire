@@ -12,16 +12,22 @@ namespace Aspire.Cli.Backchannel;
 
 internal interface IExtensionRpcTarget
 {
-    Task<string> GetCliVersionAsync(string token);
-    Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input);
     Func<string, ValidationResult>? ValidationFunction { get; set; }
+
+    [JsonRpcMethod("getCliVersion")]
+    Task<string> GetCliVersionAsync(string token);
+
+    [JsonRpcMethod("validatePromptInputString")]
+    Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input);
+
+    [JsonRpcMethod("stopCli")]
+    Task<string> StopCliAsync(string token);
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget
 {
     public Func<string, ValidationResult>? ValidationFunction { get; set; }
 
-    [JsonRpcMethod("getCliVersion")]
     public Task<string> GetCliVersionAsync(string token)
     {
         if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
@@ -32,7 +38,6 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
         return Task.FromResult(VersionHelper.GetDefaultTemplateVersion());
     }
 
-    [JsonRpcMethod("validatePromptInputString")]
     public Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input)
     {
         if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
@@ -41,5 +46,16 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
         }
 
         return Task.FromResult(ValidationFunction?.Invoke(input));
+    }
+
+    public Task<string> StopCliAsync(string token)
+    {
+        if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
+        {
+            throw new AuthenticationException();
+        }
+
+        Environment.Exit(ExitCodeConstants.Success);
+        return Task.FromResult("");
     }
 }
