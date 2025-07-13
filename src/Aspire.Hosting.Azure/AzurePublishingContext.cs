@@ -168,9 +168,9 @@ public sealed class AzurePublishingContext(
             }
 
             // Map parameters for the resource itself
-            foreach (var parameter in resource.Parameters)
+            foreach (var (_, value) in resource.Parameters)
             {
-                await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
+                await VisitAsync(value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -243,17 +243,17 @@ public sealed class AzurePublishingContext(
             module.Scope = scope;
             module.Parameters.Add("location", locationParam);
 
-            foreach (var parameter in resource.Parameters)
+            foreach (var (key, value) in resource.Parameters)
             {
-                if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
+                if (key == AzureBicepResource.KnownParameters.UserPrincipalId && value is null)
                 {
-                    module.Parameters.Add(parameter.Key, principalId);
+                    module.Parameters.Add(key, principalId);
                     continue;
                 }
 
-                var value = ResolveValue(Eval(parameter.Value));
+                var resolvedValue = ResolveValue(Eval(value));
 
-                module.Parameters.Add(parameter.Key, value);
+                module.Parameters.Add(key, resolvedValue);
             }
 
             await task.SucceedAsync(
@@ -283,9 +283,9 @@ public sealed class AzurePublishingContext(
 
         void CaptureBicepOutputsFromParameters(IResourceWithParameters resource)
         {
-            foreach (var parameter in resource.Parameters)
+            foreach (var (_, value) in resource.Parameters)
             {
-                Visit(parameter.Value, CaptureBicepOutputs);
+                Visit(value, CaptureBicepOutputs);
             }
         }
 
