@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
@@ -196,13 +195,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private static void WaitForDebugger()
     {
-        if (Environment.GetEnvironmentVariable(KnownConfigNames.ExtensionPidFilePath) is { } appHostPidFilePath)
-        {
-            // If the app host is running inside an extension and has set this environment variable,
-            // it is waiting for a port to be written to this path so that it can attach a debugger.
-            File.WriteAllText(appHostPidFilePath, Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
-        }
-
         if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebugger) == "true")
         {
             var startedWaiting = DateTimeOffset.UtcNow;

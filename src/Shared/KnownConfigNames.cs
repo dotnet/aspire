@@ -37,9 +37,6 @@ internal static class KnownConfigNames
     public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
-    // This is the path that the AppHost will write its PID to when running inside an extension.
-    // This is used by the Aspire extension to attach to the AppHost process.
-    public const string ExtensionPidFilePath = "ASPIRE_EXTENSION_PID_PATH";
 
     public static class Legacy
     {

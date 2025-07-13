@@ -13,8 +13,8 @@ namespace Aspire.Cli.Interaction;
 internal interface IExtensionInteractionService : IInteractionService
 {
     void OpenNewProject(string projectPath);
-    Task RequestAppHostAttachAsync(int processId, string projectName);
     void LogMessage(LogLevel logLevel, string message);
+    Task RunDotNetProjectAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -205,7 +205,6 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayCancellationMessageAsync(_cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
@@ -236,13 +235,13 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
     }
 
+    public Task RunDotNetProjectAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
+    {
+        return _backchannel.RunDotNetProjectAsync(projectFile, workingDirectory, arguments, environment, _cancellationToken);
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
-    }
-
-    public Task RequestAppHostAttachAsync(int processId, string projectName)
-    {
-        return _backchannel.RequestAppHostAttachAsync(processId, projectName, _cancellationToken);
     }
 }

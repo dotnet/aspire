@@ -5,10 +5,11 @@ import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, fai
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { attachToAppHost } from '../debugger/appHost';
+import { startAppHost } from '../debugger/appHost';
 import { getAspireTerminal } from '../utils/terminal';
+import { EnvVar, stopAllDebuggingSessions } from '../debugger/common';
 
-type CSLogLevel = 'Trace' | 'Debug' | 'Info' | 'Warn' | 'Error' | 'Critical';
+type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -26,7 +27,8 @@ export interface IInteractionService {
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    requestAppHostAttach(pid: number, projectName: string): Promise<void>;
+    runDotNetProject(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void>;
+    stopDebugging: () => void;
 }
 
 type DashboardUrls = {
@@ -77,7 +79,7 @@ export class InteractionService implements IInteractionService {
                 // Then check RPC validation
                 const validationResult = await rpcClient.validatePromptInputString(value);
                 if (validationResult) {
-                    return validationResult.successful ? null : validationResult.message;
+                    return validationResult.Successful ? null : validationResult.Message;
                 }
 
                 return null;
@@ -226,9 +228,8 @@ export class InteractionService implements IInteractionService {
         });
     }
 
-    displayCancellationMessage(message: string) {
-        extensionLogOutputChannel.info(`Displaying cancellation message: ${message}`);
-        vscode.window.showWarningMessage(formatText(message));
+    displayCancellationMessage() {
+        extensionLogOutputChannel.info(`Canceled Aspire operation.`);
     }
 
     openProject(projectPath: string) {
@@ -249,7 +250,7 @@ export class InteractionService implements IInteractionService {
         else if (logLevel === 'Debug') {
             extensionLogOutputChannel.debug(formatText(message));
         }
-        else if (logLevel === 'Info') {
+        else if (logLevel === 'Information') {
             extensionLogOutputChannel.info(formatText(message));
         }
         else if (logLevel === 'Warn') {
@@ -260,8 +261,13 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    requestAppHostAttach(pid: number, projectName: string): Promise<void> {
-        return attachToAppHost(pid, projectName);
+    runDotNetProject(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void> {
+        return startAppHost(projectFile, workingDirectory, args, environment, rpcClient);
+    }
+
+    stopDebugging() {
+        this.clearStatusBar();
+        stopAllDebuggingSessions();
     }
 
     clearStatusBar() {
@@ -289,5 +295,8 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("requestAppHostAttach", withAuthentication(interactionService.requestAppHostAttach.bind(interactionService)));
+    connection.onRequest("runDotNetProject", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[]) => {
+        return interactionService.runDotNetProject(projectFile, workingDirectory, args, environment, rpcClient);
+    }));
+    connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
 }

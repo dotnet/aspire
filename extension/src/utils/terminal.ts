@@ -16,7 +16,6 @@ export function getAspireTerminal(): vscode.Terminal {
         if (!hasRunGetAspireTerminal) {
             existingTerminal.dispose();
             extensionLogOutputChannel.info(`Recreating existing Aspire terminal`);
-            hasRunGetAspireTerminal = true;
         }
         else {
             return existingTerminal;
@@ -37,6 +36,8 @@ export function getAspireTerminal(): vscode.Terminal {
         // Use the current locale in the CLI
         ASPIRE_LOCALE_OVERRIDE: vscode.env.language,
     };
+
+    hasRunGetAspireTerminal = true;
 
     return vscode.window.createTerminal({
         name: terminalName,

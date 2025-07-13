@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -118,7 +117,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -150,7 +149,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -289,7 +288,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.Contains("ASPIRE_EXTENSION_PID_PATH", env.Keys);
@@ -330,7 +329,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider1,
             new AspireCliTelemetry(),
             provider1.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.DoesNotContain("ASPIRE_EXTENSION_PID_PATH", env.Keys);
@@ -357,7 +356,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider2,
             new AspireCliTelemetry(),
             provider2.GetRequiredService<IConfiguration>(),
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.DoesNotContain(KnownConfigNames.ExtensionPidFilePath, env.Keys);
@@ -375,9 +374,6 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             CancellationToken.None
         );
     }
-
-    private sealed class DummyInteractionService : IInteractionService { }
-
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -385,13 +381,13 @@ internal sealed class AssertingDotNetCliRunner(
     IServiceProvider serviceProvider,
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration)
 {
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        assertionCallback(args, env, workingDirectory, backchannelCompletionSource, options);
+        assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
         return Task.FromResult(exitCode);
     }
 }

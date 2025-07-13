@@ -14,6 +14,7 @@ import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
+export let extensionContext: vscode.ExtensionContext | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	initializeTelemetry(context);
@@ -32,6 +33,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
+
+	extensionContext = context; 
 
 	// Return exported API for tests or other extensions
 	return {

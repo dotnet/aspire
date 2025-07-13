@@ -27,6 +27,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
+    private readonly IServiceProvider _serviceProvider;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -37,8 +38,8 @@ internal sealed class RunCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier
-        )
+        ICliUpdateNotifier updateNotifier,
+        IServiceProvider serviceProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -56,6 +57,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
+        _serviceProvider = serviceProvider;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -109,13 +111,17 @@ internal sealed class RunCommand : BaseCommand
                     StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                if (buildExitCode != 0)
+                // The extension host will build the app host project itself, so we don't need to do it here if host exists.
+                if (!ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out _))
                 {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
+                    }
                 }
             }
 

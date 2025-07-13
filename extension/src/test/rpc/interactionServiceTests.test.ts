@@ -208,16 +208,20 @@ type RpcServerTestInfo = {
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+	stopCli(): Promise<void> {
+		return Promise.resolve();
+	}
+	
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}
 
 	validatePromptInputString(input: string): Promise<ValidationResult | null> {
 		if (input === "valid") {
-			return Promise.resolve({ message: `Valid input: ${input}`, successful: true });
+			return Promise.resolve({ Message: `Valid input: ${input}`, Successful: true });
 		}
 		else if (input === "invalid") {
-			return Promise.resolve({ message: `Invalid input: ${input}`, successful: false });
+			return Promise.resolve({ Message: `Invalid input: ${input}`, Successful: false });
 		}
 		else {
 			return Promise.resolve(null);
