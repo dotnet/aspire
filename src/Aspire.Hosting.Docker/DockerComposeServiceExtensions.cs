@@ -98,7 +98,10 @@ public static class DockerComposeServiceExtensions
         return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
-            defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
+            defaultValue: parameter.Secret || parameter.Default is null ? null : 
+#pragma warning disable CS0618 // Type or member is obsolete
+                parameter.Value,
+#pragma warning restore CS0618 // Type or member is obsolete
             source: parameter
         );
     }

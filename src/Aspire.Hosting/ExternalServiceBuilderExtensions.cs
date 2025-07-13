@@ -202,7 +202,11 @@ public static class ExternalServiceBuilderExtensions
 
             // OK accessing the parameter here synchronously as this should only activate once the resource is running
 
-            if (uri is null && !Uri.TryCreate(builder.Resource.UrlParameter?.Value, UriKind.Absolute, out uri)
+            if (uri is null && !Uri.TryCreate(
+#pragma warning disable CS0618 // Type or member is obsolete
+                builder.Resource.UrlParameter?.Value, 
+#pragma warning restore CS0618 // Type or member is obsolete
+                UriKind.Absolute, out uri)
                 || (uri?.Scheme != "http" && uri?.Scheme != "https"))
             {
                 return; // Skip health check if the URI is not set or not HTTP/HTTPS
