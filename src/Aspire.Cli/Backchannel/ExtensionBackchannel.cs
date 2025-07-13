@@ -51,7 +51,6 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
     private readonly string _token;
 
     private TaskCompletionSource? _connectionSetupTcs;
-    private string[]? _capabilities;
     private readonly ILogger<ExtensionBackchannel> _logger;
     private readonly IExtensionRpcTarget _target;
     private readonly IConfiguration _configuration;
@@ -218,16 +217,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                 var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
                 AddLocalRpcTarget(rpc, _target);
                 rpc.StartListening();
-                rpc.Disconnected += (sender, args) =>
-                {
 
-                };
-                _capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+                var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
                     "getCapabilities",
                     [_token],
                     cancellationToken);
 
-                if (!_capabilities.Any(s => s == BaselineCapability))
+                if (!capabilities.Any(s => s == BaselineCapability))
                 {
                     throw new ExtensionIncompatibleException(
                         string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
@@ -525,9 +521,19 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
     public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
-        Debug.Assert(_capabilities is not null, "Capabilities should be initialized after connection is established.");
 
-        return _capabilities;
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Requesting capabilities from the extension");
+
+        var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+            "getCapabilities",
+            [_token],
+            cancellationToken);
+
+        return capabilities;
     }
 
     public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken)
