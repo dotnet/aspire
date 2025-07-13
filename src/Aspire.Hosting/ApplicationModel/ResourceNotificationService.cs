@@ -434,11 +434,25 @@ public class ResourceNotificationService : IDisposable
     /// <summary>
     /// Attempts to retrieve the current state of a resource by resourceId.
     /// </summary>
-    /// <param name="resourceId">The resource id.</param>
+    /// <remarks>
+    /// <para>
+    /// A resource id can be either the unique id of the resource or the displayed resource name.
+    /// </para>
+    /// <para>
+    /// Projects, executables and containers typically have a unique id that combines the display name and a unique suffix. For example, a resource named <c>cache</c> could have a resource id of <c>cache-abcdwxyz</c>.
+    /// This id is used to uniquely identify the resource in the app host.
+    /// </para>
+    /// <para>
+    /// The resource name can be also be used to retrieve the resource state, but it must be unique. If there are multiple resources with the same name, then this method will not return a match.
+    /// For example, if a resource named <c>cache</c> has multiple replicas, then specifing <c>cache</c> won't return a match.
+    /// </para>
+    /// </remarks>
+    /// <param name="resourceId">The resource id. This id can either exactly match the unique id of the resource or the displayed resource name if the resource name doesn't have duplicas (i.e. replicas).</param>
     /// <param name="resourceEvent">When this method returns, contains the <see cref="ResourceEvent"/> for the specified resource id, if found; otherwise, <see langword="null"/>.</param>
     /// <returns><see langword="true"/> if specified resource id was found; otherwise, <see langword="false"/>.</returns>
     public bool TryGetCurrentState(string resourceId, [NotNullWhen(true)] out ResourceEvent? resourceEvent)
     {
+        // Find exact match.
         if (_resourceNotificationStates.TryGetValue(resourceId, out var state))
         {
             if (state.LastSnapshot is { } snapshot)
@@ -448,6 +462,29 @@ public class ResourceNotificationService : IDisposable
             }
         }
 
+        // Fallback to finding match on resource name. If there are multiple resources with the same name (e.g. replicas) then don't match.
+        KeyValuePair<string, ResourceNotificationState>? nameMatch = null;
+        foreach (var matchingResource in _resourceNotificationStates.Where(s => string.Equals(s.Value.Resource.Name, resourceId, StringComparisons.ResourceName)))
+        {
+            if (nameMatch == null)
+            {
+                nameMatch = matchingResource;
+            }
+            else
+            {
+                // Second match found, so we can't return a match based on the name.
+                nameMatch = null;
+                break;
+            }
+        }
+        
+        if (nameMatch is { } m && m.Value.LastSnapshot != null)
+        {
+            resourceEvent = new ResourceEvent(m.Value.Resource, m.Key, m.Value.LastSnapshot);
+            return true;
+        }
+
+        // No match.
         resourceEvent = null;
         return false;
     }
