@@ -272,12 +272,12 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
-        var runDotNetProjectCalled = new TaskCompletionSource();
+        var launchAppHostCalledTcs = new TaskCompletionSource();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => new TestExtensionInteractionService
             {
-                RunDotNetProjectCallback = () => runDotNetProjectCalled.SetResult()
+                LaunchAppHostCallback = () => launchAppHostCalledTcs.SetResult()
             };
             options.ConfigurationCallback = configBuilder =>
             {
@@ -310,7 +310,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             cancellationToken: CancellationToken.None
         );
 
-        await runDotNetProjectCalled.Task;
+        await launchAppHostCalledTcs.Task;
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }

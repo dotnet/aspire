@@ -38,7 +38,7 @@ internal interface IExtensionBackchannel
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    Task RunDotNetProjectAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken);
+    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -530,7 +530,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return _capabilities;
     }
 
-    public async Task RunDotNetProjectAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken)
+    public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -541,7 +541,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         _logger.LogDebug("Running .NET project at {ProjectFile} with arguments: {Arguments}", projectFile, string.Join(" ", arguments));
 
         await rpc.InvokeWithCancellationAsync<int>(
-            "runDotNetProject",
+            "launchAppHost",
             [_token, projectFile, workingDirectory, arguments, environment],
             cancellationToken);
     }

@@ -62,8 +62,8 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
-    public TaskCompletionSource? RunDotNetProjectAsyncCalled { get; set; }
-    public Func<string, string, List<string>, List<EnvVar>, Task>? RunDotNetProjectAsyncCallback { get; set; }
+    public TaskCompletionSource? LaunchAppHostAsyncCalled { get; set; }
+    public Func<string, string, List<string>, List<EnvVar>, Task>? LaunchAppHostAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -190,11 +190,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(Array.Empty<string>());
     }
 
-    public Task RunDotNetProjectAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, CancellationToken cancellationToken)
+    public Task LaunchAppHostAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, CancellationToken cancellationToken)
     {
-        RunDotNetProjectAsyncCalled?.SetResult();
-        return RunDotNetProjectAsyncCallback != null
-            ? RunDotNetProjectAsyncCallback.Invoke(projectPath, targetFramework, arguments, envVars)
+        LaunchAppHostAsyncCalled?.SetResult();
+        return LaunchAppHostAsyncCallback != null
+            ? LaunchAppHostAsyncCallback.Invoke(projectPath, targetFramework, arguments, envVars)
             : Task.CompletedTask;
     }
 }

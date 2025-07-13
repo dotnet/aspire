@@ -27,7 +27,7 @@ export interface IInteractionService {
     displayCancellationMessage: (message: string) => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    runDotNetProject(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void>;
+    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void>;
     stopDebugging: () => void;
 }
 
@@ -261,7 +261,7 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    runDotNetProject(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void> {
+    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void> {
         return startAppHost(projectFile, workingDirectory, args, environment, rpcClient);
     }
 
@@ -295,8 +295,8 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("runDotNetProject", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[]) => {
-        return interactionService.runDotNetProject(projectFile, workingDirectory, args, environment, rpcClient);
+    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[]) => {
+        return interactionService.launchAppHost(projectFile, workingDirectory, args, environment, rpcClient);
     }));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
 }

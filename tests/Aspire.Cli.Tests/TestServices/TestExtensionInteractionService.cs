@@ -13,7 +13,7 @@ internal sealed class TestExtensionInteractionService : IExtensionInteractionSer
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
-    public Action? RunDotNetProjectCallback { get; set; }
+    public Action? LaunchAppHostCallback { get; set; }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
@@ -123,9 +123,9 @@ internal sealed class TestExtensionInteractionService : IExtensionInteractionSer
         LogMessageCallback?.Invoke(logLevel, message);
     }
 
-    public Task RunDotNetProjectAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
+    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
     {
-        RunDotNetProjectCallback?.Invoke();
+        LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;
     }
 }

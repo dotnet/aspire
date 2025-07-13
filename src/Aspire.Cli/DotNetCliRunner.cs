@@ -442,7 +442,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out var extensionBackchannel)
             && (await extensionBackchannel.GetCapabilitiesAsync(cancellationToken)).Contains("apphost-debug"))
         {
-            await interactionService.RunDotNetProjectAsync(
+            await interactionService.LaunchAppHostAsync(
                 projectFile.FullName,
                 startInfo.WorkingDirectory,
                 startInfo.ArgumentList.ToList(),
